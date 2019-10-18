@@ -407,3 +407,153 @@ Proof.
       replace (p + k + length ts) with ((p + length ts) + k); auto.
       omega.
 Qed.
+
+Lemma lift_distributes_over_subst:
+  forall {l: level} (a: l) b i k,
+  lift i k (subst b 0 a) = subst (lift i k b) 0 (lift i (S k) a).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply lift_addition_distributes_over_subst.
+Qed.
+
+Lemma subst_lift_simplification:
+   forall {l: level} (a: l) b i p k,
+   p <= i + k ->
+   k <= p -> subst b p (lift (S i) k a) = lift i k a.
+Proof.
+  induction a using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - simpl.
+    destruct (le_gt_dec k n).
+    + rewrite subst_bound_gt; auto; omega.
+    + rewrite subst_bound_lt; auto; omega.
+  (* Case: negation. *)
+  - simpl; f_equal.
+    list induction over H.
+  (* Case: jump. *)
+  - simpl; f_equal; auto.
+    list induction over H.
+  (* Case: bind. *)
+  - simpl; f_equal.
+    + apply IHa1; omega.
+    + list induction over H.
+    + rewrite List.map_length.
+      apply IHa2; omega.
+Qed.
+
+Lemma lift_and_subst_commute:
+  forall {l: level} (a: l) b i p k,
+  k <= p ->
+  lift i k (subst b p a) = subst b (i + p) (lift i k a).
+Proof.
+  induction a using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - simpl.
+    destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ]; simpl.
+    + destruct (le_gt_dec k n).
+      * rewrite subst_bound_gt; eauto with arith.
+        destruct (le_gt_dec k (pred n)).
+        inversion l.
+        replace (i + S p) with (S (i + p)); auto.
+        replace (i + S m) with (S (i + m)); auto.
+        absurd (k < n); omega.
+      * absurd (n > p); eauto with arith.
+    + destruct (le_gt_dec k n).
+      * rewrite subst_bound_eq; auto.
+        rewrite lift_lift_simplification; auto with arith.
+        congruence.
+      * destruct e.
+        absurd (k > p); auto with arith.
+    + destruct (le_gt_dec k n).
+      * rewrite subst_bound_lt; auto with arith.
+      * rewrite subst_bound_lt; eauto with arith.
+  (* Case: negation. *)
+  - simpl; f_equal.
+    list induction over H.
+  (* Case: jump. *)
+  - simpl; f_equal; auto.
+    list induction over H.
+  (* Case: bind. *)
+  - simpl; f_equal.
+    + replace (S (i + p)) with (i + S p); auto with arith.
+    + list induction over H.
+    + do 2 rewrite List.map_length.
+      replace (i + p + length ts) with (i + (p + length ts)); auto with arith.
+Qed.
+
+Hint Resolve lift_and_subst_commute: cps.
+
+Lemma subst_addition_distributes_over_itself:
+  forall {l: level} (a: l) b c p k,
+  subst c (p + k) (subst b p a) = subst (subst c k b) p (subst c (S (p + k)) a).
+Proof.
+  induction a using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - unfold subst at 2.
+    destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
+    + destruct n.
+      inversion l.
+      unfold pred, subst at 1.
+      destruct (lt_eq_lt_dec (p + k) n) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_gt; auto with arith.
+        rewrite subst_bound_gt; eauto with arith.
+      * rewrite e; clear e.
+        rewrite subst_bound_eq; auto.
+        rewrite subst_lift_simplification; auto with arith.
+      * rewrite subst_bound_lt; eauto with arith.
+        rewrite subst_bound_gt; eauto with arith.
+    + destruct e.
+      rewrite subst_bound_lt; auto with arith.
+      rewrite subst_bound_eq; auto.
+      rewrite lift_and_subst_commute; auto with arith.
+    + rewrite subst_bound_lt; auto with arith.
+      rewrite subst_bound_lt; auto with arith.
+      rewrite subst_bound_lt; auto with arith.
+  (* Case: negation. *)
+  - simpl; f_equal.
+    list induction over H.
+  (* Case: jump. *)
+  - simpl; f_equal; auto.
+    list induction over H.
+  (* Case: bind. *)
+  - simpl; f_equal.
+    + replace (S (p + k)) with (S p + k); auto.
+    + list induction over H.
+    + do 2 rewrite List.map_length.
+      replace (p + k + length ts) with (p + length ts + k); auto.
+      omega.
+Qed.
+
+Lemma subst_distributes_over_itself:
+  forall {l: level} (a: l) b c k,
+  subst c k (subst b 0 a) = subst (subst c k b) 0 (subst c (S k) a).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply subst_addition_distributes_over_itself.
+Qed.
