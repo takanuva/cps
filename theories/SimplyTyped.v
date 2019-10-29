@@ -101,6 +101,28 @@ Tactic Notation "list" "induction" "over" hyp(H) :=
   | (* Case: cons. *)
     f_equal; auto ].
 
+(** *)
+
+Inductive subterm: forall {l1 l2: level}, l1 -> l2 -> Prop :=
+  | subterm_negation:
+    forall t ts,
+    List.In t ts -> subterm t (negation ts)
+  | subterm_jump_left:
+    forall f xs,
+    subterm f (jump f xs)
+  | subterm_jump_right:
+    forall f x xs,
+    List.In x xs -> subterm x (jump f xs)
+  | subterm_bind_left:
+    forall b ts c,
+    subterm b (bind b ts c)
+  | subterm_bind_middle:
+    forall b t ts c,
+    List.In t ts -> subterm t (bind b ts c)
+  | subterm_bind_right:
+    forall b ts c,
+    subterm c (bind b ts c).
+
 (** ** Lifting
 
     As we're dealing with de Bruijn indexes, we need a notion of lifting in our
@@ -557,3 +579,33 @@ Proof.
   replace k with (0 + k); auto.
   apply subst_addition_distributes_over_itself.
 Qed.
+
+(** ** One-step reduction. *)
+
+Fixpoint apply_parameters (xs: list value) (k: nat) (c: command) :=
+  match xs with
+  | nil => lift 1 k c
+  | cons x xs => subst (lift k 1 x) 0 (apply_parameters xs (S k) c)
+  end.
+
+(*
+  We have four assumptions: j, x, y, z.
+
+  \j.\x.\y.\z.                       \j.\x.\y.\z.
+  k@0<x@3, y@2>                      j@4<x@3, y@2, z@1>
+  { k<a, b> =                 =>     { k<a, b> =
+      j@5<a@1, b@0, z@2> }               j@5<a@1, b@0, z@2> }
+
+  Does it make sense to keep the continuation binding there on a simply typed
+  environment? I.e., does k<..., k, ...> ever make sense? I don't think there
+  can be a (simple) type for that... oh, now I get it!
+*)
+
+Inductive step: forall {l: level}, l -> l -> Prop :=
+  | step_jmp:
+    forall xs ts c,
+    length xs = length ts ->
+    step
+      (bind (jump 0 xs) ts c)
+      (bind (apply_parameters xs 0 c) ts c)
+  (* TODO *).
