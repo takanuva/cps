@@ -2,18 +2,10 @@
 
 Require Import Arith.
 Require Import Omega.
+Require Import Equality.
+Require Import Relations.
 
 (** ** Syntax
-
-    We split our syntax into three classes: [sort], [value] and [command]. *)
-
-Inductive level: Prop :=
-  | sort
-  | value
-  | command.
-
-(** We unify the syntax into the same type in order to make a few proofs easier,
-    though still respecting the above syntactic classes.
 
     Inspired by the lambda cube, we use [type] and [prop] as our universes, and
     we keep [base] as our only base type. We also use [void] as the type of
@@ -25,50 +17,42 @@ Inductive level: Prop :=
     The commands in our language are either a [jump], written as [k<x, ...>], or
     a [bind], written as [b { k<x: t, ...> = c }]. *)
 
-Inductive pseudoterm: level -> Set :=
-  | type:
-    pseudoterm sort
-  | prop:
-    pseudoterm sort
-  | base:
-    pseudoterm sort
-  | void:
-    pseudoterm sort
-  | bound:
-    forall n: nat,
-    pseudoterm value
-  | negation:
-    forall ts: list (pseudoterm sort),
-    pseudoterm sort
-  | jump:
-    forall f: pseudoterm value,
-    forall xs: list (pseudoterm value),
-    pseudoterm command
-  | bind:
-    forall b: pseudoterm command,
-    forall ts: list (pseudoterm sort),
-    forall c: pseudoterm command,
-    pseudoterm command.
+Inductive pseudoterm: Set :=
+  | type
+  | prop
+  | base
+  | void
+  | bound (n: nat)
+  | negation (ts: list pseudoterm)
+  | jump (f: pseudoterm) (xs: list pseudoterm)
+  | bind (b: pseudoterm) (ts: list pseudoterm) (c: pseudoterm).
 
 Coercion bound: nat >-> pseudoterm.
-Coercion pseudoterm: level >-> Sortclass.
+
+(** Equality of pseudoterms is decidable. *)
+
+Fixpoint pseudoterm_eq_dec (a b: pseudoterm):
+  { a = b } + { a <> b }.
+Proof.
+  decide equality; decide equality.
+Qed.
 
 (** As we have lists inside our pseudoterms, we'll need a stronger induction
     principle for it, stating that propositions are kept inside the lists. *)
 
 Definition pseudoterm_deepind:
-  forall P: (forall {l: level}, l -> Prop),
+  forall P: pseudoterm -> Prop,
   forall f1: P type,
   forall f2: P prop,
   forall f3: P base,
   forall f4: P void,
-  forall f5: (forall n: nat, P n),
+  forall f5: (forall n: nat, P (bound n)),
   forall f6: (forall ts, List.Forall P ts -> P (negation ts)),
   forall f7: (forall f xs, P f -> List.Forall P xs -> P (jump f xs)),
   forall f8: (forall b ts c, P b -> List.Forall P ts -> P c -> P (bind b ts c)),
-  forall {l: level} (e: l), P e.
+  forall e, P e.
 Proof.
-  do 9 intro; fix H 2.
+  do 9 intro; fix H 1.
   destruct e.
   (* Case: type. *)
   - apply f1.
@@ -103,25 +87,15 @@ Tactic Notation "list" "induction" "over" hyp(H) :=
 
 (** *)
 
-Inductive subterm: forall {l1 l2: level}, l1 -> l2 -> Prop :=
-  | subterm_negation:
-    forall t ts,
-    List.In t ts -> subterm t (negation ts)
-  | subterm_jump_left:
-    forall f xs,
-    subterm f (jump f xs)
-  | subterm_jump_right:
-    forall f x xs,
-    List.In x xs -> subterm x (jump f xs)
+Inductive subterm: pseudoterm -> pseudoterm -> Prop :=
   | subterm_bind_left:
     forall b ts c,
     subterm b (bind b ts c)
-  | subterm_bind_middle:
-    forall b t ts c,
-    List.In t ts -> subterm t (bind b ts c)
   | subterm_bind_right:
     forall b ts c,
     subterm c (bind b ts c).
+
+Hint Constructors subterm: cps.
 
 (** ** Lifting
 
@@ -131,7 +105,7 @@ Inductive subterm: forall {l1 l2: level}, l1 -> l2 -> Prop :=
     term of the form [b { k<x: t, ...> = c }], we need to bind the continuation
     [k] on the [b] term, and we need to bind [N] variables on the [c] term. *)
 
-Fixpoint lift (i: nat) (k: nat) {l: level} (e: l): l :=
+Fixpoint lift (i: nat) (k: nat) (e: pseudoterm): pseudoterm :=
   match e with
   | type =>
     type
@@ -155,7 +129,7 @@ Fixpoint lift (i: nat) (k: nat) {l: level} (e: l): l :=
   end.
 
 Lemma lift_zero_e_equals_e:
-  forall {l: level} (e: l) k,
+  forall e k,
   lift 0 k e = e.
 Proof.
   induction e using pseudoterm_deepind; intros.
@@ -206,7 +180,7 @@ Proof.
 Qed.
 
 Lemma lift_i_lift_j_equals_lift_i_plus_j:
-  forall {l: level} (e: l) i j k,
+  forall e i j k,
   lift i k (lift j k e) = lift (i + j) k e.
 Proof.
   induction e using pseudoterm_deepind; intros.
@@ -239,7 +213,7 @@ Qed.
 Hint Resolve lift_i_lift_j_equals_lift_i_plus_j: cps.
 
 Lemma lift_succ_n_equals_lift_1_lift_n:
-  forall n k {l: level} (e: l),
+  forall n k e,
   lift (S n) k e = lift 1 k (lift n k e).
 Proof.
   intros.
@@ -250,7 +224,7 @@ Qed.
 Hint Resolve lift_succ_n_equals_lift_1_lift_n: cps.
 
 Lemma lift_lift_simplification:
-  forall {l: level} (e: l) i j k l,
+  forall e i j k l,
   k <= l + j -> l <= k -> lift i k (lift j l e) = lift (i + j) l e.
 Proof.
   induction e using pseudoterm_deepind; intros.
@@ -282,7 +256,7 @@ Proof.
 Qed.
 
 Lemma lift_lift_permutation:
-  forall {l: level} (e: l) i j k l,
+  forall e i j k l,
   k <= l -> lift i k (lift j l e) = lift j (i + l) (lift i k e).
 Proof.
   induction e using pseudoterm_deepind; intros.
@@ -326,7 +300,7 @@ Qed.
 
 (** ** Substitution *)
 
-Fixpoint subst (p: value) (k: nat) {l: level} (q: l): l :=
+Fixpoint subst (p: pseudoterm) (k: nat) (q: pseudoterm): pseudoterm :=
   match q with
   | type =>
     type
@@ -384,7 +358,7 @@ Proof.
 Qed.
 
 Lemma lift_addition_distributes_over_subst:
-  forall {l: level} (a: l) b i p k,
+  forall a b i p k,
   lift i (p + k) (subst b p a) = subst (lift i k b) p (lift i (S (p + k)) a).
 Proof.
   induction a using pseudoterm_deepind; intros.
@@ -431,7 +405,7 @@ Proof.
 Qed.
 
 Lemma lift_distributes_over_subst:
-  forall {l: level} (a: l) b i k,
+  forall a b i k,
   lift i k (subst b 0 a) = subst (lift i k b) 0 (lift i (S k) a).
 Proof.
   intros.
@@ -440,7 +414,7 @@ Proof.
 Qed.
 
 Lemma subst_lift_simplification:
-   forall {l: level} (a: l) b i p k,
+   forall a b i p k,
    p <= i + k ->
    k <= p -> subst b p (lift (S i) k a) = lift i k a.
 Proof.
@@ -473,7 +447,7 @@ Proof.
 Qed.
 
 Lemma lift_and_subst_commute:
-  forall {l: level} (a: l) b i p k,
+  forall a b i p k,
   k <= p ->
   lift i k (subst b p a) = subst b (i + p) (lift i k a).
 Proof.
@@ -523,7 +497,7 @@ Qed.
 Hint Resolve lift_and_subst_commute: cps.
 
 Lemma subst_addition_distributes_over_itself:
-  forall {l: level} (a: l) b c p k,
+  forall a b c p k,
   subst c (p + k) (subst b p a) = subst (subst c k b) p (subst c (S (p + k)) a).
 Proof.
   induction a using pseudoterm_deepind; intros.
@@ -572,7 +546,7 @@ Proof.
 Qed.
 
 Lemma subst_distributes_over_itself:
-  forall {l: level} (a: l) b c k,
+  forall a b c k,
   subst c k (subst b 0 a) = subst (subst c k b) 0 (subst c (S k) a).
 Proof.
   intros.
@@ -580,32 +554,81 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
+(** *)
+
+Inductive not_free_in: nat -> pseudoterm -> Prop :=
+  | not_free_bound:
+    forall n m,
+    n <> m -> not_free_in n m
+  | not_free_jump:
+    forall n x,
+    not_free_in n x ->
+    forall ts,
+    List.Forall (not_free_in n) ts -> not_free_in n (jump x ts)
+  | not_free_bind:
+    forall n b,
+    not_free_in (S n) b ->
+    forall ts c,
+    not_free_in (n + length ts) c ->
+    not_free_in n (bind b ts c).
+
 (** ** One-step reduction. *)
 
-Fixpoint apply_parameters (xs: list value) (k: nat) (c: command) :=
+Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
   match xs with
   | nil => lift 1 k c
-  | cons x xs => subst (lift k 1 x) 0 (apply_parameters xs (S k) c)
+  | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
   end.
 
 (*
   We have four assumptions: j, x, y, z.
 
+  For (JMP):
+
   \j.\x.\y.\z.                       \j.\x.\y.\z.
-  k@0<x@3, y@2>                      j@4<x@3, y@2, z@1>
-  { k<a, b> =                 =>     { k<a, b> =
-      j@5<a@1, b@0, z@2> }               j@5<a@1, b@0, z@2> }
+    k@0<x@3, y@2>                      j@4<x@3, y@2, z@1>
+    { k<a, b> =                 =>     { k<a, b> =
+        j@5<a@1, b@0, z@2> }               j@5<a@1, b@0, z@2> }
 
   Does it make sense to keep the continuation binding there on a simply typed
   environment? I.e., does k<..., k, ...> ever make sense? I don't think there
   can be a (simple) type for that... oh, now I get it!
+
+  For (DISTR):
+
+  \j.\x.\y.\z.                       \j.\x.\y.\z.
+    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
+    { k<a, b> =                        { h<c, d, e> =
+        h@2<a@1, j@6, b@0> }    =>         d@1<c@2, e@0> }
+    { h<c, d, e> =                     { k<a, b> =
+        d@1<c@2, e@0> }                    h@0<a@2, j@6, b@1>
+                                           { h<c, d, e> =
+                                               d@1<c@2, e@0> } }
+
+  That's an annoying reduction to do... let's see...
+
 *)
 
-Inductive step: forall {l: level}, l -> l -> Prop :=
+Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
+
+Inductive step: relation pseudoterm :=
   | step_jmp:
     forall xs ts c,
     length xs = length ts ->
-    step
-      (bind (jump 0 xs) ts c)
-      (bind (apply_parameters xs 0 c) ts c)
-  (* TODO *).
+    [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c]
+  | step_bind_left:
+    forall b1 b2 ts c,
+    [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
+  | step_bind_right:
+    forall b ts c1 c2,
+    [c1 => c2] -> [bind b ts c1 => bind b ts c2]
+
+where "[ a => b ]" := (step a b): type_scope.
+
+Hint Constructors step: cps.
+
+Lemma subterm_and_step_commute:
+  commut _ subterm (transp _ step).
+Proof.
+  compute; induction 1; eauto with cps.
+Qed.
