@@ -2,8 +2,12 @@
 
 Require Import Arith.
 Require Import Omega.
+Require Import Setoid.
 Require Import Equality.
+Require Import Morphisms.
 Require Import Relations.
+
+Module STCC.
 
 (** ** Syntax
 
@@ -87,7 +91,7 @@ Tactic Notation "list" "induction" "over" hyp(H) :=
 
 (** *)
 
-Inductive subterm: pseudoterm -> pseudoterm -> Prop :=
+Inductive subterm: relation pseudoterm :=
   | subterm_bind_left:
     forall b ts c,
     subterm b (bind b ts c)
@@ -557,9 +561,24 @@ Qed.
 (** *)
 
 Inductive not_free_in: nat -> pseudoterm -> Prop :=
+  | not_free_type:
+    forall n,
+    not_free_in n type
+  | not_free_prop:
+    forall n,
+    not_free_in n prop
+  | not_free_base:
+    forall n,
+    not_free_in n base
+  | not_free_void:
+    forall n,
+    not_free_in n void
   | not_free_bound:
     forall n m,
     n <> m -> not_free_in n m
+  | not_free_negation:
+    forall n ts,
+    not_free_in n (negation ts)
   | not_free_jump:
     forall n x,
     not_free_in n x ->
@@ -571,6 +590,43 @@ Inductive not_free_in: nat -> pseudoterm -> Prop :=
     forall ts c,
     not_free_in (n + length ts) c ->
     not_free_in n (bind b ts c).
+
+Definition free_in n e := ~not_free_in n e.
+
+(** ** Structural congruence *)
+
+(*
+  For (DISTR):
+
+  \j.\x.\y.\z.                       \j.\x.\y.\z.
+    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
+    { k<a, b> =                        { h<c, d, e> =
+        h@2<a@1, j@6, b@0> }  ~=~          d@1<c@2, e@0> }
+    { h<c, d, e> =                     { k<a, b> =
+        d@1<c@2, e@0> }                    h@0<a@2, j@6, b@1>
+                                           { h<c, d, e> =
+                                               d@1<c@2, e@0> } }
+
+  That's an annoying reduction to do... let's see...
+*)
+
+Inductive struct_cong: relation pseudoterm :=
+  | struct_cong_refl:
+    forall e,
+    struct_cong e e
+  | struct_cong_symm:
+    forall a b,
+    struct_cong a b -> struct_cong b a
+  | struct_cong_tran:
+    forall a b c,
+    struct_cong a b -> struct_cong b c -> struct_cong a c.
+
+Hint Constructors struct_cong: cps.
+
+Instance struct_cong_is_an_equivalence: Equivalence struct_cong.
+Proof.
+  split; eauto with cps.
+Defined.
 
 (** ** One-step reduction. *)
 
@@ -593,20 +649,6 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
   Does it make sense to keep the continuation binding there on a simply typed
   environment? I.e., does k<..., k, ...> ever make sense? I don't think there
   can be a (simple) type for that... oh, now I get it!
-
-  For (DISTR):
-
-  \j.\x.\y.\z.                       \j.\x.\y.\z.
-    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
-    { k<a, b> =                        { h<c, d, e> =
-        h@2<a@1, j@6, b@0> }    =>         d@1<c@2, e@0> }
-    { h<c, d, e> =                     { k<a, b> =
-        d@1<c@2, e@0> }                    h@0<a@2, j@6, b@1>
-                                           { h<c, d, e> =
-                                               d@1<c@2, e@0> } }
-
-  That's an annoying reduction to do... let's see...
-
 *)
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
@@ -632,3 +674,5 @@ Lemma subterm_and_step_commute:
 Proof.
   compute; induction 1; eauto with cps.
 Qed.
+
+End STCC.
