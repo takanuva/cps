@@ -654,7 +654,7 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
-  | step_jmp:
+  | step_jump:
     forall xs ts c,
     length xs = length ts ->
     [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c]
@@ -669,10 +669,154 @@ where "[ a => b ]" := (step a b): type_scope.
 
 Hint Constructors step: cps.
 
-Lemma subterm_and_step_commute:
-  commut _ subterm (transp _ step).
+(** ** Multi-step reduction *)
+
+Definition star: relation pseudoterm :=
+  clos_refl_trans _ step.
+
+Hint Unfold star: cps.
+Hint Constructors clos_refl_trans: cps.
+Notation "[ a =>* b ]" := (star a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma star_jump:
+  forall xs ts c,
+  length xs = length ts ->
+  [bind (jump 0 xs) ts c =>* bind (apply_parameters xs 0 c) ts c].
 Proof.
-  compute; induction 1; eauto with cps.
+  auto with cps.
 Qed.
+
+Hint Resolve star_jump: cps.
+
+Lemma star_step:
+  forall a b,
+  [a => b] -> [a =>* b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve star_step: cps.
+
+Lemma star_refl:
+  forall a,
+  [a =>* a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve star_refl: cps.
+
+Lemma star_tran:
+  forall a b c,
+  [a =>* b] -> [b =>* c] -> [a =>* c].
+Proof.
+  eauto with cps.
+Qed.
+
+Hint Resolve star_tran: cps.
+
+Lemma star_bind_left:
+  forall b1 b2 ts c,
+  [b1 =>* b2] -> [bind b1 ts c =>* bind b2 ts c].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve star_bind_left: cps.
+
+Lemma star_bind_right:
+  forall b ts c1 c2,
+  [c1 =>* c2] -> [bind b ts c1 =>* bind b ts c2].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve star_bind_right: cps.
+
+(** ** Pseudoterm conversion *)
+
+Definition conv: relation pseudoterm :=
+  clos_refl_sym_trans _ step.
+
+Hint Unfold conv: cps.
+Hint Constructors clos_refl_sym_trans: cps.
+Notation "[ a <=> b ]" := (conv a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma conv_jump:
+  forall xs ts c,
+  length xs = length ts ->
+  [bind (jump 0 xs) ts c <=> bind (apply_parameters xs 0 c) ts c].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_jump: cps.
+
+Lemma conv_step:
+  forall a b,
+  [a => b] -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_step: cps.
+
+Lemma conv_star:
+  forall a b,
+  [a =>* b] -> [a <=> b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_star: cps.
+
+Lemma conv_refl:
+  forall a,
+  [a <=> a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_refl: cps.
+
+Lemma conv_symm:
+  forall a b,
+  [a <=> b] -> [b <=> a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_symm: cps.
+
+Lemma conv_tran:
+  forall a b c,
+  [a =>* b] -> [b =>* c] -> [a =>* c].
+Proof.
+  eauto with cps.
+Qed.
+
+Hint Resolve conv_tran: cps.
+
+Lemma conv_bind_left:
+  forall b1 b2 ts c,
+  [b1 =>* b2] -> [bind b1 ts c <=> bind b2 ts c].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_bind_left: cps.
+
+Lemma conv_bind_right:
+  forall b ts c1 c2,
+  [c1 =>* c2] -> [bind b ts c1 <=> bind b ts c2].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_bind_right: cps.
+
+(** *)
 
 End STCC.
