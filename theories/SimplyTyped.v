@@ -654,7 +654,7 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
-  | step_jump:
+  | step_beta:
     forall xs ts c,
     length xs = length ts ->
     [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c]
@@ -679,7 +679,7 @@ Hint Constructors clos_refl_trans: cps.
 Notation "[ a =>* b ]" := (star a b)
   (at level 0, a, b at level 200): type_scope.
 
-Lemma star_jump:
+Lemma star_beta:
   forall xs ts c,
   length xs = length ts ->
   [bind (jump 0 xs) ts c =>* bind (apply_parameters xs 0 c) ts c].
@@ -687,7 +687,7 @@ Proof.
   auto with cps.
 Qed.
 
-Hint Resolve star_jump: cps.
+Hint Resolve star_beta: cps.
 
 Lemma star_step:
   forall a b,
@@ -699,8 +699,8 @@ Qed.
 Hint Resolve star_step: cps.
 
 Lemma star_refl:
-  forall a,
-  [a =>* a].
+  forall e,
+  [e =>* e].
 Proof.
   auto with cps.
 Qed.
@@ -744,7 +744,7 @@ Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a <=> b ]" := (conv a b)
   (at level 0, a, b at level 200): type_scope.
 
-Lemma conv_jump:
+Lemma conv_beta:
   forall xs ts c,
   length xs = length ts ->
   [bind (jump 0 xs) ts c <=> bind (apply_parameters xs 0 c) ts c].
@@ -752,7 +752,7 @@ Proof.
   auto with cps.
 Qed.
 
-Hint Resolve conv_jump: cps.
+Hint Resolve conv_beta: cps.
 
 Lemma conv_step:
   forall a b,
@@ -773,8 +773,8 @@ Qed.
 Hint Resolve conv_star: cps.
 
 Lemma conv_refl:
-  forall a,
-  [a <=> a].
+  forall e,
+  [e <=> e].
 Proof.
   auto with cps.
 Qed.
@@ -818,5 +818,129 @@ Qed.
 Hint Resolve conv_bind_right: cps.
 
 (** *)
+
+Hint Unfold transp: cps.
+
+Lemma subterm_and_step_commute:
+  commut _ subterm (transp _ step).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+(** *)
+
+Inductive parallel: relation pseudoterm :=
+  | parallel_beta:
+    forall xs ts c1 c2,
+    length xs = length ts -> parallel c1 c2 ->
+    parallel (bind (jump 0 xs) ts c1) (bind (apply_parameters xs 0 c2) ts c2)
+  | parallel_type:
+    parallel type type
+  | parallel_prop:
+    parallel prop prop
+  | parallel_base:
+    parallel base base
+  | parallel_void:
+    parallel void void
+  | parallel_bound:
+    forall n,
+    parallel (bound n) (bound n)
+  | parallel_negation:
+    forall ts,
+    parallel (negation ts) (negation ts)
+  | parallel_jump:
+    forall k xs,
+    parallel (jump k xs) (jump k xs)
+  | parallel_bind:
+    forall b1 b2 ts c1 c2,
+    parallel b1 b2 -> parallel c1 c2 ->
+    parallel (bind b1 ts c1) (bind b2 ts c2).
+
+Hint Constructors parallel: cps.
+
+Lemma parallel_refl:
+  forall e,
+  parallel e e.
+Proof.
+  induction e; auto with cps.
+Qed.
+
+Hint Resolve parallel_refl: cps.
+
+Lemma parallel_step:
+  forall a b,
+  [a => b] -> parallel a b.
+Proof.
+  induction 1; auto with cps.
+Qed.
+
+Lemma lift_distributes_over_apply_parameters_at_any_depth:
+  forall i xs k c n,
+  lift i (n + S k) (apply_parameters xs n c) =
+    apply_parameters (List.map (lift i (S k)) xs) n
+      (lift i (n + k + length xs) c).
+Proof.
+  induction xs; intros; simpl.
+  (* Case: nil. *)
+  - Check lift_lift_permutation.
+    replace (n + k + 0) with (n + k); auto.
+    rewrite lift_lift_permutation with (k := n).
+    + replace (1 + (n + k)) with (n + S k); auto.
+    + omega.
+  (* Case: cons. *)
+  - replace (n + S k) with (0 + (n + S k)); auto.
+    rewrite lift_addition_distributes_over_subst.
+    simpl; f_equal.
+    + rewrite lift_lift_permutation with (k := 0).
+      * reflexivity.
+      * omega.
+    + replace (S (n + S k)) with (S n + S k); auto.
+      rewrite IHxs.
+      replace (n + k + S (length xs)) with (S n + k + length xs).
+      * reflexivity.
+      * omega.
+Qed.
+
+Lemma lift_distributes_over_apply_parameters:
+  forall i xs k c,
+  lift i (S k) (apply_parameters xs 0 c) =
+    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
+Proof.
+  intros.
+  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
+Qed.
+
+Lemma parallel_lift:
+  forall a b,
+  parallel a b ->
+  forall i k,
+  parallel (lift i k a) (lift i k b).
+Proof.
+  induction 1; intros.
+  (* Case: parallel_beta. *)
+  - simpl.
+    rewrite lift_distributes_over_apply_parameters; auto with arith.
+    rewrite H.
+    apply parallel_beta.
+    + do 2 rewrite List.map_length.
+      assumption.
+    + apply IHparallel.
+  (* Case: parallel_type. *)
+  - auto with cps.
+  (* Case: parallel_prop. *)
+  - auto with cps.
+  (* Case: parallel_base. *)
+  - auto with cps.
+  (* Case: parallel_void. *)
+  - auto with cps.
+  (* Case: parallel_bound. *)
+  - auto with cps.
+  (* Case: parallel_negation. *)
+  - auto with cps.
+  (* Case: parallel_jump. *)
+  - auto with cps.
+  (* Case: parallel_bind. *)
+  - simpl; auto with cps.
+Qed.
 
 End STCC.
