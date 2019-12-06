@@ -33,14 +33,6 @@ Inductive pseudoterm: Set :=
 
 Coercion bound: nat >-> pseudoterm.
 
-(** Equality of pseudoterms is decidable. *)
-
-Fixpoint pseudoterm_eq_dec (a b: pseudoterm):
-  { a = b } + { a <> b }.
-Proof.
-  decide equality; decide equality.
-Qed.
-
 (** As we have lists inside our pseudoterms, we'll need a stronger induction
     principle for it, stating that propositions are kept inside the lists. *)
 
@@ -636,6 +628,41 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
   | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
   end.
 
+Lemma lift_distributes_over_apply_parameters_at_any_depth:
+  forall i xs k c n,
+  lift i (n + S k) (apply_parameters xs n c) =
+    apply_parameters (List.map (lift i (S k)) xs) n
+      (lift i (n + k + length xs) c).
+Proof.
+  induction xs; intros; simpl.
+  (* Case: nil. *)
+  - replace (n + k + 0) with (n + k); auto.
+    rewrite lift_lift_permutation with (k := n).
+    + replace (1 + (n + k)) with (n + S k); auto.
+    + omega.
+  (* Case: cons. *)
+  - replace (n + S k) with (0 + (n + S k)); auto.
+    rewrite lift_addition_distributes_over_subst.
+    simpl; f_equal.
+    + rewrite lift_lift_permutation with (k := 0).
+      * reflexivity.
+      * omega.
+    + replace (S (n + S k)) with (S n + S k); auto.
+      rewrite IHxs.
+      replace (n + k + S (length xs)) with (S n + k + length xs).
+      * reflexivity.
+      * omega.
+Qed.
+
+Lemma lift_distributes_over_apply_parameters:
+  forall i xs k c,
+  lift i (S k) (apply_parameters xs 0 c) =
+    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
+Proof.
+  intros.
+  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
+Qed.
+
 (*
   We have four assumptions: j, x, y, z.
 
@@ -872,42 +899,6 @@ Lemma parallel_step:
   [a => b] -> parallel a b.
 Proof.
   induction 1; auto with cps.
-Qed.
-
-Lemma lift_distributes_over_apply_parameters_at_any_depth:
-  forall i xs k c n,
-  lift i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (List.map (lift i (S k)) xs) n
-      (lift i (n + k + length xs) c).
-Proof.
-  induction xs; intros; simpl.
-  (* Case: nil. *)
-  - Check lift_lift_permutation.
-    replace (n + k + 0) with (n + k); auto.
-    rewrite lift_lift_permutation with (k := n).
-    + replace (1 + (n + k)) with (n + S k); auto.
-    + omega.
-  (* Case: cons. *)
-  - replace (n + S k) with (0 + (n + S k)); auto.
-    rewrite lift_addition_distributes_over_subst.
-    simpl; f_equal.
-    + rewrite lift_lift_permutation with (k := 0).
-      * reflexivity.
-      * omega.
-    + replace (S (n + S k)) with (S n + S k); auto.
-      rewrite IHxs.
-      replace (n + k + S (length xs)) with (S n + k + length xs).
-      * reflexivity.
-      * omega.
-Qed.
-
-Lemma lift_distributes_over_apply_parameters:
-  forall i xs k c,
-  lift i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
-Proof.
-  intros.
-  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
 Qed.
 
 Lemma parallel_lift:
