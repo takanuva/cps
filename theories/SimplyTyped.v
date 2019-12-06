@@ -1,5 +1,6 @@
 (** * The Simply Typed CPS Calculus *)
 
+Require Import List.
 Require Import Arith.
 Require Import Omega.
 Require Import Setoid.
@@ -8,6 +9,7 @@ Require Import Morphisms.
 Require Import Relations.
 
 Module STCC.
+Import ListNotations.
 
 (** ** Syntax
 
@@ -619,6 +621,16 @@ Definition free_in n e := ~not_free_in n e.
 
 (** ** Structural congruence *)
 
+Definition switch_bindings e: pseudoterm :=
+  subst 1 0 (lift 1 2 e).
+
+Example simple_switch:
+  switch_bindings (jump 0 [bound 1; bound 3; bound 0; bound 1; bound 2]) =
+    jump 1 [bound 0; bound 3; bound 1; bound 0; bound 2].
+Proof.
+  reflexivity.
+Qed.
+
 (*
   For (DISTR):
 
@@ -634,20 +646,24 @@ Definition free_in n e := ~not_free_in n e.
   That's an annoying reduction to do... let's see...
 *)
 
-Inductive struct_cong: relation pseudoterm :=
-  | struct_cong_refl:
-    forall e,
-    struct_cong e e
-  | struct_cong_symm:
-    forall a b,
-    struct_cong a b -> struct_cong b a
-  | struct_cong_tran:
-    forall a b c,
-    struct_cong a b -> struct_cong b c -> struct_cong a c.
+Inductive struct: relation pseudoterm :=
+  (* | struct_distr:
+    forall b ns n ms m,
+    struct
+      (bind (bind b ns n) ms m)
+      (bind (bind (switch_bindings b) . .) . .) *).
 
-Hint Constructors struct_cong: cps.
+Hint Constructors struct: cps.
 
-Instance struct_cong_is_an_equivalence: Equivalence struct_cong.
+Definition cong: relation pseudoterm :=
+  clos_refl_sym_trans _ struct.
+
+Hint Unfold cong: cps.
+Hint Constructors clos_refl_sym_trans: cps.
+Notation "[ a ~=~ b ]" := (cong a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Instance cong_is_an_equivalence: Equivalence cong.
 Proof.
   split; eauto with cps.
 Defined.
@@ -799,7 +815,6 @@ Definition conv: relation pseudoterm :=
   clos_refl_sym_trans _ step.
 
 Hint Unfold conv: cps.
-Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a <=> b ]" := (conv a b)
   (at level 0, a, b at level 200): type_scope.
 
