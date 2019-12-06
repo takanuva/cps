@@ -34,7 +34,7 @@ Inductive pseudoterm: Set :=
 Coercion bound: nat >-> pseudoterm.
 
 (** As we have lists inside our pseudoterms, we'll need a stronger induction
-    principle for it, stating that propositions are kept inside the lists. *)
+    principle for it, stating that propositions are kept inside those lists. *)
 
 Definition pseudoterm_deepind:
   forall P: pseudoterm -> Prop,
@@ -80,6 +80,38 @@ Tactic Notation "list" "induction" "over" hyp(H) :=
     reflexivity
   | (* Case: cons. *)
     f_equal; auto ].
+
+(** We will be using a single inductive type to represent pseudoterms in order
+    to facilitate the proofs; actual terms will be split into a few syntactic
+    classes (namely: kinds, types, values and commands), giving a somewhat more
+    elegant formalization. Later on we'd like to show that any typed pseudoterms
+    will actually respect these syntactic classes. *)
+
+Inductive kind_class: pseudoterm -> Prop :=
+  | prop_is_a_kind:
+    kind_class prop.
+
+Inductive type_class: pseudoterm -> Prop :=
+  | base_is_a_type:
+    type_class base
+  | negation_is_a_type:
+    forall ts,
+    List.Forall type_class ts -> type_class (negation ts).
+
+Inductive value_class: pseudoterm -> Prop :=
+  | bound_is_a_value:
+    forall n: nat,
+    value_class n.
+
+Inductive command_class: pseudoterm -> Prop :=
+  | jump_is_a_command:
+    forall k xs,
+    value_class k -> List.Forall value_class xs ->
+    command_class (jump k xs)
+  | bind_is_a_command:
+    forall b ts c,
+    command_class b -> List.Forall type_class ts -> command_class c ->
+    command_class (bind b ts c).
 
 (** *)
 
