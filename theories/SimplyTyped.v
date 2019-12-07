@@ -933,17 +933,15 @@ Inductive parallel: relation pseudoterm :=
     forall n,
     parallel (bound n) (bound n)
   | parallel_negation:
-    forall ts1 ts2,
-    List.Forall2 parallel ts1 ts2 ->
-    parallel (negation ts1) (negation ts2)
+    forall ts,
+    parallel (negation ts) (negation ts)
   | parallel_jump:
-    forall k1 k2 xs1 xs2,
-    parallel k1 k2 -> List.Forall2 parallel xs1 xs2 ->
-    parallel (jump k1 xs1) (jump k2 xs2)
+    forall k xs,
+    parallel (jump k xs) (jump k xs)
   | parallel_bind:
-    forall b1 b2 ts1 ts2 c1 c2,
-    parallel b1 b2 -> List.Forall2 parallel ts1 ts2 -> parallel c1 c2 ->
-    parallel (bind b1 ts1 c1) (bind b2 ts2 c2).
+    forall b1 b2 ts c1 c2,
+    parallel b1 b2 -> parallel c1 c2 ->
+    parallel (bind b1 ts c1) (bind b2 ts c2).
 
 Hint Constructors parallel: cps.
 
@@ -951,29 +949,7 @@ Lemma parallel_refl:
   forall e,
   parallel e e.
 Proof.
-  induction e using pseudoterm_deepind.
-  (* Case: type. *)
-  - apply parallel_type.
-  (* Case: prop. *)
-  - apply parallel_prop.
-  (* Case: base. *)
-  - apply parallel_base.
-  (* Case: void. *)
-  - apply parallel_void.
-  (* Case: bound. *)
-  - apply parallel_bound.
-  (* Case: negation. *)
-  - apply parallel_negation.
-    induction H; auto.
-  (* Case: jump. *)
-  - apply parallel_jump.
-    + assumption.
-    + induction H; auto.
-  (* Case: bind. *)
-  - apply parallel_bind.
-    + assumption.
-    + induction H; auto.
-    + assumption.
+  induction e; auto with cps.
 Qed.
 
 Hint Resolve parallel_refl: cps.
@@ -982,36 +958,10 @@ Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
 Proof.
-  induction 1.
-  (* Case: step_beta. *)
-  - apply parallel_beta.
-    + assumption.
-    + apply parallel_refl.
-  (* Case: step_bind_left. *)
-  - apply parallel_bind.
-    + assumption.
-    + induction ts; auto with cps.
-    + apply parallel_refl.
-  (* Case: step_bind_right. *)
-  - apply parallel_bind.
-    + apply parallel_refl.
-    + induction ts; auto with cps.
-    + assumption.
+  induction 1; auto with cps.
 Qed.
 
 Hint Resolve parallel_step: cps.
-
-Lemma forall2_implies_same_length:
-  forall {T} P (x y: list T),
-  List.Forall2 P x y -> length x = length y.
-Proof.
-  intros.
-  induction H; auto.
-  simpl; rewrite IHForall2.
-  reflexivity.
-Qed.
-
-Hint Rewrite forall2_implies_same_length: cps.
 
 Lemma parallel_lift:
   forall a b,
@@ -1019,56 +969,74 @@ Lemma parallel_lift:
   forall i k,
   parallel (lift i k a) (lift i k b).
 Proof.
-  induction a using pseudoterm_deepind; intros.
-  (* Case: type. *)
-  - inversion_clear H.
-    apply parallel_type.
-  (* Case: prop. *)
-  - inversion_clear H.
-    apply parallel_prop.
-  (* Case: base. *)
-  - inversion_clear H.
-    apply parallel_base.
-  (* Case: void. *)
-  - inversion_clear H.
-    apply parallel_void.
-  (* Case: bound. *)
-  - inversion_clear H.
-    apply parallel_refl.
-  (* Case: negation. *)
-  - inversion_clear H0; simpl.
-    apply parallel_negation.
-    dependent induction H.
-    + inversion_clear H1.
-      simpl; auto.
-    + inversion_clear H1.
-      simpl; auto.
-  (* Case: jump. *)
-  - inversion_clear H0; simpl.
-    apply parallel_jump.
-    + apply IHa.
+  induction 1; intros.
+  (* Case: parallel_beta. *)
+  - simpl.
+    rewrite lift_distributes_over_apply_parameters.
+    rewrite H; apply parallel_beta.
+    + do 2 rewrite List.map_length.
       assumption.
-    + dependent induction H.
-      * inversion_clear H2.
-        simpl; auto.
-      * inversion_clear H2.
-        simpl; eauto.
-  (* Case: bind. *)
-  - inversion_clear H0; simpl.
-    + rewrite lift_distributes_over_apply_parameters.
-      rewrite H1.
-      apply parallel_beta.
-      * do 2 rewrite List.map_length.
-        assumption.
-      * apply IHa2.
-        assumption.
-    + apply parallel_bind.
-      * apply IHa1.
-        assumption.
-      * dependent induction H; inversion_clear H2; simpl; eauto.
-      * erewrite forall2_implies_same_length; eauto.
+    + apply IHparallel.
+  (* Case: parallel_type. *)
+  - apply parallel_type.
+  (* Case: parallel_prop. *)
+  - apply parallel_prop.
+  (* Case: parallel_base. *)
+  - apply parallel_base.
+  (* Case: parallel_void. *)
+  - apply parallel_void.
+  (* Case: parallel_bound. *)
+  - apply parallel_refl.
+  (* Case: parallel_negation. *)
+  - apply parallel_negation.
+  (* Case: parallel_jump. *)
+  - apply parallel_jump.
+  (* Case: parallel_bind. *)
+  - simpl.
+    apply parallel_bind.
+    + apply IHparallel1.
+    + apply IHparallel2.
 Qed.
 
 Hint Resolve parallel_lift: cps.
+
+Lemma parallel_subst:
+  forall a b,
+  parallel a b ->
+  forall c d,
+  parallel c d ->
+  forall k,
+  parallel (subst c k a) (subst d k b).
+Proof.
+  admit.
+Admitted.
+
+Hint Resolve parallel_subst: cps.
+
+Lemma star_parallel:
+  forall a b,
+  parallel a b -> [a =>* b].
+Proof.
+  induction 1; intros.
+  - eapply star_tran.
+    + apply star_bind_right.
+      eassumption.
+    + apply star_beta.
+      assumption.
+  - apply star_refl.
+  - apply star_refl.
+  - apply star_refl.
+  - apply star_refl.
+  - apply star_refl.
+  - apply star_refl.
+  - apply star_refl.
+  - eapply star_tran.
+    + apply star_bind_left.
+      eassumption.
+    + apply star_bind_right.
+      assumption.
+Qed.
+
+Hint Resolve star_parallel: cps.
 
 End STCC.
