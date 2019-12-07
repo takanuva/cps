@@ -624,6 +624,8 @@ Definition free_in n e := ~not_free_in n e.
 Definition switch_bindings e: pseudoterm :=
   subst 1 0 (lift 1 2 e).
 
+Hint Unfold switch_bindings: cps.
+
 Example simple_switch:
   switch_bindings (jump 0 [bound 1; bound 3; bound 0; bound 1; bound 2]) =
     jump 1 [bound 0; bound 3; bound 1; bound 0; bound 2].
@@ -637,21 +639,32 @@ Qed.
   \j.\x.\y.\z.                       \j.\x.\y.\z.
     h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
     { k<a, b> =                        { h<c, d, e> =
-        h@2<a@1, j@6, b@0> }  ~=~          d@1<c@2, e@0> }
+        h@2<a@1, j@6, b@0> }  ~=~          d@1<z@4, e@0> }
     { h<c, d, e> =                     { k<a, b> =
-        d@1<c@2, e@0> }                    h@0<a@2, j@6, b@1>
+        d@1<z@3, e@0> }                    h@0<a@2, j@6, b@1>
                                            { h<c, d, e> =
-                                               d@1<c@2, e@0> } }
+                                               d@1<z@5, e@0> } }
 
   That's an annoying reduction to do... let's see...
 *)
 
 Inductive struct: relation pseudoterm :=
-  (* | struct_distr:
-    forall b ns n ms m,
+(*  | struct_distr:
+    forall b ms m ns n,
     struct
-      (bind (bind b ns n) ms m)
-      (bind (bind (switch_bindings b) . .) . .) *).
+      (bind
+      (bind
+        b
+        ms m)
+        ns n)
+
+      (bind
+      (bind
+        (switch_bindings b)
+        ns (lift 1 (length ns) n))
+        ms (bind
+              ???
+              ns ???)) *).
 
 Hint Constructors struct: cps.
 
@@ -920,15 +933,17 @@ Inductive parallel: relation pseudoterm :=
     forall n,
     parallel (bound n) (bound n)
   | parallel_negation:
-    forall ts,
-    parallel (negation ts) (negation ts)
+    forall ts1 ts2,
+    List.Forall2 parallel ts1 ts2 ->
+    parallel (negation ts1) (negation ts2)
   | parallel_jump:
-    forall k xs,
-    parallel (jump k xs) (jump k xs)
+    forall k1 k2 xs1 xs2,
+    parallel k1 k2 -> List.Forall2 parallel xs1 xs2 ->
+    parallel (jump k1 xs1) (jump k2 xs2)
   | parallel_bind:
-    forall b1 b2 ts c1 c2,
-    parallel b1 b2 -> parallel c1 c2 ->
-    parallel (bind b1 ts c1) (bind b2 ts c2).
+    forall b1 b2 ts1 ts2 c1 c2,
+    parallel b1 b2 -> List.Forall2 parallel ts1 ts2 -> parallel c1 c2 ->
+    parallel (bind b1 ts1 c1) (bind b2 ts2 c2).
 
 Hint Constructors parallel: cps.
 
@@ -936,7 +951,29 @@ Lemma parallel_refl:
   forall e,
   parallel e e.
 Proof.
-  induction e; auto with cps.
+  induction e using pseudoterm_deepind.
+  (* Case: type. *)
+  - apply parallel_type.
+  (* Case: prop. *)
+  - apply parallel_prop.
+  (* Case: base. *)
+  - apply parallel_base.
+  (* Case: void. *)
+  - apply parallel_void.
+  (* Case: bound. *)
+  - apply parallel_bound.
+  (* Case: negation. *)
+  - apply parallel_negation.
+    induction H; auto.
+  (* Case: jump. *)
+  - apply parallel_jump.
+    + assumption.
+    + induction H; auto.
+  (* Case: bind. *)
+  - apply parallel_bind.
+    + assumption.
+    + induction H; auto.
+    + assumption.
 Qed.
 
 Hint Resolve parallel_refl: cps.
@@ -945,8 +982,36 @@ Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
 Proof.
-  induction 1; auto with cps.
+  induction 1.
+  (* Case: step_beta. *)
+  - apply parallel_beta.
+    + assumption.
+    + apply parallel_refl.
+  (* Case: step_bind_left. *)
+  - apply parallel_bind.
+    + assumption.
+    + induction ts; auto with cps.
+    + apply parallel_refl.
+  (* Case: step_bind_right. *)
+  - apply parallel_bind.
+    + apply parallel_refl.
+    + induction ts; auto with cps.
+    + assumption.
 Qed.
+
+Hint Resolve parallel_step: cps.
+
+Lemma forall2_implies_same_length:
+  forall {T} P (x y: list T),
+  List.Forall2 P x y -> length x = length y.
+Proof.
+  intros.
+  induction H; auto.
+  simpl; rewrite IHForall2.
+  reflexivity.
+Qed.
+
+Hint Rewrite forall2_implies_same_length: cps.
 
 Lemma parallel_lift:
   forall a b,
@@ -954,31 +1019,56 @@ Lemma parallel_lift:
   forall i k,
   parallel (lift i k a) (lift i k b).
 Proof.
-  induction 1; intros.
-  (* Case: parallel_beta. *)
-  - simpl.
-    rewrite lift_distributes_over_apply_parameters; auto with arith.
-    rewrite H.
-    apply parallel_beta.
-    + do 2 rewrite List.map_length.
+  induction a using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - inversion_clear H.
+    apply parallel_type.
+  (* Case: prop. *)
+  - inversion_clear H.
+    apply parallel_prop.
+  (* Case: base. *)
+  - inversion_clear H.
+    apply parallel_base.
+  (* Case: void. *)
+  - inversion_clear H.
+    apply parallel_void.
+  (* Case: bound. *)
+  - inversion_clear H.
+    apply parallel_refl.
+  (* Case: negation. *)
+  - inversion_clear H0; simpl.
+    apply parallel_negation.
+    dependent induction H.
+    + inversion_clear H1.
+      simpl; auto.
+    + inversion_clear H1.
+      simpl; auto.
+  (* Case: jump. *)
+  - inversion_clear H0; simpl.
+    apply parallel_jump.
+    + apply IHa.
       assumption.
-    + apply IHparallel.
-  (* Case: parallel_type. *)
-  - auto with cps.
-  (* Case: parallel_prop. *)
-  - auto with cps.
-  (* Case: parallel_base. *)
-  - auto with cps.
-  (* Case: parallel_void. *)
-  - auto with cps.
-  (* Case: parallel_bound. *)
-  - auto with cps.
-  (* Case: parallel_negation. *)
-  - auto with cps.
-  (* Case: parallel_jump. *)
-  - auto with cps.
-  (* Case: parallel_bind. *)
-  - simpl; auto with cps.
+    + dependent induction H.
+      * inversion_clear H2.
+        simpl; auto.
+      * inversion_clear H2.
+        simpl; eauto.
+  (* Case: bind. *)
+  - inversion_clear H0; simpl.
+    + rewrite lift_distributes_over_apply_parameters.
+      rewrite H1.
+      apply parallel_beta.
+      * do 2 rewrite List.map_length.
+        assumption.
+      * apply IHa2.
+        assumption.
+    + apply parallel_bind.
+      * apply IHa1.
+        assumption.
+      * dependent induction H; inversion_clear H2; simpl; eauto.
+      * erewrite forall2_implies_same_length; eauto.
 Qed.
+
+Hint Resolve parallel_lift: cps.
 
 End STCC.
