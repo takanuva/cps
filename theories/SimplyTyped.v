@@ -689,6 +689,8 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
   | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
   end.
 
+Hint Unfold apply_parameters: cps.
+
 Lemma lift_distributes_over_apply_parameters_at_any_depth:
   forall i xs k c n,
   lift i (n + S k) (apply_parameters xs n c) =
@@ -722,6 +724,41 @@ Lemma lift_distributes_over_apply_parameters:
 Proof.
   intros.
   apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
+Qed.
+
+Lemma subst_distributes_over_apply_parameters_at_any_depth:
+  forall i xs k c n,
+  subst i (n + S k) (apply_parameters xs n c) =
+    apply_parameters (List.map (subst i (S k)) xs) n
+      (subst i (n + k + length xs) c).
+Proof.
+  induction xs; intros; simpl.
+  (* Case: nil. *)
+  - replace (n + k + 0) with (n + k); auto.
+    rewrite lift_and_subst_commute.
+    + simpl.
+      replace (S (n + k)) with (n + S k); auto.
+    + omega.
+  (* Case: cons. *)
+  - rewrite subst_distributes_over_itself.
+    f_equal.
+    + rewrite lift_and_subst_commute.
+      * reflexivity.
+      * omega.
+    + replace (S (n + S k)) with (S n + S k); auto.
+      rewrite IHxs.
+      replace (n + k + S (length xs)) with (S n + k + length xs).
+      * reflexivity.
+      * omega.
+Qed.
+
+Lemma subst_distributes_over_apply_parameters:
+  forall i xs k c,
+  subst i (S k) (apply_parameters xs 0 c) =
+    apply_parameters (List.map (subst i (S k)) xs) 0 (subst i (k + length xs) c).
+Proof.
+  intros.
+  apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
 Qed.
 
 (*
@@ -1000,18 +1037,47 @@ Qed.
 
 Hint Resolve parallel_lift: cps.
 
+(* We would usually like to have two different substition values (c and d), that
+   should be parallel, but we don't that as reductions never happen inside of
+   parameter packs. *)
 Lemma parallel_subst:
   forall a b,
   parallel a b ->
-  forall c d,
-  parallel c d ->
-  forall k,
-  parallel (subst c k a) (subst d k b).
+  forall c k,
+  parallel (subst c k a) (subst c k b).
 Proof.
-  admit.
-Admitted.
+  induction 1; intros.
+  - simpl.
+    rewrite subst_distributes_over_apply_parameters.
+    rewrite H; apply parallel_beta.
+    + do 2 rewrite List.map_length.
+      assumption.
+    + apply IHparallel.
+  - apply parallel_type.
+  - apply parallel_prop.
+  - apply parallel_base.
+  - apply parallel_void.
+  - apply parallel_refl.
+  - apply parallel_negation.
+  - apply parallel_jump.
+  - simpl.
+    apply parallel_bind.
+    + apply IHparallel1.
+    + apply IHparallel2.
+Qed.
 
 Hint Resolve parallel_subst: cps.
+
+Lemma parallel_apply_parameters:
+  forall xs a b,
+  parallel a b ->
+  forall k,
+  parallel (apply_parameters xs k a) (apply_parameters xs k b).
+Proof.
+  induction xs; simpl; auto with cps.
+Qed.
+
+Hint Resolve parallel_apply_parameters: cps.
 
 Lemma star_parallel:
   forall a b,
