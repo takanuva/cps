@@ -713,36 +713,6 @@ Fixpoint nat_fold {T} n (f: T -> T) e :=
   | S m => f (nat_fold m f e)
   end.
 
-Lemma right_cycle_behavior n (e: nat):
-  right_cycle n e =
-    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
-Proof.
-  admit.
-Admitted.
-
-Theorem hmm:
-  right_cycle 3 (jump 0 [bound 1; bound 2; bound 3; bound 4; bound 5]) =
-                (jump 1 [bound 2; bound 3; bound 0; bound 4; bound 5]).
-Proof.
-  unfold right_cycle.
-  unfold sequence.
-  unfold apply_parameters.
-  rewrite lift_zero_e_equals_e.
-  do 3 unfold lift at 1.
-  unfold le_gt_dec.
-  unfold le_lt_dec.
-  unfold nat_rec.
-  unfold nat_rect.
-  unfold "+".
-  rewrite lift_lift_simplification.
-  - unfold "+".
-    reflexivity.
-  - omega.
-  - omega.
-Qed.
-
-
-
 
 
 
@@ -780,6 +750,101 @@ Proof.
       * reflexivity.
       * omega.
 Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lemma aaaaa:
+  forall e n m,
+  apply_parameters (sequence n) (S m) (lift (m + n) (S m + n) e) =
+    nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
+Proof.
+  induction n; intros.
+  - unfold sequence.
+    unfold apply_parameters.
+    unfold nat_fold.
+    replace (m + 0) with m; auto.
+    replace (S m + 0) with (S m); auto.
+    rewrite lift_lift_simplification; auto with arith.
+  - unfold sequence; fold sequence.
+    unfold apply_parameters; fold apply_parameters.
+    unfold nat_fold; fold (@nat_fold pseudoterm).
+    simpl; f_equal.
+    replace (S m + S n) with (S (S m) + n).
+    + replace (m + S n) with (S m + n).
+      * apply IHn.
+      * omega.
+    + omega.
+Qed.
+
+Lemma right_cycle_behavior n (e: nat):
+  right_cycle n e =
+    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
+Proof.
+  unfold right_cycle.
+  unfold apply_parameters; fold apply_parameters.
+  rewrite lift_zero_e_equals_e.
+  f_equal.
+  apply aaaaa.
+Qed.
+
+Theorem hmm:
+  right_cycle 3 (jump 0 [bound 1; bound 2; bound 3; bound 4; bound 5]) =
+                (jump 1 [bound 2; bound 3; bound 0; bound 4; bound 5]).
+Proof.
+  unfold right_cycle.
+  unfold sequence.
+  unfold apply_parameters.
+  rewrite lift_zero_e_equals_e.
+  do 3 unfold lift at 1.
+  unfold le_gt_dec.
+  unfold le_lt_dec.
+  unfold nat_rec.
+  unfold nat_rect.
+  unfold "+".
+  rewrite lift_lift_simplification.
+  - unfold "+".
+    reflexivity.
+  - omega.
+  - omega.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Lemma lift_distributes_over_apply_parameters:
   forall i xs k c,
