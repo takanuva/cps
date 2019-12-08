@@ -639,7 +639,7 @@ Qed.
   \j.\x.\y.\z.                       \j.\x.\y.\z.
     h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
     { k<a, b> =                        { h<c, d, e> =
-        h@2<a@1, j@6, b@0> }  ~=~          d@1<z@4, e@0> }
+        h@2<a@1, j@6, b@0> }    ~=~        d@1<z@4, e@0> }
     { h<c, d, e> =                     { k<a, b> =
         d@1<z@3, e@0> }                    h@0<a@2, j@6, b@1>
                                            { h<c, d, e> =
@@ -690,6 +690,70 @@ Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
   end.
 
 Hint Unfold apply_parameters: cps.
+
+
+
+
+
+
+
+
+Fixpoint sequence n :=
+  match n with
+  | 0 => nil
+  | S m => cons (bound n) (sequence m)
+  end.
+
+Definition right_cycle (n: nat) e :=
+  apply_parameters (cons (bound 0) (sequence n)) 0 (lift n (S n) e).
+
+Fixpoint nat_fold {T} n (f: T -> T) e :=
+  match n with
+  | 0 => e
+  | S m => f (nat_fold m f e)
+  end.
+
+Lemma right_cycle_behavior n (e: nat):
+  right_cycle n e =
+    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
+Proof.
+  admit.
+Admitted.
+
+Theorem hmm:
+  right_cycle 3 (jump 0 [bound 1; bound 2; bound 3; bound 4; bound 5]) =
+                (jump 1 [bound 2; bound 3; bound 0; bound 4; bound 5]).
+Proof.
+  unfold right_cycle.
+  unfold sequence.
+  unfold apply_parameters.
+  rewrite lift_zero_e_equals_e.
+  do 3 unfold lift at 1.
+  unfold le_gt_dec.
+  unfold le_lt_dec.
+  unfold nat_rec.
+  unfold nat_rect.
+  unfold "+".
+  rewrite lift_lift_simplification.
+  - unfold "+".
+    reflexivity.
+  - omega.
+  - omega.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Lemma lift_distributes_over_apply_parameters_at_any_depth:
   forall i xs k c n,
@@ -755,7 +819,8 @@ Qed.
 Lemma subst_distributes_over_apply_parameters:
   forall i xs k c,
   subst i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (subst i (S k)) xs) 0 (subst i (k + length xs) c).
+    apply_parameters (List.map (subst i (S k)) xs) 0
+      (subst i (k + length xs) c).
 Proof.
   intros.
   apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
@@ -1038,7 +1103,7 @@ Qed.
 Hint Resolve parallel_lift: cps.
 
 (* We would usually like to have two different substition values (c and d), that
-   should be parallel, but we don't that as reductions never happen inside of
+   should be parallel, but we don't do that as reductions never happen inside of
    parameter packs. *)
 Lemma parallel_subst:
   forall a b,
