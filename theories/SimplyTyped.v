@@ -619,19 +619,189 @@ Inductive not_free_in: nat -> pseudoterm -> Prop :=
 
 Definition free_in n e := ~not_free_in n e.
 
-(** ** Structural congruence *)
+(** *)
+
+Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
+  match xs with
+  | nil => lift 1 k c
+  | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
+  end.
+
+Hint Unfold apply_parameters: cps.
 
 Definition switch_bindings e: pseudoterm :=
   subst 1 0 (lift 1 2 e).
 
 Hint Unfold switch_bindings: cps.
 
-Example simple_switch:
-  switch_bindings (jump 0 [bound 1; bound 3; bound 0; bound 1; bound 2]) =
-    jump 1 [bound 0; bound 3; bound 1; bound 0; bound 2].
+Fixpoint sequence n :=
+  match n with
+  | 0 => nil
+  | S m => cons (bound n) (sequence m)
+  end.
+
+Hint Unfold sequence: cps.
+
+Definition right_cycle (n: nat) e :=
+  apply_parameters (cons (bound 0) (sequence n)) 0 (lift n (S n) e).
+
+Hint Unfold right_cycle: cps.
+
+Fixpoint nat_fold {T} n (f: T -> T) e :=
+  match n with
+  | 0 => e
+  | S m => f (nat_fold m f e)
+  end.
+
+Hint Unfold nat_fold: cps.
+
+Lemma lift_distributes_over_apply_parameters_at_any_depth:
+  forall i xs k c n,
+  lift i (n + S k) (apply_parameters xs n c) =
+    apply_parameters (List.map (lift i (S k)) xs) n
+      (lift i (n + k + length xs) c).
 Proof.
-  reflexivity.
+  induction xs; intros; simpl.
+  (* Case: nil. *)
+  - replace (n + k + 0) with (n + k); auto.
+    rewrite lift_lift_permutation with (k := n).
+    + replace (1 + (n + k)) with (n + S k); auto.
+    + omega.
+  (* Case: cons. *)
+  - replace (n + S k) with (0 + (n + S k)); auto.
+    rewrite lift_addition_distributes_over_subst.
+    simpl; f_equal.
+    + rewrite lift_lift_permutation with (k := 0).
+      * reflexivity.
+      * omega.
+    + replace (S (n + S k)) with (S n + S k); auto.
+      rewrite IHxs.
+      replace (n + k + S (length xs)) with (S n + k + length xs).
+      * reflexivity.
+      * omega.
 Qed.
+
+Lemma lift_distributes_over_apply_parameters:
+  forall i xs k c,
+  lift i (S k) (apply_parameters xs 0 c) =
+    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
+Proof.
+  intros.
+  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
+Qed.
+
+Lemma subst_distributes_over_apply_parameters_at_any_depth:
+  forall i xs k c n,
+  subst i (n + S k) (apply_parameters xs n c) =
+    apply_parameters (List.map (subst i (S k)) xs) n
+      (subst i (n + k + length xs) c).
+Proof.
+  induction xs; intros; simpl.
+  (* Case: nil. *)
+  - replace (n + k + 0) with (n + k); auto.
+    rewrite lift_and_subst_commute.
+    + simpl.
+      replace (S (n + k)) with (n + S k); auto.
+    + omega.
+  (* Case: cons. *)
+  - rewrite subst_distributes_over_itself.
+    f_equal.
+    + rewrite lift_and_subst_commute.
+      * reflexivity.
+      * omega.
+    + replace (S (n + S k)) with (S n + S k); auto.
+      rewrite IHxs.
+      replace (n + k + S (length xs)) with (S n + k + length xs).
+      * reflexivity.
+      * omega.
+Qed.
+
+Lemma subst_distributes_over_apply_parameters:
+  forall i xs k c,
+  subst i (S k) (apply_parameters xs 0 c) =
+    apply_parameters (List.map (subst i (S k)) xs) 0
+      (subst i (k + length xs) c).
+Proof.
+  intros.
+  apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
+Qed.
+
+Lemma switch_bindings_at_any_depth:
+  forall e n,
+  subst 1 n (lift 1 (2 + n) e) = subst 0 n (subst 2 n (lift 2 (2 + n) e)).
+Proof.
+  simpl.
+  induction e using pseudoterm_deepind.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - intro m.
+    unfold lift.
+    destruct (le_gt_dec (S (S m)) n).
+    + unfold subst at 1 3.
+      destruct (lt_eq_lt_dec m (1 + n)) as [ [ ? | ? ] | ? ];
+        destruct (lt_eq_lt_dec m (2 + n)) as [ [ ? | ? ] | ? ];
+          simpl; try (exfalso; omega).
+      destruct (lt_eq_lt_dec m (S n)) as [ [ ? | ? ] | ? ];
+        simpl; try (exfalso; omega).
+      reflexivity.
+    + unfold subst at 1 3.
+      destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ]; simpl.
+      * destruct (lt_eq_lt_dec m (pred n)) as [ [ ? | ? ] | ? ];
+          simpl; try (exfalso; omega).
+        replace (m + 0) with m; auto.
+      * destruct (lt_eq_lt_dec m (m + 2)) as [ [ ? | ? ] | ? ];
+          simpl; try (exfalso; omega).
+        replace (m + 1) with (1 + m); auto with arith.
+        replace (m + 2) with (2 + m); auto with arith.
+      * destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ];
+          simpl; try (exfalso; omega).
+        reflexivity.
+  - intros; simpl; f_equal.
+    list induction over H.
+  - intros; simpl; f_equal.
+    + apply IHe.
+    + list induction over H.
+  - intros; simpl; f_equal.
+    + apply IHe1.
+    + list induction over H.
+    + do 3 rewrite List.map_length.
+      apply IHe2.
+Qed.
+
+Lemma switch_bindings_behavior:
+  forall e,
+  switch_bindings e = right_cycle 1 e.
+Proof.
+  intro.
+  unfold switch_bindings.
+  unfold right_cycle; simpl.
+  rewrite lift_lift_simplification; auto with arith.
+  apply switch_bindings_at_any_depth.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(** ** Structural congruence *)
 
 (*
   For (DISTR):
@@ -683,35 +853,6 @@ Defined.
 
 (** ** One-step reduction. *)
 
-Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
-  match xs with
-  | nil => lift 1 k c
-  | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
-  end.
-
-Hint Unfold apply_parameters: cps.
-
-
-
-
-
-
-
-
-Fixpoint sequence n :=
-  match n with
-  | 0 => nil
-  | S m => cons (bound n) (sequence m)
-  end.
-
-Definition right_cycle (n: nat) e :=
-  apply_parameters (cons (bound 0) (sequence n)) 0 (lift n (S n) e).
-
-Fixpoint nat_fold {T} n (f: T -> T) e :=
-  match n with
-  | 0 => e
-  | S m => f (nat_fold m f e)
-  end.
 
 
 
@@ -725,31 +866,27 @@ Fixpoint nat_fold {T} n (f: T -> T) e :=
 
 
 
-Lemma lift_distributes_over_apply_parameters_at_any_depth:
-  forall i xs k c n,
-  lift i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (List.map (lift i (S k)) xs) n
-      (lift i (n + k + length xs) c).
-Proof.
-  induction xs; intros; simpl.
-  (* Case: nil. *)
-  - replace (n + k + 0) with (n + k); auto.
-    rewrite lift_lift_permutation with (k := n).
-    + replace (1 + (n + k)) with (n + S k); auto.
-    + omega.
-  (* Case: cons. *)
-  - replace (n + S k) with (0 + (n + S k)); auto.
-    rewrite lift_addition_distributes_over_subst.
-    simpl; f_equal.
-    + rewrite lift_lift_permutation with (k := 0).
-      * reflexivity.
-      * omega.
-    + replace (S (n + S k)) with (S n + S k); auto.
-      rewrite IHxs.
-      replace (n + k + S (length xs)) with (S n + k + length xs).
-      * reflexivity.
-      * omega.
-Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -793,14 +930,13 @@ Proof.
     + omega.
 Qed.
 
-Lemma right_cycle_behavior n (e: nat):
+Lemma right_cycle_behavior n e:
   right_cycle n e =
     subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
 Proof.
   unfold right_cycle.
   unfold apply_parameters; fold apply_parameters.
-  rewrite lift_zero_e_equals_e.
-  f_equal.
+  rewrite lift_zero_e_equals_e; f_equal.
   apply aaaaa.
 Qed.
 
@@ -846,50 +982,7 @@ Qed.
 
 
 
-Lemma lift_distributes_over_apply_parameters:
-  forall i xs k c,
-  lift i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
-Proof.
-  intros.
-  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
-Qed.
 
-Lemma subst_distributes_over_apply_parameters_at_any_depth:
-  forall i xs k c n,
-  subst i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (List.map (subst i (S k)) xs) n
-      (subst i (n + k + length xs) c).
-Proof.
-  induction xs; intros; simpl.
-  (* Case: nil. *)
-  - replace (n + k + 0) with (n + k); auto.
-    rewrite lift_and_subst_commute.
-    + simpl.
-      replace (S (n + k)) with (n + S k); auto.
-    + omega.
-  (* Case: cons. *)
-  - rewrite subst_distributes_over_itself.
-    f_equal.
-    + rewrite lift_and_subst_commute.
-      * reflexivity.
-      * omega.
-    + replace (S (n + S k)) with (S n + S k); auto.
-      rewrite IHxs.
-      replace (n + k + S (length xs)) with (S n + k + length xs).
-      * reflexivity.
-      * omega.
-Qed.
-
-Lemma subst_distributes_over_apply_parameters:
-  forall i xs k c,
-  subst i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (subst i (S k)) xs) 0
-      (subst i (k + length xs) c).
-Proof.
-  intros.
-  apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
-Qed.
 
 (*
   We have four assumptions: j, x, y, z.
