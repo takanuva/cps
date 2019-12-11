@@ -732,10 +732,15 @@ Lemma switch_bindings_at_any_depth:
 Proof.
   simpl.
   induction e using pseudoterm_deepind.
+  (* Case: type. *)
   - reflexivity.
+  (* Case: prop. *)
   - reflexivity.
+  (* Case: base. *)
   - reflexivity.
+  (* Case: void. *)
   - reflexivity.
+  (* Case: bound. *)
   - intro m.
     unfold lift.
     destruct (le_gt_dec (S (S m)) n).
@@ -758,11 +763,14 @@ Proof.
       * destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ];
           simpl; try (exfalso; omega).
         reflexivity.
+  (* Case: negation. *)
   - intros; simpl; f_equal.
     list induction over H.
+  (* Case: jump. *)
   - intros; simpl; f_equal.
     + apply IHe.
     + list induction over H.
+  (* Case: bind. *)
   - intros; simpl; f_equal.
     + apply IHe1.
     + list induction over H.
@@ -781,25 +789,42 @@ Proof.
   apply switch_bindings_at_any_depth.
 Qed.
 
+Lemma apply_parameters_sequence_equals_nat_fold:
+  forall e n m,
+  apply_parameters (sequence n) (S m) (lift (m + n) (S m + n) e) =
+    nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - unfold sequence.
+    unfold apply_parameters.
+    unfold nat_fold.
+    replace (m + 0) with m; auto.
+    replace (S m + 0) with (S m); auto.
+    rewrite lift_lift_simplification; auto with arith.
+  (* Case: succ. *)
+  - unfold sequence; fold sequence.
+    unfold apply_parameters; fold apply_parameters.
+    unfold nat_fold; fold (@nat_fold pseudoterm).
+    simpl; f_equal.
+    replace (S m + S n) with (S (S m) + n).
+    + replace (m + S n) with (S m + n).
+      * apply IHn.
+      * omega.
+    + omega.
+Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Lemma right_cycle_behavior:
+  forall n e,
+  right_cycle n e =
+    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
+Proof.
+  intros.
+  unfold right_cycle.
+  unfold apply_parameters; fold apply_parameters.
+  rewrite lift_zero_e_equals_e; f_equal.
+  apply apply_parameters_sequence_equals_nat_fold.
+Qed.
 
 (** ** Structural congruence *)
 
@@ -846,143 +871,7 @@ Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a ~=~ b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
 
-Instance cong_is_an_equivalence: Equivalence cong.
-Proof.
-  split; eauto with cps.
-Defined.
-
 (** ** One-step reduction. *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Lemma aaaaa:
-  forall e n m,
-  apply_parameters (sequence n) (S m) (lift (m + n) (S m + n) e) =
-    nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
-Proof.
-  induction n; intros.
-  - unfold sequence.
-    unfold apply_parameters.
-    unfold nat_fold.
-    replace (m + 0) with m; auto.
-    replace (S m + 0) with (S m); auto.
-    rewrite lift_lift_simplification; auto with arith.
-  - unfold sequence; fold sequence.
-    unfold apply_parameters; fold apply_parameters.
-    unfold nat_fold; fold (@nat_fold pseudoterm).
-    simpl; f_equal.
-    replace (S m + S n) with (S (S m) + n).
-    + replace (m + S n) with (S m + n).
-      * apply IHn.
-      * omega.
-    + omega.
-Qed.
-
-Lemma right_cycle_behavior n e:
-  right_cycle n e =
-    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
-Proof.
-  unfold right_cycle.
-  unfold apply_parameters; fold apply_parameters.
-  rewrite lift_zero_e_equals_e; f_equal.
-  apply aaaaa.
-Qed.
-
-Theorem hmm:
-  right_cycle 3 (jump 0 [bound 1; bound 2; bound 3; bound 4; bound 5]) =
-                (jump 1 [bound 2; bound 3; bound 0; bound 4; bound 5]).
-Proof.
-  unfold right_cycle.
-  unfold sequence.
-  unfold apply_parameters.
-  rewrite lift_zero_e_equals_e.
-  do 3 unfold lift at 1.
-  unfold le_gt_dec.
-  unfold le_lt_dec.
-  unfold nat_rec.
-  unfold nat_rect.
-  unfold "+".
-  rewrite lift_lift_simplification.
-  - unfold "+".
-    reflexivity.
-  - omega.
-  - omega.
-Qed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 (*
   We have four assumptions: j, x, y, z.
@@ -1261,8 +1150,9 @@ Qed.
 Hint Resolve parallel_lift: cps.
 
 (* We would usually like to have two different substition values (c and d), that
-   should be parallel, but we don't do that as reductions never happen inside of
-   parameter packs. *)
+   should be parallel, but we don't do that as we know reductions never happen
+   inside of parameter packs. If we ever have something other than variables as
+   values this should not be the case. *)
 Lemma parallel_subst:
   forall a b,
   parallel a b ->
@@ -1270,19 +1160,28 @@ Lemma parallel_subst:
   parallel (subst c k a) (subst c k b).
 Proof.
   induction 1; intros.
+  (* Case: parallel_beta. *)
   - simpl.
     rewrite subst_distributes_over_apply_parameters.
     rewrite H; apply parallel_beta.
     + do 2 rewrite List.map_length.
       assumption.
     + apply IHparallel.
+  (* Case: parallel_type. *)
   - apply parallel_type.
+  (* Case: parallel_prop. *)
   - apply parallel_prop.
+  (* Case: parallel_base. *)
   - apply parallel_base.
+  (* Case: parallel_void. *)
   - apply parallel_void.
+  (* Case: parallel_bound. *)
   - apply parallel_refl.
+  (* Case: parallel_negation. *)
   - apply parallel_negation.
+  (* Case: parallel_jump. *)
   - apply parallel_jump.
+  (* Case: parallel_bind. *)
   - simpl.
     apply parallel_bind.
     + apply IHparallel1.
@@ -1307,18 +1206,27 @@ Lemma star_parallel:
   parallel a b -> [a =>* b].
 Proof.
   induction 1; intros.
+  (* Case: parallel_beta. *)
   - eapply star_tran.
     + apply star_bind_right.
       eassumption.
     + apply star_beta.
       assumption.
+  (* Case: parallel_type. *)
   - apply star_refl.
+  (* Case: parallel_prop. *)
   - apply star_refl.
+  (* Case: parallel_base. *)
   - apply star_refl.
+  (* Case: parallel_void. *)
   - apply star_refl.
+  (* Case: parallel_bound. *)
   - apply star_refl.
+  (* Case: parallel_negation. *)
   - apply star_refl.
+  (* Case: parallel_jump. *)
   - apply star_refl.
+  (* Case: parallel_bind. *)
   - eapply star_tran.
     + apply star_bind_left.
       eassumption.
