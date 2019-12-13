@@ -890,7 +890,6 @@ Notation "[ a ~=~ b ]" := (cong a b)
 
 (******************************************************************************)
 
-
 Example ex1: pseudoterm :=
   (bind
   (bind
@@ -929,6 +928,43 @@ Qed.
 
 
 
+
+
+
+
+
+
+Lemma sequence_succ:
+  forall n,
+  sequence (S n) = bound (S n) :: sequence n.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma aaa:
+  forall n i k,
+  map (lift i (S (n + k))) (sequence n) = sequence n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - rewrite sequence_succ.
+    rewrite map_cons.
+    f_equal.
+    + rewrite lift_bound_lt; auto.
+      omega.
+    + replace (S n + k) with (n + S k); auto.
+      omega.
+Qed.
+
+Lemma bbb:
+  forall n,
+  length (sequence n) = n.
+Proof.
+  induction n; simpl; auto.
+Qed.
+
 Lemma foo:
   forall e n i k,
   lift i (n + S k) (right_cycle n e) =
@@ -939,37 +975,22 @@ Proof.
      won't be affecting any of the variables shifted by right_cycle; thus it
      won't matter whether we lift those after or before we shift the variables
      around. Now we have to convince Coq of that. *)
-  do 2 rewrite right_cycle_behavior.
+  unfold right_cycle; simpl.
   rewrite lift_distributes_over_subst.
   rewrite lift_bound_lt; eauto with arith.
-  (* We are better dealing with apply_parameters. *)
-  do 2 rewrite <- apply_parameters_sequence_equals_nat_fold with (m := 0).
   replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
   rewrite lift_distributes_over_apply_parameters_at_any_depth.
   (* The lifts inside the map won't change the values, so the parameters will be
      kept the same. Later we must show that the different lifts on the body are
      also equivalent. *)
   do 2 f_equal.
-  - (* TODO: move this to a different lemma! *)
-    generalize i, k.
-    induction n.
-    + reflexivity.
-    + intros.
-      (* Write a sequence_succ. *)
-      unfold sequence; fold sequence.
-      rewrite map_cons; f_equal.
-      * rewrite lift_bound_lt; auto.
-        omega.
-      * replace (S n + k0) with (n + S k0); auto.
-        omega.
-  - replace (length (sequence n)) with n.
-    + simpl; symmetry.
-      rewrite lift_lift_permutation.
-      * f_equal.
-        omega.
-      * omega.
-    + (* Write a length_sequence. *)
-      induction n; simpl; auto.
+  - apply aaa.
+  - rewrite bbb.
+    simpl; symmetry.
+    rewrite lift_lift_permutation.
+    + f_equal.
+      omega.
+    + omega.
 Qed.
 
 Lemma bar:
@@ -982,7 +1003,7 @@ Proof.
   apply foo with (n := 1).
 Qed.
 
-(* As [struct] is a congruence, it should be preserved by lift. *)
+(* As those are structurally equivalent, lift should preserve that. *)
 Lemma lift_preserves_struct:
   forall a b,
   struct a b ->
@@ -995,6 +1016,27 @@ Proof.
     rewrite bar.
     admit.
 Admitted.
+
+Hint Resolve lift_preserves_struct: cps.
+
+(* As [cong] is a congruence, it should be preserved by lift. *)
+Lemma lift_preserves_cong:
+  forall a b,
+  [a ~=~ b] ->
+  forall i k,
+  [lift i k a ~=~ lift i k b].
+Proof.
+  induction 1.
+  - auto with cps.
+  - auto with cps.
+  - intros; apply rst_sym.
+    apply IHclos_refl_sym_trans.
+  - intros; eapply rst_trans.
+    + apply IHclos_refl_sym_trans1.
+    + apply IHclos_refl_sym_trans2.
+Qed.
+
+Hint Resolve lift_preserves_cong.
 
 (** ** One-step reduction. *)
 
