@@ -1,3 +1,7 @@
+(******************************************************************************)
+(* Copyright (c) Paulo Torrens.                                               *)
+(* Licensed under the New BSD license.                                        *)
+(******************************************************************************)
 (** * The Simply Typed CPS Calculus *)
 
 Require Import List.
@@ -828,6 +832,27 @@ Qed.
 
 (** ** Structural congruence *)
 
+Example ex1: pseudoterm :=
+  (bind
+  (bind
+    (jump 1 [bound 4; bound 0; bound 3])
+    [base; base]
+      (jump 2 [bound 1; bound 6; bound 0]))
+    [base; negation [base; base]; base]
+      (jump 1 [bound 3; bound 0])).
+
+Example ex2: pseudoterm :=
+  (bind
+  (bind
+    (jump 0 [bound 4; bound 1; bound 3])
+    [base; negation [base; base]; base]
+      (jump 1 [bound 4; bound 0]))
+    [base; base]
+      (bind
+        (jump 0 [bound 2; bound 6; bound 1])
+        [base; negation [base; base]; base]
+          (jump 1 [bound 5; bound 0]))).
+
 (*
   For (DISTR):
 
@@ -844,22 +869,21 @@ Qed.
 *)
 
 Inductive struct: relation pseudoterm :=
-(*  | struct_distr:
+  | struct_distr:
     forall b ms m ns n,
     struct
       (bind
-      (bind
-        b
-        ms m)
-        ns n)
-
+        (bind
+          b
+          ms m)
+          ns n)
       (bind
       (bind
         (switch_bindings b)
         ns (lift 1 (length ns) n))
         ms (bind
-              ???
-              ns ???)) *).
+              (right_cycle (length ms) m)
+              ns (lift (length ms) (length ns) n))).
 
 Hint Constructors struct: cps.
 
