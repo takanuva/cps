@@ -832,6 +832,65 @@ Qed.
 
 (** ** Structural congruence *)
 
+(*
+  For (DISTR):
+
+  \j.\x.\y.\z.                       \j.\x.\y.\z.
+    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
+    { k<a, b> =                        { h<c, d, e> =
+        h@2<a@1, j@6, b@0> }    ~=~        d@1<z@4, e@0> }
+    { h<c, d, e> =                     { k<a, b> =
+        d@1<z@3, e@0> }                    h@0<a@2, j@6, b@1>
+                                           { h<c, d, e> =
+                                               d@1<z@5, e@0> } }
+
+  That's an annoying reduction to do... let's see...
+*)
+
+Inductive struct: relation pseudoterm :=
+  | struct_distr:
+    forall b ms m ns n,
+    struct
+      (bind
+      (bind
+        b
+        ms m)
+        ns n)
+      (bind
+      (bind
+        (switch_bindings b)
+        ns (lift 1 (length ns) n))
+        ms (bind
+              (right_cycle (length ms) m)
+              ns (lift (length ms) (length ns) n))).
+
+Hint Constructors struct: cps.
+
+Definition cong: relation pseudoterm :=
+  clos_refl_sym_trans _ struct.
+
+Hint Unfold cong: cps.
+Hint Constructors clos_refl_sym_trans: cps.
+Notation "[ a ~=~ b ]" := (cong a b)
+  (at level 0, a, b at level 200): type_scope.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(******************************************************************************)
+
+
 Example ex1: pseudoterm :=
   (bind
   (bind
@@ -853,47 +912,89 @@ Example ex2: pseudoterm :=
         [base; negation [base; base]; base]
           (jump 1 [bound 5; bound 0]))).
 
-(*
-  For (DISTR):
+Lemma test:
+  [ex1 ~=~ ex2].
+Proof.
+  do 2 constructor.
+Qed.
 
-  \j.\x.\y.\z.                       \j.\x.\y.\z.
-    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
-    { k<a, b> =                        { h<c, d, e> =
-        h@2<a@1, j@6, b@0> }    ~=~        d@1<z@4, e@0> }
-    { h<c, d, e> =                     { k<a, b> =
-        d@1<z@3, e@0> }                    h@0<a@2, j@6, b@1>
-                                           { h<c, d, e> =
-                                               d@1<z@5, e@0> } }
 
-  That's an annoying reduction to do... let's see...
-*)
 
-Inductive struct: relation pseudoterm :=
-  | struct_distr:
-    forall b ms m ns n,
-    struct
-      (bind
-        (bind
-          b
-          ms m)
-          ns n)
-      (bind
-      (bind
-        (switch_bindings b)
-        ns (lift 1 (length ns) n))
-        ms (bind
-              (right_cycle (length ms) m)
-              ns (lift (length ms) (length ns) n))).
 
-Hint Constructors struct: cps.
 
-Definition cong: relation pseudoterm :=
-  clos_refl_sym_trans _ struct.
 
-Hint Unfold cong: cps.
-Hint Constructors clos_refl_sym_trans: cps.
-Notation "[ a ~=~ b ]" := (cong a b)
-  (at level 0, a, b at level 200): type_scope.
+
+
+
+
+
+
+Lemma foo:
+  forall e n i k,
+  lift i (n + S k) (right_cycle n e) =
+    right_cycle n (lift i (n + S k) e).
+Proof.
+  intros.
+  (* Intuitively we know that we'll only lift variables strictly above n, so it
+     won't be affecting any of the variables shifted by right_cycle; thus it
+     won't matter whether we lift those after or before we shift the variables
+     around. Now we have to convince Coq of that. *)
+  do 2 rewrite right_cycle_behavior.
+  rewrite lift_distributes_over_subst.
+  rewrite lift_bound_lt; eauto with arith.
+  (* We are better dealing with apply_parameters. *)
+  do 2 rewrite <- apply_parameters_sequence_equals_nat_fold with (m := 0).
+  replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
+  rewrite lift_distributes_over_apply_parameters_at_any_depth.
+  (* The lifts inside the map won't change the values, so the parameters will be
+     kept the same. Later we must show that the different lifts on the body are
+     also equivalent. *)
+  do 2 f_equal.
+  - (* TODO: move this to a different lemma! *)
+    generalize i, k.
+    induction n.
+    + reflexivity.
+    + intros.
+      (* Write a sequence_succ. *)
+      unfold sequence; fold sequence.
+      rewrite map_cons; f_equal.
+      * rewrite lift_bound_lt; auto.
+        omega.
+      * replace (S n + k0) with (n + S k0); auto.
+        omega.
+  - replace (length (sequence n)) with n.
+    + simpl; symmetry.
+      rewrite lift_lift_permutation.
+      * f_equal.
+        omega.
+      * omega.
+    + (* Write a length_sequence. *)
+      induction n; simpl; auto.
+Qed.
+
+Lemma bar:
+  forall i k e,
+  lift i (S (S k)) (switch_bindings e) =
+    switch_bindings (lift i (S (S k)) e).
+Proof.
+  intros.
+  do 2 rewrite switch_bindings_behavior.
+  apply foo with (n := 1).
+Qed.
+
+(* As [struct] is a congruence, it should be preserved by lift. *)
+Lemma lift_preserves_struct:
+  forall a b,
+  struct a b ->
+  forall i k,
+  struct (lift i k a) (lift i k b).
+Proof.
+  induction 1; intros.
+  (* Case: struct_distr. *)
+  - simpl.
+    rewrite bar.
+    admit.
+Admitted.
 
 (** ** One-step reduction. *)
 
@@ -925,6 +1026,9 @@ Inductive step: relation pseudoterm :=
   | step_bind_right:
     forall b ts c1 c2,
     [c1 => c2] -> [bind b ts c1 => bind b ts c2]
+  | step_cong:
+    forall a b c d,
+    [a ~=~ b] -> [b => c] -> [c ~=~ d] -> [a => d]
 
 where "[ a => b ]" := (step a b): type_scope.
 
@@ -1114,7 +1218,10 @@ Inductive parallel: relation pseudoterm :=
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
-    parallel (bind b1 ts c1) (bind b2 ts c2).
+    parallel (bind b1 ts c1) (bind b2 ts c2)
+  | parallel_cong:
+    forall a b c d,
+    [a ~=~ b] -> parallel b c -> [c ~=~ d] -> parallel a d.
 
 Hint Constructors parallel: cps.
 
@@ -1131,10 +1238,12 @@ Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
 Proof.
-  induction 1; auto with cps.
+  induction 1; eauto with cps.
 Qed.
 
 Hint Resolve parallel_step: cps.
+
+(*
 
 Lemma parallel_lift:
   forall a b,
