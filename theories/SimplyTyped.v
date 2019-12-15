@@ -49,9 +49,9 @@ Definition pseudoterm_deepind:
   forall f3: P base,
   forall f4: P void,
   forall f5: (forall n: nat, P (bound n)),
-  forall f6: (forall ts, List.Forall P ts -> P (negation ts)),
-  forall f7: (forall f xs, P f -> List.Forall P xs -> P (jump f xs)),
-  forall f8: (forall b ts c, P b -> List.Forall P ts -> P c -> P (bind b ts c)),
+  forall f6: (forall ts, Forall P ts -> P (negation ts)),
+  forall f7: (forall f xs, P f -> Forall P xs -> P (jump f xs)),
+  forall f8: (forall b ts c, P b -> Forall P ts -> P c -> P (bind b ts c)),
   forall e, P e.
 Proof.
   do 9 intro; fix H 1.
@@ -78,7 +78,7 @@ Proof.
 Defined.
 
 (** A lot of proofs on pseudoterm lists may be solved by simple induction on the
-    [List.Forall P] proposition over them, so we'll add a tactic for that. *)
+    [Forall P] proposition over them, so we'll add a tactic for that. *)
 
 Tactic Notation "list" "induction" "over" hyp(H) :=
   induction H; simpl;
@@ -102,7 +102,7 @@ Inductive type_class: pseudoterm -> Prop :=
     type_class base
   | negation_is_a_type:
     forall ts,
-    List.Forall type_class ts -> type_class (negation ts).
+    Forall type_class ts -> type_class (negation ts).
 
 Inductive value_class: pseudoterm -> Prop :=
   | bound_is_a_value:
@@ -112,11 +112,11 @@ Inductive value_class: pseudoterm -> Prop :=
 Inductive command_class: pseudoterm -> Prop :=
   | jump_is_a_command:
     forall k xs,
-    value_class k -> List.Forall value_class xs ->
+    value_class k -> Forall value_class xs ->
     command_class (jump k xs)
   | bind_is_a_command:
     forall b ts c,
-    command_class b -> List.Forall type_class ts -> command_class c ->
+    command_class b -> Forall type_class ts -> command_class c ->
     command_class (bind b ts c).
 
 (** *)
@@ -155,11 +155,11 @@ Fixpoint lift (i: nat) (k: nat) (e: pseudoterm): pseudoterm :=
     else
       bound n
   | negation ts =>
-    negation (List.map (lift i k) ts)
+    negation (map (lift i k) ts)
   | jump f xs =>
-    jump (lift i k f) (List.map (lift i k) xs)
+    jump (lift i k f) (map (lift i k) xs)
   | bind b ts c =>
-    bind (lift i (S k) b) (List.map (lift i k) ts) (lift i (k + length ts) c)
+    bind (lift i (S k) b) (map (lift i k) ts) (lift i (k + length ts) c)
   end.
 
 Lemma lift_zero_e_equals_e:
@@ -241,7 +241,7 @@ Proof.
   - simpl; f_equal.
     + apply IHe1.
     + list induction over H.
-    + rewrite List.map_length; apply IHe2.
+    + rewrite map_length; apply IHe2.
 Qed.
 
 Hint Resolve lift_i_lift_j_equals_lift_i_plus_j: cps.
@@ -285,7 +285,7 @@ Proof.
   - simpl; f_equal.
     + rewrite IHe1; auto; omega.
     + list induction over H.
-    + rewrite List.map_length.
+    + rewrite map_length.
       rewrite IHe2; auto; omega.
 Qed.
 
@@ -327,7 +327,7 @@ Proof.
     + rewrite IHe1; auto with arith.
       replace (i + S l) with (S (i + l)); auto with arith.
     + list induction over H.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       rewrite IHe2; auto with arith.
       replace (i + (l + length ts)) with (i + l + length ts); auto with arith.
 Qed.
@@ -351,11 +351,11 @@ Fixpoint subst (p: pseudoterm) (k: nat) (q: pseudoterm): pseudoterm :=
     | inright _ => bound n
     end
   | negation ts =>
-    negation (List.map (subst p k) ts)
+    negation (map (subst p k) ts)
   | jump f xs =>
-    jump (subst p k f) (List.map (subst p k) xs)
+    jump (subst p k f) (map (subst p k) xs)
   | bind b ts c =>
-    bind (subst p (S k) b) (List.map (subst p k) ts) (subst p (k + length ts) c)
+    bind (subst p (S k) b) (map (subst p k) ts) (subst p (k + length ts) c)
   end.
 
 Lemma subst_bound_gt:
@@ -433,7 +433,7 @@ Proof.
   - simpl; f_equal.
     + replace (S (p + k)) with (S p + k); auto.
     + list induction over H.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       replace (p + k + length ts) with ((p + length ts) + k); auto.
       omega.
 Qed.
@@ -476,7 +476,7 @@ Proof.
   - simpl; f_equal.
     + apply IHa1; omega.
     + list induction over H.
-    + rewrite List.map_length.
+    + rewrite map_length.
       apply IHa2; omega.
 Qed.
 
@@ -524,7 +524,7 @@ Proof.
   - simpl; f_equal.
     + replace (S (i + p)) with (i + S p); auto with arith.
     + list induction over H.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       replace (i + p + length ts) with (i + (p + length ts)); auto with arith.
 Qed.
 
@@ -574,7 +574,7 @@ Proof.
   - simpl; f_equal.
     + replace (S (p + k)) with (S p + k); auto.
     + list induction over H.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       replace (p + k + length ts) with (p + length ts + k); auto.
       omega.
 Qed.
@@ -608,20 +608,28 @@ Inductive not_free_in: nat -> pseudoterm -> Prop :=
     n <> m -> not_free_in n m
   | not_free_negation:
     forall n ts,
+    Forall (not_free_in n) ts ->
     not_free_in n (negation ts)
   | not_free_jump:
     forall n x,
     not_free_in n x ->
     forall ts,
-    List.Forall (not_free_in n) ts -> not_free_in n (jump x ts)
+    Forall (not_free_in n) ts -> not_free_in n (jump x ts)
   | not_free_bind:
     forall n b,
     not_free_in (S n) b ->
-    forall ts c,
+    forall ts,
+    Forall (not_free_in n) ts ->
+    forall c,
     not_free_in (n + length ts) c ->
     not_free_in n (bind b ts c).
 
 Definition free_in n e := ~not_free_in n e.
+
+(******************************************************************************)
+(* TODO: proofs are starting to get a bit more complicated after this point,  *)
+(* so add a few comments and documentation.                                   *)
+(******************************************************************************)
 
 (** *)
 
@@ -659,10 +667,51 @@ Fixpoint nat_fold {T} n (f: T -> T) e :=
 
 Hint Unfold nat_fold: cps.
 
+
+
+
+
+
+
+
+
+
+
+
+
+(******************************************************************************)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Definition remove_closest_binding e :=
+  subst 0 0 e.
+
+
+
+
+
+
+
+
+
+
+
 Lemma lift_distributes_over_apply_parameters_at_any_depth:
   forall i xs k c n,
   lift i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (List.map (lift i (S k)) xs) n
+    apply_parameters (map (lift i (S k)) xs) n
       (lift i (n + k + length xs) c).
 Proof.
   induction xs; intros; simpl.
@@ -688,7 +737,7 @@ Qed.
 Lemma lift_distributes_over_apply_parameters:
   forall i xs k c,
   lift i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
+    apply_parameters (map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
 Proof.
   intros.
   apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
@@ -697,7 +746,7 @@ Qed.
 Lemma subst_distributes_over_apply_parameters_at_any_depth:
   forall i xs k c n,
   subst i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (List.map (subst i (S k)) xs) n
+    apply_parameters (map (subst i (S k)) xs) n
       (subst i (n + k + length xs) c).
 Proof.
   induction xs; intros; simpl.
@@ -723,7 +772,7 @@ Qed.
 Lemma subst_distributes_over_apply_parameters:
   forall i xs k c,
   subst i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (List.map (subst i (S k)) xs) 0
+    apply_parameters (map (subst i (S k)) xs) 0
       (subst i (k + length xs) c).
 Proof.
   intros.
@@ -778,7 +827,7 @@ Proof.
   - intros; simpl; f_equal.
     + apply IHe1.
     + list induction over H.
-    + do 3 rewrite List.map_length.
+    + do 3 rewrite map_length.
       apply IHe2.
 Qed.
 
@@ -830,6 +879,113 @@ Proof.
   apply apply_parameters_sequence_equals_nat_fold.
 Qed.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lemma please_take_my_life:
+  forall e i k p x,
+  not_free_in p e ->
+  lift i (p + k) (subst x p e) = subst x p (lift i (p + S k) e).
+Proof.
+  unfold remove_closest_binding.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
+    + destruct (le_gt_dec (p + S k)); simpl.
+      * destruct (le_gt_dec (p + k) (pred n));
+          try (exfalso; omega).
+        destruct (lt_eq_lt_dec p (i + n)) as [ [ ? | ? ] | ? ];
+          try (exfalso; omega).
+        (* If n is zero this equation won't be correct, but we'll have an absurd
+           assumption, so that's ok. Otherwise we can rewrite the term below so
+           that it is correct. *)
+        destruct n;
+          try (exfalso; omega).
+        replace (i + S n) with (S (i + n)); auto.
+      * destruct (le_gt_dec (p + k) (pred n)); simpl;
+          try (exfalso; omega).
+        destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
+          try (exfalso; omega).
+        reflexivity.
+    + absurd (p = n).
+      * inversion H; assumption.
+      * assumption.
+    + destruct (le_gt_dec (p + S k) n); try omega; simpl.
+      destruct (le_gt_dec (p + k) n); simpl;
+        try (exfalso; omega).
+      destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
+        try (exfalso; omega).
+      reflexivity.
+  - inversion_clear H0.
+    simpl; f_equal.
+    dependent induction H; simpl.
+    + reflexivity.
+    + inversion_clear H1.
+      f_equal; auto.
+  - inversion_clear H0.
+    simpl; f_equal; auto.
+    dependent induction H; simpl.
+    + reflexivity.
+    + inversion_clear H2.
+      f_equal; auto.
+  - inversion_clear H0.
+    simpl; f_equal.
+    + replace (S (p + k)) with (S p + k); auto.
+      replace (S (p + S k)) with (S p + S k); auto.
+    + clear IHe1 IHe2 H1 H3.
+      dependent induction H; simpl.
+      * reflexivity.
+      * inversion_clear H2.
+        f_equal; auto.
+    + do 2 rewrite map_length.
+      replace (p + k + length ts) with (p + length ts + k); try omega.
+      replace (p + S k + length ts) with (p + length ts + S k); try omega.
+      auto.
+Qed.
+
+Lemma I_really_mean_it:
+  forall e i k,
+  not_free_in 0 e ->
+  lift i k (remove_closest_binding e) = remove_closest_binding (lift i (S k) e).
+Proof.
+  intros.
+  apply please_take_my_life with (p := 0).
+  assumption.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (** ** Structural congruence *)
 
 (*
@@ -850,6 +1006,7 @@ Qed.
 Inductive struct: relation pseudoterm :=
   | struct_distr:
     forall b ms m ns n,
+    Forall (not_free_in 0) ms ->
     struct
       (bind
       (bind
@@ -860,12 +1017,14 @@ Inductive struct: relation pseudoterm :=
       (bind
         (switch_bindings b)
         ns (lift 1 (length ns) n))
-        ms (bind
+        (map remove_closest_binding ms) (bind
               (right_cycle (length ms) m)
               ns (lift (length ms) (length ns) n))).
 
 Hint Constructors struct: cps.
 
+(* We define [cong] as the smallest congruence relation closed under the rules
+   of [struct] above. *)
 Definition cong: relation pseudoterm :=
   clos_refl_sym_trans _ struct.
 
@@ -891,8 +1050,7 @@ Notation "[ a ~=~ b ]" := (cong a b)
 (******************************************************************************)
 
 Example ex1: pseudoterm :=
-  (bind
-  (bind
+  (bind (bind
     (jump 1 [bound 4; bound 0; bound 3])
     [base; base]
       (jump 2 [bound 1; bound 6; bound 0]))
@@ -900,8 +1058,7 @@ Example ex1: pseudoterm :=
       (jump 1 [bound 3; bound 0])).
 
 Example ex2: pseudoterm :=
-  (bind
-  (bind
+  (bind (bind
     (jump 0 [bound 4; bound 1; bound 3])
     [base; negation [base; base]; base]
       (jump 1 [bound 4; bound 0]))
@@ -914,8 +1071,15 @@ Example ex2: pseudoterm :=
 Lemma test:
   [ex1 ~=~ ex2].
 Proof.
-  do 2 constructor.
+  do 5 constructor.
 Qed.
+
+
+
+
+
+
+
 
 
 
@@ -982,7 +1146,7 @@ Proof.
   rewrite lift_distributes_over_apply_parameters_at_any_depth.
   (* The lifts inside the map won't change the values, so the parameters will be
      kept the same. Later we must show that the different lifts on the body are
-     also equivalent. *)
+     also equivalent, by rewriting the lifts on the body. *)
   do 2 f_equal.
   - apply aaa.
   - rewrite bbb.
@@ -1003,6 +1167,29 @@ Proof.
   apply foo with (n := 1).
 Qed.
 
+(* TODO: remove me!!! *)
+Definition helper:
+  forall b ms m ns n,
+  forall x1 x2 x3 x4 x5 x6 x7,
+  x1 = (switch_bindings b) ->
+  x2 = (lift 1 (length ns) n) ->
+  x3 = (right_cycle (length ms) m) ->
+  x4 = (lift (length ms) (length ns) n) ->
+  x5 = ns ->
+  x6 = ns ->
+  x7 = map remove_closest_binding ms ->
+  Forall (not_free_in 0) ms ->
+  struct
+    (bind (bind b ms m) ns n)
+    (bind (bind x1 x5 x2) x7
+      (bind x3 x6 x4)).
+Proof.
+  intros.
+  rewrite H, H0, H1, H2, H3, H4, H5.
+  apply struct_distr.
+  assumption.
+Qed.
+
 (* As those are structurally equivalent, lift should preserve that. *)
 Lemma lift_preserves_struct:
   forall a b,
@@ -1014,7 +1201,34 @@ Proof.
   (* Case: struct_distr. *)
   - simpl.
     rewrite bar.
-    admit.
+    apply helper.
+    + reflexivity.
+    + symmetry.
+      rewrite map_length.
+      rewrite lift_lift_permutation; simpl.
+      reflexivity.
+      omega.
+    + do 2 rewrite map_length.
+      replace (S (k + length ms)) with (length ms + S k).
+      rewrite foo.
+      reflexivity.
+      omega.
+    + do 3 rewrite map_length.
+      symmetry.
+      rewrite lift_lift_permutation.
+      f_equal.
+      omega.
+      omega.
+    + admit.
+    + admit.
+    + dependent induction H; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        rewrite I_really_mean_it; auto.
+    + induction ms; simpl; auto.
+      inversion_clear H.
+      constructor; auto.
+      admit.
 Admitted.
 
 Hint Resolve lift_preserves_struct: cps.
@@ -1036,7 +1250,7 @@ Proof.
     + apply IHclos_refl_sym_trans2.
 Qed.
 
-Hint Resolve lift_preserves_cong.
+Hint Resolve lift_preserves_cong: cps.
 
 (** ** One-step reduction. *)
 
@@ -1285,8 +1499,6 @@ Qed.
 
 Hint Resolve parallel_step: cps.
 
-(*
-
 Lemma parallel_lift:
   forall a b,
   parallel a b ->
@@ -1298,7 +1510,7 @@ Proof.
   - simpl.
     rewrite lift_distributes_over_apply_parameters.
     rewrite H; apply parallel_beta.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       assumption.
     + apply IHparallel.
   (* Case: parallel_type. *)
@@ -1320,9 +1532,13 @@ Proof.
     apply parallel_bind.
     + apply IHparallel1.
     + apply IHparallel2.
+  (* Case: parallel_cong. *)
+  - eapply parallel_cong; eauto with cps.
 Qed.
 
 Hint Resolve parallel_lift: cps.
+
+(*
 
 (* We would usually like to have two different substition values (c and d), that
    should be parallel, but we don't do that as we know reductions never happen
@@ -1339,7 +1555,7 @@ Proof.
   - simpl.
     rewrite subst_distributes_over_apply_parameters.
     rewrite H; apply parallel_beta.
-    + do 2 rewrite List.map_length.
+    + do 2 rewrite map_length.
       assumption.
     + apply IHparallel.
   (* Case: parallel_type. *)
