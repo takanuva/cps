@@ -624,7 +624,54 @@ Inductive not_free_in: nat -> pseudoterm -> Prop :=
     not_free_in (n + length ts) c ->
     not_free_in n (bind b ts c).
 
+Hint Constructors not_free_in: cps.
+
 Definition free_in n e := ~not_free_in n e.
+
+Hint Unfold free_in: cps.
+
+Lemma lifting_over_n_preserves_not_free_in_n:
+  forall e n,
+  not_free_in n e ->
+  forall i k,
+  k > n -> not_free_in n (lift i k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - assumption.
+  - assumption.
+  - assumption.
+  - assumption.
+  - rename n0 into m; simpl.
+    destruct (le_gt_dec k n).
+    + constructor.
+      omega.
+    + assumption.
+  - simpl; constructor.
+    dependent induction H.
+    + simpl; constructor.
+    + inversion_clear H1.
+      inversion_clear H3.
+      simpl; constructor.
+      * auto.
+      * auto with cps.
+  - inversion_clear H0.
+    simpl; constructor.
+    + auto.
+    + dependent induction H; auto.
+      inversion_clear H3.
+      simpl; auto.
+  - inversion_clear H0.
+    simpl; constructor.
+    + apply IHe1; auto.
+      omega.
+    + clear e1 e2 IHe1 IHe2 H2 H4.
+      dependent induction H; info_auto.
+      inversion_clear H3.
+      simpl; constructor; auto.
+    + rewrite map_length.
+      apply IHe2; auto.
+      omega.
+Qed.
 
 (******************************************************************************)
 (* TODO: proofs are starting to get a bit more complicated after this point,  *)
@@ -1016,10 +1063,10 @@ Inductive struct: relation pseudoterm :=
       (bind
       (bind
         (switch_bindings b)
-        ns (lift 1 (length ns) n))
+        (map (lift 1 0) ns) (lift 1 (length ns) n))
         (map remove_closest_binding ms) (bind
               (right_cycle (length ms) m)
-              ns (lift (length ms) (length ns) n))).
+              (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
 
 Hint Constructors struct: cps.
 
@@ -1167,22 +1214,20 @@ Proof.
   apply foo with (n := 1).
 Qed.
 
-(* TODO: remove me!!! *)
-Definition helper:
+Lemma struct_distr_helper:
   forall b ms m ns n,
   forall x1 x2 x3 x4 x5 x6 x7,
-  x1 = (switch_bindings b) ->
-  x2 = (lift 1 (length ns) n) ->
-  x3 = (right_cycle (length ms) m) ->
-  x4 = (lift (length ms) (length ns) n) ->
-  x5 = ns ->
-  x6 = ns ->
+  x1 = switch_bindings b ->
+  x2 = lift 1 (length ns) n ->
+  x3 = right_cycle (length ms) m ->
+  x4 = lift (length ms) (length ns) n ->
+  x5 = map (lift 1 0) ns ->
+  x6 = map (lift (length ms) 0) ns ->
   x7 = map remove_closest_binding ms ->
   Forall (not_free_in 0) ms ->
   struct
     (bind (bind b ms m) ns n)
-    (bind (bind x1 x5 x2) x7
-      (bind x3 x6 x4)).
+    (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
 Proof.
   intros.
   rewrite H, H0, H1, H2, H3, H4, H5.
@@ -1200,27 +1245,40 @@ Proof.
   induction 1; intros.
   (* Case: struct_distr. *)
   - simpl.
-    rewrite bar.
-    apply helper.
-    + reflexivity.
+    (* This is a complicated case; upon simplifying the lift operation, we will
+       have a valid distr here already, but the subterms are not in the right
+       form yet. We use a helper lemma to add the needed equalities as subgoals,
+       then proceed to prove them individualy. *)
+    apply struct_distr_helper.
+    + apply bar.
     + symmetry.
       rewrite map_length.
-      rewrite lift_lift_permutation; simpl.
-      reflexivity.
-      omega.
+      rewrite lift_lift_permutation.
+      * rewrite map_length.
+        reflexivity.
+      * omega.
     + do 2 rewrite map_length.
       replace (S (k + length ms)) with (length ms + S k).
-      rewrite foo.
-      reflexivity.
-      omega.
-    + do 3 rewrite map_length.
+      * apply foo.
+      * omega.
+    + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
-      f_equal.
-      omega.
-      omega.
-    + admit.
-    + admit.
+      * f_equal.
+        omega.
+      * omega.
+    + induction ns; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        symmetry.
+        rewrite lift_lift_permutation; auto with arith.
+    + do 2 rewrite map_length.
+      induction ns; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        symmetry.
+        rewrite lift_lift_permutation; auto with arith.
+        replace (length ms + k) with (k + length ms); auto with arith.
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
@@ -1228,8 +1286,8 @@ Proof.
     + induction ms; simpl; auto.
       inversion_clear H.
       constructor; auto.
-      admit.
-Admitted.
+      apply lifting_over_n_preserves_not_free_in_n; auto with arith.
+Qed.
 
 Hint Resolve lift_preserves_struct: cps.
 
@@ -1533,7 +1591,10 @@ Proof.
     + apply IHparallel1.
     + apply IHparallel2.
   (* Case: parallel_cong. *)
-  - eapply parallel_cong; eauto with cps.
+  - apply parallel_cong with (lift i k b) (lift i k c).
+    + apply lift_preserves_cong; auto.
+    + apply IHparallel.
+    + apply lift_preserves_cong; auto.
 Qed.
 
 Hint Resolve parallel_lift: cps.
