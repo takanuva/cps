@@ -48,7 +48,7 @@ Definition pseudoterm_deepind:
   forall f2: P prop,
   forall f3: P base,
   forall f4: P void,
-  forall f5: (forall n: nat, P (bound n)),
+  forall f5: (forall n, P (bound n)),
   forall f6: (forall ts, Forall P ts -> P (negation ts)),
   forall f7: (forall f xs, P f -> Forall P xs -> P (jump f xs)),
   forall f8: (forall b ts c, P b -> Forall P ts -> P c -> P (bind b ts c)),
@@ -82,10 +82,8 @@ Defined.
 
 Tactic Notation "list" "induction" "over" hyp(H) :=
   induction H; simpl;
-  [ (* Case: nil. *)
-    reflexivity
-  | (* Case: cons. *)
-    f_equal; auto ].
+  [ reflexivity
+  | f_equal; auto ].
 
 (** We will be using a single inductive type to represent pseudoterms in order
     to facilitate the proofs; actual terms will be split into a few syntactic
@@ -626,10 +624,6 @@ Inductive not_free_in: nat -> pseudoterm -> Prop :=
 
 Hint Constructors not_free_in: cps.
 
-Definition free_in n e := ~not_free_in n e.
-
-Hint Unfold free_in: cps.
-
 Lemma lifting_over_n_preserves_not_free_in_n:
   forall e n,
   not_free_in n e ->
@@ -637,35 +631,40 @@ Lemma lifting_over_n_preserves_not_free_in_n:
   k > n -> not_free_in n (lift i k e).
 Proof.
   induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
   - assumption.
+  (* Case: prop. *)
   - assumption.
+  (* Case: base. *)
   - assumption.
+  (* Case: void. *)
   - assumption.
+  (* Case: bound. *)
   - rename n0 into m; simpl.
     destruct (le_gt_dec k n).
     + constructor.
       omega.
     + assumption.
+  (* Case: negation. *)
   - simpl; constructor.
     dependent induction H.
     + simpl; constructor.
     + inversion_clear H1.
       inversion_clear H3.
-      simpl; constructor.
-      * auto.
-      * auto with cps.
+      simpl; auto with cps.
+  (* Case: jump. *)
   - inversion_clear H0.
-    simpl; constructor.
-    + auto.
-    + dependent induction H; auto.
-      inversion_clear H3.
-      simpl; auto.
+    simpl; constructor; auto.
+    dependent induction H; auto.
+    inversion_clear H3.
+    simpl; auto.
+  (* Case: bind. *)
   - inversion_clear H0.
     simpl; constructor.
     + apply IHe1; auto.
       omega.
     + clear e1 e2 IHe1 IHe2 H2 H4.
-      dependent induction H; info_auto.
+      dependent induction H; auto.
       inversion_clear H3.
       simpl; constructor; auto.
     + rewrite map_length.
@@ -675,7 +674,7 @@ Qed.
 
 (******************************************************************************)
 (* TODO: proofs are starting to get a bit more complicated after this point,  *)
-(* so add a few comments and documentation.                                   *)
+(* so add a few comments and documentation before I forget what I'm doing.    *)
 (******************************************************************************)
 
 (** *)
@@ -714,46 +713,8 @@ Fixpoint nat_fold {T} n (f: T -> T) e :=
 
 Hint Unfold nat_fold: cps.
 
-
-
-
-
-
-
-
-
-
-
-
-
-(******************************************************************************)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Definition remove_closest_binding e :=
   subst 0 0 e.
-
-
-
-
-
-
-
-
-
-
 
 Lemma lift_distributes_over_apply_parameters_at_any_depth:
   forall i xs k c n,
@@ -830,8 +791,7 @@ Lemma switch_bindings_at_any_depth:
   forall e n,
   subst 1 n (lift 1 (2 + n) e) = subst 0 n (subst 2 n (lift 2 (2 + n) e)).
 Proof.
-  simpl.
-  induction e using pseudoterm_deepind.
+  simpl; induction e using pseudoterm_deepind; intro m.
   (* Case: type. *)
   - reflexivity.
   (* Case: prop. *)
@@ -841,8 +801,7 @@ Proof.
   (* Case: void. *)
   - reflexivity.
   (* Case: bound. *)
-  - intro m.
-    unfold lift.
+  - unfold lift.
     destruct (le_gt_dec (S (S m)) n).
     + unfold subst at 1 3.
       destruct (lt_eq_lt_dec m (1 + n)) as [ [ ? | ? ] | ? ];
@@ -894,19 +853,12 @@ Lemma apply_parameters_sequence_equals_nat_fold:
   apply_parameters (sequence n) (S m) (lift (m + n) (S m + n) e) =
     nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
 Proof.
-  induction n; intros.
+  induction n; intros; simpl.
   (* Case: zero. *)
-  - unfold sequence.
-    unfold apply_parameters.
-    unfold nat_fold.
-    replace (m + 0) with m; auto.
-    replace (S m + 0) with (S m); auto.
+  - replace (m + 0) with m; auto.
     rewrite lift_lift_simplification; auto with arith.
   (* Case: succ. *)
-  - unfold sequence; fold sequence.
-    unfold apply_parameters; fold apply_parameters.
-    unfold nat_fold; fold (@nat_fold pseudoterm).
-    simpl; f_equal.
+  - f_equal.
     replace (S m + S n) with (S (S m) + n).
     + replace (m + S n) with (S m + n).
       * apply IHn.
@@ -926,43 +878,30 @@ Proof.
   apply apply_parameters_sequence_equals_nat_fold.
 Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Lemma please_take_my_life:
+Lemma subst_removes_abstraction_if_not_free:
   forall e i k p x,
   not_free_in p e ->
   lift i (p + k) (subst x p e) = subst x p (lift i (p + S k) e).
 Proof.
-  unfold remove_closest_binding.
-  induction e using pseudoterm_deepind; intros.
+  induction e using pseudoterm_deepind; simpl; intros.
+  (* Case: type. *)
   - reflexivity.
+  (* Case: prop. *)
   - reflexivity.
+  (* Case: base. *)
   - reflexivity.
+  (* Case: void. *)
   - reflexivity.
-  - simpl.
-    destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
+  (* Case: bound. *)
+  - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
     + destruct (le_gt_dec (p + S k)); simpl.
       * destruct (le_gt_dec (p + k) (pred n));
           try (exfalso; omega).
         destruct (lt_eq_lt_dec p (i + n)) as [ [ ? | ? ] | ? ];
           try (exfalso; omega).
         (* If n is zero this equation won't be correct, but we'll have an absurd
-           assumption, so that's ok. Otherwise we can rewrite the term below so
-           that it is correct. *)
+           assumption then, so that's ok. Otherwise we can rewrite the term
+           below so that it is indeed correct. *)
         destruct n;
           try (exfalso; omega).
         replace (i + S n) with (S (i + n)); auto.
@@ -980,18 +919,20 @@ Proof.
       destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
         try (exfalso; omega).
       reflexivity.
-  - inversion_clear H0.
-    simpl; f_equal.
+  (* Case: negation. *)
+  - inversion_clear H0; f_equal.
     dependent induction H; simpl.
     + reflexivity.
     + inversion_clear H1.
       f_equal; auto.
+  (* Case: jump. *)
   - inversion_clear H0.
     simpl; f_equal; auto.
     dependent induction H; simpl.
     + reflexivity.
     + inversion_clear H2.
       f_equal; auto.
+  (* Case: bind. *)
   - inversion_clear H0.
     simpl; f_equal.
     + replace (S (p + k)) with (S p + k); auto.
@@ -1007,31 +948,46 @@ Proof.
       auto.
 Qed.
 
-Lemma I_really_mean_it:
+Lemma remove_closest_binding_and_lift_commute:
   forall e i k,
   not_free_in 0 e ->
   lift i k (remove_closest_binding e) = remove_closest_binding (lift i (S k) e).
 Proof.
   intros.
-  apply please_take_my_life with (p := 0).
+  apply subst_removes_abstraction_if_not_free with (p := 0).
   assumption.
 Qed.
 
+Lemma sequence_succ:
+  forall n,
+  sequence (S n) = bound (S n) :: sequence n.
+Proof.
+  reflexivity.
+Qed.
 
+Lemma lifting_over_n_doesnt_change_sequence_n:
+  forall n i k,
+  map (lift i (S (n + k))) (sequence n) = sequence n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - rewrite sequence_succ.
+    rewrite map_cons.
+    f_equal.
+    + rewrite lift_bound_lt; auto.
+      omega.
+    + replace (S n + k) with (n + S k); auto.
+      omega.
+Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Lemma length_sequence:
+  forall n,
+  length (sequence n) = n.
+Proof.
+  induction n; simpl; auto.
+Qed.
 
 (** ** Structural congruence *)
 
@@ -1050,23 +1006,21 @@ Qed.
   That's an annoying reduction to do... let's see...
 *)
 
+Definition distr b ms m ns n: pseudoterm :=
+  (bind (bind
+    (switch_bindings b)
+    (map (lift 1 0) ns)
+      (lift 1 (length ns) n))
+    (map remove_closest_binding ms) (bind
+      (right_cycle (length ms) m)
+      (map (lift (length ms) 0) ns)
+        (lift (length ms) (length ns) n))).
+
 Inductive struct: relation pseudoterm :=
   | struct_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
-    struct
-      (bind
-      (bind
-        b
-        ms m)
-        ns n)
-      (bind
-      (bind
-        (switch_bindings b)
-        (map (lift 1 0) ns) (lift 1 (length ns) n))
-        (map remove_closest_binding ms) (bind
-              (right_cycle (length ms) m)
-              (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
+    struct (bind (bind b ms m) ns n) (distr b ms m ns n).
 
 Hint Constructors struct: cps.
 
@@ -1079,20 +1033,6 @@ Hint Unfold cong: cps.
 Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a ~=~ b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 (******************************************************************************)
 
@@ -1115,67 +1055,6 @@ Example ex2: pseudoterm :=
         [base; negation [base; base]; base]
           (jump 1 [bound 5; bound 0]))).
 
-Lemma test:
-  [ex1 ~=~ ex2].
-Proof.
-  do 5 constructor.
-Qed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Lemma sequence_succ:
-  forall n,
-  sequence (S n) = bound (S n) :: sequence n.
-Proof.
-  reflexivity.
-Qed.
-
-Lemma aaa:
-  forall n i k,
-  map (lift i (S (n + k))) (sequence n) = sequence n.
-Proof.
-  induction n; intros.
-  (* Case: zero. *)
-  - reflexivity.
-  (* Case: succ. *)
-  - rewrite sequence_succ.
-    rewrite map_cons.
-    f_equal.
-    + rewrite lift_bound_lt; auto.
-      omega.
-    + replace (S n + k) with (n + S k); auto.
-      omega.
-Qed.
-
-Lemma bbb:
-  forall n,
-  length (sequence n) = n.
-Proof.
-  induction n; simpl; auto.
-Qed.
-
 Lemma foo:
   forall e n i k,
   lift i (n + S k) (right_cycle n e) =
@@ -1195,8 +1074,8 @@ Proof.
      kept the same. Later we must show that the different lifts on the body are
      also equivalent, by rewriting the lifts on the body. *)
   do 2 f_equal.
-  - apply aaa.
-  - rewrite bbb.
+  - apply lifting_over_n_doesnt_change_sequence_n.
+  - rewrite length_sequence.
     simpl; symmetry.
     rewrite lift_lift_permutation.
     + f_equal.
@@ -1235,7 +1114,6 @@ Proof.
   assumption.
 Qed.
 
-(* As those are structurally equivalent, lift should preserve that. *)
 Lemma lift_preserves_struct:
   forall a b,
   struct a b ->
@@ -1282,7 +1160,7 @@ Proof.
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
-        rewrite I_really_mean_it; auto.
+        rewrite remove_closest_binding_and_lift_commute; auto.
     + induction ms; simpl; auto.
       inversion_clear H.
       constructor; auto.
@@ -1299,10 +1177,14 @@ Lemma lift_preserves_cong:
   [lift i k a ~=~ lift i k b].
 Proof.
   induction 1.
+  (* Case: step. *)
   - auto with cps.
+  (* Case: refl. *)
   - auto with cps.
+  (* Case: symm. *)
   - intros; apply rst_sym.
     apply IHclos_refl_sym_trans.
+  (* Case: tran. *)
   - intros; eapply rst_trans.
     + apply IHclos_refl_sym_trans1.
     + apply IHclos_refl_sym_trans2.
@@ -1687,5 +1569,7 @@ Proof.
 Qed.
 
 Hint Resolve star_parallel: cps.
+
+*)
 
 End STCC.
