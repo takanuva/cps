@@ -1055,7 +1055,13 @@ Example ex2: pseudoterm :=
         [base; negation [base; base]; base]
           (jump 1 [bound 5; bound 0]))).
 
-Lemma foo:
+Lemma tmp:
+  [ex1 ~=~ ex2].
+Proof.
+  do 5 constructor.
+Qed.
+
+Lemma lift_and_right_cycle_commute:
   forall e n i k,
   lift i (n + S k) (right_cycle n e) =
     right_cycle n (lift i (n + S k) e).
@@ -1083,14 +1089,14 @@ Proof.
     + omega.
 Qed.
 
-Lemma bar:
+Lemma lift_and_switch_bindings_commute:
   forall i k e,
   lift i (S (S k)) (switch_bindings e) =
     switch_bindings (lift i (S (S k)) e).
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
-  apply foo with (n := 1).
+  apply lift_and_right_cycle_commute with (n := 1).
 Qed.
 
 Lemma struct_distr_helper:
@@ -1123,33 +1129,38 @@ Proof.
   induction 1; intros.
   (* Case: struct_distr. *)
   - simpl.
-    (* This is a complicated case; upon simplifying the lift operation, we will
-       have a valid distr here already, but the subterms are not in the right
-       form yet. We use a helper lemma to add the needed equalities as subgoals,
-       then proceed to prove them individualy. *)
+    (* This is a very complex case; upon simplifying the lift operation, we will
+       have a valid [distr] here already, but the subterms are not in the right
+       shapes yet. We use the helper lemma to add the needed equalities as
+       subgoals, then proceed to prove them individualy. *)
     apply struct_distr_helper.
-    + apply bar.
+    (* First assumption: [x1 = switch_bindings b]. *)
+    + apply lift_and_switch_bindings_commute.
+    (* Second assumption: [x2 = lift 1 (length ns) n]. *)
     + symmetry.
-      rewrite map_length.
+      do 2 rewrite map_length.
       rewrite lift_lift_permutation.
-      * rewrite map_length.
-        reflexivity.
+      * reflexivity.
       * omega.
+    (* Third assumption: [x3 = right_cycle (length ms) m]. *)
     + do 2 rewrite map_length.
       replace (S (k + length ms)) with (length ms + S k).
-      * apply foo.
+      * apply lift_and_right_cycle_commute.
       * omega.
+    (* Fourth assumption: [x4 = lift (length ms) (length ns) n]. *)
     + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
       * f_equal.
         omega.
       * omega.
+    (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
     + induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
+    (* Sixth assumption: [x6 = map (lift (length ms) 0) ns]. *)
     + do 2 rewrite map_length.
       induction ns; simpl.
       * reflexivity.
@@ -1157,10 +1168,12 @@ Proof.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
         replace (length ms + k) with (k + length ms); auto with arith.
+    (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite remove_closest_binding_and_lift_commute; auto.
+    (* Last assumption: [Forall (not_free_in 0) ms]. *)
     + induction ms; simpl; auto.
       inversion_clear H.
       constructor; auto.
@@ -1169,7 +1182,6 @@ Qed.
 
 Hint Resolve lift_preserves_struct: cps.
 
-(* As [cong] is a congruence, it should be preserved by lift. *)
 Lemma lift_preserves_cong:
   forall a b,
   [a ~=~ b] ->
