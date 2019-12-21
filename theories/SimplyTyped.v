@@ -1039,6 +1039,33 @@ Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a ~=~ b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
 
+Lemma cong_refl:
+  forall e,
+  [e ~=~ e].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_refl: cps.
+
+Lemma cong_symm:
+  forall a b,
+  [a ~=~ b] -> [b ~=~ a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_symm: cps.
+
+Lemma cong_tran:
+  forall a b c,
+  [a ~=~ b] -> [b ~=~ c] -> [a ~=~ c].
+Proof.
+  eauto with cps.
+Qed.
+
+Hint Resolve cong_tran: cps.
+
 Lemma cong_bind_left:
   forall b1 b2 ts c,
   [b1 ~=~ b2] -> [bind b1 ts c ~=~ bind b2 ts c].
