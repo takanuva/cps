@@ -1020,7 +1020,13 @@ Inductive struct: relation pseudoterm :=
   | struct_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
-    struct (bind (bind b ms m) ns n) (distr b ms m ns n).
+    struct (bind (bind b ms m) ns n) (distr b ms m ns n)
+  | struct_bind_left:
+    forall b1 b2 ts c,
+    struct b1 b2 -> struct (bind b1 ts c) (bind b2 ts c)
+  | struct_bind_right:
+    forall b ts c1 c2,
+    struct c1 c2 -> struct (bind b ts c1) (bind b ts c2).
 
 Hint Constructors struct: cps.
 
@@ -1033,6 +1039,24 @@ Hint Unfold cong: cps.
 Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a ~=~ b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
+
+Lemma cong_bind_left:
+  forall b1 b2 ts c,
+  [b1 ~=~ b2] -> [bind b1 ts c ~=~ bind b2 ts c].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_bind_left: cps.
+
+Lemma cong_bind_right:
+  forall b ts c1 c2,
+  [c1 ~=~ c2] -> [bind b ts c1 ~=~ bind b ts c2].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_bind_right: cps.
 
 (******************************************************************************)
 
@@ -1178,6 +1202,12 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply lifting_over_n_preserves_not_free_in_n; auto with arith.
+  (* Case: struct_bind_left. *)
+  - apply struct_bind_left.
+    apply IHstruct.
+  (* Case: struct_bind_right. *)
+  - apply struct_bind_right.
+    apply IHstruct.
 Qed.
 
 Hint Resolve lift_preserves_struct: cps.
@@ -1245,12 +1275,31 @@ Hint Constructors step: cps.
 (** ** Multi-step reduction *)
 
 Definition star: relation pseudoterm :=
-  clos_refl_trans _ step.
+  clos_refl_trans _ (union _ cong step).
 
 Hint Unfold star: cps.
+Hint Unfold union: cps.
 Hint Constructors clos_refl_trans: cps.
 Notation "[ a =>* b ]" := (star a b)
   (at level 0, a, b at level 200): type_scope.
+
+Lemma star_step:
+  forall a b,
+  [a => b] -> [a =>* b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve star_step: cps.
+
+Lemma star_cong:
+  forall a b,
+  [a ~=~ b] -> [a =>* b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve star_cong: cps.
 
 Lemma star_beta:
   forall xs ts c,
@@ -1261,15 +1310,6 @@ Proof.
 Qed.
 
 Hint Resolve star_beta: cps.
-
-Lemma star_step:
-  forall a b,
-  [a => b] -> [a =>* b].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve star_step: cps.
 
 Lemma star_refl:
   forall e,
@@ -1293,7 +1333,10 @@ Lemma star_bind_left:
   forall b1 b2 ts c,
   [b1 =>* b2] -> [bind b1 ts c =>* bind b2 ts c].
 Proof.
-  induction 1; eauto with cps.
+  induction 1.
+  - destruct H; auto with cps.
+  - apply star_refl.
+  - apply star_tran with (bind y ts c); auto.
 Qed.
 
 Hint Resolve star_bind_left: cps.
@@ -1302,7 +1345,10 @@ Lemma star_bind_right:
   forall b ts c1 c2,
   [c1 =>* c2] -> [bind b ts c1 =>* bind b ts c2].
 Proof.
-  induction 1; eauto with cps.
+  induction 1.
+  - destruct H; auto with cps.
+  - apply star_refl.
+  - apply star_tran with (bind b ts y); auto.
 Qed.
 
 Hint Resolve star_bind_right: cps.
@@ -1310,11 +1356,29 @@ Hint Resolve star_bind_right: cps.
 (** ** Pseudoterm conversion *)
 
 Definition conv: relation pseudoterm :=
-  clos_refl_sym_trans _ step.
+  clos_refl_sym_trans _ (union _ cong step).
 
 Hint Unfold conv: cps.
 Notation "[ a <=> b ]" := (conv a b)
   (at level 0, a, b at level 200): type_scope.
+
+Lemma conv_step:
+  forall a b,
+  [a => b] -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_step: cps.
+
+Lemma conv_cong:
+  forall a b,
+  [a ~=~ b] -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_cong: cps.
 
 Lemma conv_beta:
   forall xs ts c,
@@ -1325,15 +1389,6 @@ Proof.
 Qed.
 
 Hint Resolve conv_beta: cps.
-
-Lemma conv_step:
-  forall a b,
-  [a => b] -> [a <=> b].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_step: cps.
 
 Lemma conv_star:
   forall a b,
@@ -1364,7 +1419,7 @@ Hint Resolve conv_symm: cps.
 
 Lemma conv_tran:
   forall a b c,
-  [a =>* b] -> [b =>* c] -> [a =>* c].
+  [a <=> b] -> [b <=> c] -> [a <=> c].
 Proof.
   eauto with cps.
 Qed.
@@ -1373,7 +1428,7 @@ Hint Resolve conv_tran: cps.
 
 Lemma conv_bind_left:
   forall b1 b2 ts c,
-  [b1 =>* b2] -> [bind b1 ts c <=> bind b2 ts c].
+  [b1 <=> b2] -> [bind b1 ts c <=> bind b2 ts c].
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1382,7 +1437,7 @@ Hint Resolve conv_bind_left: cps.
 
 Lemma conv_bind_right:
   forall b ts c1 c2,
-  [c1 =>* c2] -> [bind b ts c1 <=> bind b ts c2].
+  [c1 <=> c2] -> [bind b ts c1 <=> bind b ts c2].
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1395,6 +1450,12 @@ Hint Unfold transp: cps.
 
 Lemma subterm_and_step_commute:
   commut _ subterm (transp _ step).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Lemma subterm_and_struct_commute:
+  commut _ subterm (transp _ struct).
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1493,8 +1554,6 @@ Qed.
 
 Hint Resolve parallel_lift: cps.
 
-(*
-
 (* We would usually like to have two different substition values (c and d), that
    should be parallel, but we don't do that as we know reductions never happen
    inside of parameter packs. If we ever have something other than variables as
@@ -1532,7 +1591,9 @@ Proof.
     apply parallel_bind.
     + apply IHparallel1.
     + apply IHparallel2.
-Qed.
+  (* Case: parallel_cong. *)
+  - admit.
+Admitted.
 
 Hint Resolve parallel_subst: cps.
 
@@ -1578,10 +1639,16 @@ Proof.
       eassumption.
     + apply star_bind_right.
       assumption.
+  (* Case: parallel_cong. *)
+  - apply star_tran with c.
+    + apply star_tran with b.
+      * apply star_cong.
+        assumption.
+      * assumption.
+    + apply star_cong.
+      assumption.
 Qed.
 
 Hint Resolve star_parallel: cps.
-
-*)
 
 End STCC.
