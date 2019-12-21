@@ -1,6 +1,5 @@
 (******************************************************************************)
-(* Copyright (c) Paulo Torrens.                                               *)
-(* Licensed under the New BSD license.                                        *)
+(*      Copyright (c) 2019 - Paulo Torrens <paulotorrens AT gnu DOT org>      *)
 (******************************************************************************)
 (** * The Simply Typed CPS Calculus *)
 
