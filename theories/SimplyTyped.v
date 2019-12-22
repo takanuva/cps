@@ -1428,8 +1428,7 @@ Proof.
     + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
-      * f_equal.
-        omega.
+      * f_equal; omega.
       * omega.
     (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
     + induction ns; simpl.
@@ -1444,7 +1443,7 @@ Proof.
       * f_equal; auto.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
-        replace (length ms + k) with (k + length ms); auto with arith.
+        f_equal; omega.
     (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
     + dependent induction H; simpl.
       * reflexivity.
@@ -1496,19 +1495,42 @@ Proof.
     (* First assumption: [x1 = switch_bindings b]. *)
     + apply subst_and_switch_bindings_commute.
     (* Second assumption: [x2 = lift 1 (length ns) n]. *)
-    + admit.
+    + do 2 rewrite map_length.
+      rewrite lift_and_subst_commute.
+      * reflexivity.
+      * omega.
     (* Third assumption: [x3 = right_cycle (length ms) m]. *)
-    + admit.
+    + do 2 rewrite map_length.
+      replace (S (k + length ms)) with (length ms + S k).
+      * apply subst_and_right_cycle_commute.
+      * omega.
     (* Fourth assumption: [x4 = lift (length ms) (length ns) n]. *)
-    + admit.
+    + do 4 rewrite map_length.
+      rewrite lift_and_subst_commute.
+      * f_equal; omega.
+      * omega.
     (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
-    + admit.
+    + induction ns; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        rewrite lift_and_subst_commute; auto with arith.
     (* Sixth assumption: [x6 = map (lift (length ms) 0) ns]. *)
-    + admit.
+    + do 2 rewrite map_length.
+      induction ns; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        rewrite lift_and_subst_commute; auto with arith.
+        f_equal; omega.
     (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
-    + admit.
+    + dependent induction H; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        rewrite remove_closest_binding_and_subst_commute; auto.
     (* Last assumption: [Forall (not_free_in 0) ms]. *)
-    + admit.
+    + induction ms; simpl; auto.
+      inversion_clear H.
+      constructor; auto.
+      apply substing_over_n_preserves_not_free_in_n; auto with arith.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
     apply struct_gc.
@@ -1521,7 +1543,7 @@ Proof.
   - simpl.
     apply struct_bind_right.
     apply IHstruct.
-Admitted.
+Qed.
 
 Hint Resolve subst_preserves_struct: cps.
 
