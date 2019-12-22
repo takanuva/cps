@@ -671,6 +671,86 @@ Proof.
       omega.
 Qed.
 
+(* Clearly, if we're lifiting [e]'s var above [k] by [i], anything equal or
+   greater than [k] and smaller than [k + i] is free. *)
+Lemma lifting_more_than_n_makes_not_free_in_n:
+  forall e i k n,
+  n >= k -> n < k + i -> not_free_in n (lift i k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - constructor.
+  (* Case: prop. *)
+  - constructor.
+  (* Case: base. *)
+  - constructor.
+  (* Case: void. *)
+  - constructor.
+  (* Case: bound. *)
+  - simpl; destruct (le_gt_dec k n); constructor; omega.
+  (* Case: negation. *)
+  - simpl; constructor.
+    dependent induction H; simpl; auto.
+  (* Case: jump. *)
+  - simpl; constructor.
+    + apply IHe; auto.
+    + dependent induction H; simpl; auto.
+  (* Case: bind. *)
+  - simpl; constructor.
+    + apply IHe1; omega.
+    + dependent induction H; simpl; auto.
+    + rewrite map_length.
+      apply IHe2; omega.
+Qed.
+
+Lemma substing_over_n_preserves_not_free_in_n:
+  forall e n,
+  not_free_in n e ->
+  forall x k,
+  k > n -> not_free_in n (subst x k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - assumption.
+  (* Case: prop. *)
+  - assumption.
+  (* Case: base. *)
+  - assumption.
+  (* Case: void. *)
+  - assumption.
+  (* Case: bound. *)
+  - rename n0 into m; simpl.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + constructor; omega.
+    + apply lifting_more_than_n_makes_not_free_in_n; omega.
+    + assumption.
+  (* Case: negation. *)
+  - simpl; constructor.
+    dependent induction H.
+    + simpl; constructor.
+    + inversion_clear H1.
+      inversion_clear H3.
+      simpl; auto with cps.
+  (* Case: jump. *)
+  - inversion_clear H0.
+    simpl; constructor; auto.
+    dependent induction H; auto.
+    inversion_clear H3.
+    simpl; auto.
+  (* Case: bind. *)
+  - inversion_clear H0.
+    simpl; constructor.
+    + apply IHe1; auto.
+      omega.
+    + clear e1 e2 IHe1 IHe2 H2 H4.
+      dependent induction H; auto.
+      inversion_clear H3.
+      simpl; constructor; auto.
+    + rewrite map_length.
+      apply IHe2; auto.
+      omega.
+Qed.
+
 (******************************************************************************)
 (* TODO: proofs are starting to get a bit more complicated after this point,  *)
 (* so add a few comments and documentation before I forget what I'm doing.    *)
@@ -877,7 +957,7 @@ Proof.
   apply apply_parameters_sequence_equals_nat_fold.
 Qed.
 
-Lemma subst_removes_abstraction_if_not_free:
+Lemma lift_preserved_by_useless_subst:
   forall e i k p x,
   not_free_in p e ->
   lift i (p + k) (subst x p e) = subst x p (lift i (p + S k) e).
@@ -953,7 +1033,84 @@ Lemma remove_closest_binding_and_lift_commute:
   lift i k (remove_closest_binding e) = remove_closest_binding (lift i (S k) e).
 Proof.
   intros.
-  apply subst_removes_abstraction_if_not_free with (p := 0).
+  apply lift_preserved_by_useless_subst with (p := 0).
+  assumption.
+Qed.
+
+Lemma subst_preserved_by_useless_subst:
+  forall e y k p x,
+  not_free_in p e ->
+  subst y (p + k) (subst x p e) = subst x p (subst y (p + S k) e).
+Proof.
+  induction e using pseudoterm_deepind; simpl; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
+      destruct (lt_eq_lt_dec (p + S k) n) as [ [ ? | ? ] | ? ];
+        try (exfalso; omega).
+    + rewrite subst_bound_gt; try omega.
+      rewrite subst_bound_gt; try omega.
+      reflexivity.
+    + replace (p + S k) with (S (p + k)); auto.
+      rewrite subst_bound_eq; try omega.
+      rewrite subst_lift_simplification; try omega.
+      f_equal; omega.
+    + rewrite subst_bound_lt; try omega.
+      rewrite subst_bound_gt; try omega.
+      reflexivity.
+    + absurd (p = n).
+      * inversion H; assumption.
+      * assumption.
+    + simpl.
+      destruct (lt_eq_lt_dec (p + k) n) as [ [ ? | ? ] | ? ];
+        try (exfalso; omega).
+      destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
+        try (exfalso; omega).
+      reflexivity.
+  (* Case: negation. *)
+  - inversion_clear H0; f_equal.
+    dependent induction H; simpl.
+    + reflexivity.
+    + inversion_clear H1.
+      f_equal; auto.
+  (* Case: jump. *)
+  - inversion_clear H0.
+    simpl; f_equal; auto.
+    dependent induction H; simpl.
+    + reflexivity.
+    + inversion_clear H2.
+      f_equal; auto.
+  (* Case: bind. *)
+  - inversion_clear H0.
+    simpl; f_equal.
+    + replace (S (p + k)) with (S p + k); auto.
+      replace (S (p + S k)) with (S p + S k); auto.
+    + clear IHe1 IHe2 H1 H3.
+      dependent induction H; simpl.
+      * reflexivity.
+      * inversion_clear H2.
+        f_equal; auto.
+    + do 2 rewrite map_length.
+      replace (p + k + length ts) with (p + length ts + k); try omega.
+      replace (p + S k + length ts) with (p + length ts + S k); try omega.
+      auto.
+Qed.
+
+Lemma remove_closest_binding_and_subst_commute:
+  forall e x k,
+  not_free_in 0 e ->
+  subst x k (remove_closest_binding e) =
+    remove_closest_binding (subst x (S k) e).
+Proof.
+  intros.
+  apply subst_preserved_by_useless_subst with (p := 0).
   assumption.
 Qed.
 
@@ -1259,10 +1416,12 @@ Proof.
     apply struct_gc.
     apply lifting_over_n_preserves_not_free_in_n; auto with arith.
   (* Case: struct_bind_left. *)
-  - apply struct_bind_left.
+  - simpl.
+    apply struct_bind_left.
     apply IHstruct.
   (* Case: struct_bind_right. *)
-  - apply struct_bind_right.
+  - simpl.
+    apply struct_bind_right.
     apply IHstruct.
 Qed.
 
@@ -1278,6 +1437,60 @@ Proof.
 Qed.
 
 Hint Resolve lift_preserves_cong: cps.
+
+Lemma subst_preserves_struct:
+  forall a b,
+  struct a b ->
+  forall c k,
+  struct (subst c k a) (subst c k b).
+Proof.
+  induction 1; intros.
+  (* Case: struct_distr. *)
+  - simpl.
+    (* We'll have a problem similar to the one in [lift_preserves_struct]. *)
+    apply struct_distr_helper.
+    (* First assumption: [x1 = switch_bindings b]. *)
+    + admit.
+    (* Second assumption: [x2 = lift 1 (length ns) n]. *)
+    + admit.
+    (* Third assumption: [x3 = right_cycle (length ms) m]. *)
+    + admit.
+    (* Fourth assumption: [x4 = lift (length ms) (length ns) n]. *)
+    + admit.
+    (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
+    + admit.
+    (* Sixth assumption: [x6 = map (lift (length ms) 0) ns]. *)
+    + admit.
+    (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
+    + admit.
+    (* Last assumption: [Forall (not_free_in 0) ms]. *)
+    + admit.
+  (* Case: struct_gc. *)
+  - rewrite remove_closest_binding_and_subst_commute; auto.
+    apply struct_gc.
+    apply substing_over_n_preserves_not_free_in_n; auto with arith.
+  (* Case: struct_bind_left. *)
+  - simpl.
+    apply struct_bind_left.
+    apply IHstruct.
+  (* Case: struct_bind_right. *)
+  - simpl.
+    apply struct_bind_right.
+    apply IHstruct.
+Admitted.
+
+Hint Resolve subst_preserves_struct: cps.
+
+Lemma subst_preserves_cong:
+  forall a b,
+  [a ~=~ b] ->
+  forall c k,
+  [subst c k a ~=~ subst c k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve subst_preserves_cong: cps.
 
 (** ** One-step reduction. *)
 
@@ -1645,8 +1858,12 @@ Proof.
     + apply IHparallel1.
     + apply IHparallel2.
   (* Case: parallel_cong. *)
-  - admit.
-Admitted.
+  - rename c0 into x.
+    apply parallel_cong with (subst x k b) (subst x k c).
+    + apply subst_preserves_cong; auto.
+    + apply IHparallel.
+    + apply subst_preserves_cong; auto.
+Qed.
 
 Hint Resolve parallel_subst: cps.
 
