@@ -1020,6 +1020,10 @@ Inductive struct: relation pseudoterm :=
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
     struct (bind (bind b ms m) ns n) (distr b ms m ns n)
+  | struct_gc:
+    forall b ts c,
+    not_free_in 0 b ->
+    struct (bind b ts c) (remove_closest_binding b)
   | struct_bind_left:
     forall b1 b2 ts c,
     struct b1 b2 -> struct (bind b1 ts c) (bind b2 ts c)
@@ -1041,8 +1045,14 @@ Notation "[ a ~=~ b ]" := (cong a b)
 
 Lemma cong_distr:
   forall b ms m ns n,
-  Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n ~=~ distr b ms m ns n].
+  Forall (not_free_in 0) ms -> [bind (bind b ms m) ns n ~=~ distr b ms m ns n].
+Proof.
+  auto with cps.
+Qed.
+
+Lemma cong_gc:
+  forall b ts c,
+  not_free_in 0 b -> [bind b ts c ~=~ remove_closest_binding b].
 Proof.
   auto with cps.
 Qed.
@@ -1244,6 +1254,10 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply lifting_over_n_preserves_not_free_in_n; auto with arith.
+  (* Case: struct_gc. *)
+  - rewrite remove_closest_binding_and_lift_commute; auto.
+    apply struct_gc.
+    apply lifting_over_n_preserves_not_free_in_n; auto with arith.
   (* Case: struct_bind_left. *)
   - apply struct_bind_left.
     apply IHstruct.
@@ -1260,18 +1274,7 @@ Lemma lift_preserves_cong:
   forall i k,
   [lift i k a ~=~ lift i k b].
 Proof.
-  induction 1.
-  (* Case: step. *)
-  - auto with cps.
-  (* Case: refl. *)
-  - auto with cps.
-  (* Case: symm. *)
-  - intros; apply rst_sym.
-    apply IHclos_refl_sym_trans.
-  (* Case: tran. *)
-  - intros; eapply rst_trans.
-    + apply IHclos_refl_sym_trans1.
-    + apply IHclos_refl_sym_trans2.
+  induction 1; eauto with cps.
 Qed.
 
 Hint Resolve lift_preserves_cong: cps.
