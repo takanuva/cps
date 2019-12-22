@@ -1039,6 +1039,14 @@ Hint Constructors clos_refl_sym_trans: cps.
 Notation "[ a ~=~ b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
 
+Lemma cong_distr:
+  forall b ms m ns n,
+  Forall (not_free_in 0) ms ->
+  [bind (bind b ms m) ns n ~=~ distr b ms m ns n].
+Proof.
+  auto with cps.
+Qed.
+
 Lemma cong_refl:
   forall e,
   [e ~=~ e].
@@ -1083,6 +1091,14 @@ Proof.
 Qed.
 
 Hint Resolve cong_bind_right: cps.
+
+Instance cong_is_equiv: Equivalence cong.
+Proof.
+  split.
+  - exact cong_refl.
+  - exact cong_symm.
+  - exact cong_tran.
+Defined.
 
 (******************************************************************************)
 
@@ -1469,6 +1485,14 @@ Proof.
 Qed.
 
 Hint Resolve conv_bind_right: cps.
+
+Instance conv_is_equiv: Equivalence conv.
+Proof.
+  split.
+  - exact conv_refl.
+  - exact conv_symm.
+  - exact conv_tran.
+Defined.
 
 (** *)
 
