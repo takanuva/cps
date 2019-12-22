@@ -1138,6 +1138,23 @@ Proof.
       omega.
 Qed.
 
+Lemma substing_over_n_doesnt_change_sequence_n:
+  forall n x k,
+  map (subst x (S (n + k))) (sequence n) = sequence n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - rewrite sequence_succ.
+    rewrite map_cons.
+    f_equal.
+    + rewrite subst_bound_lt; auto.
+      omega.
+    + replace (S n + k) with (n + S k); auto.
+      omega.
+Qed.
+
 Lemma length_sequence:
   forall n,
   length (sequence n) = n.
@@ -1296,8 +1313,7 @@ Qed.
 
 Lemma lift_and_right_cycle_commute:
   forall e n i k,
-  lift i (n + S k) (right_cycle n e) =
-    right_cycle n (lift i (n + S k) e).
+  lift i (n + S k) (right_cycle n e) = right_cycle n (lift i (n + S k) e).
 Proof.
   intros.
   (* Intuitively we know that we'll only lift variables strictly above n, so it
@@ -1324,12 +1340,40 @@ Qed.
 
 Lemma lift_and_switch_bindings_commute:
   forall i k e,
-  lift i (S (S k)) (switch_bindings e) =
-    switch_bindings (lift i (S (S k)) e).
+  lift i (S (S k)) (switch_bindings e) = switch_bindings (lift i (S (S k)) e).
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
   apply lift_and_right_cycle_commute with (n := 1).
+Qed.
+
+Lemma subst_and_right_cycle_commute:
+  forall e n x k,
+  subst x (n + S k) (right_cycle n e) =
+    right_cycle n (subst x (n + S k) e).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite subst_distributes_over_itself.
+  rewrite subst_bound_lt; eauto with arith.
+  replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
+  rewrite subst_distributes_over_apply_parameters_at_any_depth.
+  do 2 f_equal.
+  - apply substing_over_n_doesnt_change_sequence_n.
+  - rewrite length_sequence; simpl.
+    rewrite lift_and_subst_commute.
+    + f_equal.
+      omega.
+    + omega.
+Qed.
+
+Lemma subst_and_switch_bindings_commute:
+  forall x k e,
+  subst x (S (S k)) (switch_bindings e) = switch_bindings (subst x (S (S k)) e).
+Proof.
+  intros.
+  do 2 rewrite switch_bindings_behavior.
+  apply subst_and_right_cycle_commute with (n := 1).
 Qed.
 
 Lemma struct_distr_helper:
@@ -1450,7 +1494,7 @@ Proof.
     (* We'll have a problem similar to the one in [lift_preserves_struct]. *)
     apply struct_distr_helper.
     (* First assumption: [x1 = switch_bindings b]. *)
-    + admit.
+    + apply subst_and_switch_bindings_commute.
     (* Second assumption: [x2 = lift 1 (length ns) n]. *)
     + admit.
     (* Third assumption: [x3 = right_cycle (length ms) m]. *)
