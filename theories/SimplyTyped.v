@@ -1197,92 +1197,36 @@ Definition distr b ms m ns n: pseudoterm :=
       (map (lift (length ms) 0) ns)
         (lift (length ms) (length ns) n))).
 
-Inductive struct: relation pseudoterm :=
-  | struct_distr:
+Reserved Notation "[ a ~=~ b ]" (at level 0, a, b at level 200).
+
+Inductive cong: relation pseudoterm :=
+  | cong_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
-    struct (bind (bind b ms m) ns n) (distr b ms m ns n)
-  | struct_gc:
+    [bind (bind b ms m) ns n ~=~ distr b ms m ns n]
+  | cong_gc:
     forall b ts c,
     not_free_in 0 b ->
-    struct (bind b ts c) (remove_closest_binding b)
-  | struct_bind_left:
+    [bind b ts c ~=~ remove_closest_binding b]
+  | cong_refl:
+    forall e,
+    [e ~=~ e]
+  | cong_symm:
+    forall a b,
+    [a ~=~ b] -> [b ~=~ a]
+  | cong_tran:
+    forall a b c,
+    [a ~=~ b] -> [b ~=~ c] -> [a ~=~ c]
+  | cong_bind_left:
     forall b1 b2 ts c,
-    struct b1 b2 -> struct (bind b1 ts c) (bind b2 ts c)
-  | struct_bind_right:
+    [b1 ~=~ b2] -> [bind b1 ts c ~=~ bind b2 ts c]
+  | cong_bind_right:
     forall b ts c1 c2,
-    struct c1 c2 -> struct (bind b ts c1) (bind b ts c2).
+    [c1 ~=~ c2] -> [bind b ts c1 ~=~ bind b ts c2]
 
-Hint Constructors struct: cps.
+where "[ a ~=~ b ]" := (cong a b).
 
-(* We define [cong] as the smallest congruence relation closed under the rules
-   of [struct] above. *)
-Definition cong: relation pseudoterm :=
-  clos_refl_sym_trans _ struct.
-
-Hint Unfold cong: cps.
-Hint Constructors clos_refl_sym_trans: cps.
-Notation "[ a ~=~ b ]" := (cong a b)
-  (at level 0, a, b at level 200): type_scope.
-
-Lemma cong_distr:
-  forall b ms m ns n,
-  Forall (not_free_in 0) ms -> [bind (bind b ms m) ns n ~=~ distr b ms m ns n].
-Proof.
-  auto with cps.
-Qed.
-
-Lemma cong_gc:
-  forall b ts c,
-  not_free_in 0 b -> [bind b ts c ~=~ remove_closest_binding b].
-Proof.
-  auto with cps.
-Qed.
-
-Lemma cong_refl:
-  forall e,
-  [e ~=~ e].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve cong_refl: cps.
-
-Lemma cong_symm:
-  forall a b,
-  [a ~=~ b] -> [b ~=~ a].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve cong_symm: cps.
-
-Lemma cong_tran:
-  forall a b c,
-  [a ~=~ b] -> [b ~=~ c] -> [a ~=~ c].
-Proof.
-  eauto with cps.
-Qed.
-
-Hint Resolve cong_tran: cps.
-
-Lemma cong_bind_left:
-  forall b1 b2 ts c,
-  [b1 ~=~ b2] -> [bind b1 ts c ~=~ bind b2 ts c].
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Hint Resolve cong_bind_left: cps.
-
-Lemma cong_bind_right:
-  forall b ts c1 c2,
-  [c1 ~=~ c2] -> [bind b ts c1 ~=~ bind b ts c2].
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Hint Resolve cong_bind_right: cps.
+Hint Constructors cong: cps.
 
 Instance cong_is_equiv: Equivalence cong.
 Proof.
@@ -1376,7 +1320,7 @@ Proof.
   apply subst_and_right_cycle_commute with (n := 1).
 Qed.
 
-Lemma struct_distr_helper:
+Lemma cong_distr_helper:
   forall b ms m ns n,
   forall x1 x2 x3 x4 x5 x6 x7,
   x1 = switch_bindings b ->
@@ -1387,30 +1331,28 @@ Lemma struct_distr_helper:
   x6 = map (lift (length ms) 0) ns ->
   x7 = map remove_closest_binding ms ->
   Forall (not_free_in 0) ms ->
-  struct
-    (bind (bind b ms m) ns n)
-    (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
+  [bind (bind b ms m) ns n ~=~ bind (bind x1 x5 x2) x7 (bind x3 x6 x4)].
 Proof.
   intros.
   rewrite H, H0, H1, H2, H3, H4, H5.
-  apply struct_distr.
+  apply cong_distr.
   assumption.
 Qed.
 
-Lemma lift_preserves_struct:
+Lemma lift_preserves_cong:
   forall a b,
-  struct a b ->
+  [a ~=~ b] ->
   forall i k,
-  struct (lift i k a) (lift i k b).
+  [lift i k a ~=~ lift i k b].
 Proof.
   induction 1; intros.
-  (* Case: struct_distr. *)
+  (* Case: cong_distr. *)
   - simpl.
     (* This is a very complex case; upon simplifying the lift operation, we will
        have a valid [distr] here already, but the subterms are not in the right
        shapes yet. We use the helper lemma to add the needed equalities as
        subgoals, then proceed to prove them individualy. *)
-    apply struct_distr_helper.
+    apply cong_distr_helper.
     (* First assumption: [x1 = switch_bindings b]. *)
     + apply lift_and_switch_bindings_commute.
     (* Second assumption: [x2 = lift 1 (length ns) n]. *)
@@ -1454,44 +1396,43 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply lifting_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: struct_gc. *)
+  (* Case: cong_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
-    apply struct_gc.
+    apply cong_gc.
     apply lifting_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: struct_bind_left. *)
+  (* Case: cong_refl. *)
+  - apply cong_refl.
+  (* Case: cong_symm. *)
+  - apply cong_symm.
+    apply IHcong.
+  (* Case: cong_tran. *)
+  - apply cong_tran with (lift i k b).
+    + apply IHcong1.
+    + apply IHcong2.
+  (* Case: cong_bind_left. *)
   - simpl.
-    apply struct_bind_left.
-    apply IHstruct.
-  (* Case: struct_bind_right. *)
+    apply cong_bind_left.
+    apply IHcong.
+  (* Case: cong_bind_right. *)
   - simpl.
-    apply struct_bind_right.
-    apply IHstruct.
-Qed.
-
-Hint Resolve lift_preserves_struct: cps.
-
-Lemma lift_preserves_cong:
-  forall a b,
-  [a ~=~ b] ->
-  forall i k,
-  [lift i k a ~=~ lift i k b].
-Proof.
-  induction 1; eauto with cps.
+    apply cong_bind_right.
+    apply IHcong.
 Qed.
 
 Hint Resolve lift_preserves_cong: cps.
 
-Lemma subst_preserves_struct:
+Lemma subst_preserves_cong:
   forall a b,
-  struct a b ->
+  [a ~=~ b] ->
   forall c k,
-  struct (subst c k a) (subst c k b).
+  [subst c k a ~=~ subst c k b].
 Proof.
   induction 1; intros.
-  (* Case: struct_distr. *)
+  (* Case: cong_distr. *)
   - simpl.
-    (* We'll have a problem similar to the one in [lift_preserves_struct]. *)
-    apply struct_distr_helper.
+    (* We'll have a problem similar to the one in [lift_preserves_cong], and
+       we'll follow a similar approach to solving it. *)
+    apply cong_distr_helper.
     (* First assumption: [x1 = switch_bindings b]. *)
     + apply subst_and_switch_bindings_commute.
     (* Second assumption: [x2 = lift 1 (length ns) n]. *)
@@ -1531,29 +1472,27 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply substing_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: struct_gc. *)
+  (* Case: cong_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
-    apply struct_gc.
+    apply cong_gc.
     apply substing_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: struct_bind_left. *)
+  (* Case: cong_refl. *)
+  - apply cong_refl.
+  (* Case: cong_symm. *)
+  - apply cong_symm.
+    apply IHcong.
+  (* Case: cong_tran. *)
+  - apply cong_tran with (subst c0 k b).
+    + apply IHcong1.
+    + apply IHcong2.
+  (* Case: cong_bind_left. *)
   - simpl.
-    apply struct_bind_left.
-    apply IHstruct.
-  (* Case: struct_bind_right. *)
+    apply cong_bind_left.
+    apply IHcong.
+  (* Case: cong_bind_right. *)
   - simpl.
-    apply struct_bind_right.
-    apply IHstruct.
-Qed.
-
-Hint Resolve subst_preserves_struct: cps.
-
-Lemma subst_preserves_cong:
-  forall a b,
-  [a ~=~ b] ->
-  forall c k,
-  [subst c k a ~=~ subst c k b].
-Proof.
-  induction 1; eauto with cps.
+    apply cong_bind_right.
+    apply IHcong.
 Qed.
 
 Hint Resolve subst_preserves_cong: cps.
@@ -1790,8 +1729,8 @@ Proof.
   induction 1; eauto with cps.
 Qed.
 
-Lemma subterm_and_struct_commute:
-  commut _ subterm (transp _ struct).
+Lemma subterm_and_cong_commute:
+  commut _ subterm (transp _ cong).
 Proof.
   induction 1; eauto with cps.
 Qed.
