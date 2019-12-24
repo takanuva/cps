@@ -1575,6 +1575,8 @@ Hint Resolve subst_preserves_cong: cps.
   can be a (simple) type for that... oh, now I get it!
 *)
 
+(*
+
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
@@ -1986,5 +1988,7 @@ Proof.
 Qed.
 
 Hint Resolve star_parallel: cps.
+
+*)
 
 End STCC.
