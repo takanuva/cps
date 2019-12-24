@@ -38,6 +38,14 @@ Inductive pseudoterm: Set :=
 
 Coercion bound: nat >-> pseudoterm.
 
+Example ex1: pseudoterm :=
+  (bind (bind
+    (jump 1 [bound 4; bound 0; bound 3])
+    [base; base]
+      (jump 2 [bound 1; bound 6; bound 0]))
+    [base; negation [base; base]; base]
+      (jump 1 [bound 3; bound 0])).
+
 (** As we have lists inside our pseudoterms, we'll need a stronger induction
     principle for it, stating that propositions are kept inside those lists. *)
 
@@ -1286,14 +1294,6 @@ Defined.
 
 (******************************************************************************)
 
-Example ex1: pseudoterm :=
-  (bind (bind
-    (jump 1 [bound 4; bound 0; bound 3])
-    [base; base]
-      (jump 2 [bound 1; bound 6; bound 0]))
-    [base; negation [base; base]; base]
-      (jump 1 [bound 3; bound 0])).
-
 Example ex2: pseudoterm :=
   (bind (bind
     (jump 0 [bound 4; bound 1; bound 3])
@@ -1557,6 +1557,8 @@ Proof.
 Qed.
 
 Hint Resolve subst_preserves_cong: cps.
+
+(******************************************************************************)
 
 (** ** One-step reduction. *)
 
