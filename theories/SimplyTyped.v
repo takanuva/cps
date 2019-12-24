@@ -1175,16 +1175,27 @@ Qed.
 (*
   For (DISTR):
 
-  \j.\x.\y.\z.                       \j.\x.\y.\z.
-    h@1<x@4, k@0, y@3>                 h@0<x@4, k@1, y@3>
-    { k<a, b> =                        { h<c, d, e> =
-        h@2<a@1, j@6, b@0> }    ~=~        d@1<z@4, e@0> }
-    { h<c, d, e> =                     { k<a, b> =
-        d@1<z@3, e@0> }                    h@0<a@2, j@6, b@1>
-                                           { h<c, d, e> =
-                                               d@1<z@5, e@0> } }
+                                         \j.\x.\y.\z.
+    \j.\x.\y.\z.                           h@0<x@4, k@1, y@3>
+      h@1<x@4, k@0, y@3>                   { h<c, d, e> =
+      { k<a, b> =                 ~=~          d@1<z@4, e@0> }
+          h@2<a@1, j@6, b@0> }             { k<a, b> =
+      { h<c, d, e> =                           h@0<a@2, j@6, b@1>
+          d@1<z@3, e@0> }                      { h<c, d, e> =
+                                                 d@1<z@5, e@0> } }
 
-  That's an annoying reduction to do... let's see...
+    That's an annoying reduction to do... let's see...
+
+  For (CONTR):
+
+    \j.\x.\y.\z.
+      j@5<k@0, h@1>                      \j.\x.\y.\z.
+      { k<a, b> =                          j@4<k@0, k@0>
+          a@1<x@5, b@0, z@3> }    ~=~      { k<a, b> =
+      { h<c, d> =                              a@1<x@4, b@0, z@2> }
+          c@1<x@4, d@0, z@2> }
+
+    Hmm, this is also troublesome...
 *)
 
 Definition distr b ms m ns n: pseudoterm :=
@@ -1204,6 +1215,10 @@ Inductive cong: relation pseudoterm :=
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
     [bind (bind b ms m) ns n ~=~ distr b ms m ns n]
+  | cong_contr:
+    forall b ts c,
+    [bind (bind b (map (lift 1 0) ts) (lift 1 (length ts) c)) ts c ~=~
+      bind (remove_closest_binding b) ts c]
   | cong_gc:
     forall b ts c,
     not_free_in 0 b ->
@@ -1321,8 +1336,7 @@ Proof.
 Qed.
 
 Lemma cong_distr_helper:
-  forall b ms m ns n,
-  forall x1 x2 x3 x4 x5 x6 x7,
+  forall b ms m ns n x1 x2 x3 x4 x5 x6 x7,
   x1 = switch_bindings b ->
   x2 = lift 1 (length ns) n ->
   x3 = right_cycle (length ms) m ->
@@ -1337,6 +1351,20 @@ Proof.
   rewrite H, H0, H1, H2, H3, H4, H5.
   apply cong_distr.
   assumption.
+Qed.
+
+Lemma cong_contr_helper:
+  forall b ms m ns n x1 x2 x3,
+  ms = map (lift 1 0) ns ->
+  x1 = remove_closest_binding b ->
+  x2 = ns ->
+  x3 = n ->
+  m = lift 1 (length ns) n ->
+  [bind (bind b ms m) ns n ~=~ bind x1 x2 x3].
+Proof.
+  intros.
+  rewrite H, H0, H1, H2, H3.
+  apply cong_contr.
 Qed.
 
 Lemma lift_preserves_cong:
@@ -1396,6 +1424,27 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply lifting_over_n_preserves_not_free_in_n; auto with arith.
+  (* Case: cong_contr. *)
+  - simpl.
+    apply cong_contr_helper.
+    (* ... *)
+    + induction ts; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        symmetry.
+        rewrite lift_lift_permutation; auto with arith.
+    (* ... *)
+    + unfold remove_closest_binding.
+      rewrite lift_distributes_over_subst.
+      rewrite lift_bound_lt; auto with arith.
+    (* ... *)
+    + reflexivity.
+    (* ... *)
+    + reflexivity.
+    (* ... *)
+    + do 2 rewrite map_length.
+      symmetry.
+      rewrite lift_lift_permutation; auto with arith.
   (* Case: cong_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
     apply cong_gc.
@@ -1472,6 +1521,24 @@ Proof.
       inversion_clear H.
       constructor; auto.
       apply substing_over_n_preserves_not_free_in_n; auto with arith.
+  (* Case: cong_contr. *)
+  - simpl.
+    apply cong_contr_helper.
+    (* ... *)
+    + induction ts; simpl.
+      * reflexivity.
+      * f_equal; auto.
+        rewrite lift_and_subst_commute; auto with arith.
+    (* ... *)
+    + unfold remove_closest_binding.
+      apply subst_addition_distributes_over_itself with (p := 0).
+    (* ... *)
+    + reflexivity.
+    (* ... *)
+    + reflexivity.
+    (* ... *)
+    + do 2 rewrite map_length.
+      rewrite lift_and_subst_commute; auto with arith.
   (* Case: cong_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
     apply cong_gc.
