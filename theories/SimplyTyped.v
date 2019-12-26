@@ -839,10 +839,10 @@ Proof.
 Qed.
 
 Lemma subst_distributes_over_apply_parameters_at_any_depth:
-  forall i xs k c n,
-  subst i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (map (subst i (S k)) xs) n
-      (subst i (n + k + length xs) c).
+  forall x xs k c n,
+  subst x (n + S k) (apply_parameters xs n c) =
+    apply_parameters (map (subst x (S k)) xs) n
+      (subst x (n + k + length xs) c).
 Proof.
   induction xs; intros; simpl.
   (* Case: nil. *)
@@ -1208,6 +1208,17 @@ Definition distr b ms m ns n: pseudoterm :=
       (map (lift (length ms) 0) ns)
         (lift (length ms) (length ns) n))).
 
+Hint Unfold distr: cps.
+
+(* TODO: even though contraction is probably best written in the left, as we've
+   done here, rewrite it in the right to keep it uniform. *)
+Definition contr b ts c: pseudoterm :=
+  (bind (bind
+    b
+    (map (lift 1 0) ts) (lift 1 (length ts) c)) ts c).
+
+Hint Unfold contr: cps.
+
 Reserved Notation "[ a ~=~ b ]" (at level 0, a, b at level 200).
 
 Inductive cong: relation pseudoterm :=
@@ -1217,8 +1228,7 @@ Inductive cong: relation pseudoterm :=
     [bind (bind b ms m) ns n ~=~ distr b ms m ns n]
   | cong_contr:
     forall b ts c,
-    [bind (bind b (map (lift 1 0) ts) (lift 1 (length ts) c)) ts c ~=~
-      bind (remove_closest_binding b) ts c]
+    [contr b ts c ~=~ bind (remove_closest_binding b) ts c]
   | cong_gc:
     forall b ts c,
     not_free_in 0 b ->
@@ -1365,6 +1375,18 @@ Proof.
   intros.
   rewrite H, H0, H1, H2, H3.
   apply cong_contr.
+Qed.
+
+Lemma cong_gc_helper:
+  forall b ts c x1,
+  x1 = remove_closest_binding b ->
+  not_free_in 0 b ->
+  [bind b ts c ~=~ x1].
+Proof.
+  intros.
+  rewrite H.
+  apply cong_gc.
+  assumption.
 Qed.
 
 Lemma lift_preserves_cong:
@@ -1564,6 +1586,54 @@ Qed.
 
 Hint Resolve subst_preserves_cong: cps.
 
+(* Float left: L { M } { N } ~=~ L { N } { M } if n doesn't appear in M. *)
+
+Definition float_left b ms m ns n: pseudoterm :=
+  (bind (bind
+     (switch_bindings b)
+     (map (lift 1 0) ns) (lift 1 (length ns) n))
+     (map (subst 0 0) ms) (subst 0 (length ms) m)).
+
+Lemma cong_float_left:
+  forall b ms m ns n,
+  not_free_in (length ms) m ->
+  Forall (not_free_in 0) ms ->
+  [bind (bind b ms m) ns n ~=~ float_left b ms m ns n].
+Proof.
+  intros.
+  apply cong_tran with (distr b ms m ns n).
+  - apply cong_distr.
+    assumption.
+  - apply cong_bind_right.
+    apply cong_gc_helper.
+    + admit.
+    + admit.
+Admitted.
+
+(* Float right: L { M } { N } ~=~ L { M { N } } if n doesn't appear in L. *)
+
+Definition float_right b ms m ns n: pseudoterm :=
+  (bind
+    (remove_closest_binding (switch_bindings b))
+    (map remove_closest_binding ms) (bind
+      (right_cycle (length ms) m)
+      (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
+
+Lemma cong_float_right:
+  forall b ms m ns n,
+  not_free_in 1 b ->
+  Forall (not_free_in 0) ms ->
+  [bind (bind b ms m) ns n ~=~ float_right b ms m ns n].
+Proof.
+  intros.
+  apply cong_tran with (distr b ms m ns n).
+  - apply cong_distr.
+    assumption.
+  - apply cong_bind_left.
+    apply cong_gc.
+    admit.
+Admitted.
+
 (******************************************************************************)
 
 (** ** One-step reduction. *)
@@ -1573,14 +1643,14 @@ Hint Resolve subst_preserves_cong: cps.
 
   For (JMP):
 
-  \j.\x.\y.\z.                       \j.\x.\y.\z.
-    k@0<x@3, y@2>                      j@4<x@3, y@2, z@1>
-    { k<a, b> =                 =>     { k<a, b> =
-        j@5<a@1, b@0, z@2> }               j@5<a@1, b@0, z@2> }
+    \j.\x.\y.\z.                         \j.\x.\y.\z.
+      k@0<x@3, y@2>                        j@4<x@3, y@2, z@1>
+      { k<a, b> =                 =>       { k<a, b> =
+          j@5<a@1, b@0, z@2> }                 j@5<a@1, b@0, z@2> }
 
-  Does it make sense to keep the continuation binding there on a simply typed
-  environment? I.e., does k<..., k, ...> ever make sense? I don't think there
-  can be a (simple) type for that... oh, now I get it!
+    Does it make sense to keep the continuation binding there on a simply typed
+    environment? I.e., does k<..., k, ...> ever make sense? I don't think there
+    can be a (simple) type for that... oh, now I get it!
 *)
 
 (*
