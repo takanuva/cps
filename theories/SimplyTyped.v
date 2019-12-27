@@ -1586,6 +1586,24 @@ Qed.
 
 Hint Resolve subst_preserves_cong: cps.
 
+(******************************************************************************)
+
+Lemma nat_fold_subst_unlifts_bound:
+  forall (n k: nat) x,
+  k <= n -> nat_fold k (subst x 0) n = n - k.
+Proof.
+  induction k; intros.
+  - simpl; auto with arith.
+  - simpl; rewrite IHk; auto with arith.
+    rewrite subst_bound_gt; try omega.
+    rewrite minus_plus_simpl_l_reverse with (p := 1).
+    replace (1 + n - (1 + k)) with (1 + (n - (1 + k))).
+    + simpl; reflexivity.
+    + omega.
+Qed.
+
+(******************************************************************************)
+
 (* Float left: L { M } { N } ~=~ L { N } { M } if n doesn't appear in M. *)
 
 Definition float_left b ms m ns n: pseudoterm :=
