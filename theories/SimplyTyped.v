@@ -1178,7 +1178,7 @@ Qed.
                                          \j.\x.\y.\z.
     \j.\x.\y.\z.                           h@0<x@4, k@1, y@3>
       h@1<x@4, k@0, y@3>                   { h<c, d, e> =
-      { k<a, b> =                 ~=~          d@1<z@4, e@0> }
+      { k<a, b> =                 ==           d@1<z@4, e@0> }
           h@2<a@1, j@6, b@0> }             { k<a, b> =
       { h<c, d, e> =                           h@0<a@2, j@6, b@1>
           d@1<z@3, e@0> }                      { h<c, d, e> =
@@ -1191,7 +1191,7 @@ Qed.
     \j.\x.\y.\z.
       j@5<k@0, h@1>                      \j.\x.\y.\z.
       { k<a, b> =                          j@4<k@0, k@0>
-          a@1<x@5, b@0, z@3> }    ~=~      { k<a, b> =
+          a@1<x@5, b@0, z@3> }    ==       { k<a, b> =
       { h<c, d> =                              a@1<x@4, b@0, z@2> }
           c@1<x@4, d@0, z@2> }
 
@@ -1217,39 +1217,123 @@ Definition contr b ts c: pseudoterm :=
 
 Hint Unfold contr: cps.
 
-Reserved Notation "[ a ~=~ b ]" (at level 0, a, b at level 200).
+(* As of now, I'm still unsure whether we'll need a directed, one-step struct
+   relation or just it's congruence version. Just to be sure, we'll define it
+   anyway. *)
 
-Inductive cong: relation pseudoterm :=
-  | cong_distr:
+Inductive struct: relation pseudoterm :=
+  | struct_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
-    [bind (bind b ms m) ns n ~=~ distr b ms m ns n]
-  | cong_contr:
+    struct (bind (bind b ms m) ns n) (distr b ms m ns n)
+  | struct_contr:
     forall b ts c,
-    [contr b ts c ~=~ bind (remove_closest_binding b) ts c]
-  | cong_gc:
+    struct (contr b ts c) (bind (remove_closest_binding b) ts c)
+  | struct_gc:
     forall b ts c,
     not_free_in 0 b ->
-    [bind b ts c ~=~ remove_closest_binding b]
-  | cong_refl:
-    forall e,
-    [e ~=~ e]
-  | cong_symm:
-    forall a b,
-    [a ~=~ b] -> [b ~=~ a]
-  | cong_tran:
-    forall a b c,
-    [a ~=~ b] -> [b ~=~ c] -> [a ~=~ c]
-  | cong_bind_left:
+    struct (bind b ts c) (remove_closest_binding b)
+  | struct_bind_left:
     forall b1 b2 ts c,
-    [b1 ~=~ b2] -> [bind b1 ts c ~=~ bind b2 ts c]
-  | cong_bind_right:
+    struct b1 b2 -> struct (bind b1 ts c) (bind b2 ts c)
+  | struct_bind_right:
     forall b ts c1 c2,
-    [c1 ~=~ c2] -> [bind b ts c1 ~=~ bind b ts c2]
+    struct c1 c2 -> struct (bind b ts c1) (bind b ts c2).
 
-where "[ a ~=~ b ]" := (cong a b).
+Hint Constructors struct: cps.
 
-Hint Constructors cong: cps.
+(* We'll just define our structural congruence as the smallest relation closed
+   under the [struct] rules above. *)
+
+Definition cong: relation pseudoterm :=
+  clos_refl_sym_trans _ struct.
+
+Hint Unfold cong: cps.
+Hint Constructors clos_refl_sym_trans: cps.
+Notation "[ a == b ]" := (cong a b) (at level 0, a, b at level 200).
+
+Lemma cong_refl:
+  forall e,
+  [e == e].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_refl: cps.
+
+Lemma cong_symm:
+  forall a b,
+  [a == b] -> [b == a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_symm: cps.
+
+Lemma cong_tran:
+  forall a b c,
+  [a == b] -> [b == c] -> [a == c].
+Proof.
+  eauto with cps.
+Qed.
+
+Hint Resolve cong_tran: cps.
+
+Lemma cong_struct:
+  forall a b,
+  struct a b -> [a == b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_struct: cps.
+
+Lemma cong_distr:
+  forall b ms m ns n,
+  Forall (not_free_in 0) ms ->
+  [bind (bind b ms m) ns n == distr b ms m ns n].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_distr: cps.
+
+Lemma cong_contr:
+  forall b ts c,
+  [contr b ts c == bind (remove_closest_binding b) ts c].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_contr: cps.
+
+Lemma cong_gc:
+  forall b ts c,
+  not_free_in 0 b ->
+  [bind b ts c == remove_closest_binding b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_gc: cps.
+
+Lemma cong_bind_left:
+  forall b1 b2 ts c,
+  [b1 == b2] -> [bind b1 ts c == bind b2 ts c].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_bind_left: cps.
+
+Lemma cong_bind_right:
+  forall b ts c1 c2,
+  [c1 == c2] -> [bind b ts c1 == bind b ts c2].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_bind_right: cps.
 
 Instance cong_is_equiv: Equivalence cong.
 Proof.
@@ -1273,7 +1357,7 @@ Example ex2: pseudoterm :=
           (jump 1 [bound 5; bound 0]))).
 
 Lemma tmp:
-  [ex1 ~=~ ex2].
+  [ex1 == ex2].
 Proof.
   apply cong_distr.
   do 3 constructor.
@@ -1344,7 +1428,7 @@ Proof.
   apply subst_and_right_cycle_commute with (n := 1).
 Qed.
 
-Lemma cong_distr_helper:
+Lemma struct_distr_helper:
   forall b ms m ns n x1 x2 x3 x4 x5 x6 x7,
   x1 = switch_bindings b ->
   x2 = lift 1 (length ns) n ->
@@ -1354,80 +1438,67 @@ Lemma cong_distr_helper:
   x6 = map (lift (length ms) 0) ns ->
   x7 = map remove_closest_binding ms ->
   Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n ~=~ bind (bind x1 x5 x2) x7 (bind x3 x6 x4)].
+  struct (bind (bind b ms m) ns n) (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
 Proof.
   intros.
   rewrite H, H0, H1, H2, H3, H4, H5.
-  apply cong_distr.
-  assumption.
+  apply struct_distr; auto.
 Qed.
 
-Lemma cong_contr_helper:
+Lemma struct_contr_helper:
   forall b ms m ns n x1 x2 x3,
   ms = map (lift 1 0) ns ->
   x1 = remove_closest_binding b ->
   x2 = ns ->
   x3 = n ->
   m = lift 1 (length ns) n ->
-  [bind (bind b ms m) ns n ~=~ bind x1 x2 x3].
+  struct (bind (bind b ms m) ns n) (bind x1 x2 x3).
 Proof.
   intros.
   rewrite H, H0, H1, H2, H3.
-  apply cong_contr.
+  apply struct_contr.
 Qed.
 
-Lemma cong_gc_helper:
+Lemma struct_gc_helper:
   forall b ts c x1,
   x1 = remove_closest_binding b ->
   not_free_in 0 b ->
-  [bind b ts c ~=~ x1].
+  struct (bind b ts c) x1.
 Proof.
   intros.
   rewrite H.
-  apply cong_gc.
-  assumption.
+  apply struct_gc; auto.
 Qed.
 
-Lemma lift_preserves_cong:
+Lemma struct_lift:
   forall a b,
-  [a ~=~ b] ->
+  struct a b ->
   forall i k,
-  [lift i k a ~=~ lift i k b].
+  struct (lift i k a) (lift i k b).
 Proof.
   induction 1; intros.
-  (* Case: cong_distr. *)
-  - simpl.
-    (* This is a very complex case; upon simplifying the lift operation, we will
-       have a valid [distr] here already, but the subterms are not in the right
-       shapes yet. We use the helper lemma to add the needed equalities as
-       subgoals, then proceed to prove them individualy. *)
-    apply cong_distr_helper.
-    (* First assumption: [x1 = switch_bindings b]. *)
+  (* Case: struct_distr. *)
+  - simpl; apply struct_distr_helper.
     + apply lift_and_switch_bindings_commute.
-    (* Second assumption: [x2 = lift 1 (length ns) n]. *)
     + symmetry.
       do 2 rewrite map_length.
       rewrite lift_lift_permutation.
       * reflexivity.
       * omega.
-    (* Third assumption: [x3 = right_cycle (length ms) m]. *)
     + do 2 rewrite map_length.
       replace (S (k + length ms)) with (length ms + S k).
       * apply lift_and_right_cycle_commute.
       * omega.
-    (* Fourth assumption: [x4 = lift (length ms) (length ns) n]. *)
     + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
       * f_equal; omega.
       * omega.
-    (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
     + induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
-    (* Sixth assumption: [x6 = map (lift (length ms) 0) ns]. *)
     + do 2 rewrite map_length.
       induction ns; simpl.
       * reflexivity.
@@ -1435,155 +1506,148 @@ Proof.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
         f_equal; omega.
-    (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite remove_closest_binding_and_lift_commute; auto.
-    (* Last assumption: [Forall (not_free_in 0) ms]. *)
     + induction ms; simpl; auto.
       inversion_clear H.
       constructor; auto.
       apply lifting_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: cong_contr. *)
-  - simpl.
-    apply cong_contr_helper.
-    (* ... *)
+  (* Case: struct_contr. *)
+  - simpl; apply struct_contr_helper.
     + induction ts; simpl.
       * reflexivity.
       * f_equal; auto.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
-    (* ... *)
     + unfold remove_closest_binding.
       rewrite lift_distributes_over_subst.
       rewrite lift_bound_lt; auto with arith.
-    (* ... *)
     + reflexivity.
-    (* ... *)
     + reflexivity.
-    (* ... *)
     + do 2 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation; auto with arith.
-  (* Case: cong_gc. *)
+  (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
-    apply cong_gc.
+    apply struct_gc.
     apply lifting_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: cong_refl. *)
-  - apply cong_refl.
-  (* Case: cong_symm. *)
-  - apply cong_symm.
-    apply IHcong.
-  (* Case: cong_tran. *)
-  - apply cong_tran with (lift i k b).
-    + apply IHcong1.
-    + apply IHcong2.
-  (* Case: cong_bind_left. *)
-  - simpl.
-    apply cong_bind_left.
-    apply IHcong.
-  (* Case: cong_bind_right. *)
-  - simpl.
-    apply cong_bind_right.
-    apply IHcong.
+  (* Case: struct_bind_left. *)
+  - simpl; auto with cps.
+  (* Case: struct_bind_right. *)
+  - simpl; auto with cps.
 Qed.
 
-Hint Resolve lift_preserves_cong: cps.
+Hint Resolve struct_lift: cps.
 
-Lemma subst_preserves_cong:
+Lemma cong_lift:
   forall a b,
-  [a ~=~ b] ->
+  [a == b] ->
+  forall i k,
+  [lift i k a == lift i k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_lift: cps.
+
+Lemma struct_subst:
+  forall a b,
+  struct a b ->
   forall c k,
-  [subst c k a ~=~ subst c k b].
+  struct (subst c k a) (subst c k b).
 Proof.
   induction 1; intros.
-  (* Case: cong_distr. *)
-  - simpl.
-    (* We'll have a problem similar to the one in [lift_preserves_cong], and
-       we'll follow a similar approach to solving it. *)
-    apply cong_distr_helper.
-    (* First assumption: [x1 = switch_bindings b]. *)
+  (* Case: struct_distr. *)
+  - simpl; apply struct_distr_helper.
     + apply subst_and_switch_bindings_commute.
-    (* Second assumption: [x2 = lift 1 (length ns) n]. *)
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute.
       * reflexivity.
       * omega.
-    (* Third assumption: [x3 = right_cycle (length ms) m]. *)
     + do 2 rewrite map_length.
       replace (S (k + length ms)) with (length ms + S k).
       * apply subst_and_right_cycle_commute.
       * omega.
-    (* Fourth assumption: [x4 = lift (length ms) (length ns) n]. *)
     + do 4 rewrite map_length.
       rewrite lift_and_subst_commute.
       * f_equal; omega.
       * omega.
-    (* Fifth assumption: [x5 = map (lift 1 0) ns]. *)
     + induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite lift_and_subst_commute; auto with arith.
-    (* Sixth assumption: [x6 = map (lift (length ms) 0) ns]. *)
     + do 2 rewrite map_length.
       induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite lift_and_subst_commute; auto with arith.
         f_equal; omega.
-    (* Seventh assumption: [x7 = map remove_closest_binding ms]. *)
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite remove_closest_binding_and_subst_commute; auto.
-    (* Last assumption: [Forall (not_free_in 0) ms]. *)
     + induction ms; simpl; auto.
       inversion_clear H.
       constructor; auto.
       apply substing_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: cong_contr. *)
-  - simpl.
-    apply cong_contr_helper.
-    (* ... *)
+  (* Case: struct_contr. *)
+  - simpl; apply struct_contr_helper.
     + induction ts; simpl.
       * reflexivity.
       * f_equal; auto.
         rewrite lift_and_subst_commute; auto with arith.
-    (* ... *)
     + unfold remove_closest_binding.
       apply subst_addition_distributes_over_itself with (p := 0).
-    (* ... *)
     + reflexivity.
-    (* ... *)
     + reflexivity.
-    (* ... *)
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute; auto with arith.
-  (* Case: cong_gc. *)
+  (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
-    apply cong_gc.
+    apply struct_gc.
     apply substing_over_n_preserves_not_free_in_n; auto with arith.
-  (* Case: cong_refl. *)
-  - apply cong_refl.
-  (* Case: cong_symm. *)
-  - apply cong_symm.
-    apply IHcong.
-  (* Case: cong_tran. *)
-  - apply cong_tran with (subst c0 k b).
-    + apply IHcong1.
-    + apply IHcong2.
-  (* Case: cong_bind_left. *)
-  - simpl.
-    apply cong_bind_left.
-    apply IHcong.
-  (* Case: cong_bind_right. *)
-  - simpl.
-    apply cong_bind_right.
-    apply IHcong.
+  (* Case: struct_bind_left. *)
+  - simpl; auto with cps.
+  (* Case: struct_bind_right. *)
+  - simpl; auto with cps.
 Qed.
 
-Hint Resolve subst_preserves_cong: cps.
+Hint Resolve struct_subst: cps.
+
+Lemma cong_subst:
+  forall a b,
+  [a == b] ->
+  forall x k,
+  [subst x k a == subst x k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve cong_subst: cps.
+
+Lemma cong_apply_parameters:
+  forall a b,
+  [a == b] ->
+  forall xs k,
+  [apply_parameters xs k a == apply_parameters xs k b].
+Proof.
+  induction xs; simpl; auto with cps.
+Qed.
+
+Hint Resolve cong_apply_parameters: cps.
+
+Lemma cong_right_cycle:
+  forall a b,
+  [a == b] ->
+  forall n,
+  [right_cycle n a == right_cycle n b].
+Proof.
+  unfold right_cycle; auto with cps.
+Qed.
+
+Hint Resolve cong_right_cycle: cps.
 
 (******************************************************************************)
 
@@ -1601,9 +1665,7 @@ Proof.
     + omega.
 Qed.
 
-(******************************************************************************)
-
-(* Float left: L { M } { N } ~=~ L { N } { M } if n doesn't appear in M. *)
+(* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
 
 Definition float_left b ms m ns n: pseudoterm :=
   (bind (bind
@@ -1615,19 +1677,19 @@ Lemma cong_float_left:
   forall b ms m ns n,
   not_free_in (length ms) m ->
   Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n ~=~ float_left b ms m ns n].
+  [bind (bind b ms m) ns n == float_left b ms m ns n].
 Proof.
   intros.
   apply cong_tran with (distr b ms m ns n).
   - apply cong_distr.
     assumption.
   - apply cong_bind_right.
-    apply cong_gc_helper.
+    apply cong_struct; apply struct_gc_helper.
     + admit.
     + admit.
 Admitted.
 
-(* Float right: L { M } { N } ~=~ L { M { N } } if n doesn't appear in L. *)
+(* Float right: L { M } { N } == L { M { N } } if n doesn't appear in L. *)
 
 Definition float_right b ms m ns n: pseudoterm :=
   (bind
@@ -1640,7 +1702,7 @@ Lemma cong_float_right:
   forall b ms m ns n,
   not_free_in 1 b ->
   Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n ~=~ float_right b ms m ns n].
+  [bind (bind b ms m) ns n == float_right b ms m ns n].
 Proof.
   intros.
   apply cong_tran with (distr b ms m ns n).
@@ -1729,7 +1791,7 @@ Inductive step: relation pseudoterm :=
     [c1 => c2] -> [bind b ts c1 => bind b ts c2]
   | step_cong:
     forall a b c d,
-    [a ~=~ b] -> [b => c] -> [c ~=~ d] -> [a => d]
+    [a == b] -> [b => c] -> [c == d] -> [a => d]
 
 where "[ a => b ]" := (step a b): type_scope.
 
@@ -1757,7 +1819,7 @@ Hint Resolve star_step: cps.
 
 Lemma star_cong:
   forall a b,
-  [a ~=~ b] -> [a =>* b].
+  [a == b] -> [a =>* b].
 Proof.
   auto with cps.
 Qed.
@@ -1836,7 +1898,7 @@ Hint Resolve conv_step: cps.
 
 Lemma conv_cong:
   forall a b,
-  [a ~=~ b] -> [a <=> b].
+  [a == b] -> [a <=> b].
 Proof.
   auto with cps.
 Qed.
@@ -1961,7 +2023,7 @@ Inductive parallel: relation pseudoterm :=
     parallel (bind b1 ts c1) (bind b2 ts c2)
   | parallel_cong:
     forall a b c d,
-    [a ~=~ b] -> parallel b c -> [c ~=~ d] -> parallel a d.
+    [a == b] -> parallel b c -> [c == d] -> parallel a d.
 
 Hint Constructors parallel: cps.
 
