@@ -1210,8 +1210,6 @@ Definition distr b ms m ns n: pseudoterm :=
 
 Hint Unfold distr: cps.
 
-(* TODO: even though contraction is probably best written in the left, as we've
-   done here, rewrite it in the right to keep it uniform. *)
 Definition contr b ts c: pseudoterm :=
   (bind (bind
     b
@@ -1277,7 +1275,8 @@ Example ex2: pseudoterm :=
 Lemma tmp:
   [ex1 ~=~ ex2].
 Proof.
-  do 5 constructor.
+  apply cong_distr.
+  do 3 constructor.
 Qed.
 
 Lemma lift_and_right_cycle_commute:
@@ -1651,6 +1650,48 @@ Proof.
     apply cong_gc.
     admit.
 Admitted.
+
+(******************************************************************************)
+
+Definition body: Set :=
+  list pseudoterm * pseudoterm.
+
+Inductive long_form: pseudoterm -> pseudoterm -> list body -> Prop :=
+  | long_form_jump:
+    forall k xs,
+    long_form (jump k xs) (jump k xs) []
+  | long_form_bind:
+    forall b h ts c cs,
+    long_form b h cs ->
+    long_form (bind b ts c) h (cs ++ [(ts, c)]).
+
+Fixpoint rebuild b cs: pseudoterm :=
+  match cs with
+  | [] => b
+  | (ts, c) :: cs => rebuild (bind b ts c) cs
+  end.
+
+Lemma rebuild_behavior:
+  forall cs h ts c,
+  rebuild h (cs ++ [(ts, c)]) = bind (rebuild h cs) ts c.
+Proof.
+  induction cs; intros.
+  - reflexivity.
+  - destruct a; simpl.
+    rewrite IHcs; auto.
+Qed.
+
+Lemma rebuild_is_sound:
+  forall e h cs,
+  long_form e h cs -> e = rebuild h cs.
+Proof.
+  induction 1.
+  - reflexivity.
+  - rewrite IHlong_form.
+    clear H IHlong_form.
+    generalize h as g; intro.
+    rewrite rebuild_behavior; auto.
+Qed.
 
 (******************************************************************************)
 
