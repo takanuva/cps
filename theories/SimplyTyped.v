@@ -1219,7 +1219,7 @@ Hint Unfold contr: cps.
 
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
-   anyway. *)
+   anyway. TODO: should we consider (JMP) here as well? *)
 
 Inductive struct: relation pseudoterm :=
   | struct_distr:
@@ -1356,8 +1356,7 @@ Example ex2: pseudoterm :=
         [base; negation [base; base]; base]
           (jump 1 [bound 5; bound 0]))).
 
-Lemma tmp:
-  [ex1 == ex2].
+Goal [ex1 == ex2].
 Proof.
   apply cong_distr.
   do 3 constructor.
@@ -1772,30 +1771,299 @@ Qed.
     Does it make sense to keep the continuation binding there on a simply typed
     environment? I.e., does k<..., k, ...> ever make sense? I don't think there
     can be a (simple) type for that... oh, now I get it!
+
+  On our notion of reduction:
+
+    In Thielecke's dissertation, he briefly suggested directed versions of the
+    (DISTR) and (JMP) rules as the -` and -> relations and the reduction would
+    be then given by -`* ->*. Notice of course that the (JMP) rule always jumps
+    to the immediate (closest) continuation. Merro later studies the calculus
+    and gives a long jump form, with ki<xs> { k1<ys> = K1 } ... { kn<ys> = Kn }
+    reducing to Ki[xs/ys] { k1<ys> = K1 } ... { kn<ys> = Kn }, which is a really
+    useful generalization. We'll probably take a similar notion of reduction, as
+    distr-redexes always are possible and, worse, they duplicate jmp-redexes,
+    thus -`* ->* may only be weakly normalizing at best (there's always an
+    infinite sequence).
+
+    Question: do those two notions of reduction commute? I.e., is it possible to
+    get terms a -`* b ->* c such that for all a there exists b and c where there
+    are no longjmp-redexes in c? I don't think so.
 *)
 
-(*
+Inductive hole: nat -> Set :=
+  | hole_here:
+    hole 0
+  | hole_left:
+    forall {n},
+    hole n -> list pseudoterm -> pseudoterm -> hole (S n).
+
+Fixpoint apply_hole {n} (h: hole n) (e: pseudoterm): pseudoterm :=
+  match h with
+  | hole_here => e
+  | hole_left b ts c => bind (apply_hole b e) ts c
+  end.
+
+Coercion apply_hole: hole >-> Funclass.
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
-  | step_beta:
+  | step_ctxjmp:
+    forall {k} (h: hole k),
     forall xs ts c,
     length xs = length ts ->
-    [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c]
+    [bind (h (jump k xs)) ts c =>
+      bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c]
   | step_bind_left:
     forall b1 b2 ts c,
     [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
-  | step_bind_right:
-    forall b ts c1 c2,
-    [c1 => c2] -> [bind b ts c1 => bind b ts c2]
-  | step_cong:
-    forall a b c d,
-    [a == b] -> [b => c] -> [c == d] -> [a => d]
 
 where "[ a => b ]" := (step a b): type_scope.
 
 Hint Constructors step: cps.
+
+Lemma step_ctxjmp_helper:
+  forall {k} (h: hole k),
+  forall a b xs ts c,
+  a = h (jump k xs) ->
+  b = h (apply_parameters xs 0 (lift k (length ts) c)) ->
+  length xs = length ts ->
+  [bind a ts c => bind b ts c].
+Proof.
+  intros.
+  rewrite H, H0.
+  apply step_ctxjmp; auto.
+Qed.
+
+Lemma step_jmp:
+  forall xs ts c,
+  length xs = length ts ->
+  [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c].
+Proof.
+  intros.
+  eapply step_ctxjmp_helper with (h := hole_here).
+  - reflexivity.
+  - rewrite lift_zero_e_equals_e; auto.
+  - assumption.
+Qed.
+
+(*
+    \j.\x.\y.\z.                         \j.\x.\y.\z.
+      h@1<x@4, k@0, y@3>                   k@0<z@2, y@3>
+      { k<a, b> =                 =>       { k<a, b> =
+          h@2<a@1, j@6, b@0> }                 h@2<a@1, j@6, b@0> }
+      { h<c, d, e> =                       { h<c, d, e> =
+          d@1<z@3, e@0> }                      d@1<z@3, e@0> }
+*)
+
+Example ex3: pseudoterm :=
+  (bind (bind
+    (jump 0 [bound 2; bound 3])
+    [base; base]
+      (jump 2 [bound 1; bound 6; bound 0]))
+    [base; negation [base; base]; base]
+      (jump 1 [bound 3; bound 0])).
+
+Goal [ex1 => ex3].
+Proof.
+  compute.
+  eapply step_ctxjmp_helper with (h := hole_left hole_here ?[ts] ?[c]).
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Inductive item {T} (e: T): list T -> nat -> Prop :=
+  | item_car:
+    forall cdr, item e (cons e cdr) 0
+  | item_cdr:
+    forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
+
+Lemma item_app:
+  forall {T} e xs n,
+  @item T e xs n ->
+  forall ys,
+  @item T e (xs ++ ys) n.
+Proof.
+  induction 1; intros.
+  - constructor.
+  - simpl; constructor.
+    apply IHitem.
+Qed.
+
+Inductive merro: relation pseudoterm :=
+  | merro_step:
+    forall e k xs ts c cs,
+    item (ts, c) cs k ->
+    length xs = length ts ->
+    long_form e (jump k xs) cs ->
+    merro e (rebuild (apply_parameters xs 0 (lift k (length ts) c)) cs).
+
+Lemma rebuild_implies_hole:
+  forall cs,
+  exists h: hole (length cs),
+  forall e, rebuild e cs = h e.
+Proof.
+  (* We need an inverse induction on lists. *)
+  induction cs using rev_ind; simpl.
+  (* Case: nil. *)
+  - exists hole_here.
+    reflexivity.
+  (* Case: cons. *)
+  - destruct x as (ts, c).
+    destruct IHcs as (h, H).
+    rewrite app_length.
+    rewrite Nat.add_comm.
+    exists (hole_left h ts c).
+    intro; rewrite rebuild_behavior.
+    rewrite H; auto.
+Qed.
+
+Lemma hole_implies_rebuild:
+  forall k (h: hole k),
+  exists2 cs,
+  forall e, h e = rebuild e cs & length cs = k.
+Proof.
+  do 2 intro; dependent induction h.
+  - exists []; auto.
+  - destruct IHh as (cs, ?, ?).
+    exists (cs ++ [(l, p)]).
+    intro; simpl.
+    rewrite H, rebuild_behavior.
+    reflexivity.
+    rewrite app_length, H0; simpl; omega.
+Qed.
+
+Lemma item_in_head:
+  forall {T} x xs ys n,
+  @item T x (xs ++ ys) n -> n < length xs ->
+  @item T x xs n.
+Proof.
+  induction xs; simpl; intros.
+  - inversion H0.
+  - dependent destruction H.
+    + constructor.
+    + constructor.
+      eapply IHxs; eauto.
+      omega.
+Qed.
+
+Lemma item_app_rev:
+  forall {T} xs x y,
+  @item T x (xs ++ [y]) (length xs) -> x = y.
+Proof.
+  induction xs; intros.
+  - inversion_clear H.
+    reflexivity.
+  - eapply IHxs.
+    simpl in H.
+    inversion_clear H.
+    exact H0.
+Qed.
+
+Lemma item_too_far:
+  forall {T} xs x k,
+  length xs <= k ->
+  ~@item T x xs k.
+Proof.
+  induction xs; intros.
+  - inversion 1.
+  - intro.
+    dependent destruction H0.
+    + simpl in H; omega.
+    + eapply IHxs with (k := n).
+      * simpl in H; omega.
+      * eassumption.
+Qed.
+
+(* Argh, such an ugly proof! TODO: delete me and rewrite me later please! *)
+Lemma step_longjmp:
+  forall cs e k xs ts c,
+  item (ts, c) cs k ->
+  length xs = length ts ->
+  long_form e (jump k xs) cs ->
+  [e => rebuild (apply_parameters xs 0 (lift k (length ts) c)) cs].
+Proof.
+  induction cs using rev_ind; intros.
+  - inversion H.
+  - destruct x.
+    inversion H1.
+    + exfalso.
+      eapply app_cons_not_nil; eauto.
+    + rewrite rebuild_behavior.
+      edestruct app_inj_tail; eauto.
+      destruct H6, H7.
+      destruct (lt_eq_lt_dec (length cs0) k) as [ [ ? | ? ] | ? ].
+      * exfalso.
+        clear IHcs H0 H2 H1 H3 H4 H5 l p b h.
+        eapply item_too_far with (xs0 := cs0 ++ [(ts0, c0)]) (k0 := k).
+        rewrite app_length.
+        rewrite Nat.add_comm.
+        simpl.
+        omega.
+        eassumption.
+      * clear IHcs; destruct e0.
+        edestruct rebuild_implies_hole with cs0 as (m, ?).
+        replace b with (rebuild (jump (length cs0) xs) cs0).
+        do 2 rewrite H6.
+        pose (@item_app_rev _ _ _ _ H) as H7.
+        dependent destruction H7.
+        apply step_ctxjmp.
+        assumption.
+        erewrite rebuild_is_sound; eauto.
+      * apply step_bind_left.
+        apply IHcs; auto.
+        eapply item_in_head; eauto.
+Qed.
+
+(* TODO: ditto!!! *)
+Lemma longjmp_step:
+  forall k (h: hole k) xs ts c,
+  length xs = length ts ->
+  merro (bind (h (jump k xs)) ts c)
+    (bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c).
+Proof.
+  intros.
+  edestruct hole_implies_rebuild.
+  do 2 erewrite H0.
+  do 2 rewrite <- rebuild_behavior.
+  rewrite -> rebuild_behavior.
+  apply merro_step.
+  - rewrite <- H1.
+    clear H0 H1.
+    induction x; simpl.
+    + constructor.
+    + constructor.
+      apply IHx.
+  - assumption.
+  - constructor.
+    clear H0 H1.
+    induction x using rev_ind; simpl.
+    + constructor.
+    + destruct x.
+      rewrite rebuild_behavior.
+      constructor; auto.
+Qed.
+
+(* This should be true while we consider only static contexts, i.e., never into
+   the right (inner) side of a bind. Gotta prove this just to be sure I'm doing
+   the right thing before introducing generalized contexts. *)
+Lemma equiv:
+  forall a b,
+  [a => b] <-> merro a b.
+Proof.
+  split; induction 1.
+  - apply longjmp_step; auto.
+  - destruct IHstep.
+    rewrite <- rebuild_behavior.
+    apply merro_step.
+    + apply item_app; auto.
+    + assumption.
+    + constructor; auto.
+  - apply step_longjmp; auto.
+Qed.
+
+(*
 
 (** ** Multi-step reduction *)
 
