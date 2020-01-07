@@ -2063,6 +2063,135 @@ Proof.
   - apply step_longjmp; auto.
 Qed.
 
+(******************************************************************************)
+
+Definition confluent {T} (R: T -> T -> Prop): Prop :=
+  commut _ R (transp _ R).
+
+Inductive parallel: relation pseudoterm :=
+  | parallel_refl:
+    forall e,
+    parallel e e
+  | parallel_ctxjmp:
+    forall {k} (h: hole k),
+    forall xs ts c1 c2,
+    length xs = length ts -> parallel c1 c2 ->
+    parallel (bind (h (jump k xs)) ts c1)
+      (bind (h (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
+  | parallel_bind:
+    forall b1 b2 ts c1 c2,
+    parallel b1 b2 -> parallel c1 c2 ->
+    parallel (bind b1 ts c1) (bind b2 ts c2).
+
+Lemma parallel_step:
+  forall a b,
+  [a => b] -> parallel a b.
+Proof.
+  induction 1.
+  - apply parallel_ctxjmp; auto.
+    apply parallel_refl.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+Qed.
+
+Lemma hole_lift:
+  forall {n} (h: hole n),
+  forall i k,
+  exists r: hole n,
+  forall e, lift i k (h e) = r (lift i (n + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists hole_here; auto.
+  - edestruct IHh with i (S k) as (r, ?).
+    exists (hole_left r (map (lift i k) l) (lift i (k + length l) p)); intro.
+    simpl; f_equal.
+    replace (S (n + k)) with (n + S k); try omega.
+    apply H.
+Qed.
+
+Lemma parallel_lift:
+  forall a b,
+  parallel a b ->
+  forall i k,
+  parallel (lift i k a) (lift i k b).
+Proof.
+  induction 1; intros.
+  - apply parallel_refl.
+  - (* Dealing with de Bruijn indexes is really annoying... *)
+    simpl; destruct @hole_lift with k h i (S k0) as (r, ?).
+    do 2 rewrite H1.
+    do 2 replace (k + S k0) with (S (k + k0)); try omega.
+    rewrite lift_distributes_over_apply_parameters.
+    replace (lift i (S (k + k0)) (jump k xs)) with
+      (jump (lift i (S (k + k0)) k) (map (lift i (S (k + k0))) xs)); auto.
+    rewrite lift_bound_lt; try omega.
+    replace (lift i (k + k0 + length xs) (lift k (length ts) c2)) with
+      (lift k (length (map (lift i k0) ts)) (lift i (k0 + length ts) c2)).
+    + apply parallel_ctxjmp; auto.
+      do 2 rewrite map_length; auto.
+    + rewrite map_length, H.
+      rewrite lift_lift_permutation; try omega.
+      f_equal; try omega.
+  - simpl.
+    apply parallel_bind.
+    + apply IHparallel1.
+    + apply IHparallel2.
+Qed.
+
+Lemma parallel_is_confluent:
+  confluent parallel.
+Proof.
+  compute.
+  induction 1; intros.
+  - exists z.
+    + assumption.
+    + apply parallel_refl.
+  - dependent induction H1.
+    + eexists.
+      * apply parallel_refl.
+      * apply parallel_ctxjmp; auto.
+    + admit.
+    + admit.
+  - dependent destruction H1.
+    + exists (bind b2 ts c2).
+      * apply parallel_refl.
+      * apply parallel_bind; auto.
+    + destruct IHparallel2 with c3 as (c4, ?, ?); auto.
+      (*
+         The first reduction is [bind], the second is [ctxjmp], so...
+
+                                          ->
+               H[k<x>] { k<y> = c1 } ------------ b2 { k<y> = c2 }
+                      |                             |
+                      |                             |
+                    | |                             | |
+                    V |                             | V
+                      |                             |
+                      |                             |
+            H[c3[x/y]] { k<y> = c3 } ------------- ???
+                                          ->
+
+         Where H[k<x>] -> b2,
+                    c2 -> c4,
+                    c3 -> c4.
+
+         First we need to find an I such that b2 = I[k<x>]...
+
+         We'll then know that:
+           H[k<x>] -> I[k<x>]
+         And we'll need to show that:
+           H[c3[x/y]] -> I[c4[x/y]]
+
+         Not sure how to do that...
+      *)
+      admit.
+    + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
+      destruct IHparallel2 with c3 as (c4, ?, ?); auto.
+      exists (bind b4 ts c4).
+      * apply parallel_bind; auto.
+      * apply parallel_bind; auto.
+Admitted.
+
 (*
 
 (** ** Multi-step reduction *)
