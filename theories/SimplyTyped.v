@@ -2138,6 +2138,81 @@ Proof.
     + apply IHparallel2.
 Qed.
 
+Lemma hole_subst:
+  forall {n} (h: hole n),
+  forall x k,
+  exists r: hole n,
+  forall e, subst x k (h e) = r (subst x (n + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists hole_here; auto.
+  - edestruct IHh with x (S k) as (r, ?).
+    exists (hole_left r (map (subst x k) l) (subst x (k + length l) p)); intro.
+    simpl; f_equal.
+    replace (S (n + k)) with (n + S k); try omega.
+    apply H.
+Qed.
+
+Lemma parallel_subst:
+  forall a b,
+  parallel a b ->
+  forall x k,
+  parallel (subst x k a) (subst x k b).
+Proof.
+  induction 1; intros.
+  - apply parallel_refl.
+  - simpl; destruct @hole_subst with k h x (S k0) as (r, ?).
+    do 2 rewrite H1.
+    do 2 replace (k + S k0) with (S (k + k0)); try omega.
+    rewrite subst_distributes_over_apply_parameters.
+    (* Fair enough, the above proof method seems to work here. *)
+    admit.
+Admitted.
+
+Lemma parallel_apply_parameters:
+  forall a b,
+  parallel a b ->
+  forall xs k,
+  parallel (apply_parameters xs k a) (apply_parameters xs k b).
+Proof.
+  induction xs; simpl; intros.
+  - apply parallel_lift; auto.
+  - apply parallel_subst; auto.
+Qed.
+
+Lemma bar:
+  forall k (h: hole k) xs e,
+  parallel (h (jump k xs)) e ->
+  exists2 r: hole k,
+  e = r (jump k xs) & forall a b,
+  parallel a b -> parallel (h a) (r b).
+Proof.
+  do 2 intro.
+  generalize k at 2 6 as g; intros.
+  dependent induction H.
+  - exists h; auto.
+    intros; induction h; simpl.
+    + assumption.
+    + apply parallel_bind; auto.
+      apply parallel_refl.
+  - rename h0 into r, xs0 into ys, k0 into j.
+    (* I think we must explore the relationship between k and g to show that j
+       and g can't ever be the same variable; j refers to c1, but g must refer
+       to something else outside (which may even be a free variable. Once we
+       show this, we know that both j<ys> and g<xs> exist in the term, and may
+       build a new appropriate hole. *)
+    admit.
+  - dependent destruction h; simpl in * |- *.
+    + discriminate.
+    + dependent destruction x.
+      destruct IHparallel1 with n h g xs as (r, ?, ?); auto.
+      rewrite H1.
+      exists (hole_left r l c2); simpl.
+      * reflexivity.
+      * intros.
+        apply parallel_bind; auto.
+Admitted.
+
 Lemma parallel_is_confluent:
   confluent parallel.
 Proof.
@@ -2182,7 +2257,7 @@ Proof.
          And we'll need to show that:
            H[c3[x/y]] -> I[c4[x/y]]
 
-         Not sure how to do that...
+         Not sure how to do that... oh... wait...
       *)
       admit.
     + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
