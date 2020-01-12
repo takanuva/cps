@@ -1714,48 +1714,6 @@ Admitted.
 
 (******************************************************************************)
 
-Definition body: Set :=
-  list pseudoterm * pseudoterm.
-
-Inductive long_form: pseudoterm -> pseudoterm -> list body -> Prop :=
-  | long_form_jump:
-    forall k xs,
-    long_form (jump k xs) (jump k xs) []
-  | long_form_bind:
-    forall b h ts c cs,
-    long_form b h cs ->
-    long_form (bind b ts c) h (cs ++ [(ts, c)]).
-
-Fixpoint rebuild b cs: pseudoterm :=
-  match cs with
-  | [] => b
-  | (ts, c) :: cs => rebuild (bind b ts c) cs
-  end.
-
-Lemma rebuild_behavior:
-  forall cs h ts c,
-  rebuild h (cs ++ [(ts, c)]) = bind (rebuild h cs) ts c.
-Proof.
-  induction cs; intros.
-  - reflexivity.
-  - destruct a; simpl.
-    rewrite IHcs; auto.
-Qed.
-
-Lemma rebuild_is_sound:
-  forall e h cs,
-  long_form e h cs -> e = rebuild h cs.
-Proof.
-  induction 1.
-  - reflexivity.
-  - rewrite IHlong_form.
-    clear H IHlong_form.
-    generalize h as g; intro.
-    rewrite rebuild_behavior; auto.
-Qed.
-
-(******************************************************************************)
-
 (** ** One-step reduction. *)
 
 (*
@@ -1790,26 +1748,28 @@ Qed.
     are no longjmp-redexes in c? I don't think so.
 *)
 
-Inductive hole: nat -> Set :=
-  | hole_here:
-    hole 0
-  | hole_left:
-    forall {n},
-    hole n -> list pseudoterm -> pseudoterm -> hole (S n).
+Inductive context: nat -> Set :=
+  | context_hole:
+    context 0
+  | context_left {n} (b: context n) (ts: list pseudoterm) (c: pseudoterm):
+    context (S n)
+  | context_right {n} (b: pseudoterm) (ts: list pseudoterm) (c: context n):
+    context (n + length ts).
 
-Fixpoint apply_hole {n} (h: hole n) (e: pseudoterm): pseudoterm :=
+Fixpoint apply_context {n} (h: context n) (e: pseudoterm): pseudoterm :=
   match h with
-  | hole_here => e
-  | hole_left b ts c => bind (apply_hole b e) ts c
+  | context_hole => e
+  | context_left b ts c => bind (apply_context b e) ts c
+  | context_right b ts c => bind b ts (apply_context c e)
   end.
 
-Coercion apply_hole: hole >-> Funclass.
+Coercion apply_context: context >-> Funclass.
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
   | step_ctxjmp:
-    forall {k} (h: hole k),
+    forall {k} (h: context k),
     forall xs ts c,
     length xs = length ts ->
     [bind (h (jump k xs)) ts c =>
@@ -1822,29 +1782,15 @@ where "[ a => b ]" := (step a b): type_scope.
 
 Hint Constructors step: cps.
 
-Lemma step_ctxjmp_helper:
-  forall {k} (h: hole k),
-  forall a b xs ts c,
-  a = h (jump k xs) ->
-  b = h (apply_parameters xs 0 (lift k (length ts) c)) ->
-  length xs = length ts ->
-  [bind a ts c => bind b ts c].
-Proof.
-  intros.
-  rewrite H, H0.
-  apply step_ctxjmp; auto.
-Qed.
-
 Lemma step_jmp:
   forall xs ts c,
   length xs = length ts ->
   [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c].
 Proof.
   intros.
-  eapply step_ctxjmp_helper with (h := hole_here).
-  - reflexivity.
-  - rewrite lift_zero_e_equals_e; auto.
-  - assumption.
+  replace c with (lift 0 (length ts) c) at 2.
+  - apply step_ctxjmp with (h := context_hole); auto.
+  - apply lift_zero_e_equals_e.
 Qed.
 
 (*
@@ -1866,201 +1812,7 @@ Example ex3: pseudoterm :=
 
 Goal [ex1 => ex3].
 Proof.
-  compute.
-  eapply step_ctxjmp_helper with (h := hole_left hole_here ?[ts] ?[c]).
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-Qed.
-
-Inductive item {T} (e: T): list T -> nat -> Prop :=
-  | item_car:
-    forall cdr, item e (cons e cdr) 0
-  | item_cdr:
-    forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
-
-Lemma item_app:
-  forall {T} e xs n,
-  @item T e xs n ->
-  forall ys,
-  @item T e (xs ++ ys) n.
-Proof.
-  induction 1; intros.
-  - constructor.
-  - simpl; constructor.
-    apply IHitem.
-Qed.
-
-Inductive merro: relation pseudoterm :=
-  | merro_step:
-    forall e k xs ts c cs,
-    item (ts, c) cs k ->
-    length xs = length ts ->
-    long_form e (jump k xs) cs ->
-    merro e (rebuild (apply_parameters xs 0 (lift k (length ts) c)) cs).
-
-Lemma rebuild_implies_hole:
-  forall cs,
-  exists h: hole (length cs),
-  forall e, rebuild e cs = h e.
-Proof.
-  (* We need an inverse induction on lists. *)
-  induction cs using rev_ind; simpl.
-  (* Case: nil. *)
-  - exists hole_here.
-    reflexivity.
-  (* Case: cons. *)
-  - destruct x as (ts, c).
-    destruct IHcs as (h, H).
-    rewrite app_length.
-    rewrite Nat.add_comm.
-    exists (hole_left h ts c).
-    intro; rewrite rebuild_behavior.
-    rewrite H; auto.
-Qed.
-
-Lemma hole_implies_rebuild:
-  forall k (h: hole k),
-  exists2 cs,
-  forall e, h e = rebuild e cs & length cs = k.
-Proof.
-  do 2 intro; dependent induction h.
-  - exists []; auto.
-  - destruct IHh as (cs, ?, ?).
-    exists (cs ++ [(l, p)]).
-    intro; simpl.
-    rewrite H, rebuild_behavior.
-    reflexivity.
-    rewrite app_length, H0; simpl; omega.
-Qed.
-
-Lemma item_in_head:
-  forall {T} x xs ys n,
-  @item T x (xs ++ ys) n -> n < length xs ->
-  @item T x xs n.
-Proof.
-  induction xs; simpl; intros.
-  - inversion H0.
-  - dependent destruction H.
-    + constructor.
-    + constructor.
-      eapply IHxs; eauto.
-      omega.
-Qed.
-
-Lemma item_app_rev:
-  forall {T} xs x y,
-  @item T x (xs ++ [y]) (length xs) -> x = y.
-Proof.
-  induction xs; intros.
-  - inversion_clear H.
-    reflexivity.
-  - eapply IHxs.
-    simpl in H.
-    inversion_clear H.
-    exact H0.
-Qed.
-
-Lemma item_too_far:
-  forall {T} xs x k,
-  length xs <= k ->
-  ~@item T x xs k.
-Proof.
-  induction xs; intros.
-  - inversion 1.
-  - intro.
-    dependent destruction H0.
-    + simpl in H; omega.
-    + eapply IHxs with (k := n).
-      * simpl in H; omega.
-      * eassumption.
-Qed.
-
-(* Argh, such an ugly proof! TODO: delete me and rewrite me later please! *)
-Lemma step_longjmp:
-  forall cs e k xs ts c,
-  item (ts, c) cs k ->
-  length xs = length ts ->
-  long_form e (jump k xs) cs ->
-  [e => rebuild (apply_parameters xs 0 (lift k (length ts) c)) cs].
-Proof.
-  induction cs using rev_ind; intros.
-  - inversion H.
-  - destruct x.
-    inversion H1.
-    + exfalso.
-      eapply app_cons_not_nil; eauto.
-    + rewrite rebuild_behavior.
-      edestruct app_inj_tail; eauto.
-      destruct H6, H7.
-      destruct (lt_eq_lt_dec (length cs0) k) as [ [ ? | ? ] | ? ].
-      * exfalso.
-        clear IHcs H0 H2 H1 H3 H4 H5 l p b h.
-        eapply item_too_far with (xs0 := cs0 ++ [(ts0, c0)]) (k0 := k).
-        rewrite app_length.
-        rewrite Nat.add_comm.
-        simpl.
-        omega.
-        eassumption.
-      * clear IHcs; destruct e0.
-        edestruct rebuild_implies_hole with cs0 as (m, ?).
-        replace b with (rebuild (jump (length cs0) xs) cs0).
-        do 2 rewrite H6.
-        pose (@item_app_rev _ _ _ _ H) as H7.
-        dependent destruction H7.
-        apply step_ctxjmp.
-        assumption.
-        erewrite rebuild_is_sound; eauto.
-      * apply step_bind_left.
-        apply IHcs; auto.
-        eapply item_in_head; eauto.
-Qed.
-
-(* TODO: ditto!!! *)
-Lemma longjmp_step:
-  forall k (h: hole k) xs ts c,
-  length xs = length ts ->
-  merro (bind (h (jump k xs)) ts c)
-    (bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c).
-Proof.
-  intros.
-  edestruct hole_implies_rebuild.
-  do 2 erewrite H0.
-  do 2 rewrite <- rebuild_behavior.
-  rewrite -> rebuild_behavior.
-  apply merro_step.
-  - rewrite <- H1.
-    clear H0 H1.
-    induction x; simpl.
-    + constructor.
-    + constructor.
-      apply IHx.
-  - assumption.
-  - constructor.
-    clear H0 H1.
-    induction x using rev_ind; simpl.
-    + constructor.
-    + destruct x.
-      rewrite rebuild_behavior.
-      constructor; auto.
-Qed.
-
-(* This should be true while we consider only static contexts, i.e., never into
-   the right (inner) side of a bind. Gotta prove this just to be sure I'm doing
-   the right thing before introducing generalized contexts. *)
-Lemma equiv:
-  forall a b,
-  [a => b] <-> merro a b.
-Proof.
-  split; induction 1.
-  - apply longjmp_step; auto.
-  - destruct IHstep.
-    rewrite <- rebuild_behavior.
-    apply merro_step.
-    + apply item_app; auto.
-    + assumption.
-    + constructor; auto.
-  - apply step_longjmp; auto.
+  apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
 Qed.
 
 (******************************************************************************)
@@ -2073,7 +1825,7 @@ Inductive parallel: relation pseudoterm :=
     forall e,
     parallel e e
   | parallel_ctxjmp:
-    forall {k} (h: hole k),
+    forall {k} (h: context k),
     forall xs ts c1 c2,
     length xs = length ts -> parallel c1 c2 ->
     parallel (bind (h (jump k xs)) ts c1)
@@ -2094,19 +1846,27 @@ Proof.
     apply parallel_refl.
 Qed.
 
-Lemma hole_lift:
-  forall {n} (h: hole n),
+Lemma context_lift:
+  forall {n} (h: context n),
   forall i k,
-  exists r: hole n,
+  exists r: context n,
   forall e, lift i k (h e) = r (lift i (n + k) e).
 Proof.
   induction h; simpl; intros.
-  - exists hole_here; auto.
+  - exists context_hole; auto.
   - edestruct IHh with i (S k) as (r, ?).
-    exists (hole_left r (map (lift i k) l) (lift i (k + length l) p)); intro.
-    simpl; f_equal.
+    exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
+    intro; simpl; f_equal.
     replace (S (n + k)) with (n + S k); try omega.
     apply H.
+  - edestruct IHh with i (k + length ts) as (r, ?).
+    replace (length ts) with (length (map (lift i k) ts)).
+    + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
+      intro; simpl; f_equal.
+      rewrite map_length.
+      replace (n + length ts + k) with (n + (k + length ts)); try omega.
+      apply H.
+    + apply map_length.
 Qed.
 
 Lemma parallel_lift:
@@ -2117,8 +1877,7 @@ Lemma parallel_lift:
 Proof.
   induction 1; intros.
   - apply parallel_refl.
-  - (* Dealing with de Bruijn indexes is really annoying... *)
-    simpl; destruct @hole_lift with k h i (S k0) as (r, ?).
+  - simpl; destruct @context_lift with k h i (S k0) as (r, ?).
     do 2 rewrite H1.
     do 2 replace (k + S k0) with (S (k + k0)); try omega.
     rewrite lift_distributes_over_apply_parameters.
@@ -2132,25 +1891,30 @@ Proof.
     + rewrite map_length, H.
       rewrite lift_lift_permutation; try omega.
       f_equal; try omega.
-  - simpl.
-    apply parallel_bind.
-    + apply IHparallel1.
-    + apply IHparallel2.
+  - apply parallel_bind; auto.
 Qed.
 
-Lemma hole_subst:
-  forall {n} (h: hole n),
+Lemma context_subst:
+  forall {n} (h: context n),
   forall x k,
-  exists r: hole n,
+  exists r: context n,
   forall e, subst x k (h e) = r (subst x (n + k) e).
 Proof.
   induction h; simpl; intros.
-  - exists hole_here; auto.
+  - exists context_hole; auto.
   - edestruct IHh with x (S k) as (r, ?).
-    exists (hole_left r (map (subst x k) l) (subst x (k + length l) p)); intro.
-    simpl; f_equal.
+    exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
+    intro; simpl; f_equal.
     replace (S (n + k)) with (n + S k); try omega.
     apply H.
+  - edestruct IHh with x (k + length ts) as (r, ?).
+    replace (length ts) with (length (map (subst x k) ts)).
+    + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
+      intro; simpl; f_equal.
+      rewrite map_length.
+      replace (n + length ts + k) with (n + (k + length ts)); try omega.
+      apply H.
+    + apply map_length.
 Qed.
 
 Lemma parallel_subst:
@@ -2161,13 +1925,22 @@ Lemma parallel_subst:
 Proof.
   induction 1; intros.
   - apply parallel_refl.
-  - simpl; destruct @hole_subst with k h x (S k0) as (r, ?).
+  - simpl; destruct @context_subst with k h x (S k0) as (r, ?).
     do 2 rewrite H1.
     do 2 replace (k + S k0) with (S (k + k0)); try omega.
     rewrite subst_distributes_over_apply_parameters.
-    (* Fair enough, the above proof method seems to work here. *)
-    admit.
-Admitted.
+    replace (subst x (S (k + k0)) (jump k xs)) with
+      (jump (subst x (S (k + k0)) k) (map (subst x (S (k + k0))) xs)); auto.
+    rewrite subst_bound_lt; try omega.
+    replace (subst x (k + k0 + length xs) (lift k (length ts) c2)) with
+      (lift k (length (map (subst x k0) ts)) (subst x (k0 + length ts) c2)).
+    + apply parallel_ctxjmp; auto.
+      do 2 rewrite map_length; auto.
+    + rewrite map_length, H.
+      rewrite lift_and_subst_commute; try omega.
+      f_equal; try omega.
+  - apply parallel_bind; auto.
+Qed.
 
 Lemma parallel_apply_parameters:
   forall a b,
@@ -2180,54 +1953,83 @@ Proof.
   - apply parallel_subst; auto.
 Qed.
 
+Lemma parallel_context:
+  forall n (h: context n),
+  forall a b,
+  parallel a b -> parallel (h a) (h b).
+Proof.
+  induction h; simpl; intros.
+  - auto.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+Qed.
+
+(*
+  The intuition behind this lemma...
+
+  We index contexts by the quantity of variables they bind in the hole. If we
+  have a context H, and we know that H[k<x>] -> e, given that k isn't within the
+  hole itself (i.e., it's free in that pseudoterm), we know that that jump won't
+  be affected as the CPS calculus is deterministic; thus, k<x> must be a subterm
+  of e as well.
+
+  What we wanna do here is find a hole R such that e = R[k<x>] (i.e., that jump
+  was preserved), showing that whichever reduction done in H[k<x>] -> R[k<x>]
+  doesn't inhibit further reductions in that hole, i.e., if a -> b, so should
+  H[a] -> R[b].
+*)
 Lemma bar:
-  forall k (h: hole k) xs e,
+  forall n (h: context n) k,
+  k >= n ->
+  forall xs e,
   parallel (h (jump k xs)) e ->
-  exists2 r: hole k,
+  exists2 r: context n,
   e = r (jump k xs) & forall a b,
   parallel a b -> parallel (h a) (r b).
 Proof.
-  do 2 intro.
-  generalize k at 2 6 as g; intros.
-  dependent induction H.
-  - exists h; auto.
-    intros; induction h; simpl.
-    + assumption.
-    + apply parallel_bind; auto.
-      apply parallel_refl.
-  - rename h0 into r, xs0 into ys, k0 into j.
-    (* I think we must explore the relationship between k and g to show that j
-       and g can't ever be the same variable; j refers to c1, but g must refer
-       to something else outside (which may even be a free variable. Once we
-       show this, we know that both j<ys> and g<xs> exist in the term, and may
-       build a new appropriate hole. *)
+  intros.
+  dependent induction H0.
+  - exists h; auto; intros.
+    apply parallel_context; auto.
+  - rename h0 into s, xs0 into ys, k0 into j.
     admit.
   - dependent destruction h; simpl in * |- *.
     + discriminate.
     + dependent destruction x.
-      destruct IHparallel1 with n h g xs as (r, ?, ?); auto.
-      rewrite H1.
-      exists (hole_left r l c2); simpl.
+      edestruct IHparallel1 with xs k n h as (r, ?, ?).
+      * omega.
       * reflexivity.
-      * intros.
-        apply parallel_bind; auto.
+      * rewrite H0.
+        exists (context_left r ts0 c2); auto.
+        intros; apply parallel_bind; auto.
+    + dependent destruction x.
+      edestruct IHparallel2 with xs k n h as (r, ?, ?).
+      * omega.
+      * reflexivity.
+      * rewrite H0.
+        exists (context_right b2 ts0 r); auto.
+        intros; apply parallel_bind; auto.
 Admitted.
 
 Lemma parallel_is_confluent:
   confluent parallel.
 Proof.
   compute.
-  induction 1; intros.
-  - exists z.
+  induction 1.
+  - intros; exists z.
     + assumption.
     + apply parallel_refl.
-  - dependent induction H1.
+  - intros.
+    dependent induction H1.
     + eexists.
       * apply parallel_refl.
       * apply parallel_ctxjmp; auto.
     + admit.
     + admit.
-  - dependent destruction H1.
+  - intros.
+    dependent destruction H1.
     + exists (bind b2 ts c2).
       * apply parallel_refl.
       * apply parallel_bind; auto.
@@ -2259,7 +2061,13 @@ Proof.
 
          Not sure how to do that... oh... wait...
       *)
-      admit.
+      destruct bar with k h k xs b2; auto.
+      rewrite H5; eexists.
+      * apply parallel_ctxjmp; eauto.
+      * apply parallel_bind; auto.
+        apply H6.
+        apply parallel_apply_parameters.
+        apply parallel_lift; auto.
     + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
       destruct IHparallel2 with c3 as (c4, ?, ?); auto.
       exists (bind b4 ts c4).
