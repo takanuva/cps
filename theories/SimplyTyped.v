@@ -1777,6 +1777,9 @@ Inductive step: relation pseudoterm :=
   | step_bind_left:
     forall b1 b2 ts c,
     [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
+  | step_bind_right:
+    forall b ts c1 c2,
+    [c1 => c2] -> [bind b ts c1 => bind b ts c2]
 
 where "[ a => b ]" := (step a b): type_scope.
 
@@ -1815,275 +1818,12 @@ Proof.
   apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
 Qed.
 
-(******************************************************************************)
-
-Definition confluent {T} (R: T -> T -> Prop): Prop :=
-  commut _ R (transp _ R).
-
-Inductive parallel: relation pseudoterm :=
-  | parallel_refl:
-    forall e,
-    parallel e e
-  | parallel_ctxjmp:
-    forall {k} (h: context k),
-    forall xs ts c1 c2,
-    length xs = length ts -> parallel c1 c2 ->
-    parallel (bind (h (jump k xs)) ts c1)
-      (bind (h (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
-  | parallel_bind:
-    forall b1 b2 ts c1 c2,
-    parallel b1 b2 -> parallel c1 c2 ->
-    parallel (bind b1 ts c1) (bind b2 ts c2).
-
-Lemma parallel_step:
-  forall a b,
-  [a => b] -> parallel a b.
-Proof.
-  induction 1.
-  - apply parallel_ctxjmp; auto.
-    apply parallel_refl.
-  - apply parallel_bind; auto.
-    apply parallel_refl.
-Qed.
-
-Lemma context_lift:
-  forall {n} (h: context n),
-  forall i k,
-  exists r: context n,
-  forall e, lift i k (h e) = r (lift i (n + k) e).
-Proof.
-  induction h; simpl; intros.
-  - exists context_hole; auto.
-  - edestruct IHh with i (S k) as (r, ?).
-    exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
-    intro; simpl; f_equal.
-    replace (S (n + k)) with (n + S k); try omega.
-    apply H.
-  - edestruct IHh with i (k + length ts) as (r, ?).
-    replace (length ts) with (length (map (lift i k) ts)).
-    + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
-      intro; simpl; f_equal.
-      rewrite map_length.
-      replace (n + length ts + k) with (n + (k + length ts)); try omega.
-      apply H.
-    + apply map_length.
-Qed.
-
-Lemma parallel_lift:
-  forall a b,
-  parallel a b ->
-  forall i k,
-  parallel (lift i k a) (lift i k b).
-Proof.
-  induction 1; intros.
-  - apply parallel_refl.
-  - simpl; destruct @context_lift with k h i (S k0) as (r, ?).
-    do 2 rewrite H1.
-    do 2 replace (k + S k0) with (S (k + k0)); try omega.
-    rewrite lift_distributes_over_apply_parameters.
-    replace (lift i (S (k + k0)) (jump k xs)) with
-      (jump (lift i (S (k + k0)) k) (map (lift i (S (k + k0))) xs)); auto.
-    rewrite lift_bound_lt; try omega.
-    replace (lift i (k + k0 + length xs) (lift k (length ts) c2)) with
-      (lift k (length (map (lift i k0) ts)) (lift i (k0 + length ts) c2)).
-    + apply parallel_ctxjmp; auto.
-      do 2 rewrite map_length; auto.
-    + rewrite map_length, H.
-      rewrite lift_lift_permutation; try omega.
-      f_equal; try omega.
-  - apply parallel_bind; auto.
-Qed.
-
-Lemma context_subst:
-  forall {n} (h: context n),
-  forall x k,
-  exists r: context n,
-  forall e, subst x k (h e) = r (subst x (n + k) e).
-Proof.
-  induction h; simpl; intros.
-  - exists context_hole; auto.
-  - edestruct IHh with x (S k) as (r, ?).
-    exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
-    intro; simpl; f_equal.
-    replace (S (n + k)) with (n + S k); try omega.
-    apply H.
-  - edestruct IHh with x (k + length ts) as (r, ?).
-    replace (length ts) with (length (map (subst x k) ts)).
-    + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
-      intro; simpl; f_equal.
-      rewrite map_length.
-      replace (n + length ts + k) with (n + (k + length ts)); try omega.
-      apply H.
-    + apply map_length.
-Qed.
-
-Lemma parallel_subst:
-  forall a b,
-  parallel a b ->
-  forall x k,
-  parallel (subst x k a) (subst x k b).
-Proof.
-  induction 1; intros.
-  - apply parallel_refl.
-  - simpl; destruct @context_subst with k h x (S k0) as (r, ?).
-    do 2 rewrite H1.
-    do 2 replace (k + S k0) with (S (k + k0)); try omega.
-    rewrite subst_distributes_over_apply_parameters.
-    replace (subst x (S (k + k0)) (jump k xs)) with
-      (jump (subst x (S (k + k0)) k) (map (subst x (S (k + k0))) xs)); auto.
-    rewrite subst_bound_lt; try omega.
-    replace (subst x (k + k0 + length xs) (lift k (length ts) c2)) with
-      (lift k (length (map (subst x k0) ts)) (subst x (k0 + length ts) c2)).
-    + apply parallel_ctxjmp; auto.
-      do 2 rewrite map_length; auto.
-    + rewrite map_length, H.
-      rewrite lift_and_subst_commute; try omega.
-      f_equal; try omega.
-  - apply parallel_bind; auto.
-Qed.
-
-Lemma parallel_apply_parameters:
-  forall a b,
-  parallel a b ->
-  forall xs k,
-  parallel (apply_parameters xs k a) (apply_parameters xs k b).
-Proof.
-  induction xs; simpl; intros.
-  - apply parallel_lift; auto.
-  - apply parallel_subst; auto.
-Qed.
-
-Lemma parallel_context:
-  forall n (h: context n),
-  forall a b,
-  parallel a b -> parallel (h a) (h b).
-Proof.
-  induction h; simpl; intros.
-  - auto.
-  - apply parallel_bind; auto.
-    apply parallel_refl.
-  - apply parallel_bind; auto.
-    apply parallel_refl.
-Qed.
-
-(*
-  The intuition behind this lemma...
-
-  We index contexts by the quantity of variables they bind in the hole. If we
-  have a context H, and we know that H[k<x>] -> e, given that k isn't within the
-  hole itself (i.e., it's free in that pseudoterm), we know that that jump won't
-  be affected as the CPS calculus is deterministic; thus, k<x> must be a subterm
-  of e as well.
-
-  What we wanna do here is find a hole R such that e = R[k<x>] (i.e., that jump
-  was preserved), showing that whichever reduction done in H[k<x>] -> R[k<x>]
-  doesn't inhibit further reductions in that hole, i.e., if a -> b, so should
-  H[a] -> R[b].
-*)
-Lemma bar:
-  forall n (h: context n) k,
-  k >= n ->
-  forall xs e,
-  parallel (h (jump k xs)) e ->
-  exists2 r: context n,
-  e = r (jump k xs) & forall a b,
-  parallel a b -> parallel (h a) (r b).
-Proof.
-  intros.
-  dependent induction H0.
-  - exists h; auto; intros.
-    apply parallel_context; auto.
-  - rename h0 into s, xs0 into ys, k0 into j.
-    admit.
-  - dependent destruction h; simpl in * |- *.
-    + discriminate.
-    + dependent destruction x.
-      edestruct IHparallel1 with xs k n h as (r, ?, ?).
-      * omega.
-      * reflexivity.
-      * rewrite H0.
-        exists (context_left r ts0 c2); auto.
-        intros; apply parallel_bind; auto.
-    + dependent destruction x.
-      edestruct IHparallel2 with xs k n h as (r, ?, ?).
-      * omega.
-      * reflexivity.
-      * rewrite H0.
-        exists (context_right b2 ts0 r); auto.
-        intros; apply parallel_bind; auto.
-Admitted.
-
-Lemma parallel_is_confluent:
-  confluent parallel.
-Proof.
-  compute.
-  induction 1.
-  - intros; exists z.
-    + assumption.
-    + apply parallel_refl.
-  - intros.
-    dependent induction H1.
-    + eexists.
-      * apply parallel_refl.
-      * apply parallel_ctxjmp; auto.
-    + admit.
-    + admit.
-  - intros.
-    dependent destruction H1.
-    + exists (bind b2 ts c2).
-      * apply parallel_refl.
-      * apply parallel_bind; auto.
-    + destruct IHparallel2 with c3 as (c4, ?, ?); auto.
-      (*
-         The first reduction is [bind], the second is [ctxjmp], so...
-
-                                          ->
-               H[k<x>] { k<y> = c1 } ------------ b2 { k<y> = c2 }
-                      |                             |
-                      |                             |
-                    | |                             | |
-                    V |                             | V
-                      |                             |
-                      |                             |
-            H[c3[x/y]] { k<y> = c3 } ------------- ???
-                                          ->
-
-         Where H[k<x>] -> b2,
-                    c2 -> c4,
-                    c3 -> c4.
-
-         First we need to find an I such that b2 = I[k<x>]...
-
-         We'll then know that:
-           H[k<x>] -> I[k<x>]
-         And we'll need to show that:
-           H[c3[x/y]] -> I[c4[x/y]]
-
-         Not sure how to do that... oh... wait...
-      *)
-      destruct bar with k h k xs b2; auto.
-      rewrite H5; eexists.
-      * apply parallel_ctxjmp; eauto.
-      * apply parallel_bind; auto.
-        apply H6.
-        apply parallel_apply_parameters.
-        apply parallel_lift; auto.
-    + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
-      destruct IHparallel2 with c3 as (c4, ?, ?); auto.
-      exists (bind b4 ts c4).
-      * apply parallel_bind; auto.
-      * apply parallel_bind; auto.
-Admitted.
-
-(*
-
 (** ** Multi-step reduction *)
 
 Definition star: relation pseudoterm :=
-  clos_refl_trans _ (union _ cong step).
+  clos_refl_trans _ step.
 
 Hint Unfold star: cps.
-Hint Unfold union: cps.
 Hint Constructors clos_refl_trans: cps.
 Notation "[ a =>* b ]" := (star a b)
   (at level 0, a, b at level 200): type_scope.
@@ -2097,24 +1837,17 @@ Qed.
 
 Hint Resolve star_step: cps.
 
-Lemma star_cong:
-  forall a b,
-  [a == b] -> [a =>* b].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve star_cong: cps.
-
-Lemma star_beta:
+Lemma star_ctxjmp:
+  forall {k} (h: context k),
   forall xs ts c,
   length xs = length ts ->
-  [bind (jump 0 xs) ts c =>* bind (apply_parameters xs 0 c) ts c].
+  [bind (h (jump k xs)) ts c =>*
+    bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c].
 Proof.
   auto with cps.
 Qed.
 
-Hint Resolve star_beta: cps.
+Hint Resolve star_ctxjmp: cps.
 
 Lemma star_refl:
   forall e,
@@ -2157,6 +1890,325 @@ Proof.
 Qed.
 
 Hint Resolve star_bind_right: cps.
+
+(******************************************************************************)
+
+Definition confluent {T} (R: T -> T -> Prop): Prop :=
+  commut _ R (transp _ R).
+
+Inductive parallel: relation pseudoterm :=
+  | parallel_refl:
+    forall e,
+    parallel e e
+  | parallel_ctxjmp:
+    forall {k} (h r: context k),
+    forall xs ts b c1 c2,
+    length xs = length ts ->
+    parallel b (r (jump k xs)) ->
+    parallel c1 c2 ->
+    parallel (bind b ts c1)
+      (bind (r (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
+  | parallel_bind:
+    forall b1 b2 ts c1 c2,
+    parallel b1 b2 -> parallel c1 c2 ->
+    parallel (bind b1 ts c1) (bind b2 ts c2).
+
+Lemma parallel_step:
+  forall a b,
+  [a => b] -> parallel a b.
+Proof.
+  induction 1.
+  - eapply parallel_ctxjmp; auto.
+    + apply parallel_refl.
+    + apply parallel_refl.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+Qed.
+
+Hint Resolve parallel_step: cps.
+
+Lemma star_parallel:
+  forall a b,
+  parallel a b -> [a =>* b].
+Proof.
+  induction 1.
+  - apply star_refl.
+  - eapply star_tran.
+    + apply star_bind_left; eauto.
+    + eapply star_tran.
+      * apply star_bind_right; eauto.
+      * apply star_ctxjmp; auto.
+  - eauto with cps.
+Qed.
+
+Hint Resolve star_parallel: cps.
+
+Lemma context_lift:
+  forall {n} (h: context n),
+  forall i k,
+  exists r: context n,
+  forall e, lift i k (h e) = r (lift i (n + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto.
+  - edestruct IHh with i (S k) as (r, ?).
+    exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
+    intro; simpl; f_equal.
+    replace (S (n + k)) with (n + S k); try omega.
+    apply H.
+  - edestruct IHh with i (k + length ts) as (r, ?).
+    replace (length ts) with (length (map (lift i k) ts)).
+    + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
+      intro; simpl; f_equal.
+      rewrite map_length.
+      replace (n + length ts + k) with (n + (k + length ts)); try omega.
+      apply H.
+    + apply map_length.
+Qed.
+
+Lemma parallel_lift:
+  forall a b,
+  parallel a b ->
+  forall i k,
+  parallel (lift i k a) (lift i k b).
+Proof.
+  induction 1; intros.
+  - apply parallel_refl.
+  - simpl.
+    admit.
+  - apply parallel_bind; auto.
+Admitted.
+
+Lemma context_subst:
+  forall {n} (h: context n),
+  forall x k,
+  exists r: context n,
+  forall e, subst x k (h e) = r (subst x (n + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto.
+  - edestruct IHh with x (S k) as (r, ?).
+    exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
+    intro; simpl; f_equal.
+    replace (S (n + k)) with (n + S k); try omega.
+    apply H.
+  - edestruct IHh with x (k + length ts) as (r, ?).
+    replace (length ts) with (length (map (subst x k) ts)).
+    + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
+      intro; simpl; f_equal.
+      rewrite map_length.
+      replace (n + length ts + k) with (n + (k + length ts)); try omega.
+      apply H.
+    + apply map_length.
+Qed.
+
+Lemma parallel_subst:
+  forall a b,
+  parallel a b ->
+  forall x k,
+  parallel (subst x k a) (subst x k b).
+Proof.
+  induction 1; intros.
+  - apply parallel_refl.
+  - simpl.
+    admit.
+  - apply parallel_bind; auto.
+Admitted.
+
+Lemma parallel_apply_parameters:
+  forall a b,
+  parallel a b ->
+  forall xs k,
+  parallel (apply_parameters xs k a) (apply_parameters xs k b).
+Proof.
+  induction xs; simpl; intros.
+  - apply parallel_lift; auto.
+  - apply parallel_subst; auto.
+Qed.
+
+Lemma parallel_context:
+  forall n (h: context n),
+  forall a b,
+  parallel a b -> parallel (h a) (h b).
+Proof.
+  induction h; simpl; intros.
+  - auto.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+  - apply parallel_bind; auto.
+    apply parallel_refl.
+Qed.
+
+(*
+(*
+  The intuition behind this lemma...
+
+  We index contexts by the quantity of variables they bind in the hole. If we
+  have a context H, and we know that H[k<x>] -> e, given that k isn't within the
+  hole itself (i.e., it's free in that pseudoterm), we know that that jump won't
+  be affected as the CPS calculus is deterministic; thus, k<x> must be a subterm
+  of e as well.
+
+  What we wanna do here is find a hole R such that e = R[k<x>] (i.e., that jump
+  was preserved), showing that whichever reduction done in H[k<x>] -> R[k<x>]
+  doesn't inhibit further reductions in that hole, i.e., if a -> b, so should
+  H[a] -> R[b].
+*)
+Lemma bar:
+  forall n (h: context n) k,
+  k >= n ->
+  forall xs e,
+  parallel (h (jump k xs)) e ->
+  exists2 r: context n,
+  e = r (jump k xs) & forall a b,
+  parallel (h a) (h b) -> parallel (h a) (r b).
+Proof.
+  (*intros.
+  dependent induction H0.
+  - exists h; auto; intros.
+    apply parallel_context; auto.
+  - rename h0 into s, xs0 into ys, k0 into j.
+    destruct h.
+    + discriminate.
+    + admit.
+    + simpl in * |- *.
+      clear IHparallel1.
+      replace ts0 with ts in * |- *; try congruence; clear ts0.
+      cut (b = s (jump j ys)); try congruence; intro.
+      cut (c1 = h (jump k xs)); try congruence; intro.
+      destruct IHparallel2 with xs k n h as (t, ?, ?); try omega; auto.
+      destruct (eq_sym H1), (eq_sym H2), (eq_sym H3).
+      eexists (context_right (r ?[X]) ts t).
+      * reflexivity.
+      * simpl; intros.
+        admit.
+  - dependent destruction h; simpl in * |- *.
+    + discriminate.
+    + dependent destruction x.
+      edestruct IHparallel1 with xs k n h as (r, ?, ?).
+      * omega.
+      * reflexivity.
+      * rewrite H0.
+        exists (context_left r ts0 c2); auto.
+        intros; apply parallel_bind; auto.
+    + dependent destruction x.
+      edestruct IHparallel2 with xs k n h as (r, ?, ?).
+      * omega.
+      * reflexivity.
+      * rewrite H0.
+        exists (context_right b2 ts0 r); auto.
+        intros; apply parallel_bind; auto.*)
+  admit.
+Admitted.
+*)
+
+Lemma bar:
+  forall n (h: context n) k,
+  k >= n ->
+  forall xs e,
+  parallel (h (jump k xs)) e ->
+  exists2 r: context n,
+  e = r (jump k xs) & forall a b,
+  parallel a b -> parallel (h a) (r b).
+Proof.
+  intros until 2; dependent induction H0.
+  - exists h; auto; intros.
+    apply parallel_context; auto.
+  - destruct h; simpl in * |- *.
+    + discriminate.
+    + admit.
+    + admit.
+  - destruct h; simpl in * |- *.
+    + discriminate.
+    + dependent destruction x.
+      destruct IHparallel1 with xs k n h; auto; try omega.
+      exists (context_left x ts0 c2); simpl.
+      * congruence.
+      * intros.
+        apply parallel_bind; auto.
+    + dependent destruction x.
+      destruct IHparallel2 with xs k n h; auto; try omega.
+      exists (context_right b2 ts0 x); simpl.
+      * congruence.
+      * intros.
+        apply parallel_bind; auto.
+Admitted.
+
+Lemma parallel_is_confluent:
+  confluent parallel.
+Proof.
+  compute.
+  induction 1.
+  - intros; exists z.
+    + assumption.
+    + apply parallel_refl.
+  - intros.
+    dependent destruction H2.
+    + eexists.
+      * apply parallel_refl.
+      * apply parallel_ctxjmp; auto.
+    + admit.
+    + admit.
+  - intros.
+    dependent destruction H1.
+    + exists (bind b2 ts c2).
+      * apply parallel_refl.
+      * apply parallel_bind; auto.
+    + (*
+         The first reduction is [bind], the second is [ctxjmp], so...
+
+                                          ->
+               H[k<x>] { k<y> = c1 } ------------ b2 { k<y> = c2 }
+                      |                             |
+                      |                             |
+                    | |                             | |
+                    V |                             | V
+                      |                             |
+                      |                             |
+            R[c3[x/y]] { k<y> = c3 } ------------- ???
+                                          ->
+
+         Where H[k<x>] -> b2,
+               H[k<x>] -> R[k<x>]
+
+         From the inductive hypothesis:
+                    c2 -> c4,
+                    c3 -> c4,
+                    b2 -> b4,
+               R[k<x>] -> b4
+
+         First we need to find an S such that b2 = S[k<x>]...
+
+         We'll then know that:
+           R[k<x>] -> S[k<x>]
+
+         And we'll need to show that:
+           R[c3[x/y]] -> S[c4[x/y]]
+
+         So...
+                                          ->
+               H[k<x>] { k<y> = c1 } ------------------ b2 { k<y> = c2 }
+                      |                                   |
+                      |                                   |
+                    | |                                   | | [ctxjmp]
+                    V |                                   | V
+                      |                                   |
+                      |                                   |
+            R[c3[x/y]] { k<y> = c3 } ---------- S[c4[x/y]] { k<y> = c4 }
+                                          ->
+                                        [bind]
+      *)
+      admit.
+    + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
+      destruct IHparallel2 with c3 as (c4, ?, ?); auto.
+      exists (bind b4 ts c4).
+      * apply parallel_bind; auto.
+      * apply parallel_bind; auto.
+Admitted.
+
+(*
 
 (** ** Pseudoterm conversion *)
 
