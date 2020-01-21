@@ -1170,6 +1170,20 @@ Proof.
   induction n; simpl; auto.
 Qed.
 
+(** ** Relations *)
+
+Print clos_refl_trans.
+
+Notation "'rt' ( R )" := (clos_refl_trans _ R).
+Notation "'rst' ( R )" := (clos_refl_sym_trans _ R).
+
+Hint Unfold transp: cps.
+Hint Constructors clos_refl_trans: cps.
+Hint Constructors clos_refl_sym_trans: cps.
+
+Definition confluent {T} (R: T -> T -> Prop): Prop :=
+  commut _ R (transp _ R).
+
 (** ** Structural congruence *)
 
 (*
@@ -1246,11 +1260,11 @@ Hint Constructors struct: cps.
    under the [struct] rules above. *)
 
 Definition cong: relation pseudoterm :=
-  clos_refl_sym_trans _ struct.
+  rst(struct).
 
 Hint Unfold cong: cps.
-Hint Constructors clos_refl_sym_trans: cps.
-Notation "[ a == b ]" := (cong a b) (at level 0, a, b at level 200).
+Notation "[ a == b ]" := (cong a b)
+  (at level 0, a, b at level 200): type_scope.
 
 Lemma cong_refl:
   forall e,
@@ -1796,6 +1810,8 @@ Proof.
   - apply lift_zero_e_equals_e.
 Qed.
 
+Hint Resolve step_jmp: cps.
+
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       h@1<x@4, k@0, y@3>                   k@0<z@2, y@3>
@@ -1821,10 +1837,9 @@ Qed.
 (** ** Multi-step reduction *)
 
 Definition star: relation pseudoterm :=
-  clos_refl_trans _ step.
+  rt(step).
 
 Hint Unfold star: cps.
-Hint Constructors clos_refl_trans: cps.
 Notation "[ a =>* b ]" := (star a b)
   (at level 0, a, b at level 200): type_scope.
 
@@ -1891,10 +1906,99 @@ Qed.
 
 Hint Resolve star_bind_right: cps.
 
-(******************************************************************************)
+(** ** Reduction convertibility *)
 
-Definition confluent {T} (R: T -> T -> Prop): Prop :=
-  commut _ R (transp _ R).
+Definition conv: relation pseudoterm :=
+  rst(step).
+
+Hint Unfold conv: cps.
+Notation "[ a <=> b ]" := (conv a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma conv_step:
+  forall a b,
+  [a => b] -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_step: cps.
+
+Lemma conv_ctxjmp:
+  forall {k} (h: context k),
+  forall xs ts c,
+  length xs = length ts ->
+  [bind (h (jump k xs)) ts c <=>
+    bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_ctxjmp: cps.
+
+Lemma conv_star:
+  forall a b,
+  [a =>* b] -> [a <=> b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_star: cps.
+
+Lemma conv_refl:
+  forall e,
+  [e <=> e].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_refl: cps.
+
+Lemma conv_symm:
+  forall a b,
+  [a <=> b] -> [b <=> a].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve conv_symm: cps.
+
+Lemma conv_tran:
+  forall a b c,
+  [a <=> b] -> [b <=> c] -> [a <=> c].
+Proof.
+  eauto with cps.
+Qed.
+
+Hint Resolve conv_tran: cps.
+
+Lemma conv_bind_left:
+  forall b1 b2 ts c,
+  [b1 <=> b2] -> [bind b1 ts c <=> bind b2 ts c].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_bind_left: cps.
+
+Lemma conv_bind_right:
+  forall b ts c1 c2,
+  [c1 <=> c2] -> [bind b ts c1 <=> bind b ts c2].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Hint Resolve conv_bind_right: cps.
+
+Instance conv_is_equiv: Equivalence conv.
+Proof.
+  split.
+  - exact conv_refl.
+  - exact conv_symm.
+  - exact conv_tran.
+Defined.
+
+(** ** Parallel reduction *)
 
 Inductive parallel: relation pseudoterm :=
   | parallel_refl:
@@ -2046,108 +2150,5 @@ Lemma parallel_is_confluent:
 Proof.
   admit.
 Admitted.
-
-(*
-
-(** ** Pseudoterm conversion *)
-
-Definition conv: relation pseudoterm :=
-  clos_refl_sym_trans _ (union _ cong step).
-
-Hint Unfold conv: cps.
-Notation "[ a <=> b ]" := (conv a b)
-  (at level 0, a, b at level 200): type_scope.
-
-Lemma conv_step:
-  forall a b,
-  [a => b] -> [a <=> b].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_step: cps.
-
-Lemma conv_cong:
-  forall a b,
-  [a == b] -> [a <=> b].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_cong: cps.
-
-Lemma conv_beta:
-  forall xs ts c,
-  length xs = length ts ->
-  [bind (jump 0 xs) ts c <=> bind (apply_parameters xs 0 c) ts c].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_beta: cps.
-
-Lemma conv_star:
-  forall a b,
-  [a =>* b] -> [a <=> b].
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Hint Resolve conv_star: cps.
-
-Lemma conv_refl:
-  forall e,
-  [e <=> e].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_refl: cps.
-
-Lemma conv_symm:
-  forall a b,
-  [a <=> b] -> [b <=> a].
-Proof.
-  auto with cps.
-Qed.
-
-Hint Resolve conv_symm: cps.
-
-Lemma conv_tran:
-  forall a b c,
-  [a <=> b] -> [b <=> c] -> [a <=> c].
-Proof.
-  eauto with cps.
-Qed.
-
-Hint Resolve conv_tran: cps.
-
-Lemma conv_bind_left:
-  forall b1 b2 ts c,
-  [b1 <=> b2] -> [bind b1 ts c <=> bind b2 ts c].
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Hint Resolve conv_bind_left: cps.
-
-Lemma conv_bind_right:
-  forall b ts c1 c2,
-  [c1 <=> c2] -> [bind b ts c1 <=> bind b ts c2].
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Hint Resolve conv_bind_right: cps.
-
-Instance conv_is_equiv: Equivalence conv.
-Proof.
-  split.
-  - exact conv_refl.
-  - exact conv_symm.
-  - exact conv_tran.
-Defined.
-
-*)
 
 End STCC.
