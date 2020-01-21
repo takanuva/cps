@@ -218,50 +218,6 @@ Proof.
   - reflexivity.
 Qed.
 
-Lemma lift_i_lift_j_equals_lift_i_plus_j:
-  forall e i j k,
-  lift i k (lift j k e) = lift (i + j) k e.
-Proof.
-  induction e using pseudoterm_deepind; intros.
-  (* Case: type. *)
-  - reflexivity.
-  (* Case: prop. *)
-  - reflexivity.
-  (* Case: base. *)
-  - reflexivity.
-  (* Case: void. *)
-  - reflexivity.
-  (* Case: bound. *)
-  - simpl.
-    destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; auto with arith; omega.
-    + rewrite lift_bound_lt; auto.
-  (* Case: negation. *)
-  - simpl; f_equal.
-    list induction over H.
-  (* Case: jump. *)
-  - simpl; f_equal; auto.
-    list induction over H.
-  (* Case: bind. *)
-  - simpl; f_equal.
-    + apply IHe1.
-    + list induction over H.
-    + rewrite map_length; apply IHe2.
-Qed.
-
-Hint Resolve lift_i_lift_j_equals_lift_i_plus_j: cps.
-
-Lemma lift_succ_n_equals_lift_1_lift_n:
-  forall n k e,
-  lift (S n) k e = lift 1 k (lift n k e).
-Proof.
-  intros.
-  replace (S n) with (1 + n); auto.
-  rewrite lift_i_lift_j_equals_lift_i_plus_j; auto.
-Qed.
-
-Hint Resolve lift_succ_n_equals_lift_1_lift_n: cps.
-
 Lemma lift_lift_simplification:
   forall e i j k l,
   k <= l + j -> l <= k -> lift i k (lift j l e) = lift (i + j) l e.
@@ -1171,8 +1127,6 @@ Proof.
 Qed.
 
 (** ** Relations *)
-
-Print clos_refl_trans.
 
 Notation "'rt' ( R )" := (clos_refl_trans _ R).
 Notation "'rst' ( R )" := (clos_refl_sym_trans _ R).
