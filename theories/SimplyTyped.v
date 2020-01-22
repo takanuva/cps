@@ -1128,15 +1128,61 @@ Qed.
 
 (** ** Relations *)
 
-Notation "'rt' ( R )" := (clos_refl_trans _ R).
-Notation "'rst' ( R )" := (clos_refl_sym_trans _ R).
+Notation "'rt' ( R )" := (clos_refl_trans _ R)
+  (format "'rt' ( R )"): type_scope.
+Notation "'rst' ( R )" := (clos_refl_sym_trans _ R)
+  (format "'rst' ( R )"): type_scope.
 
 Hint Unfold transp: cps.
+Hint Constructors clos_trans: cps.
 Hint Constructors clos_refl_trans: cps.
 Hint Constructors clos_refl_sym_trans: cps.
 
-Definition confluent {T} (R: T -> T -> Prop): Prop :=
-  commut _ R (transp _ R).
+Definition confluent {T} R: Prop :=
+  commut T R (transp T R).
+
+Lemma strip_lemma:
+  forall {T} R,
+  forall confluency: confluent R,
+  commut T (clos_trans T R) (transp T R).
+Proof.
+  compute.
+  induction 2; intros.
+  (* Case: step. *)
+  - destruct confluency with y x z as (w, ?, ?); auto.
+    exists w; auto.
+    constructor; auto.
+  (* Case: tran. *)
+  - rename z0 into w.
+    destruct IHclos_trans1 with w as (v, ?, ?); auto.
+    destruct IHclos_trans2 with v as (u, ?, ?); auto.
+    exists u; auto.
+    apply t_trans with v; auto.
+Qed.
+
+Lemma transitive_closure_preserves_confluency:
+  forall {T} R,
+  forall confluency: confluent R,
+  confluent (clos_trans T R).
+Proof.
+  compute.
+  induction 2; intros.
+  (* Case: step. *)
+  - destruct @strip_lemma with T R z x y as (w, ?, ?); auto.
+    exists w; auto.
+    constructor; auto.
+  (* Case: tran. *)
+  - rename z0 into w.
+    destruct IHclos_trans1 with w as (v, ?, ?); auto.
+    destruct IHclos_trans2 with v as (u, ?, ?); auto.
+    exists u; eauto with cps.
+Qed.
+
+Definition church_rosser {T} (R: relation T): Prop :=
+  forall x y,
+  rst(R) x y ->
+  exists2 z,
+  rt(R) x z & rt(R) y z.
 
 (** ** Structural congruence *)
 
@@ -1187,7 +1233,7 @@ Hint Unfold contr: cps.
 
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
-   anyway. TODO: should we consider (JMP) here as well? *)
+   anyway. TODO: should we consider (JMP) here as well? What about (ETA)? *)
 
 Inductive struct: relation pseudoterm :=
   | struct_distr:
