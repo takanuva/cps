@@ -1184,6 +1184,27 @@ Definition church_rosser {T} (R: relation T): Prop :=
   exists2 z,
   rt(R) x z & rt(R) y z.
 
+Lemma confluency_implies_church_rosser:
+  forall {T} R,
+  forall confluency: @confluent T rt(R),
+  church_rosser R.
+Proof.
+  compute; intros.
+  induction H.
+  (* Case: step. *)
+  - exists y; auto with cps.
+  (* Case: refl. *)
+  - exists x; auto with cps.
+  (* Case: symm. *)
+  - destruct IHclos_refl_sym_trans as (z, ?, ?).
+    exists z; auto.
+  (* Case: tran. *)
+  - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
+    destruct IHclos_refl_sym_trans2 as (v, ?, ?).
+    destruct confluency with w y v as (u, ?, ?); auto with cps.
+    exists u; eauto with cps.
+Qed.
+
 (** ** Structural congruence *)
 
 (*
