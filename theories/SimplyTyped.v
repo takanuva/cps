@@ -1833,6 +1833,47 @@ Qed.
 
 Hint Resolve step_jmp: cps.
 
+(******************************************************************************)
+
+(*
+  \j.\x.\y.\z.
+    k@0<z@1, y@2, x@3>            =>     \j.\x.\y.\z.
+    { k<a, b, c> =                         j@3<z@0, y@1, x@2>
+        j@6<a@2, b@1, c@0> }
+
+  Hm, unfortunately the parameters won't match [sequence] as it is defined...
+*)
+
+Example foo: pseudoterm :=
+  (bind
+    (jump 0 [bound 1; bound 2; bound 3])
+    [base; base; base]
+      (jump 6 [bound 2; bound 1; bound 0])).
+
+Example bar: pseudoterm :=
+  (jump 3 [bound 0; bound 1; bound 2]).
+
+Lemma step_eta_helper:
+  forall b ts k xs j e,
+  k = length ts + j ->
+  map (lift 1 0) xs = sequence (length ts) ->
+  e = subst j 0 b ->
+  [bind b ts (jump k xs) => e].
+Proof.
+  admit.
+Admitted.
+
+Goal [foo => bar].
+Proof.
+  compute.
+  eapply step_eta_helper.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+(******************************************************************************)
+
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       h@1<x@4, k@0, y@3>                   k@0<z@2, y@3>
