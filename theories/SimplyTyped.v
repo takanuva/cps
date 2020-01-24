@@ -1290,11 +1290,7 @@ Hint Constructors struct: cps.
 (* We'll just define our structural congruence as the smallest relation closed
    under the [struct] rules above. *)
 
-Definition cong: relation pseudoterm :=
-  rst(struct).
-
-Hint Unfold cong: cps.
-Notation "[ a == b ]" := (cong a b)
+Notation "[ a == b ]" := (rst(struct) a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma cong_refl:
@@ -1380,7 +1376,7 @@ Qed.
 
 Hint Resolve cong_bind_right: cps.
 
-Instance cong_is_equiv: Equivalence cong.
+Instance cong_is_equiv: Equivalence rst(struct).
 Proof.
   split.
   - exact cong_refl.
@@ -1912,11 +1908,7 @@ Qed.
 
 (** ** Multi-step reduction *)
 
-Definition star: relation pseudoterm :=
-  rt(step).
-
-Hint Unfold star: cps.
-Notation "[ a =>* b ]" := (star a b)
+Notation "[ a =>* b ]" := (rt(step) a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma star_step:
@@ -1984,11 +1976,7 @@ Hint Resolve star_bind_right: cps.
 
 (** ** Reduction convertibility *)
 
-Definition conv: relation pseudoterm :=
-  rst(step).
-
-Hint Unfold conv: cps.
-Notation "[ a <=> b ]" := (conv a b)
+Notation "[ a <=> b ]" := (rst(step) a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma conv_step:
@@ -2066,7 +2054,7 @@ Qed.
 
 Hint Resolve conv_bind_right: cps.
 
-Instance conv_is_equiv: Equivalence conv.
+Instance conv_is_equiv: Equivalence rst(step).
 Proof.
   split.
   - exact conv_refl.
