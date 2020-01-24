@@ -1808,6 +1808,8 @@ Coercion apply_context: context >-> Funclass.
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
+(* Should (ETA) be in [step], or just in [cong]? *)
+
 Inductive step: relation pseudoterm :=
   | step_ctxjmp:
     forall {k} (h: context k),
@@ -1815,6 +1817,10 @@ Inductive step: relation pseudoterm :=
     length xs = length ts ->
     [bind (h (jump k xs)) ts c =>
       bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c]
+  | step_eta:
+    forall b ts j,
+    [bind b ts (jump (bound (length ts + j)) (low_sequence (length ts))) =>
+      subst j 0 b]
   | step_bind_left:
     forall b1 b2 ts c,
     [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
@@ -1866,8 +1872,10 @@ Lemma step_eta_helper:
   e = subst j 0 b ->
   [bind b ts (jump k xs) => e].
 Proof.
-  admit.
-Admitted.
+  intros.
+  rewrite H, H0, H1.
+  apply step_eta.
+Qed.
 
 Goal [foo => bar].
 Proof.
@@ -2080,6 +2088,11 @@ Inductive parallel: relation pseudoterm :=
     parallel c1 c2 ->
     parallel (bind b ts c1)
       (bind (h (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
+  | parallel_eta:
+    forall b1 b2 ts j,
+    parallel b1 b2 ->
+    parallel (bind b1 ts (jump (length ts + j) (low_sequence (length ts))))
+      (subst j 0 b2)
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
@@ -2093,6 +2106,8 @@ Proof.
   - eapply parallel_ctxjmp; auto.
     + apply parallel_refl.
     + apply parallel_refl.
+  - apply parallel_eta.
+    apply parallel_refl.
   - apply parallel_bind; auto.
     apply parallel_refl.
   - apply parallel_bind; auto.
@@ -2112,6 +2127,11 @@ Proof.
     + eapply star_tran.
       * apply star_bind_right; eauto.
       * apply star_ctxjmp; auto.
+  - eapply star_tran.
+    + apply star_bind_left; eauto.
+    + (* TODO: use [star_eta] instead! *)
+      apply star_step.
+      apply step_eta.
   - eauto with cps.
 Qed.
 
@@ -2150,6 +2170,8 @@ Proof.
   - apply parallel_refl.
   - simpl.
     admit.
+  - simpl.
+    admit.
   - apply parallel_bind; auto.
 Admitted.
 
@@ -2184,6 +2206,8 @@ Lemma parallel_subst:
 Proof.
   induction 1; intros.
   - apply parallel_refl.
+  - simpl.
+    admit.
   - simpl.
     admit.
   - apply parallel_bind; auto.
