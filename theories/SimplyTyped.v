@@ -735,16 +735,26 @@ Definition switch_bindings e: pseudoterm :=
 
 Hint Unfold switch_bindings: cps.
 
-Fixpoint sequence n :=
+Fixpoint sequence (high: bool) n :=
   match n with
   | 0 => nil
-  | S m => cons (bound n) (sequence m)
+  | S m => cons (bound (if high then n else m)) (sequence high m)
   end.
 
 Hint Unfold sequence: cps.
 
+Definition high_sequence: nat -> list pseudoterm :=
+  sequence true.
+
+Hint Unfold high_sequence: cps.
+
+Definition low_sequence: nat -> list pseudoterm :=
+  sequence false.
+
+Hint Unfold low_sequence: cps.
+
 Definition right_cycle (n: nat) e :=
-  apply_parameters (cons (bound 0) (sequence n)) 0 (lift n (S n) e).
+  apply_parameters (cons (bound 0) (high_sequence n)) 0 (lift n (S n) e).
 
 Hint Unfold right_cycle: cps.
 
@@ -891,9 +901,9 @@ Proof.
   apply switch_bindings_at_any_depth.
 Qed.
 
-Lemma apply_parameters_sequence_equals_nat_fold:
+Lemma apply_parameters_high_sequence_equals_nat_fold:
   forall e n m,
-  apply_parameters (sequence n) (S m) (lift (m + n) (S m + n) e) =
+  apply_parameters (high_sequence n) (S m) (lift (m + n) (S m + n) e) =
     nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
 Proof.
   induction n; intros; simpl.
@@ -918,7 +928,7 @@ Proof.
   unfold right_cycle.
   unfold apply_parameters; fold apply_parameters.
   rewrite lift_zero_e_equals_e; f_equal.
-  apply apply_parameters_sequence_equals_nat_fold.
+  apply apply_parameters_high_sequence_equals_nat_fold.
 Qed.
 
 Lemma lift_preserved_by_useless_subst:
@@ -1064,7 +1074,7 @@ Proof.
     + do 2 rewrite map_length.
       replace (p + k + length ts) with (p + length ts + k); try omega.
       replace (p + S k + length ts) with (p + length ts + S k); try omega.
-      auto.
+      apply IHe2; auto.
 Qed.
 
 Lemma remove_closest_binding_and_subst_commute:
@@ -1078,22 +1088,22 @@ Proof.
   assumption.
 Qed.
 
-Lemma sequence_succ:
+Lemma high_sequence_succ:
   forall n,
-  sequence (S n) = bound (S n) :: sequence n.
+  high_sequence (S n) = bound (S n) :: high_sequence n.
 Proof.
   reflexivity.
 Qed.
 
-Lemma lifting_over_n_doesnt_change_sequence_n:
+Lemma lifting_over_n_doesnt_change_high_sequence_n:
   forall n i k,
-  map (lift i (S (n + k))) (sequence n) = sequence n.
+  map (lift i (S (n + k))) (high_sequence n) = high_sequence n.
 Proof.
   induction n; intros.
   (* Case: zero. *)
   - reflexivity.
   (* Case: succ. *)
-  - rewrite sequence_succ.
+  - rewrite high_sequence_succ.
     rewrite map_cons.
     f_equal.
     + rewrite lift_bound_lt; auto.
@@ -1102,15 +1112,15 @@ Proof.
       omega.
 Qed.
 
-Lemma substing_over_n_doesnt_change_sequence_n:
+Lemma substing_over_n_doesnt_change_high_sequence_n:
   forall n x k,
-  map (subst x (S (n + k))) (sequence n) = sequence n.
+  map (subst x (S (n + k))) (high_sequence n) = high_sequence n.
 Proof.
   induction n; intros.
   (* Case: zero. *)
   - reflexivity.
   (* Case: succ. *)
-  - rewrite sequence_succ.
+  - rewrite high_sequence_succ.
     rewrite map_cons.
     f_equal.
     + rewrite subst_bound_lt; auto.
@@ -1119,9 +1129,9 @@ Proof.
       omega.
 Qed.
 
-Lemma length_sequence:
+Lemma length_high_sequence:
   forall n,
-  length (sequence n) = n.
+  length (high_sequence n) = n.
 Proof.
   induction n; simpl; auto.
 Qed.
@@ -1415,13 +1425,11 @@ Proof.
      kept the same. Later we must show that the different lifts on the body are
      also equivalent, by rewriting the lifts on the body. *)
   do 2 f_equal.
-  - apply lifting_over_n_doesnt_change_sequence_n.
-  - rewrite length_sequence.
+  - apply lifting_over_n_doesnt_change_high_sequence_n.
+  - rewrite length_high_sequence.
     simpl; symmetry.
-    rewrite lift_lift_permutation.
-    + f_equal.
-      omega.
-    + omega.
+    rewrite lift_lift_permutation; try omega.
+    f_equal; omega.
 Qed.
 
 Lemma lift_and_switch_bindings_commute:
@@ -1445,12 +1453,10 @@ Proof.
   replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
   rewrite subst_distributes_over_apply_parameters_at_any_depth.
   do 2 f_equal.
-  - apply substing_over_n_doesnt_change_sequence_n.
-  - rewrite length_sequence; simpl.
-    rewrite lift_and_subst_commute.
-    + f_equal.
-      omega.
-    + omega.
+  - apply substing_over_n_doesnt_change_high_sequence_n.
+  - rewrite length_high_sequence; simpl.
+    rewrite lift_and_subst_commute; try omega.
+    f_equal; omega.
 Qed.
 
 Lemma subst_and_switch_bindings_commute:
@@ -1856,7 +1862,7 @@ Example bar: pseudoterm :=
 Lemma step_eta_helper:
   forall b ts k xs j e,
   k = length ts + j ->
-  map (lift 1 0) xs = sequence (length ts) ->
+  xs = low_sequence (length ts) ->
   e = subst j 0 b ->
   [bind b ts (jump k xs) => e].
 Proof.
