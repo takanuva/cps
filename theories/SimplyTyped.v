@@ -2342,4 +2342,21 @@ Qed.
 
 Hint Resolve barb_symm: cps.
 
+Lemma barb_tran:
+  forall a b c,
+  [a ~~ b] -> [b ~~ c] -> [a ~~ c].
+Proof.
+  admit.
+Admitted.
+
+Hint Resolve barb_tran: cps.
+
+Instance barb_is_equiv: Equivalence barb.
+Proof.
+  split.
+  - exact barb_refl.
+  - exact barb_symm.
+  - exact barb_tran.
+Defined.
+
 End STCC.
