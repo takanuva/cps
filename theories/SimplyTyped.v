@@ -1262,9 +1262,14 @@ Definition contr b ts c: pseudoterm :=
 
 Hint Unfold contr: cps.
 
+Definition eta b ts k: pseudoterm :=
+  bind b ts (jump (bound (length ts + k)) (low_sequence (length ts))).
+
+Hint Unfold eta: cps.
+
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
-   anyway. TODO: should we consider (JMP) here as well? What about (ETA)? *)
+   anyway. TODO: should we consider (JMP) here as well? *)
 
 Inductive struct: relation pseudoterm :=
   | struct_distr:
@@ -1274,6 +1279,9 @@ Inductive struct: relation pseudoterm :=
   | struct_contr:
     forall b ts c,
     struct (contr b ts c) (bind (remove_closest_binding b) ts c)
+  | struct_eta:
+    forall b ts k,
+    struct (eta b ts k) (subst k 0 b)
   | struct_gc:
     forall b ts c,
     not_free_in 0 b ->
@@ -1347,6 +1355,13 @@ Proof.
 Qed.
 
 Hint Resolve cong_contr: cps.
+
+Lemma cong_eta:
+  forall b ts k,
+  [eta b ts k == subst k 0 b].
+Proof.
+  auto with cps.
+Qed.
 
 Lemma cong_gc:
   forall b ts c,
@@ -1565,6 +1580,8 @@ Proof.
     + do 2 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation; auto with arith.
+  (* Case: struct_eta. *)
+  - admit.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
     apply struct_gc.
@@ -1573,7 +1590,7 @@ Proof.
   - simpl; auto with cps.
   (* Case: struct_bind_right. *)
   - simpl; auto with cps.
-Qed.
+Admitted.
 
 Hint Resolve struct_lift: cps.
 
@@ -1640,6 +1657,8 @@ Proof.
     + reflexivity.
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute; auto with arith.
+  (* Case: struct_eta. *)
+  - admit.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
     apply struct_gc.
@@ -1648,7 +1667,7 @@ Proof.
   - simpl; auto with cps.
   (* Case: struct_bind_right. *)
   - simpl; auto with cps.
-Qed.
+Admitted.
 
 Hint Resolve struct_subst: cps.
 
@@ -1804,8 +1823,6 @@ Coercion apply_context: context >-> Funclass.
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
-(* Should (ETA) be in [step], or just in [cong]? *)
-
 Inductive step: relation pseudoterm :=
   | step_ctxjmp:
     forall {k} (h: context k),
@@ -1813,10 +1830,6 @@ Inductive step: relation pseudoterm :=
     length xs = length ts ->
     [bind (h (jump k xs)) ts c =>
       bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c]
-  | step_eta:
-    forall b ts j,
-    [bind b ts (jump (bound (length ts + j)) (low_sequence (length ts))) =>
-      subst j 0 b]
   | step_bind_left:
     forall b1 b2 ts c,
     [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
@@ -1840,49 +1853,6 @@ Proof.
 Qed.
 
 Hint Resolve step_jmp: cps.
-
-(******************************************************************************)
-
-(*
-  \j.\x.\y.\z.
-    k@0<z@1, y@2, x@3>            =>     \j.\x.\y.\z.
-    { k<a, b, c> =                         j@3<z@0, y@1, x@2>
-        j@6<a@2, b@1, c@0> }
-
-  Hm, unfortunately the parameters won't match [sequence] as it is defined...
-*)
-
-Example foo: pseudoterm :=
-  (bind
-    (jump 0 [bound 1; bound 2; bound 3])
-    [base; base; base]
-      (jump 6 [bound 2; bound 1; bound 0])).
-
-Example bar: pseudoterm :=
-  (jump 3 [bound 0; bound 1; bound 2]).
-
-Lemma step_eta_helper:
-  forall b ts k xs j e,
-  k = length ts + j ->
-  xs = low_sequence (length ts) ->
-  e = subst j 0 b ->
-  [bind b ts (jump k xs) => e].
-Proof.
-  intros.
-  rewrite H, H0, H1.
-  apply step_eta.
-Qed.
-
-Goal [foo => bar].
-Proof.
-  compute.
-  eapply step_eta_helper.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-Qed.
-
-(******************************************************************************)
 
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
@@ -2076,11 +2046,6 @@ Inductive parallel: relation pseudoterm :=
     parallel c1 c2 ->
     parallel (bind b ts c1)
       (bind (h (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
-  | parallel_eta:
-    forall b1 b2 ts j,
-    parallel b1 b2 ->
-    parallel (bind b1 ts (jump (length ts + j) (low_sequence (length ts))))
-      (subst j 0 b2)
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
@@ -2094,8 +2059,6 @@ Proof.
   - eapply parallel_ctxjmp; auto.
     + apply parallel_refl.
     + apply parallel_refl.
-  - apply parallel_eta.
-    apply parallel_refl.
   - apply parallel_bind; auto.
     apply parallel_refl.
   - apply parallel_bind; auto.
@@ -2115,11 +2078,6 @@ Proof.
     + eapply star_tran.
       * apply star_bind_right; eauto.
       * apply star_ctxjmp; auto.
-  - eapply star_tran.
-    + apply star_bind_left; eauto.
-    + (* TODO: use [star_eta] instead! *)
-      apply star_step.
-      apply step_eta.
   - eauto with cps.
 Qed.
 
@@ -2158,8 +2116,6 @@ Proof.
   - apply parallel_refl.
   - simpl.
     admit.
-  - simpl.
-    admit.
   - apply parallel_bind; auto.
 Admitted.
 
@@ -2194,8 +2150,6 @@ Lemma parallel_subst:
 Proof.
   induction 1; intros.
   - apply parallel_refl.
-  - simpl.
-    admit.
   - simpl.
     admit.
   - apply parallel_bind; auto.
