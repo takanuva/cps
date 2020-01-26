@@ -1088,26 +1088,59 @@ Proof.
   assumption.
 Qed.
 
-Lemma high_sequence_succ:
-  forall n,
-  high_sequence (S n) = bound (S n) :: high_sequence n.
+Lemma sequence_succ:
+  forall n b,
+  sequence b (S n) = bound (if b then S n else n) :: sequence b n.
 Proof.
   reflexivity.
+Qed.
+
+Lemma lifting_over_n_doesnt_change_sequence_n:
+  forall n i k (b: bool),
+  map (lift i ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - rewrite sequence_succ.
+    rewrite map_cons.
+    f_equal.
+    + rewrite lift_bound_lt; auto.
+      destruct b; omega.
+    + replace (S n + k) with (n + S k); auto.
+      omega.
 Qed.
 
 Lemma lifting_over_n_doesnt_change_high_sequence_n:
   forall n i k,
   map (lift i (S (n + k))) (high_sequence n) = high_sequence n.
 Proof.
+  intros.
+  apply lifting_over_n_doesnt_change_sequence_n with (b := true).
+Qed.
+
+Lemma lifting_over_n_doesnt_change_low_sequence_n:
+  forall n i k,
+  map (lift i (n + k)) (low_sequence n) = low_sequence n.
+Proof.
+  intros.
+  apply lifting_over_n_doesnt_change_sequence_n with (b := false).
+Qed.
+
+Lemma substing_over_n_doesnt_change_sequence_n:
+  forall n x k (b: bool),
+  map (subst x ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+Proof.
   induction n; intros.
   (* Case: zero. *)
   - reflexivity.
   (* Case: succ. *)
-  - rewrite high_sequence_succ.
+  - rewrite sequence_succ.
     rewrite map_cons.
     f_equal.
-    + rewrite lift_bound_lt; auto.
-      omega.
+    + rewrite subst_bound_lt; auto.
+      destruct b; omega.
     + replace (S n + k) with (n + S k); auto.
       omega.
 Qed.
@@ -1116,22 +1149,21 @@ Lemma substing_over_n_doesnt_change_high_sequence_n:
   forall n x k,
   map (subst x (S (n + k))) (high_sequence n) = high_sequence n.
 Proof.
-  induction n; intros.
-  (* Case: zero. *)
-  - reflexivity.
-  (* Case: succ. *)
-  - rewrite high_sequence_succ.
-    rewrite map_cons.
-    f_equal.
-    + rewrite subst_bound_lt; auto.
-      omega.
-    + replace (S n + k) with (n + S k); auto.
-      omega.
+  intros.
+  apply substing_over_n_doesnt_change_sequence_n with (b := true).
 Qed.
 
-Lemma length_high_sequence:
-  forall n,
-  length (high_sequence n) = n.
+Lemma substing_over_n_doesnt_change_low_sequence_n:
+  forall n x k,
+  map (subst x (n + k)) (low_sequence n) = low_sequence n.
+Proof.
+  intros.
+  apply substing_over_n_doesnt_change_sequence_n with (b := false).
+Qed.
+
+Lemma length_sequence:
+  forall n b,
+  length (sequence b n) = n.
 Proof.
   induction n; simpl; auto.
 Qed.
@@ -1437,7 +1469,7 @@ Proof.
      also equivalent, by rewriting the lifts on the body. *)
   do 2 f_equal.
   - apply lifting_over_n_doesnt_change_high_sequence_n.
-  - rewrite length_high_sequence.
+  - rewrite length_sequence with (b := true).
     simpl; symmetry.
     rewrite lift_lift_permutation; try omega.
     f_equal; omega.
@@ -1465,7 +1497,7 @@ Proof.
   rewrite subst_distributes_over_apply_parameters_at_any_depth.
   do 2 f_equal.
   - apply substing_over_n_doesnt_change_high_sequence_n.
-  - rewrite length_high_sequence; simpl.
+  - rewrite length_sequence with (b := true); simpl.
     rewrite lift_and_subst_commute; try omega.
     f_equal; omega.
 Qed.
@@ -1508,6 +1540,17 @@ Proof.
   intros.
   rewrite H, H0, H1, H2, H3.
   apply struct_contr.
+Qed.
+
+Lemma struct_eta_helper:
+  forall b ts k x1 x2,
+  x1 = jump (length ts + k) (low_sequence (length ts)) ->
+  x2 = subst k 0 b ->
+  struct (bind b ts x1) x2.
+Proof.
+  intros.
+  rewrite H, H0.
+  apply struct_eta.
 Qed.
 
 Lemma struct_gc_helper:
@@ -1581,7 +1624,20 @@ Proof.
       symmetry.
       rewrite lift_lift_permutation; auto with arith.
   (* Case: struct_eta. *)
-  - admit.
+  - rename k into j, k0 into k; simpl.
+    set (cond := le_gt_dec _ _).
+    apply struct_eta_helper with (if cond then i + j else j).
+    + f_equal.
+      * rewrite map_length.
+        destruct cond; f_equal; omega.
+      * replace (k + length ts) with (length ts + k); auto with arith.
+        rewrite lifting_over_n_doesnt_change_low_sequence_n.
+        rewrite map_length; auto.
+    + destruct cond.
+      * rewrite lift_distributes_over_subst; f_equal.
+        apply lift_bound_ge; omega.
+      * rewrite lift_distributes_over_subst; f_equal.
+        apply lift_bound_lt; omega.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
     apply struct_gc.
@@ -1590,7 +1646,7 @@ Proof.
   - simpl; auto with cps.
   (* Case: struct_bind_right. *)
   - simpl; auto with cps.
-Admitted.
+Qed.
 
 Hint Resolve struct_lift: cps.
 
@@ -1658,7 +1714,8 @@ Proof.
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute; auto with arith.
   (* Case: struct_eta. *)
-  - admit.
+  - rename k into j, k0 into k.
+    admit.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
     apply struct_gc.
