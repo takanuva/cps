@@ -2308,4 +2308,24 @@ Proof.
       destruct Y with a b; auto.
 Qed.
 
+Lemma barb_refl:
+  forall e,
+  [e ~~ e].
+Proof.
+  intros.
+  (* Consider, e.g., that our barbed relation is alpha equality. *)
+  exists eq; auto.
+  split.
+  - do 3 intro; split; intros.
+    + destruct H.
+      exists c; eauto with cps.
+    + destruct H.
+      split with a; eauto with cps.
+  - do 3 intro; split; intros.
+    + destruct H.
+      exists c; eauto with cps.
+    + destruct H.
+      split with b; eauto with cps.
+Qed.
+
 End STCC.
