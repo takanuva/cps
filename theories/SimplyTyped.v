@@ -1715,6 +1715,8 @@ Proof.
       rewrite lift_and_subst_commute; auto with arith.
   (* Case: struct_eta. *)
   - rename k into j, k0 into k.
+    (* When j = k, this won't work since we have defined substitution to work
+       with any pseudoterms instead of just with bound vars... *)
     admit.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
@@ -2241,5 +2243,15 @@ Lemma parallel_is_confluent:
 Proof.
   admit.
 Admitted.
+
+(** ** Observational Theory *)
+
+Inductive converges: pseudoterm -> nat -> Prop :=
+  | converges_jump:
+    forall k xs,
+    converges (jump (bound k) xs) k
+  | converges_bind:
+    forall b ts c k,
+    converges b (S k) -> converges (bind b ts c) k.
 
 End STCC.
