@@ -2285,7 +2285,7 @@ Lemma barb_is_a_barbed_bisimulation_itself:
 Proof.
   split.
   - do 3 intro.
-    destruct H as (S, (?X, ?Y), I).
+    destruct H as (S, (X, Y), I).
     split.
     + intros.
       destruct X with a b; auto.
@@ -2296,7 +2296,7 @@ Proof.
     + intros.
       destruct X with a b; auto.
   - do 3 intro.
-    destruct H as (S, (?X, ?Y), I).
+    destruct H as (S, (X, Y), I).
     split.
     + intros.
       destruct Y with a b; auto.
@@ -2327,5 +2327,19 @@ Proof.
     + destruct H.
       split with b; eauto with cps.
 Qed.
+
+Hint Resolve barb_refl: cps.
+
+Lemma barb_symm:
+  forall a b,
+  [a ~~ b] -> [b ~~ a].
+Proof.
+  intros.
+  destruct H as (S, (X, Y), I).
+  exists (transp _ S); auto.
+  split; auto.
+Qed.
+
+Hint Resolve barb_symm: cps.
 
 End STCC.
