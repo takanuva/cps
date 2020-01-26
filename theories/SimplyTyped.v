@@ -2254,4 +2254,58 @@ Inductive converges: pseudoterm -> nat -> Prop :=
     forall b ts c k,
     converges b (S k) -> converges (bind b ts c) k.
 
+Definition weakly_converges a n: Prop :=
+  exists2 b,
+  [a =>* b] & converges b n.
+
+(* Set theoretic definition of a barbed (bi)simulation... *)
+
+Definition barbed_simulation (S: relation pseudoterm): Prop :=
+  forall a b,
+  S a b ->
+    (forall c, [a => c] ->
+     exists2 d, [b =>* d] & S c d) /\
+    (forall n,
+     converges a n -> weakly_converges b n).
+
+Definition barbed_bisimulation (S: relation pseudoterm): Prop :=
+  barbed_simulation S /\ barbed_simulation (transp _ S).
+
+(* I'd like to try a coinductive definition later on... but let's see... *)
+
+Definition barb: relation pseudoterm :=
+  fun a b =>
+    exists2 S, barbed_bisimulation S & S a b.
+
+Notation "[ a ~~ b ]" := (barb a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma barb_is_a_barbed_bisimulation_itself:
+  barbed_bisimulation barb.
+Proof.
+  split.
+  - do 3 intro.
+    destruct H as (S, (?X, ?Y), I).
+    split.
+    + intros.
+      destruct X with a b; auto.
+      destruct H0 with c as (d, ?, ?); auto.
+      exists d; auto.
+      exists S; auto.
+      split; auto.
+    + intros.
+      destruct X with a b; auto.
+  - do 3 intro.
+    destruct H as (S, (?X, ?Y), I).
+    split.
+    + intros.
+      destruct Y with a b; auto.
+      destruct H0 with c as (d, ?, ?); auto.
+      exists d; auto.
+      exists S; auto.
+      split; auto.
+    + intros.
+      destruct Y with a b; auto.
+Qed.
+
 End STCC.
