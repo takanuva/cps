@@ -1294,8 +1294,13 @@ Definition contr b ts c: pseudoterm :=
 
 Hint Unfold contr: cps.
 
+(* My first intuition was to to make the redex as [jump (length ts + k) _], by
+   using a bound var (that is not a parameter), but this is too restrictive for
+   our "high-order" definition of pseudoterms; lifting k instead solves this,
+   and it properly captures the notion of (ETA) for actual terms. *)
+
 Definition eta b ts k: pseudoterm :=
-  bind b ts (jump (bound (length ts + k)) (low_sequence (length ts))).
+  bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts))).
 
 Hint Unfold eta: cps.
 
@@ -1544,7 +1549,7 @@ Qed.
 
 Lemma struct_eta_helper:
   forall b ts k x1 x2,
-  x1 = jump (length ts + k) (low_sequence (length ts)) ->
+  x1 = jump (lift (length ts) 0 k) (low_sequence (length ts)) ->
   x2 = subst k 0 b ->
   struct (bind b ts x1) x2.
 Proof.
@@ -1625,19 +1630,13 @@ Proof.
       rewrite lift_lift_permutation; auto with arith.
   (* Case: struct_eta. *)
   - rename k into j, k0 into k; simpl.
-    set (cond := le_gt_dec _ _).
-    apply struct_eta_helper with (if cond then i + j else j).
-    + f_equal.
-      * rewrite map_length.
-        destruct cond; f_equal; omega.
-      * replace (k + length ts) with (length ts + k); auto with arith.
-        rewrite lifting_over_n_doesnt_change_low_sequence_n.
-        rewrite map_length; auto.
-    + destruct cond.
-      * rewrite lift_distributes_over_subst; f_equal.
-        apply lift_bound_ge; omega.
-      * rewrite lift_distributes_over_subst; f_equal.
-        apply lift_bound_lt; omega.
+    eapply struct_eta_helper.
+    + replace (k + length ts) with (length ts + k); auto with arith.
+      rewrite map_length; f_equal.
+      * symmetry.
+        apply lift_lift_permutation; auto with arith.
+      * apply lifting_over_n_doesnt_change_low_sequence_n.
+    + apply lift_distributes_over_subst.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_lift_commute; auto.
     apply struct_gc.
@@ -1714,10 +1713,14 @@ Proof.
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute; auto with arith.
   (* Case: struct_eta. *)
-  - rename k into j, k0 into k.
-    (* When j = k, this won't work since we have defined substitution to work
-       with any pseudoterms instead of just with bound vars... *)
-    admit.
+  - rename k into j, k0 into k; simpl.
+    eapply struct_eta_helper.
+    + replace (k + length ts) with (length ts + k); auto with arith.
+      rewrite map_length; f_equal.
+      * symmetry.
+        apply lift_and_subst_commute; auto with arith.
+      * apply substing_over_n_doesnt_change_low_sequence_n.
+    + apply subst_distributes_over_itself.
   (* Case: struct_gc. *)
   - rewrite remove_closest_binding_and_subst_commute; auto.
     apply struct_gc.
@@ -1726,7 +1729,7 @@ Proof.
   - simpl; auto with cps.
   (* Case: struct_bind_right. *)
   - simpl; auto with cps.
-Admitted.
+Qed.
 
 Hint Resolve struct_subst: cps.
 
