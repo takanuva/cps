@@ -1306,9 +1306,13 @@ Hint Unfold eta: cps.
 
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
-   anyway. TODO: should we consider (JMP) here as well? *)
+   anyway. *)
 
 Inductive struct: relation pseudoterm :=
+  | struct_jmp:
+    forall xs ts c,
+    length xs = length ts ->
+    struct (bind (jump 0 xs) ts c) (bind (apply_parameters xs 0 c) ts c)
   | struct_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
@@ -1373,6 +1377,16 @@ Proof.
 Qed.
 
 Hint Resolve cong_struct: cps.
+
+Lemma cong_jmp:
+  forall xs ts c,
+  length xs = length ts ->
+  [bind (jump 0 xs) ts c == bind (apply_parameters xs 0 c) ts c].
+Proof.
+  auto with cps.
+Qed.
+
+Hint Resolve cong_jmp: cps.
 
 Lemma cong_distr:
   forall b ms m ns n,
@@ -1576,6 +1590,12 @@ Lemma struct_lift:
   struct (lift i k a) (lift i k b).
 Proof.
   induction 1; intros.
+  (* Case: struct_jmp. *)
+  - simpl.
+    rewrite lift_distributes_over_apply_parameters.
+    rewrite H.
+    apply struct_jmp.
+    do 2 rewrite map_length; auto.
   (* Case: struct_distr. *)
   - simpl; apply struct_distr_helper.
     + apply lift_and_switch_bindings_commute.
@@ -1667,6 +1687,12 @@ Lemma struct_subst:
   struct (subst c k a) (subst c k b).
 Proof.
   induction 1; intros.
+  (* Case: struct_jmp. *)
+  - simpl.
+    rewrite subst_distributes_over_apply_parameters.
+    rewrite H.
+    apply struct_jmp.
+    do 2 rewrite map_length; auto.
   (* Case: struct_distr. *)
   - simpl; apply struct_distr_helper.
     + apply subst_and_switch_bindings_commute.
