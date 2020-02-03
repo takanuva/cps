@@ -2287,6 +2287,20 @@ Definition weakly_converges a n: Prop :=
   exists2 b,
   [a =>* b] & converges b n.
 
+Lemma convergence_is_unique:
+  forall e n,
+  converges e n ->
+  forall m,
+  converges e m -> n = m.
+Proof.
+  induction 1; intros.
+  (* Case: converges_jump. *)
+  - inversion H; auto.
+  (* Case: converges_bind. *)
+  - dependent destruction H0.
+    cut (S k = S k0); auto.
+Qed.
+
 (* Set theoretic definition of a barbed (bi)simulation... *)
 
 Definition barbed_simulation (S: relation pseudoterm): Prop :=
