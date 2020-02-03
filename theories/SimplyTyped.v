@@ -2303,53 +2303,52 @@ Qed.
 
 (* Set theoretic definition of a barbed (bi)simulation... *)
 
-Definition barbed_simulation (S: relation pseudoterm): Prop :=
+Definition barbed_simulation (R: relation pseudoterm): Prop :=
   forall a b,
-  S a b ->
+  R a b ->
     (forall c, [a => c] ->
-     exists2 d, [b =>* d] & S c d) /\
+     exists2 d, [b =>* d] & R c d) /\
     (forall n,
      converges a n -> weakly_converges b n).
 
-Definition barbed_bisimulation (S: relation pseudoterm): Prop :=
-  barbed_simulation S /\ barbed_simulation (transp _ S).
+Definition barbed_bisimulation (R: relation pseudoterm): Prop :=
+  barbed_simulation R /\ barbed_simulation (transp _ R).
+
+(* Do we need these? *)
+
+Definition bisi a b: Prop :=
+  exists2 R, barbed_bisimulation R & R a b.
+
+Lemma bisi_is_a_barbed_bisimulation_itself:
+  barbed_bisimulation bisi.
+Proof.
+  split; do 3 intro; split; intros.
+  - destruct H as (S, (X, Y), I).
+    destruct X with a b; auto.
+    destruct H with c as (d, ?, ?); auto.
+    exists d; auto.
+    exists S; auto.
+    split; auto.
+  - destruct H as (S, (X, Y), I).
+    destruct X with a b; auto.
+  - destruct H as (S, (X, Y), I).
+    destruct Y with a b; auto.
+    destruct H with c as (d, ?, ?); auto.
+    exists d; auto.
+    exists S; auto.
+    split; auto.
+  - destruct H as (S, (X, Y), I).
+    destruct Y with a b; auto.
+Qed.
 
 (* I'd like to try a coinductive definition later on... but let's see... *)
 
-Definition barb: relation pseudoterm :=
-  fun a b =>
-    exists2 S, barbed_bisimulation S & S a b.
+Definition barb a b: Prop :=
+  exists2 S, barbed_bisimulation S & forall n (h: context n),
+  S (h a) (h b).
 
 Notation "[ a ~~ b ]" := (barb a b)
   (at level 0, a, b at level 200): type_scope.
-
-Lemma barb_is_a_barbed_bisimulation_itself:
-  barbed_bisimulation barb.
-Proof.
-  split.
-  - do 3 intro.
-    destruct H as (S, (X, Y), I).
-    split.
-    + intros.
-      destruct X with a b; auto.
-      destruct H0 with c as (d, ?, ?); auto.
-      exists d; auto.
-      exists S; auto.
-      split; auto.
-    + intros.
-      destruct X with a b; auto.
-  - do 3 intro.
-    destruct H as (S, (X, Y), I).
-    split.
-    + intros.
-      destruct Y with a b; auto.
-      destruct H0 with c as (d, ?, ?); auto.
-      exists d; auto.
-      exists S; auto.
-      split; auto.
-    + intros.
-      destruct Y with a b; auto.
-Qed.
 
 Lemma barb_refl:
   forall e,
@@ -2358,17 +2357,15 @@ Proof.
   intros.
   (* Consider, e.g., that our barbed relation is alpha equality. *)
   exists eq; auto.
-  split.
-  - do 3 intro; split; intros.
-    + destruct H.
-      exists c; eauto with cps.
-    + destruct H.
-      split with a; eauto with cps.
-  - do 3 intro; split; intros.
-    + destruct H.
-      exists c; eauto with cps.
-    + destruct H.
-      split with b; eauto with cps.
+  split; do 3 intro; split; intros.
+  - destruct H.
+    exists c; auto with cps.
+  - destruct H.
+    split with a; auto with cps.
+  - destruct H.
+    exists c; auto with cps.
+  - destruct H.
+    split with b; auto with cps.
 Qed.
 
 Hint Resolve barb_refl: cps.
