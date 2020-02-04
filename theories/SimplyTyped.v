@@ -1858,6 +1858,120 @@ Admitted.
 
 (******************************************************************************)
 
+Lemma right_cycle_distributes_over_jump:
+  forall n k xs,
+  right_cycle n (jump k xs) =
+    jump (right_cycle n k) (map (right_cycle n) xs).
+Proof.
+  admit.
+Admitted.
+
+Lemma switch_bindings_is_involutive:
+  forall e,
+  switch_bindings (switch_bindings e) = e.
+Proof.
+  admit.
+Admitted.
+
+Lemma cong_eq:
+  forall a b,
+  a = b -> [a == b].
+Proof.
+  intros.
+  destruct H.
+  apply cong_refl.
+Qed.
+
+Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
+  forall n,
+  map (right_cycle n) (low_sequence n) = high_sequence n.
+Proof.
+  admit.
+Admitted.
+
+(*
+  Turns out the rule (CONTR) is derivable!
+  To show that L { m<x> = M } { m'<x> = M } == L[m/m'] { m<x> = M }...
+
+  In a named version of the calculus, start with symmetry... then:
+
+    1)                           L[m/m'] { m<x> = M } ==      (by LEFT, ETA-1)
+    2)                L { m'<y> = m<y> } { m<x> = M } ==      (by DISTR)
+    3)   L { m<x> = M } { m'<y> = m<y> { m<x> = M } } ==      (by RIGHT, JMP)
+    4) L { m<x> = M } { m'<y> = M[y/x] { m<x> = M } } ==      (by RIGHT, GC)
+    5)              L { m<x> = M } { m'<y> = M[y/x] } ==      (by RIGHT, ALPHA)
+    6)                   L { m<x> = M } { m'<x> = M }
+
+  This is a bit bureaucratic when using de Bruijn indexes; we of course don't
+  need an alpha conversion, but we'll need (LEFT-FLOAT) in the end to fix the
+  bindings' positions, "undoing" the (DISTR) we did, but it should still work.
+*)
+
+Lemma cong_contr_derivable:
+  forall b ts c,
+  [contr b ts c == bind (remove_closest_binding b) ts c].
+Proof.
+  intros.
+  apply cong_symm.
+  (* Is there a more elegant way? *)
+  eapply cong_tran;
+    [| eapply cong_tran;
+      [| eapply cong_tran;
+        [| eapply cong_tran;
+          [| eapply cong_tran ] ] ] ].
+  - apply cong_bind_left.
+    apply cong_symm.
+    apply cong_eta with (ts := map (lift 1 0) ts).
+  - apply cong_distr.
+    induction ts; simpl.
+    + constructor.
+    + constructor; auto.
+      apply lifting_more_than_n_makes_not_free_in_n; auto.
+  - apply cong_bind_right.
+    rewrite map_length.
+    rewrite lift_bound_ge; auto.
+    replace (length ts + 0) with (length ts); auto.
+    rewrite right_cycle_distributes_over_jump.
+    (* TODO: make a lemma saying that right_cycle n n = 0 *)
+    replace (right_cycle (length ts) (length ts)) with (bound 0).
+    + apply cong_jmp.
+      do 2 rewrite map_length.
+      (* TODO: rename this lemma *)
+      rewrite length_sequence with (b := false); auto.
+    + admit.
+  - apply cong_bind_right.
+    apply cong_gc.
+    admit.
+  - apply cong_float_left.
+    + rewrite map_length.
+      apply lifting_more_than_n_makes_not_free_in_n; omega.
+    + induction ts; simpl.
+      * constructor.
+      * constructor; auto.
+        apply lifting_more_than_n_makes_not_free_in_n; auto.
+  - (* This should be already fine!!! *)
+    unfold float_left, contr; simpl.
+    apply cong_eq; f_equal.
+    + f_equal.
+      * apply switch_bindings_is_involutive.
+      * list induction over ts.
+        unfold remove_closest_binding.
+        rewrite subst_lift_simplification; auto.
+        rewrite lift_zero_e_equals_e; auto.
+      * do 2 rewrite map_length; f_equal.
+        rewrite right_cycle_low_sequence_n_equals_high_sequence_n.
+        (* Huh... *)
+        admit.
+    + list induction over ts.
+      rewrite subst_lift_simplification; auto.
+      apply lift_zero_e_equals_e.
+    + rewrite map_length.
+      rewrite subst_lift_simplification; auto.
+      apply lift_zero_e_equals_e.
+Admitted.
+
+(******************************************************************************)
+
 (** ** One-step reduction. *)
 
 (*
