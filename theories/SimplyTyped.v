@@ -840,6 +840,9 @@ Proof.
   apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
 Qed.
 
+(* TODO: perhaps I should renamme this lemma as I have already forgot what it
+   proves. :( *)
+
 Lemma switch_bindings_at_any_depth:
   forall e n,
   subst 1 n (lift 1 (2 + n) e) = subst 0 n (subst 2 n (lift 2 (2 + n) e)).
@@ -1866,12 +1869,58 @@ Proof.
   admit.
 Admitted.
 
+Lemma switch_bindings_is_involutive_at_any_depth:
+  forall e n,
+  subst 1 n (lift 1 (2 + n) (subst 1 n (lift 1 (2 + n) e))) = e.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - rename n0 into m.
+    unfold plus, lift at 2.
+    destruct (le_gt_dec (S (S m)) n).
+    + rewrite subst_bound_gt; try omega.
+      unfold plus, pred.
+      rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try omega.
+      f_equal; omega.
+    + unfold subst at 2.
+      destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+      * rewrite lift_bound_lt; try omega.
+        rewrite subst_bound_eq; try omega.
+        rewrite lift_bound_ge; try omega.
+        f_equal; omega.
+      * rewrite lift_bound_ge; try omega.
+        rewrite lift_bound_lt; try omega.
+        rewrite subst_bound_gt; try omega.
+        f_equal; try omega.
+      * rewrite lift_bound_lt; try omega.
+        rewrite subst_bound_lt; try omega.
+        reflexivity.
+  - simpl; f_equal.
+    list induction over H.
+    apply H.
+  - simpl; f_equal.
+    + apply IHe.
+    + list induction over H.
+      apply H.
+  - simpl; f_equal.
+    + apply IHe1.
+    + list induction over H.
+      apply H.
+    + do 3 rewrite map_length.
+      apply IHe2.
+Qed.
+
 Lemma switch_bindings_is_involutive:
   forall e,
   switch_bindings (switch_bindings e) = e.
 Proof.
-  admit.
-Admitted.
+  intro.
+  apply switch_bindings_is_involutive_at_any_depth.
+Qed.
 
 Lemma cong_eq:
   forall a b,
@@ -1885,6 +1934,15 @@ Qed.
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
   forall n,
   map (right_cycle n) (low_sequence n) = high_sequence n.
+Proof.
+  admit.
+Admitted.
+
+(* I have no idea what to call this one... *)
+
+Lemma foo:
+  forall n c,
+  apply_parameters (high_sequence n) 0 (lift n n c) = lift 1 0 c.
 Proof.
   admit.
 Admitted.
@@ -1903,7 +1961,7 @@ Admitted.
     6)                   L { m<x> = M } { m'<x> = M }
 
   This is a bit bureaucratic when using de Bruijn indexes; we of course don't
-  need an alpha conversion, but we'll need (LEFT-FLOAT) in the end to fix the
+  need an alpha conversion, but we'll need a (LEFT-FLOAT) in the end to fix the
   bindings' positions, "undoing" the (DISTR) we did, but it should still work.
 *)
 
@@ -1938,19 +1996,31 @@ Proof.
       do 2 rewrite map_length.
       (* TODO: rename this lemma *)
       rewrite length_sequence with (b := false); auto.
-    + admit.
+    + rewrite right_cycle_behavior.
+      rewrite lift_bound_lt; auto.
+      rewrite nat_fold_subst_unlifts_bound; auto.
+      rewrite subst_bound_eq; try omega.
+      simpl; f_equal; omega.
   - apply cong_bind_right.
     apply cong_gc.
-    admit.
-  - apply cong_float_left.
+    rewrite right_cycle_low_sequence_n_equals_high_sequence_n.
+    rewrite foo.
+    apply lifting_more_than_n_makes_not_free_in_n; auto.
+  - (* The term is in the form [(switch_bindings b) { M } { N }] now, as we have
+       changed [b] with the (DISTR) call above. Note that applying (FLOAT-LEFT)
+       here will change the term into [b { M } { N }]: only [b] will change, as
+       [M] is already equal to [lift 1 0 N] here (thus moving [N] left makes it
+       equal to [M], and moving [M] right makes it equal to [N]). *)
+    apply cong_float_left.
     + rewrite map_length.
       apply lifting_more_than_n_makes_not_free_in_n; omega.
     + induction ts; simpl.
       * constructor.
       * constructor; auto.
         apply lifting_more_than_n_makes_not_free_in_n; auto.
-  - (* This should be already fine!!! *)
-    unfold float_left, contr; simpl.
+  - (* The term is finally in the form [b { M } { N }], which is what we want,
+       but we still need to prove that as the term form is a bit different. *)
+    unfold float_left, contr.
     apply cong_eq; f_equal.
     + f_equal.
       * apply switch_bindings_is_involutive.
@@ -1960,15 +2030,17 @@ Proof.
         rewrite lift_zero_e_equals_e; auto.
       * do 2 rewrite map_length; f_equal.
         rewrite right_cycle_low_sequence_n_equals_high_sequence_n.
-        (* Huh... *)
-        admit.
+        rewrite foo.
+        unfold remove_closest_binding.
+        rewrite subst_lift_simplification; auto.
+        apply lift_zero_e_equals_e.
     + list induction over ts.
       rewrite subst_lift_simplification; auto.
       apply lift_zero_e_equals_e.
     + rewrite map_length.
       rewrite subst_lift_simplification; auto.
       apply lift_zero_e_equals_e.
-Admitted.
+Qed.
 
 (******************************************************************************)
 
