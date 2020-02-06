@@ -1797,6 +1797,30 @@ Hint Resolve cong_right_cycle: cps.
 
 (******************************************************************************)
 
+Lemma nat_fold_split:
+  forall {T} n m f (x: T),
+  nat_fold (n + m) f x = nat_fold n f (nat_fold m f x).
+Proof.
+  intros.
+  induction n; simpl.
+  - reflexivity.
+  - rewrite IHn; reflexivity.
+Qed.
+
+Lemma nat_fold_step:
+  forall {T} k f (x: T),
+  k > 0 -> nat_fold k f x = nat_fold (k - 1) f (f x).
+Proof.
+  intros.
+  destruct k.
+  - inversion H.
+  - replace (S k - 1) with k; try omega.
+    clear H; induction k; simpl.
+    + reflexivity.
+    + simpl in IHk.
+      rewrite IHk; auto.
+Qed.
+
 Lemma nat_fold_subst_unlifts_bound:
   forall (n k: nat) x,
   k <= n -> nat_fold k (subst x 0) n = n - k.
@@ -1809,6 +1833,62 @@ Proof.
     replace (1 + n - (1 + k)) with (1 + (n - (1 + k))).
     + simpl; reflexivity.
     + omega.
+Qed.
+
+Lemma right_cycle_bound_lt:
+  forall k n,
+  n < k -> right_cycle k (bound n) = S n.
+Proof.
+  intros.
+  rewrite right_cycle_behavior.
+  rewrite lift_bound_lt; try omega.
+  (* Note that [k] is greater than [n]; we'll apply [subst] with [S k], and thus
+     decreasing [n] until it is zero. After that, as it's zero, it'll replace
+     the value with [S k], and will then decrease it [k - n - 1] times; we may
+     split our [nat_fold] to reflect such behavior in two groups. *)
+  replace k with ((k - n) + n) at 1; try omega.
+  rewrite nat_fold_split.
+  rewrite nat_fold_subst_unlifts_bound; try omega.
+  replace (n - n) with 0; try omega.
+  (* We are sure that [k - n] is at least one, so we know we'll apply [subst] at
+     leace once. *)
+  rewrite nat_fold_step; try omega.
+  (* This one time will substitute it for [S k]. *)
+  rewrite subst_bound_eq; auto.
+  rewrite lift_zero_e_equals_e.
+  (* Now we have a remaining of [k - n - 1] steps, each of which will decrease
+     [S k] by one... *)
+  rewrite nat_fold_subst_unlifts_bound; try omega.
+  (* Now we just need to show that those two numbers are the same. *)
+  replace (S k - (k - n - 1)) with (S (S n)); auto.
+  omega.
+Qed.
+
+Lemma right_cycle_bound_eq:
+  forall k n,
+  n = k -> right_cycle k (bound n) = 0.
+Proof.
+  intros.
+  rewrite right_cycle_behavior.
+  rewrite lift_bound_lt; try omega.
+  (* We'll decrease [n] by [k] times (as [S k] is greater than [n]), leaving us
+     exactly with zero as our result. *)
+  rewrite nat_fold_subst_unlifts_bound; try omega.
+  replace (n - k) with 0; auto.
+  omega.
+Qed.
+
+Lemma right_cycle_bound_gt:
+  forall k n,
+  n > k -> right_cycle k (bound n) = n.
+Proof.
+  intros.
+  rewrite right_cycle_behavior.
+  rewrite lift_bound_ge; auto.
+  rewrite nat_fold_subst_unlifts_bound; try omega.
+  replace (S k + n - k) with (S n).
+  - reflexivity.
+  - omega.
 Qed.
 
 (* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
@@ -1957,11 +2037,11 @@ Admitted.
     2)                L { m'<y> = m<y> } { m<x> = M } ==      (by DISTR)
     3)   L { m<x> = M } { m'<y> = m<y> { m<x> = M } } ==      (by RIGHT, JMP)
     4) L { m<x> = M } { m'<y> = M[y/x] { m<x> = M } } ==      (by RIGHT, GC)
-    5)              L { m<x> = M } { m'<y> = M[y/x] } ==      (by RIGHT, ALPHA)
+    5)              L { m<x> = M } { m'<y> = M[y/x] } ==      (by ALPHA)
     6)                   L { m<x> = M } { m'<x> = M }
 
   This is a bit bureaucratic when using de Bruijn indexes; we of course don't
-  need an alpha conversion, but we'll need a (LEFT-FLOAT) in the end to fix the
+  need an alpha conversion, but we'll need a (FLOAT-LEFT) in the end to fix the
   bindings' positions, "undoing" the (DISTR) we did, but it should still work.
 *)
 
