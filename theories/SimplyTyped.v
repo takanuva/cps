@@ -1933,6 +1933,7 @@ Proof.
     assumption.
   - apply cong_bind_left.
     apply cong_gc.
+    rewrite switch_bindings_behavior.
     admit.
 Admitted.
 
@@ -2088,16 +2089,10 @@ Proof.
     replace (length ts + 0) with (length ts); auto.
     rewrite right_cycle_distributes_over_jump.
     (* TODO: make a lemma saying that right_cycle n n = 0 *)
-    replace (right_cycle (length ts) (length ts)) with (bound 0).
-    + apply cong_jmp.
-      do 2 rewrite map_length.
-      (* TODO: rename this lemma *)
-      rewrite length_sequence with (b := false); auto.
-    + rewrite right_cycle_behavior.
-      rewrite lift_bound_lt; auto.
-      rewrite nat_fold_subst_unlifts_bound; auto.
-      rewrite subst_bound_eq; try omega.
-      simpl; f_equal; omega.
+    rewrite right_cycle_bound_eq; auto.
+    apply cong_jmp.
+    do 2 rewrite map_length.
+    apply length_sequence.
   - apply cong_bind_right.
     apply cong_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
