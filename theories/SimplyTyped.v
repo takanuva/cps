@@ -906,20 +906,15 @@ Qed.
 
 Lemma apply_parameters_high_sequence_equals_nat_fold:
   forall e n m,
-  apply_parameters (high_sequence n) (S m) (lift (m + n) (S m + n) e) =
-    nat_fold n (subst (S m + n) 0) (lift (S m + n) (S m + n) e).
+  apply_parameters (high_sequence n) m e =
+    nat_fold n (subst (m + n) 0) (lift 1 (m + n) e).
 Proof.
   induction n; intros; simpl.
   (* Case: zero. *)
   - replace (m + 0) with m; auto.
-    rewrite lift_lift_simplification; auto with arith.
   (* Case: succ. *)
-  - f_equal.
-    replace (S m + S n) with (S (S m) + n).
-    + replace (m + S n) with (S m + n).
-      * apply IHn.
-      * omega.
-    + omega.
+  - replace (m + S n) with (S m + n); try omega.
+    rewrite IHn; auto.
 Qed.
 
 Lemma right_cycle_behavior:
@@ -931,7 +926,9 @@ Proof.
   unfold right_cycle.
   unfold apply_parameters; fold apply_parameters.
   rewrite lift_zero_e_equals_e; f_equal.
-  apply apply_parameters_high_sequence_equals_nat_fold.
+  rewrite apply_parameters_high_sequence_equals_nat_fold.
+  rewrite lift_lift_simplification; auto.
+  omega.
 Qed.
 
 Lemma lift_preserved_by_useless_subst:
@@ -2012,11 +2009,17 @@ Proof.
 Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
-  forall n,
-  map (right_cycle n) (low_sequence n) = high_sequence n.
+  forall n m,
+  m >= n ->
+  map (right_cycle m) (low_sequence n) = high_sequence n.
 Proof.
-  admit.
-Admitted.
+  induction n; intros.
+  - reflexivity.
+  - simpl.
+    rewrite IHn; auto with arith.
+    rewrite sequence_succ with (b := true); f_equal.
+    rewrite right_cycle_bound_lt; auto.
+Qed.
 
 (* I have no idea what to call this one... *)
 
@@ -2083,7 +2086,7 @@ Proof.
       simpl; f_equal; omega.
   - apply cong_bind_right.
     apply cong_gc.
-    rewrite right_cycle_low_sequence_n_equals_high_sequence_n.
+    rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
     rewrite foo.
     apply lifting_more_than_n_makes_not_free_in_n; auto.
   - (* The term is in the form [(switch_bindings b) { M } { N }] now, as we have
@@ -2109,7 +2112,7 @@ Proof.
         rewrite subst_lift_simplification; auto.
         rewrite lift_zero_e_equals_e; auto.
       * do 2 rewrite map_length; f_equal.
-        rewrite right_cycle_low_sequence_n_equals_high_sequence_n.
+        rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
         rewrite foo.
         unfold remove_closest_binding.
         rewrite subst_lift_simplification; auto.
