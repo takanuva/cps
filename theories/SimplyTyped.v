@@ -1938,13 +1938,28 @@ Admitted.
 
 (******************************************************************************)
 
+Lemma apply_parameters_distributes_over_jump:
+  forall xs k j ys,
+  apply_parameters xs k (jump j ys) =
+    jump (apply_parameters xs k j) (map (apply_parameters xs k) ys).
+Proof.
+  induction xs; intros.
+  - reflexivity.
+  - simpl.
+    rewrite IHxs; simpl.
+    f_equal; list induction over ys.
+Qed.
+
 Lemma right_cycle_distributes_over_jump:
   forall n k xs,
   right_cycle n (jump k xs) =
     jump (right_cycle n k) (map (right_cycle n) xs).
 Proof.
-  admit.
-Admitted.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite apply_parameters_distributes_over_jump; simpl.
+  f_equal; list induction over xs.
+Qed.
 
 Lemma switch_bindings_is_involutive_at_any_depth:
   forall e n,
@@ -2010,8 +2025,7 @@ Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
   forall n m,
-  m >= n ->
-  map (right_cycle m) (low_sequence n) = high_sequence n.
+  m >= n -> map (right_cycle m) (low_sequence n) = high_sequence n.
 Proof.
   induction n; intros.
   - reflexivity.
