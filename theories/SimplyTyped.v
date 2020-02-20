@@ -722,23 +722,23 @@ Qed.
 
 (** *)
 
-Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (c: pseudoterm) :=
+Fixpoint apply_parameters (xs: list pseudoterm) (k: nat) (e: pseudoterm) :=
   match xs with
-  | nil => lift 1 k c
-  | cons x xs => subst (lift k 0 x) 0 (apply_parameters xs (S k) c)
+  | [] => e
+  | x :: xs => apply_parameters xs k (subst x (k + length xs) e)
   end.
 
 Hint Unfold apply_parameters: cps.
 
-Definition switch_bindings e: pseudoterm :=
-  subst 1 0 (lift 1 2 e).
+Definition switch_bindings (k: nat) (e: pseudoterm) :=
+  subst 1 k (lift 1 (2 + k) e).
 
 Hint Unfold switch_bindings: cps.
 
-Fixpoint sequence (high: bool) n :=
-  match n with
-  | 0 => nil
-  | S m => cons (bound (if high then n else m)) (sequence high m)
+Fixpoint sequence (high: bool) (i: nat) :=
+  match i with
+  | 0 => []
+  | S j => bound (if high then i else j) :: sequence high j
   end.
 
 Hint Unfold sequence: cps.
@@ -753,101 +753,73 @@ Definition low_sequence: nat -> list pseudoterm :=
 
 Hint Unfold low_sequence: cps.
 
-Definition right_cycle (n: nat) e :=
-  apply_parameters (cons (bound 0) (high_sequence n)) 0 (lift n (S n) e).
+Definition right_cycle (i: nat) (k: nat) e :=
+  apply_parameters (bound 0 :: high_sequence i) k (lift (S i) (S i + k) e).
 
 Hint Unfold right_cycle: cps.
 
-Fixpoint nat_fold {T} n (f: T -> T) e :=
-  match n with
-  | 0 => e
-  | S m => f (nat_fold m f e)
-  end.
-
-Hint Unfold nat_fold: cps.
+(* TODO: add a depth. *)
 
 Definition remove_closest_binding e :=
   subst 0 0 e.
 
+(* TODO: rename "at_any_depth" to "addition", or the other way around *)
+
 Lemma lift_distributes_over_apply_parameters_at_any_depth:
-  forall i xs k c n,
-  lift i (n + S k) (apply_parameters xs n c) =
-    apply_parameters (map (lift i (S k)) xs) n
-      (lift i (n + k + length xs) c).
+  forall xs i k p e,
+  lift i (p + k) (apply_parameters xs p e) =
+    apply_parameters (map (lift i k) xs) p (lift i (p + length xs + k) e).
 Proof.
-  induction xs; intros; simpl.
+  induction xs; simpl; intros.
   (* Case: nil. *)
-  - replace (n + k + 0) with (n + k); auto.
-    rewrite lift_lift_permutation with (k := n).
-    + replace (1 + (n + k)) with (n + S k); auto.
-    + omega.
+  - replace (p + 0) with p; auto.
   (* Case: cons. *)
-  - replace (n + S k) with (0 + (n + S k)); auto.
+  - rewrite IHxs.
     rewrite lift_addition_distributes_over_subst.
-    simpl; f_equal.
-    + rewrite lift_lift_permutation with (k := 0).
-      * reflexivity.
-      * omega.
-    + replace (S (n + S k)) with (S n + S k); auto.
-      rewrite IHxs.
-      replace (n + k + S (length xs)) with (S n + k + length xs).
-      * reflexivity.
-      * omega.
+    rewrite map_length.
+    do 3 f_equal; omega.
 Qed.
 
 Lemma lift_distributes_over_apply_parameters:
-  forall i xs k c,
-  lift i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (map (lift i (S k)) xs) 0 (lift i (k + length xs) c).
+  forall i xs k e,
+  lift i k (apply_parameters xs 0 e) =
+    apply_parameters (map (lift i k) xs) 0 (lift i (length xs + k) e).
 Proof.
   intros.
-  apply lift_distributes_over_apply_parameters_at_any_depth with (n := 0).
+  apply lift_distributes_over_apply_parameters_at_any_depth with (p := 0).
 Qed.
 
 Lemma subst_distributes_over_apply_parameters_at_any_depth:
-  forall x xs k c n,
-  subst x (n + S k) (apply_parameters xs n c) =
-    apply_parameters (map (subst x (S k)) xs) n
-      (subst x (n + k + length xs) c).
+  forall xs x k p e,
+  subst x (p + k) (apply_parameters xs p e) =
+    apply_parameters (map (subst x k) xs) p (subst x (p + length xs + k) e).
 Proof.
-  induction xs; intros; simpl.
+  induction xs; simpl; intros.
   (* Case: nil. *)
-  - replace (n + k + 0) with (n + k); auto.
-    rewrite lift_and_subst_commute.
-    + simpl.
-      replace (S (n + k)) with (n + S k); auto.
-    + omega.
+  - replace (p + 0) with p; auto.
   (* Case: cons. *)
-  - rewrite subst_distributes_over_itself.
-    f_equal.
-    + rewrite lift_and_subst_commute.
-      * reflexivity.
-      * omega.
-    + replace (S (n + S k)) with (S n + S k); auto.
-      rewrite IHxs.
-      replace (n + k + S (length xs)) with (S n + k + length xs).
-      * reflexivity.
-      * omega.
+  - rewrite IHxs.
+    rewrite subst_addition_distributes_over_itself.
+    rewrite map_length.
+    do 3 f_equal; omega.
 Qed.
 
 Lemma subst_distributes_over_apply_parameters:
-  forall i xs k c,
-  subst i (S k) (apply_parameters xs 0 c) =
-    apply_parameters (map (subst i (S k)) xs) 0
-      (subst i (k + length xs) c).
+  forall xs x k e,
+  subst x k (apply_parameters xs 0 e) =
+    apply_parameters (map (subst x k) xs) 0 (subst x (length xs + k) e).
 Proof.
   intros.
-  apply subst_distributes_over_apply_parameters_at_any_depth with (n := 0).
+  apply subst_distributes_over_apply_parameters_at_any_depth with (p := 0).
 Qed.
 
-(* TODO: perhaps I should renamme this lemma as I have already forgot what it
-   proves. :( *)
-
-Lemma switch_bindings_at_any_depth:
-  forall e n,
-  subst 1 n (lift 1 (2 + n) e) = subst 0 n (subst 2 n (lift 2 (2 + n) e)).
+Lemma switch_bindings_behavior:
+  forall e k,
+  switch_bindings k e = right_cycle 1 k e.
 Proof.
-  simpl; induction e using pseudoterm_deepind; intro m.
+  unfold switch_bindings.
+  unfold right_cycle; simpl.
+  induction e using pseudoterm_deepind; intros.
   (* Case: type. *)
   - reflexivity.
   (* Case: prop. *)
@@ -857,78 +829,43 @@ Proof.
   (* Case: void. *)
   - reflexivity.
   (* Case: bound. *)
-  - unfold lift.
-    destruct (le_gt_dec (S (S m)) n).
-    + unfold subst at 1 3.
-      destruct (lt_eq_lt_dec m (1 + n)) as [ [ ? | ? ] | ? ];
-        destruct (lt_eq_lt_dec m (2 + n)) as [ [ ? | ? ] | ? ];
-          simpl; try (exfalso; omega).
-      destruct (lt_eq_lt_dec m (S n)) as [ [ ? | ? ] | ? ];
-        simpl; try (exfalso; omega).
+  - destruct (le_gt_dec (S (S k)) n).
+    + rewrite lift_bound_ge; auto.
+      rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try omega.
+      rewrite subst_bound_gt; try omega.
+      rewrite subst_bound_gt; try omega.
       reflexivity.
-    + unfold subst at 1 3.
-      destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ]; simpl.
-      * destruct (lt_eq_lt_dec m (pred n)) as [ [ ? | ? ] | ? ];
-          simpl; try (exfalso; omega).
-        replace (m + 0) with m; auto.
-      * destruct (lt_eq_lt_dec m (m + 2)) as [ [ ? | ? ] | ? ];
-          simpl; try (exfalso; omega).
-        replace (m + 1) with (1 + m); auto with arith.
-        replace (m + 2) with (2 + m); auto with arith.
-      * destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ];
-          simpl; try (exfalso; omega).
-        reflexivity.
+    + rewrite lift_bound_lt; auto.
+      rewrite lift_bound_lt; auto.
+      destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; auto.
+        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_lt; auto with arith.
+      * rewrite subst_bound_eq; auto.
+        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_eq; eauto with arith.
+        omega.
+      * rewrite subst_bound_gt; auto.
+        rewrite subst_bound_eq; try omega.
+        rewrite lift_bound_ge; auto.
+        rewrite subst_bound_gt; auto.
+        omega.
   (* Case: negation. *)
-  - intros; simpl; f_equal.
+  - simpl; f_equal.
     list induction over H.
   (* Case: jump. *)
-  - intros; simpl; f_equal.
+  - simpl; f_equal.
     + apply IHe.
     + list induction over H.
   (* Case: bind. *)
-  - intros; simpl; f_equal.
+  - simpl; f_equal.
     + apply IHe1.
     + list induction over H.
     + do 3 rewrite map_length.
+      replace (k + 0 + length ts) with (k + length ts + 0); try omega.
+      replace (k + 1 + length ts) with (k + length ts + 1); try omega.
       apply IHe2.
-Qed.
-
-Lemma switch_bindings_behavior:
-  forall e,
-  switch_bindings e = right_cycle 1 e.
-Proof.
-  intro.
-  unfold switch_bindings.
-  unfold right_cycle; simpl.
-  rewrite lift_lift_simplification; auto with arith.
-  apply switch_bindings_at_any_depth.
-Qed.
-
-Lemma apply_parameters_high_sequence_equals_nat_fold:
-  forall e n m,
-  apply_parameters (high_sequence n) m e =
-    nat_fold n (subst (m + n) 0) (lift 1 (m + n) e).
-Proof.
-  induction n; intros; simpl.
-  (* Case: zero. *)
-  - replace (m + 0) with m; auto.
-  (* Case: succ. *)
-  - replace (m + S n) with (S m + n); try omega.
-    rewrite IHn; auto.
-Qed.
-
-Lemma right_cycle_behavior:
-  forall n e,
-  right_cycle n e =
-    subst 0 0 (nat_fold n (subst (S n) 0) (lift (S n) (S n) e)).
-Proof.
-  intros.
-  unfold right_cycle.
-  unfold apply_parameters; fold apply_parameters.
-  rewrite lift_zero_e_equals_e; f_equal.
-  rewrite apply_parameters_high_sequence_equals_nat_fold.
-  rewrite lift_lift_simplification; auto.
-  omega.
 Qed.
 
 Lemma lift_preserved_by_useless_subst:
@@ -936,7 +873,7 @@ Lemma lift_preserved_by_useless_subst:
   not_free_in p e ->
   lift i (p + k) (subst x p e) = subst x p (lift i (p + S k) e).
 Proof.
-  induction e using pseudoterm_deepind; simpl; intros.
+  induction e using pseudoterm_deepind; intros.
   (* Case: type. *)
   - reflexivity.
   (* Case: prop. *)
@@ -946,50 +883,44 @@ Proof.
   (* Case: void. *)
   - reflexivity.
   (* Case: bound. *)
-  - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
-    + destruct (le_gt_dec (p + S k)); simpl.
-      * destruct (le_gt_dec (p + k) (pred n));
-          try (exfalso; omega).
-        destruct (lt_eq_lt_dec p (i + n)) as [ [ ? | ? ] | ? ];
-          try (exfalso; omega).
-        (* If n is zero this equation won't be correct, but we'll have an absurd
-           assumption then, so that's ok. Otherwise we can rewrite the term
-           below so that it is indeed correct. *)
-        destruct n;
-          try (exfalso; omega).
-        replace (i + S n) with (S (i + n)); auto.
-      * destruct (le_gt_dec (p + k) (pred n)); simpl;
-          try (exfalso; omega).
-        destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
-          try (exfalso; omega).
-        reflexivity.
-    + absurd (p = n).
-      * inversion H; assumption.
-      * assumption.
-    + destruct (le_gt_dec (p + S k) n); try omega; simpl.
-      destruct (le_gt_dec (p + k) n); simpl;
-        try (exfalso; omega).
-      destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
-        try (exfalso; omega).
-      reflexivity.
+  - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_lt; auto.
+      rewrite lift_bound_lt; try omega.
+      rewrite lift_bound_lt; try omega.
+      rewrite subst_bound_lt; auto.
+    + exfalso.
+      inversion H.
+      congruence.
+    + rewrite subst_bound_gt; auto.
+      destruct (le_gt_dec n (p + k)).
+      * rewrite lift_bound_lt; try omega.
+        rewrite lift_bound_lt; try omega.
+        rewrite subst_bound_gt; auto.
+      * rewrite lift_bound_ge; try omega.
+        rewrite lift_bound_ge; try omega.
+        rewrite subst_bound_gt; try omega.
+        f_equal; omega.
   (* Case: negation. *)
-  - inversion_clear H0; f_equal.
+  - inversion_clear H0.
+    simpl; f_equal.
     dependent induction H; simpl.
     + reflexivity.
     + inversion_clear H1.
       f_equal; auto.
   (* Case: jump. *)
   - inversion_clear H0.
-    simpl; f_equal; auto.
-    dependent induction H; simpl.
-    + reflexivity.
-    + inversion_clear H2.
-      f_equal; auto.
+    simpl; f_equal.
+    + apply IHe; auto.
+    + dependent induction H; simpl.
+      * reflexivity.
+      * inversion_clear H2.
+        f_equal; auto.
   (* Case: bind. *)
   - inversion_clear H0.
     simpl; f_equal.
-    + replace (S (p + k)) with (S p + k); auto.
-      replace (S (p + S k)) with (S p + S k); auto.
+    + replace (S (p + k)) with (S p + k); try omega.
+      replace (S (p + S k)) with (S p + S k); try omega.
+      apply IHe1; auto.
     + clear IHe1 IHe2 H1 H3.
       dependent induction H; simpl.
       * reflexivity.
@@ -998,7 +929,7 @@ Proof.
     + do 2 rewrite map_length.
       replace (p + k + length ts) with (p + length ts + k); try omega.
       replace (p + S k + length ts) with (p + length ts + S k); try omega.
-      auto.
+      apply IHe2; auto.
 Qed.
 
 Lemma remove_closest_binding_and_lift_commute:
@@ -1016,7 +947,7 @@ Lemma subst_preserved_by_useless_subst:
   not_free_in p e ->
   subst y (p + k) (subst x p e) = subst x p (subst y (p + S k) e).
 Proof.
-  induction e using pseudoterm_deepind; simpl; intros.
+  induction e using pseudoterm_deepind; intros.
   (* Case: type. *)
   - reflexivity.
   (* Case: prop. *)
@@ -1026,46 +957,48 @@ Proof.
   (* Case: void. *)
   - reflexivity.
   (* Case: bound. *)
-  - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
-      destruct (lt_eq_lt_dec (p + S k) n) as [ [ ? | ? ] | ? ];
-        try (exfalso; omega).
-    + rewrite subst_bound_gt; try omega.
-      rewrite subst_bound_gt; try omega.
-      reflexivity.
-    + replace (p + S k) with (S (p + k)); auto.
-      rewrite subst_bound_eq; try omega.
-      rewrite subst_lift_simplification; try omega.
-      f_equal; omega.
-    + rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_gt; try omega.
-      reflexivity.
-    + absurd (p = n).
-      * inversion H; assumption.
-      * assumption.
-    + simpl.
-      destruct (lt_eq_lt_dec (p + k) n) as [ [ ? | ? ] | ? ];
-        try (exfalso; omega).
-      destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
-        try (exfalso; omega).
-      reflexivity.
+  - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_lt; auto.
+      rewrite subst_bound_lt; try omega.
+      rewrite subst_bound_lt; try omega.
+      rewrite subst_bound_lt; auto.
+    + exfalso.
+      inversion H; auto.
+    + rewrite subst_bound_gt; auto.
+      destruct (lt_eq_lt_dec n (p + S k)) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_gt; auto.
+      * rewrite subst_bound_eq; try omega.
+        rewrite subst_bound_eq; try omega.
+        replace n with (S (p + k)) at 2; try omega.
+        rewrite subst_lift_simplification; try omega.
+        f_equal; omega.
+      * rewrite subst_bound_gt; try omega.
+        rewrite subst_bound_gt; try omega.
+        rewrite subst_bound_gt; try omega.
+        reflexivity.
   (* Case: negation. *)
-  - inversion_clear H0; f_equal.
+  - inversion_clear H0.
+    simpl; f_equal.
     dependent induction H; simpl.
     + reflexivity.
     + inversion_clear H1.
       f_equal; auto.
   (* Case: jump. *)
   - inversion_clear H0.
-    simpl; f_equal; auto.
-    dependent induction H; simpl.
-    + reflexivity.
-    + inversion_clear H2.
-      f_equal; auto.
+    simpl; f_equal.
+    + apply IHe; auto.
+    + dependent induction H; simpl.
+      * reflexivity.
+      * inversion_clear H2.
+        f_equal; auto.
   (* Case: bind. *)
   - inversion_clear H0.
     simpl; f_equal.
-    + replace (S (p + k)) with (S p + k); auto.
-      replace (S (p + S k)) with (S p + S k); auto.
+    + replace (S (p + k)) with (S p + k); try omega.
+      replace (S (p + S k)) with (S p + S k); try omega.
+      apply IHe1; auto.
     + clear IHe1 IHe2 H1 H3.
       dependent induction H; simpl.
       * reflexivity.
@@ -1277,11 +1210,11 @@ Qed.
 
 Definition distr b ms m ns n: pseudoterm :=
   (bind (bind
-    (switch_bindings b)
+    (switch_bindings 0 b)
     (map (lift 1 0) ns)
       (lift 1 (length ns) n))
     (map remove_closest_binding ms) (bind
-      (right_cycle (length ms) m)
+      (right_cycle (length ms) 0 m)
       (map (lift (length ms) 0) ns)
         (lift (length ms) (length ns) n))).
 
@@ -1312,7 +1245,8 @@ Inductive struct: relation pseudoterm :=
   | struct_jmp:
     forall xs ts c,
     length xs = length ts ->
-    struct (bind (jump 0 xs) ts c) (bind (apply_parameters xs 0 c) ts c)
+    struct (bind (jump 0 xs) ts c)
+      (bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c)
   | struct_distr:
     forall b ms m ns n,
     Forall (not_free_in 0) ms ->
@@ -1381,7 +1315,8 @@ Hint Resolve cong_struct: cps.
 Lemma cong_jmp:
   forall xs ts c,
   length xs = length ts ->
-  [bind (jump 0 xs) ts c == bind (apply_parameters xs 0 c) ts c].
+  [bind (jump 0 xs) ts c ==
+    bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c].
 Proof.
   auto with cps.
 Qed.
@@ -1470,71 +1405,91 @@ Proof.
 Qed.
 
 Lemma lift_and_right_cycle_commute:
-  forall e n i k,
-  lift i (n + S k) (right_cycle n e) = right_cycle n (lift i (n + S k) e).
+  forall e n i k p,
+  k > n ->
+  lift i (p + k) (right_cycle n p e) = right_cycle n p (lift i (p + k) e).
 Proof.
   intros.
-  (* Intuitively we know that we'll only lift variables strictly above n, so it
-     won't be affecting any of the variables shifted by right_cycle; thus it
-     won't matter whether we lift those after or before we shift the variables
-     around. Now we have to convince Coq of that. *)
   unfold right_cycle; simpl.
-  rewrite lift_distributes_over_subst.
-  rewrite lift_bound_lt; eauto with arith.
-  replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
   rewrite lift_distributes_over_apply_parameters_at_any_depth.
-  (* The lifts inside the map won't change the values, so the parameters will be
-     kept the same. Later we must show that the different lifts on the body are
-     also equivalent, by rewriting the lifts on the body. *)
   do 2 f_equal.
-  - apply lifting_over_n_doesnt_change_high_sequence_n.
-  - rewrite length_sequence with (b := true).
-    simpl; symmetry.
-    rewrite lift_lift_permutation; try omega.
-    f_equal; omega.
+  - induction n.
+    + reflexivity.
+    + rewrite sequence_succ with (b := true); fold high_sequence.
+      rewrite map_cons; f_equal.
+      * apply lift_bound_lt; auto.
+      * apply IHn; omega.
+  - rewrite lift_addition_distributes_over_subst; f_equal.
+    + rewrite lift_bound_lt; auto.
+      omega.
+    + rewrite length_sequence with (b := true).
+      symmetry.
+      rewrite lift_lift_permutation; try omega.
+      f_equal; omega.
 Qed.
 
 Lemma lift_and_switch_bindings_commute:
   forall i k e,
-  lift i (S (S k)) (switch_bindings e) = switch_bindings (lift i (S (S k)) e).
+  lift i (S (S k)) (switch_bindings 0 e) =
+    switch_bindings 0 (lift i (S (S k)) e).
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
-  apply lift_and_right_cycle_commute with (n := 1).
+  apply lift_and_right_cycle_commute with (p := 0) (n := 1); omega.
 Qed.
 
 Lemma subst_and_right_cycle_commute:
-  forall e n x k,
-  subst x (n + S k) (right_cycle n e) =
-    right_cycle n (subst x (n + S k) e).
+  forall e n x k p,
+  k > n ->
+  subst x (p + k) (right_cycle n p e) =
+    right_cycle n p (subst x (p + k) e).
 Proof.
   intros.
   unfold right_cycle; simpl.
-  rewrite subst_distributes_over_itself.
-  rewrite subst_bound_lt; eauto with arith.
-  replace (S (n + S k)) with (1 + S (n + k)); auto with arith.
   rewrite subst_distributes_over_apply_parameters_at_any_depth.
-  do 2 f_equal.
-  - apply substing_over_n_doesnt_change_high_sequence_n.
-  - rewrite length_sequence with (b := true); simpl.
-    rewrite lift_and_subst_commute; try omega.
-    f_equal; omega.
+  f_equal.
+  - induction n.
+    + reflexivity.
+    + rewrite sequence_succ with (b := true); fold high_sequence.
+      rewrite map_cons; f_equal.
+      * apply subst_bound_lt; auto.
+      * apply IHn; omega.
+  - rewrite subst_addition_distributes_over_itself; f_equal.
+    + rewrite subst_bound_lt; auto.
+      omega.
+    + rewrite length_sequence with (b := true).
+      rewrite lift_and_subst_commute; try omega.
+      f_equal; omega.
 Qed.
 
 Lemma subst_and_switch_bindings_commute:
   forall x k e,
-  subst x (S (S k)) (switch_bindings e) = switch_bindings (subst x (S (S k)) e).
+  subst x (S (S k)) (switch_bindings 0 e) =
+    switch_bindings 0 (subst x (S (S k)) e).
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
-  apply subst_and_right_cycle_commute with (n := 1).
+  apply subst_and_right_cycle_commute with (p := 0) (n := 1); omega.
+Qed.
+
+Lemma struct_jmp_helper:
+  forall xs ts c x1 x2 x3,
+  x1 = apply_parameters xs 0 (lift 1 (length xs) c) ->
+  x2 = ts ->
+  x3 = c ->
+  length xs = length ts ->
+  struct (bind (jump 0 xs) ts c) (bind x1 x2 x3).
+Proof.
+  intros.
+  rewrite H, H0, H1.
+  apply struct_jmp; auto.
 Qed.
 
 Lemma struct_distr_helper:
   forall b ms m ns n x1 x2 x3 x4 x5 x6 x7,
-  x1 = switch_bindings b ->
+  x1 = switch_bindings 0 b ->
   x2 = lift 1 (length ns) n ->
-  x3 = right_cycle (length ms) m ->
+  x3 = right_cycle (length ms) 0 m ->
   x4 = lift (length ms) (length ns) n ->
   x5 = map (lift 1 0) ns ->
   x6 = map (lift (length ms) 0) ns ->
@@ -1591,11 +1546,16 @@ Lemma struct_lift:
 Proof.
   induction 1; intros.
   (* Case: struct_jmp. *)
-  - simpl.
-    rewrite lift_distributes_over_apply_parameters.
-    rewrite H.
-    apply struct_jmp.
-    do 2 rewrite map_length; auto.
+  - simpl; apply struct_jmp_helper.
+    + rewrite lift_distributes_over_apply_parameters.
+      f_equal.
+      rewrite map_length.
+      symmetry.
+      rewrite lift_lift_permutation; try omega.
+      f_equal; omega.
+    + reflexivity.
+    + reflexivity.
+    + do 2 rewrite map_length; auto.
   (* Case: struct_distr. *)
   - simpl; apply struct_distr_helper.
     + apply lift_and_switch_bindings_commute.
@@ -1605,9 +1565,8 @@ Proof.
       * reflexivity.
       * omega.
     + do 2 rewrite map_length.
-      replace (S (k + length ms)) with (length ms + S k).
-      * apply lift_and_right_cycle_commute.
-      * omega.
+      apply lift_and_right_cycle_commute with (p := 0).
+      omega.
     + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
@@ -1688,11 +1647,15 @@ Lemma struct_subst:
 Proof.
   induction 1; intros.
   (* Case: struct_jmp. *)
-  - simpl.
-    rewrite subst_distributes_over_apply_parameters.
-    rewrite H.
-    apply struct_jmp.
-    do 2 rewrite map_length; auto.
+  - simpl; apply struct_jmp_helper.
+    + rewrite subst_distributes_over_apply_parameters.
+      f_equal.
+      rewrite map_length.
+      rewrite lift_and_subst_commute; try omega.
+      f_equal; omega.
+    + reflexivity.
+    + reflexivity.
+    + do 2 rewrite map_length; auto.
   (* Case: struct_distr. *)
   - simpl; apply struct_distr_helper.
     + apply subst_and_switch_bindings_commute.
@@ -1701,9 +1664,8 @@ Proof.
       * reflexivity.
       * omega.
     + do 2 rewrite map_length.
-      replace (S (k + length ms)) with (length ms + S k).
-      * apply subst_and_right_cycle_commute.
-      * omega.
+      apply subst_and_right_cycle_commute with (p := 0).
+      omega.
     + do 4 rewrite map_length.
       rewrite lift_and_subst_commute.
       * f_equal; omega.
@@ -1771,12 +1733,11 @@ Qed.
 Hint Resolve cong_subst: cps.
 
 Lemma cong_apply_parameters:
-  forall a b,
+  forall xs k a b,
   [a == b] ->
-  forall xs k,
   [apply_parameters xs k a == apply_parameters xs k b].
 Proof.
-  induction xs; simpl; auto with cps.
+  induction xs; eauto with cps.
 Qed.
 
 Hint Resolve cong_apply_parameters: cps.
@@ -1784,8 +1745,8 @@ Hint Resolve cong_apply_parameters: cps.
 Lemma cong_right_cycle:
   forall a b,
   [a == b] ->
-  forall n,
-  [right_cycle n a == right_cycle n b].
+  forall n k,
+  [right_cycle n k a == right_cycle n k b].
 Proof.
   unfold right_cycle; auto with cps.
 Qed.
@@ -1794,105 +1755,68 @@ Hint Resolve cong_right_cycle: cps.
 
 (******************************************************************************)
 
-Lemma nat_fold_split:
-  forall {T} n m f (x: T),
-  nat_fold (n + m) f x = nat_fold n f (nat_fold m f x).
-Proof.
-  intros.
-  induction n; simpl.
-  - reflexivity.
-  - rewrite IHn; reflexivity.
-Qed.
+(* TODO: move the following lemmas to their correct places. *)
 
-Lemma nat_fold_step:
-  forall {T} k f (x: T),
-  k > 0 -> nat_fold k f x = nat_fold (k - 1) f (f x).
-Proof.
-  intros.
-  destruct k.
-  - inversion H.
-  - replace (S k - 1) with k; try omega.
-    clear H; induction k; simpl.
-    + reflexivity.
-    + simpl in IHk.
-      rewrite IHk; auto.
-Qed.
+Arguments lift i k e: simpl nomatch.
+Arguments subst p k q: simpl nomatch.
 
-Lemma nat_fold_subst_unlifts_bound:
-  forall (n k: nat) x,
-  k <= n -> nat_fold k (subst x 0) n = n - k.
+Lemma apply_parameters_bound_ge:
+  forall xs n,
+  n >= length xs -> apply_parameters xs 0 (bound n) = n - length xs.
 Proof.
-  induction k; intros.
-  - simpl; auto with arith.
-  - simpl; rewrite IHk; auto with arith.
-    rewrite subst_bound_gt; try omega.
-    rewrite minus_plus_simpl_l_reverse with (p := 1).
-    replace (1 + n - (1 + k)) with (1 + (n - (1 + k))).
-    + simpl; reflexivity.
-    + omega.
+  induction xs; intros.
+  - simpl; f_equal; omega.
+  - simpl in H |- *.
+    rewrite subst_bound_gt; auto.
+    rewrite IHxs; try omega.
+    f_equal; omega.
 Qed.
 
 Lemma right_cycle_bound_lt:
   forall k n,
-  n < k -> right_cycle k (bound n) = S n.
+  n < k -> right_cycle k 0 (bound n) = S n.
 Proof.
-  intros.
-  rewrite right_cycle_behavior.
-  rewrite lift_bound_lt; try omega.
-  (* Note that [k] is greater than [n]; we'll apply [subst] with [S k], and thus
-     decreasing [n] until it is zero. After that, as it's zero, it'll replace
-     the value with [S k], and will then decrease it [k - n - 1] times; we may
-     split our [nat_fold] to reflect such behavior in two groups. *)
-  replace k with ((k - n) + n) at 1; try omega.
-  rewrite nat_fold_split.
-  rewrite nat_fold_subst_unlifts_bound; try omega.
-  replace (n - n) with 0; try omega.
-  (* We are sure that [k - n] is at least one, so we know we'll apply [subst] at
-     leace once. *)
-  rewrite nat_fold_step; try omega.
-  (* This one time will substitute it for [S k]. *)
-  rewrite subst_bound_eq; auto.
-  rewrite lift_zero_e_equals_e.
-  (* Now we have a remaining of [k - n - 1] steps, each of which will decrease
-     [S k] by one... *)
-  rewrite nat_fold_subst_unlifts_bound; try omega.
-  (* Now we just need to show that those two numbers are the same. *)
-  replace (S k - (k - n - 1)) with (S (S n)); auto.
-  omega.
-Qed.
+  admit.
+Admitted.
 
 Lemma right_cycle_bound_eq:
   forall k n,
-  n = k -> right_cycle k (bound n) = 0.
+  n = k -> right_cycle k 0 (bound n) = 0.
 Proof.
   intros.
-  rewrite right_cycle_behavior.
+  unfold right_cycle; simpl.
   rewrite lift_bound_lt; try omega.
-  (* We'll decrease [n] by [k] times (as [S k] is greater than [n]), leaving us
-     exactly with zero as our result. *)
-  rewrite nat_fold_subst_unlifts_bound; try omega.
-  replace (n - k) with 0; auto.
-  omega.
+  rewrite length_sequence with (b := true).
+  rewrite subst_bound_eq; auto.
+  rewrite lift_bound_ge; auto.
+  rewrite apply_parameters_bound_ge.
+  - rewrite length_sequence with (b := true).
+    f_equal; omega.
+  - rewrite length_sequence with (b := true).
+    omega.
 Qed.
 
 Lemma right_cycle_bound_gt:
   forall k n,
-  n > k -> right_cycle k (bound n) = n.
+  n > k -> right_cycle k 0 (bound n) = n.
 Proof.
   intros.
-  rewrite right_cycle_behavior.
-  rewrite lift_bound_ge; auto.
-  rewrite nat_fold_subst_unlifts_bound; try omega.
-  replace (S k + n - k) with (S n).
-  - reflexivity.
-  - omega.
+  unfold right_cycle; simpl.
+  rewrite lift_bound_ge; try omega.
+  rewrite length_sequence with (b := true).
+  rewrite subst_bound_gt; try omega.
+  rewrite apply_parameters_bound_ge; simpl.
+  - rewrite length_sequence with (b := true).
+    f_equal; omega.
+  - rewrite length_sequence with (b := true).
+    omega.
 Qed.
 
 (* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
 
 Definition float_left b ms m ns n: pseudoterm :=
   (bind (bind
-     (switch_bindings b)
+     (switch_bindings 0 b)
      (map (lift 1 0) ns) (lift 1 (length ns) n))
      (map (subst 0 0) ms) (subst 0 (length ms) m)).
 
@@ -1904,8 +1828,7 @@ Lemma cong_float_left:
 Proof.
   intros.
   apply cong_tran with (distr b ms m ns n).
-  - apply cong_distr.
-    assumption.
+  - apply cong_distr; auto.
   - apply cong_bind_right.
     apply cong_struct; apply struct_gc_helper.
     + admit.
@@ -1916,9 +1839,9 @@ Admitted.
 
 Definition float_right b ms m ns n: pseudoterm :=
   (bind
-    (remove_closest_binding (switch_bindings b))
+    (remove_closest_binding (switch_bindings 0 b))
     (map remove_closest_binding ms) (bind
-      (right_cycle (length ms) m)
+      (right_cycle (length ms) 0 m)
       (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
 
 Lemma cong_float_right:
@@ -1929,8 +1852,7 @@ Lemma cong_float_right:
 Proof.
   intros.
   apply cong_tran with (distr b ms m ns n).
-  - apply cong_distr.
-    assumption.
+  - apply cong_distr; auto.
   - apply cong_bind_left.
     apply cong_gc.
     rewrite switch_bindings_behavior.
@@ -1939,22 +1861,25 @@ Admitted.
 
 (******************************************************************************)
 
+(* TODO: move the following lemmas to the correct places! This is a mess! *)
+
 Lemma apply_parameters_distributes_over_jump:
   forall xs k j ys,
   apply_parameters xs k (jump j ys) =
     jump (apply_parameters xs k j) (map (apply_parameters xs k) ys).
 Proof.
   induction xs; intros.
-  - reflexivity.
+  - simpl; f_equal.
+    list induction over ys.
   - simpl.
-    rewrite IHxs; simpl.
-    f_equal; list induction over ys.
+    rewrite IHxs; f_equal.
+    list induction over ys.
 Qed.
 
 Lemma right_cycle_distributes_over_jump:
-  forall n k xs,
-  right_cycle n (jump k xs) =
-    jump (right_cycle n k) (map (right_cycle n) xs).
+  forall n p k xs,
+  right_cycle n p (jump k xs) =
+    jump (right_cycle n p k) (map (right_cycle n p) xs).
 Proof.
   intros.
   unfold right_cycle; simpl.
@@ -1962,36 +1887,37 @@ Proof.
   f_equal; list induction over xs.
 Qed.
 
-Lemma switch_bindings_is_involutive_at_any_depth:
-  forall e n,
-  subst 1 n (lift 1 (2 + n) (subst 1 n (lift 1 (2 + n) e))) = e.
+Lemma switch_bindings_is_involutive:
+  forall e k,
+  switch_bindings k (switch_bindings k e) = e.
 Proof.
+  unfold switch_bindings.
   induction e using pseudoterm_deepind; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
-  - rename n0 into m.
-    unfold plus, lift at 2.
-    destruct (le_gt_dec (S (S m)) n).
-    + rewrite subst_bound_gt; try omega.
-      unfold plus, pred.
+  - destruct (le_gt_dec (2 + k) n); simpl.
+    + rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try omega.
       rewrite lift_bound_ge; auto.
       rewrite subst_bound_gt; try omega.
       f_equal; omega.
-    + unfold subst at 2.
-      destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
-      * rewrite lift_bound_lt; try omega.
-        rewrite subst_bound_eq; try omega.
-        rewrite lift_bound_ge; try omega.
-        f_equal; omega.
-      * rewrite lift_bound_ge; try omega.
+    + rewrite lift_bound_lt; try omega.
+      destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; auto.
+        rewrite lift_bound_lt; auto.
+        rewrite subst_bound_lt; auto.
+      * rewrite subst_bound_eq; auto.
+        rewrite lift_bound_ge; auto.
         rewrite lift_bound_lt; try omega.
         rewrite subst_bound_gt; try omega.
-        f_equal; try omega.
-      * rewrite lift_bound_lt; try omega.
-        rewrite subst_bound_lt; try omega.
-        reflexivity.
+        f_equal; omega.
+      * rewrite subst_bound_gt; auto.
+        rewrite lift_bound_lt; try omega.
+        rewrite subst_bound_eq; try omega.
+        rewrite lift_bound_ge; auto.
+        f_equal; omega.
   - simpl; f_equal.
     list induction over H.
     apply H.
@@ -2007,14 +1933,6 @@ Proof.
       apply IHe2.
 Qed.
 
-Lemma switch_bindings_is_involutive:
-  forall e,
-  switch_bindings (switch_bindings e) = e.
-Proof.
-  intro.
-  apply switch_bindings_is_involutive_at_any_depth.
-Qed.
-
 Lemma cong_eq:
   forall a b,
   a = b -> [a == b].
@@ -2026,7 +1944,7 @@ Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
   forall n m,
-  m >= n -> map (right_cycle m) (low_sequence n) = high_sequence n.
+  m >= n -> map (right_cycle m 0) (low_sequence n) = high_sequence n.
 Proof.
   induction n; intros.
   - reflexivity.
@@ -2040,7 +1958,7 @@ Qed.
 
 Lemma foo:
   forall n c,
-  apply_parameters (high_sequence n) 0 (lift n n c) = lift 1 0 c.
+  apply_parameters (high_sequence n) 0 (lift (S n) n c) = lift 1 0 c.
 Proof.
   admit.
 Admitted.
@@ -2088,7 +2006,6 @@ Proof.
     rewrite lift_bound_ge; auto.
     replace (length ts + 0) with (length ts); auto.
     rewrite right_cycle_distributes_over_jump.
-    (* TODO: make a lemma saying that right_cycle n n = 0 *)
     rewrite right_cycle_bound_eq; auto.
     apply cong_jmp.
     do 2 rewrite map_length.
@@ -2096,13 +2013,16 @@ Proof.
   - apply cong_bind_right.
     apply cong_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
+    rewrite length_sequence with (b := true).
+    rewrite lift_lift_simplification; try omega.
     rewrite foo.
     apply lifting_more_than_n_makes_not_free_in_n; auto.
-  - (* The term is in the form [(switch_bindings b) { M } { N }] now, as we have
-       changed [b] with the (DISTR) call above. Note that applying (FLOAT-LEFT)
-       here will change the term into [b { M } { N }]: only [b] will change, as
-       [M] is already equal to [lift 1 0 N] here (thus moving [N] left makes it
-       equal to [M], and moving [M] right makes it equal to [N]). *)
+  - (* The term is in the form [(switch_bindings 0 b) { M } { N }] now, as we
+       have changed [b] with the (DISTR) call above. Note that when applying
+       (FLOAT-LEFT) here we will change the term into [b { M } { N }]: only [b]
+       will actually change, as [M] is already equal to [lift 1 0 N] here (thus
+       moving [N] left makes it equal to [M], and moving [M] right makes it
+       equal to [N]). *)
     apply cong_float_left.
     + rewrite map_length.
       apply lifting_more_than_n_makes_not_free_in_n; omega.
@@ -2122,6 +2042,8 @@ Proof.
         rewrite lift_zero_e_equals_e; auto.
       * do 2 rewrite map_length; f_equal.
         rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
+        rewrite length_sequence with (b := true).
+        rewrite lift_lift_simplification; try omega.
         rewrite foo.
         unfold remove_closest_binding.
         rewrite subst_lift_simplification; auto.
@@ -2195,7 +2117,7 @@ Inductive step: relation pseudoterm :=
     forall xs ts c,
     length xs = length ts ->
     [bind (h (jump k xs)) ts c =>
-      bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c]
+      bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c]
   | step_bind_left:
     forall b1 b2 ts c,
     [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
@@ -2210,11 +2132,13 @@ Hint Constructors step: cps.
 Lemma step_jmp:
   forall xs ts c,
   length xs = length ts ->
-  [bind (jump 0 xs) ts c => bind (apply_parameters xs 0 c) ts c].
+  [bind (jump 0 xs) ts c =>
+    bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c].
 Proof.
   intros.
   replace c with (lift 0 (length ts) c) at 2.
-  - apply step_ctxjmp with (h := context_hole); auto.
+  - rewrite lift_lift_simplification; try omega.
+    apply step_ctxjmp with (h := context_hole); auto.
   - apply lift_zero_e_equals_e.
 Qed.
 
@@ -2261,7 +2185,7 @@ Lemma star_ctxjmp:
   forall xs ts c,
   length xs = length ts ->
   [bind (h (jump k xs)) ts c =>*
-    bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c].
+    bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c].
 Proof.
   auto with cps.
 Qed.
@@ -2329,7 +2253,7 @@ Lemma conv_ctxjmp:
   forall xs ts c,
   length xs = length ts ->
   [bind (h (jump k xs)) ts c <=>
-    bind (h (apply_parameters xs 0 (lift k (length ts) c))) ts c].
+    bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c].
 Proof.
   auto with cps.
 Qed.
@@ -2411,7 +2335,7 @@ Inductive parallel: relation pseudoterm :=
     parallel b (h (jump k xs)) ->
     parallel c1 c2 ->
     parallel (bind b ts c1)
-      (bind (h (apply_parameters xs 0 (lift k (length ts) c2))) ts c2)
+      (bind (h (apply_parameters xs 0 (lift (S k) (length ts) c2))) ts c2)
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
@@ -2522,14 +2446,14 @@ Proof.
 Admitted.
 
 Lemma parallel_apply_parameters:
-  forall a b,
+  forall xs k a b,
   parallel a b ->
-  forall xs k,
   parallel (apply_parameters xs k a) (apply_parameters xs k b).
 Proof.
   induction xs; simpl; intros.
-  - apply parallel_lift; auto.
-  - apply parallel_subst; auto.
+  - assumption.
+  - apply IHxs.
+    apply parallel_subst; auto.
 Qed.
 
 Lemma parallel_context:
@@ -2538,7 +2462,7 @@ Lemma parallel_context:
   parallel a b -> parallel (h a) (h b).
 Proof.
   induction h; simpl; intros.
-  - auto.
+  - assumption.
   - apply parallel_bind; auto.
     apply parallel_refl.
   - apply parallel_bind; auto.
