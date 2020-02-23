@@ -1954,13 +1954,81 @@ Proof.
     rewrite right_cycle_bound_lt; auto.
 Qed.
 
+Lemma apply_parameters_distributes_over_negation:
+  forall xs k ts,
+  apply_parameters xs k (negation ts) =
+    negation (map (apply_parameters xs k) ts).
+Proof.
+  induction xs; intros.
+  - simpl; f_equal.
+    list induction over ts.
+  - simpl.
+    rewrite IHxs.
+    f_equal.
+    list induction over ts.
+Qed.
+
+Lemma apply_parameters_distributes_over_bind:
+  forall xs k b ts c,
+  apply_parameters xs k (bind b ts c) =
+    bind (apply_parameters xs (S k) b)
+      (map (apply_parameters xs k) ts)
+        (apply_parameters xs (k + length ts) c).
+Proof.
+  induction xs; intros.
+  - simpl; f_equal.
+    list induction over ts.
+  - simpl.
+    rewrite IHxs.
+    rewrite map_length.
+    f_equal.
+    + list induction over ts.
+    + do 2 f_equal; omega.
+Qed.
+
 (* I have no idea what to call this one... *)
 
 Lemma foo:
-  forall n c,
-  apply_parameters (high_sequence n) 0 (lift (S n) n c) = lift 1 0 c.
+  forall e k n,
+  apply_parameters (high_sequence n) k (lift (S n) (k + n) e) = lift 1 k e.
 Proof.
-  admit.
+  induction e using pseudoterm_deepind; intros.
+  - simpl.
+    induction n; auto.
+  - simpl.
+    induction n; auto.
+  - simpl.
+    induction n; auto.
+  - simpl.
+    induction n; auto.
+  - rename n0 into m.
+    destruct (le_gt_dec (k + m) n).
+    + rewrite lift_bound_ge; auto.
+      rewrite lift_bound_ge; try omega.
+      admit.
+    + rewrite lift_bound_lt; auto.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge; auto.
+        admit.
+      * rewrite lift_bound_lt; auto.
+        admit.
+  - simpl.
+    rewrite apply_parameters_distributes_over_negation.
+    f_equal.
+    list induction over H.
+  - simpl.
+    rewrite apply_parameters_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + list induction over H.
+  - simpl.
+    rewrite apply_parameters_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + list induction over H.
+    + rewrite map_length.
+      replace (k + n + length ts) with (k + length ts + n); try omega.
+      apply IHe2.
 Admitted.
 
 (*
