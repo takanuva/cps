@@ -2409,6 +2409,8 @@ Inductive parallel: relation pseudoterm :=
     parallel b1 b2 -> parallel c1 c2 ->
     parallel (bind b1 ts c1) (bind b2 ts c2).
 
+Hint Constructors parallel: cps.
+
 Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
@@ -2537,11 +2539,48 @@ Proof.
     apply parallel_refl.
 Qed.
 
+(** ** Confluency *)
+
 Lemma parallel_is_confluent:
   confluent parallel.
 Proof.
   admit.
 Admitted.
+
+Lemma transitive_parallel_is_confluent:
+  confluent (clos_trans _ parallel).
+Proof.
+  apply transitive_closure_preserves_confluency.
+  exact parallel_is_confluent.
+Qed.
+
+Lemma transitive_parallel_and_star_are_equivalent:
+  forall a b,
+  [a =>* b] <-> clos_trans _ parallel a b.
+Proof.
+  split.
+  - induction 1; eauto with cps.
+  - induction 1; eauto with cps.
+Qed.
+
+Theorem star_is_confluent:
+  confluent rt(step).
+Proof.
+  compute; intros.
+  destruct transitive_parallel_is_confluent with x y z as (w, ?, ?).
+  - apply transitive_parallel_and_star_are_equivalent; auto.
+  - apply transitive_parallel_and_star_are_equivalent; auto.
+  - exists w.
+    + apply transitive_parallel_and_star_are_equivalent; auto.
+    + apply transitive_parallel_and_star_are_equivalent; auto.
+Qed.
+
+Corollary step_is_church_rosser:
+  church_rosser step.
+Proof.
+  apply confluency_implies_church_rosser.
+  exact star_is_confluent.
+Qed.
 
 (** ** Observational Theory *)
 
