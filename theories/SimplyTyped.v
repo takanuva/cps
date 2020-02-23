@@ -2623,8 +2623,6 @@ Definition barbed_simulation (R: relation pseudoterm): Prop :=
 Definition barbed_bisimulation (R: relation pseudoterm): Prop :=
   barbed_simulation R /\ barbed_simulation (transp _ R).
 
-(* Do we need these? *)
-
 Definition bisi a b: Prop :=
   exists2 R, barbed_bisimulation R & R a b.
 
@@ -2653,8 +2651,8 @@ Qed.
 (* I'd like to try a coinductive definition later on... but let's see... *)
 
 Definition barb a b: Prop :=
-  exists2 S, barbed_bisimulation S & forall n (h: context n),
-  S (h a) (h b).
+  forall n (h: context n),
+  bisi (h a) (h b).
 
 Notation "[ a ~~ b ]" := (barb a b)
   (at level 0, a, b at level 200): type_scope.
@@ -2683,9 +2681,9 @@ Lemma barb_symm:
   forall a b,
   [a ~~ b] -> [b ~~ a].
 Proof.
-  intros.
-  destruct H as (S, (X, Y), I).
-  exists (transp _ S); auto.
+  unfold barb; intros.
+  destruct H with n h as (R, (X, Y), I).
+  exists (transp _ R); auto.
   split; auto.
 Qed.
 
