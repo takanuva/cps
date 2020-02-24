@@ -2612,13 +2612,22 @@ Qed.
 
 (* Set theoretic definition of a barbed (bi)simulation... *)
 
-Definition barbed_simulation (R: relation pseudoterm): Prop :=
+Definition reduction_closed (R: relation pseudoterm): Prop :=
   forall a b,
   R a b ->
-    (forall c, [a => c] ->
-     exists2 d, [b =>* d] & R c d) /\
-    (forall n,
-     converges a n -> weakly_converges b n).
+  forall c,
+  [a => c] ->
+  exists2 d,
+  [b =>* d] & R c d.
+
+Definition barb_preserving (R: relation pseudoterm): Prop :=
+  forall a b,
+  R a b ->
+  forall n,
+  converges a n -> weakly_converges b n.
+
+Definition barbed_simulation (R: relation pseudoterm): Prop :=
+  reduction_closed R /\ barb_preserving R.
 
 Definition barbed_bisimulation (R: relation pseudoterm): Prop :=
   barbed_simulation R /\ barbed_simulation (transp _ R).
@@ -2629,23 +2638,23 @@ Definition bisi a b: Prop :=
 Lemma bisi_is_a_barbed_bisimulation_itself:
   barbed_bisimulation bisi.
 Proof.
-  split; do 3 intro; split; intros.
-  - destruct H as (S, (X, Y), I).
-    destruct X with a b; auto.
-    destruct H with c as (d, ?, ?); auto.
+  split; split; do 5 intro.
+  - destruct H as (R, ((C, P), X), I).
+    destruct C with a b c as (d, ?, ?); auto.
     exists d; auto.
-    exists S; auto.
+    exists R; auto.
     split; auto.
-  - destruct H as (S, (X, Y), I).
-    destruct X with a b; auto.
-  - destruct H as (S, (X, Y), I).
-    destruct Y with a b; auto.
-    destruct H with c as (d, ?, ?); auto.
+    split; auto.
+  - destruct H as (R, ((C, P), X), I).
+    eapply P; eauto.
+  - destruct H as (R, (X, (C, P)), I).
+    destruct C with a b c as (d, ?, ?); auto.
     exists d; auto.
-    exists S; auto.
+    exists R; auto.
     split; auto.
-  - destruct H as (S, (X, Y), I).
-    destruct Y with a b; auto.
+    split; auto.
+  - destruct H as (R, (X, (C, P)), I).
+    eapply P; eauto.
 Qed.
 
 (* I'd like to try a coinductive definition later on... but let's see... *)
@@ -2664,7 +2673,7 @@ Proof.
   intros.
   (* Consider, e.g., that our barbed relation is alpha equality. *)
   exists eq; auto.
-  split; do 3 intro; split; intros.
+  split; split; do 5 intro.
   - destruct H.
     exists c; auto with cps.
   - destruct H.
