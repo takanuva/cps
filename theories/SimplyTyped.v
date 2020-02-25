@@ -1770,6 +1770,33 @@ Hint Resolve cong_right_cycle: cps.
 Arguments lift i k e: simpl nomatch.
 Arguments subst p k q: simpl nomatch.
 
+Inductive item (e: pseudoterm): list pseudoterm -> nat -> Prop :=
+  | item_car:
+    forall cdr, item e (cons e cdr) 0
+  | item_cdr:
+    forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
+
+Lemma apply_parameters_bound_lt:
+  forall xs n,
+  length xs > n ->
+  forall x,
+  item x (rev xs) n -> apply_parameters xs 0 (bound n) = x.
+Proof.
+  induction xs.
+  - intros.
+    inversion H0.
+  - simpl; intros.
+    destruct (le_gt_dec (length xs) n).
+    + cut (n = length xs); try omega; intro.
+      rewrite subst_bound_eq; auto.
+      replace a with x.
+      * admit.
+      * admit.
+    + rewrite subst_bound_lt; auto.
+      apply IHxs; auto.
+      admit.
+Admitted.
+
 Lemma apply_parameters_bound_ge:
   forall xs n,
   length xs <= n -> apply_parameters xs 0 (bound n) = n - length xs.
