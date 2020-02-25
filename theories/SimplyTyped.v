@@ -1180,7 +1180,27 @@ Proof.
     exists u; eauto with cps.
 Qed.
 
-(** ** Structural congruence *)
+(** ** Axiomatic semantics *)
+
+Definition JMP (R: relation pseudoterm): Prop :=
+  forall xs ts c,
+  length xs = length ts ->
+  R (bind (jump 0 xs) ts c)
+    (bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c).
+
+Hint Unfold JMP: cps.
+
+(* My first intuition was to make the redex as [jump (length ts + k) _], by
+   using a bound var (that is not a parameter), but this is too restrictive for
+   our "high-order" definition of pseudoterms; lifting k instead solves this,
+   and it properly captures the notion of (ETA) for actual terms. *)
+
+Definition ETA (R: relation pseudoterm): Prop :=
+  forall b ts k,
+  R (bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts))))
+    (subst k 0 b).
+
+Hint Unfold ETA: cps.
 
 (*
   For (DISTR):
@@ -1208,34 +1228,46 @@ Qed.
     Hmm, this is also troublesome...
 *)
 
-Definition distr b ms m ns n: pseudoterm :=
-  (bind (bind
-    (switch_bindings 0 b)
-    (map (lift 1 0) ns)
-      (lift 1 (length ns) n))
-    (map remove_closest_binding ms) (bind
-      (right_cycle (length ms) 0 m)
-      (map (lift (length ms) 0) ns)
-        (lift (length ms) (length ns) n))).
+Definition DISTR (R: relation pseudoterm): Prop :=
+  forall b ms m ns n,
+  Forall (not_free_in 0) ms ->
+  R (bind (bind b ms m) ns n)
+    (bind (bind
+      (switch_bindings 0 b)
+      (map (lift 1 0) ns)
+        (lift 1 (length ns) n))
+      (map remove_closest_binding ms) (bind
+        (right_cycle (length ms) 0 m)
+        (map (lift (length ms) 0) ns)
+          (lift (length ms) (length ns) n))).
 
-Hint Unfold distr: cps.
+Hint Unfold DISTR: cps.
 
-Definition contr b ts c: pseudoterm :=
-  (bind (bind
-    b
-    (map (lift 1 0) ts) (lift 1 (length ts) c)) ts c).
+Definition CONTR (R: relation pseudoterm): Prop :=
+  forall b ts c,
+  R (bind (bind b (map (lift 1 0) ts) (lift 1 (length ts) c)) ts c)
+    (bind (remove_closest_binding b) ts c).
 
-Hint Unfold contr: cps.
+Hint Unfold CONTR: cps.
 
-(* My first intuition was to to make the redex as [jump (length ts + k) _], by
-   using a bound var (that is not a parameter), but this is too restrictive for
-   our "high-order" definition of pseudoterms; lifting k instead solves this,
-   and it properly captures the notion of (ETA) for actual terms. *)
+Definition GC (R: relation pseudoterm): Prop :=
+  forall b ts c,
+  not_free_in 0 b ->
+  R (bind b ts c) (remove_closest_binding b).
 
-Definition eta b ts k: pseudoterm :=
-  bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts))).
+Hint Unfold GC: cps.
 
-Hint Unfold eta: cps.
+Definition LEFT (R: relation pseudoterm): Prop :=
+  forall b1 b2 ts c,
+  R b1 b2 -> R (bind b1 ts c) (bind b2 ts c).
+
+Hint Unfold LEFT: cps.
+
+Definition RIGHT (R: relation pseudoterm): Prop :=
+  forall b ts c1 c2,
+  R c1 c2 -> R (bind b ts c1) (bind b ts c2).
+
+Hint Unfold RIGHT: cps.
 
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
@@ -1243,30 +1275,19 @@ Hint Unfold eta: cps.
 
 Inductive struct: relation pseudoterm :=
   | struct_jmp:
-    forall xs ts c,
-    length xs = length ts ->
-    struct (bind (jump 0 xs) ts c)
-      (bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c)
+    JMP struct
   | struct_distr:
-    forall b ms m ns n,
-    Forall (not_free_in 0) ms ->
-    struct (bind (bind b ms m) ns n) (distr b ms m ns n)
+    DISTR struct
   | struct_contr:
-    forall b ts c,
-    struct (contr b ts c) (bind (remove_closest_binding b) ts c)
+    CONTR struct
   | struct_eta:
-    forall b ts k,
-    struct (eta b ts k) (subst k 0 b)
+    ETA struct
   | struct_gc:
-    forall b ts c,
-    not_free_in 0 b ->
-    struct (bind b ts c) (remove_closest_binding b)
+    GC struct
   | struct_bind_left:
-    forall b1 b2 ts c,
-    struct b1 b2 -> struct (bind b1 ts c) (bind b2 ts c)
+    LEFT struct
   | struct_bind_right:
-    forall b ts c1 c2,
-    struct c1 c2 -> struct (bind b ts c1) (bind b ts c2).
+    RIGHT struct.
 
 Hint Constructors struct: cps.
 
@@ -1313,10 +1334,7 @@ Qed.
 Hint Resolve cong_struct: cps.
 
 Lemma cong_jmp:
-  forall xs ts c,
-  length xs = length ts ->
-  [bind (jump 0 xs) ts c ==
-    bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c].
+  JMP rst(struct).
 Proof.
   auto with cps.
 Qed.
@@ -1324,9 +1342,7 @@ Qed.
 Hint Resolve cong_jmp: cps.
 
 Lemma cong_distr:
-  forall b ms m ns n,
-  Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n == distr b ms m ns n].
+  DISTR rst(struct).
 Proof.
   auto with cps.
 Qed.
@@ -1334,8 +1350,7 @@ Qed.
 Hint Resolve cong_distr: cps.
 
 Lemma cong_contr:
-  forall b ts c,
-  [contr b ts c == bind (remove_closest_binding b) ts c].
+  CONTR rst(struct).
 Proof.
   auto with cps.
 Qed.
@@ -1343,16 +1358,13 @@ Qed.
 Hint Resolve cong_contr: cps.
 
 Lemma cong_eta:
-  forall b ts k,
-  [eta b ts k == subst k 0 b].
+  ETA rst(struct).
 Proof.
   auto with cps.
 Qed.
 
 Lemma cong_gc:
-  forall b ts c,
-  not_free_in 0 b ->
-  [bind b ts c == remove_closest_binding b].
+  GC rst(struct).
 Proof.
   auto with cps.
 Qed.
@@ -1360,8 +1372,7 @@ Qed.
 Hint Resolve cong_gc: cps.
 
 Lemma cong_bind_left:
-  forall b1 b2 ts c,
-  [b1 == b2] -> [bind b1 ts c == bind b2 ts c].
+  LEFT rst(struct).
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1369,8 +1380,7 @@ Qed.
 Hint Resolve cong_bind_left: cps.
 
 Lemma cong_bind_right:
-  forall b ts c1 c2,
-  [c1 == c2] -> [bind b ts c1 == bind b ts c2].
+  RIGHT rst(struct).
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1762,7 +1772,7 @@ Arguments subst p k q: simpl nomatch.
 
 Lemma apply_parameters_bound_ge:
   forall xs n,
-  n >= length xs -> apply_parameters xs 0 (bound n) = n - length xs.
+  length xs <= n -> apply_parameters xs 0 (bound n) = n - length xs.
 Proof.
   induction xs; intros.
   - simpl; f_equal; omega.
@@ -1814,20 +1824,21 @@ Qed.
 
 (* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
 
-Definition float_left b ms m ns n: pseudoterm :=
-  (bind (bind
+Definition FLOAT_LEFT (R: relation pseudoterm): Prop :=
+  forall b ms m ns n,
+  not_free_in (length ms) m ->
+  Forall (not_free_in 0) ms ->
+  R (bind (bind b ms m) ns n)
+    (bind (bind
      (switch_bindings 0 b)
      (map (lift 1 0) ns) (lift 1 (length ns) n))
      (map (subst 0 0) ms) (subst 0 (length ms) m)).
 
 Lemma cong_float_left:
-  forall b ms m ns n,
-  not_free_in (length ms) m ->
-  Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n == float_left b ms m ns n].
+  FLOAT_LEFT rst(struct).
 Proof.
-  intros.
-  apply cong_tran with (distr b ms m ns n).
+  unfold FLOAT_LEFT; intros.
+  eapply cong_tran.
   - apply cong_distr; auto.
   - apply cong_bind_right.
     apply cong_struct; apply struct_gc_helper.
@@ -1837,21 +1848,24 @@ Admitted.
 
 (* Float right: L { M } { N } == L { M { N } } if n doesn't appear in L. *)
 
-Definition float_right b ms m ns n: pseudoterm :=
-  (bind
-    (remove_closest_binding (switch_bindings 0 b))
-    (map remove_closest_binding ms) (bind
-      (right_cycle (length ms) 0 m)
-      (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
-
-Lemma cong_float_right:
+Definition FLOAT_RIGHT (R: relation pseudoterm): Prop :=
   forall b ms m ns n,
   not_free_in 1 b ->
   Forall (not_free_in 0) ms ->
-  [bind (bind b ms m) ns n == float_right b ms m ns n].
+  R (bind (bind b ms m) ns n)
+    (bind
+      (* TODO: we could use [remove_binding 1 b] or something like that here,
+         though it of course will result in the same term. *)
+      (remove_closest_binding (switch_bindings 0 b))
+      (map remove_closest_binding ms) (bind
+        (right_cycle (length ms) 0 m)
+        (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
+
+Lemma cong_float_right:
+  FLOAT_RIGHT rst(struct).
 Proof.
-  intros.
-  apply cong_tran with (distr b ms m ns n).
+  unfold FLOAT_RIGHT; intros.
+  eapply cong_tran.
   - apply cong_distr; auto.
   - apply cong_bind_left.
     apply cong_gc.
@@ -2050,10 +2064,9 @@ Admitted.
 *)
 
 Lemma cong_contr_derivable:
-  forall b ts c,
-  [contr b ts c == bind (remove_closest_binding b) ts c].
+  CONTR rst(struct).
 Proof.
-  intros.
+  unfold CONTR; intros.
   apply cong_symm.
   (* Is there a more elegant way? *)
   eapply cong_tran;
@@ -2100,7 +2113,6 @@ Proof.
         apply lifting_more_than_n_makes_not_free_in_n; auto.
   - (* The term is finally in the form [b { M } { N }], which is what we want,
        but we still need to prove that as the term form is a bit different. *)
-    unfold float_left, contr.
     apply cong_eq; f_equal.
     + f_equal.
       * apply switch_bindings_is_involutive.
@@ -2187,23 +2199,18 @@ Inductive step: relation pseudoterm :=
     [bind (h (jump k xs)) ts c =>
       bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c]
   | step_bind_left:
-    forall b1 b2 ts c,
-    [b1 => b2] -> [bind b1 ts c => bind b2 ts c]
+    LEFT step
   | step_bind_right:
-    forall b ts c1 c2,
-    [c1 => c2] -> [bind b ts c1 => bind b ts c2]
+    RIGHT step
 
 where "[ a => b ]" := (step a b): type_scope.
 
 Hint Constructors step: cps.
 
 Lemma step_jmp:
-  forall xs ts c,
-  length xs = length ts ->
-  [bind (jump 0 xs) ts c =>
-    bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c].
+  JMP step.
 Proof.
-  intros.
+  unfold JMP; intros.
   replace c with (lift 0 (length ts) c) at 2.
   - rewrite lift_lift_simplification; try omega.
     apply step_ctxjmp with (h := context_hole); auto.
@@ -2279,25 +2286,23 @@ Qed.
 Hint Resolve star_tran: cps.
 
 Lemma star_bind_left:
-  forall b1 b2 ts c,
-  [b1 =>* b2] -> [bind b1 ts c =>* bind b2 ts c].
+  LEFT rt(step).
 Proof.
   induction 1.
   - destruct H; auto with cps.
   - apply star_refl.
-  - apply star_tran with (bind y ts c); auto.
+  - eapply star_tran; eauto.
 Qed.
 
 Hint Resolve star_bind_left: cps.
 
 Lemma star_bind_right:
-  forall b ts c1 c2,
-  [c1 =>* c2] -> [bind b ts c1 =>* bind b ts c2].
+  RIGHT rt(step).
 Proof.
   induction 1.
   - destruct H; auto with cps.
   - apply star_refl.
-  - apply star_tran with (bind b ts y); auto.
+  - eapply star_tran; eauto.
 Qed.
 
 Hint Resolve star_bind_right: cps.
@@ -2365,8 +2370,7 @@ Qed.
 Hint Resolve conv_tran: cps.
 
 Lemma conv_bind_left:
-  forall b1 b2 ts c,
-  [b1 <=> b2] -> [bind b1 ts c <=> bind b2 ts c].
+  LEFT rst(step).
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -2374,8 +2378,7 @@ Qed.
 Hint Resolve conv_bind_left: cps.
 
 Lemma conv_bind_right:
-  forall b ts c1 c2,
-  [c1 <=> c2] -> [bind b ts c1 <=> bind b ts c2].
+  RIGHT rst(step).
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -2582,7 +2585,7 @@ Proof.
   exact star_is_confluent.
 Qed.
 
-(** ** Observational Theory *)
+(** ** Observational theory *)
 
 Inductive converges: pseudoterm -> nat -> Prop :=
   | converges_jump:
