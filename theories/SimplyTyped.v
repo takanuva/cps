@@ -1294,7 +1294,8 @@ Hint Constructors struct: cps.
 (* We'll just define our structural congruence as the smallest relation closed
    under the [struct] rules above. *)
 
-Notation "[ a == b ]" := (rst(struct) a b)
+Notation cong := rst(struct).
+Notation "[ a == b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma cong_refl:
@@ -2270,7 +2271,8 @@ Qed.
 
 (** ** Multi-step reduction *)
 
-Notation "[ a =>* b ]" := (rt(step) a b)
+Notation star := rt(step).
+Notation "[ a =>* b ]" := (star a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma star_step:
@@ -2336,7 +2338,8 @@ Hint Resolve star_bind_right: cps.
 
 (** ** Reduction convertibility *)
 
-Notation "[ a <=> b ]" := (rst(step) a b)
+Notation conv := rst(step).
+Notation "[ a <=> b ]" := (conv a b)
   (at level 0, a, b at level 200): type_scope.
 
 Lemma conv_step:
