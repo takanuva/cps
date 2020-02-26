@@ -1777,6 +1777,32 @@ Inductive item (e: pseudoterm): list pseudoterm -> nat -> Prop :=
   | item_cdr:
     forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
 
+Lemma item_ignore_tail:
+  forall xs ys x k,
+  item x xs k -> item x (xs ++ ys) k.
+Proof.
+  induction 1.
+  - constructor.
+  - constructor; auto.
+Qed.
+
+Lemma item_ignore_head:
+  forall xs ys x k,
+  item x ys (k - length xs) ->
+  k >= length xs -> item x (xs ++ ys) k.
+Proof.
+  induction xs; intros.
+  - simpl.
+    replace (k - length []) with k in H; auto.
+    simpl; omega.
+  - simpl in H, H0 |- *.
+    destruct k.
+    + inversion H0.
+    + constructor.
+      apply IHxs; auto.
+      omega.
+Qed.
+
 Lemma apply_parameters_bound_lt:
   forall xs n,
   length xs > n ->
@@ -1810,12 +1836,41 @@ Proof.
     f_equal; omega.
 Qed.
 
+Lemma high_sequence_rev_lifts_by_one:
+  forall n k,
+  n < k -> item (S n) (rev (high_sequence k)) n.
+Proof.
+  intros.
+  induction k.
+  - inversion H.
+  - simpl.
+    destruct (le_gt_dec k n).
+    + apply item_ignore_head.
+      * rewrite rev_length.
+        rewrite length_sequence with (b := true).
+        replace k with n; try omega.
+        replace (n - n) with 0; try omega.
+        constructor.
+      * rewrite rev_length.
+        rewrite length_sequence with (b := true).
+        omega.
+    + apply item_ignore_tail.
+      apply IHk; omega.
+Qed.
+
 Lemma right_cycle_bound_lt:
   forall k n,
   n < k -> right_cycle k 0 (bound n) = S n.
 Proof.
-  admit.
-Admitted.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_bound_lt; try omega.
+  rewrite length_sequence with (b := true).
+  rewrite subst_bound_lt; auto.
+  apply apply_parameters_bound_lt.
+  - rewrite length_sequence with (b := true); auto.
+  - apply high_sequence_rev_lifts_by_one; auto.
+Qed.
 
 Lemma right_cycle_bound_eq:
   forall k n,
@@ -2315,7 +2370,7 @@ Qed.
 Hint Resolve star_tran: cps.
 
 Lemma star_bind_left:
-  LEFT rt(step).
+  LEFT star.
 Proof.
   induction 1.
   - destruct H; auto with cps.
@@ -2326,7 +2381,7 @@ Qed.
 Hint Resolve star_bind_left: cps.
 
 Lemma star_bind_right:
-  RIGHT rt(step).
+  RIGHT star.
 Proof.
   induction 1.
   - destruct H; auto with cps.
@@ -2400,7 +2455,7 @@ Qed.
 Hint Resolve conv_tran: cps.
 
 Lemma conv_bind_left:
-  LEFT rst(step).
+  LEFT conv.
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -2408,7 +2463,7 @@ Qed.
 Hint Resolve conv_bind_left: cps.
 
 Lemma conv_bind_right:
-  RIGHT rst(step).
+  RIGHT conv.
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -2597,7 +2652,7 @@ Proof.
 Qed.
 
 Theorem star_is_confluent:
-  confluent rt(step).
+  confluent star.
 Proof.
   compute; intros.
   destruct transitive_parallel_is_confluent with x y z as (w, ?, ?).
