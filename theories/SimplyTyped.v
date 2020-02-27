@@ -1777,7 +1777,9 @@ Inductive item (e: pseudoterm): list pseudoterm -> nat -> Prop :=
   | item_cdr:
     forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
 
-Lemma item_ignore_tail:
+(* TODO: review names of the following lemmas. *)
+
+Lemma item_insert_tail:
   forall xs ys x k,
   item x xs k -> item x (xs ++ ys) k.
 Proof.
@@ -1786,21 +1788,65 @@ Proof.
   - constructor; auto.
 Qed.
 
-Lemma item_ignore_head:
+Lemma item_ignore_tail:
+  forall xs x ys k,
+  length xs > k ->
+  item x (xs ++ ys) k -> item x xs k.
+Proof.
+  induction xs; intros.
+  - inversion H.
+  - simpl in H, H0 |- *.
+    destruct k.
+    + inversion_clear H0; auto.
+      constructor.
+    + inversion_clear H0.
+      constructor.
+      eapply IHxs; eauto.
+      omega.
+Qed.
+
+Lemma item_insert_head:
   forall xs ys x k,
-  item x ys (k - length xs) ->
-  k >= length xs -> item x (xs ++ ys) k.
+  k >= length xs ->
+  item x ys (k - length xs) -> item x (xs ++ ys) k.
 Proof.
   induction xs; intros.
   - simpl.
-    replace (k - length []) with k in H; auto.
+    replace (k - length []) with k in H0; auto.
     simpl; omega.
   - simpl in H, H0 |- *.
     destruct k.
-    + inversion H0.
+    + inversion H.
     + constructor.
       apply IHxs; auto.
       omega.
+Qed.
+
+Lemma item_ignore_head:
+  forall xs x ys k,
+  k >= length xs ->
+  item x (xs ++ ys) k -> item x ys (k - length xs).
+Proof.
+  induction xs; intros.
+  - simpl in H0 |- *.
+    replace (k - 0) with k; auto with arith.
+  - simpl in H, H0 |- *.
+    destruct k.
+    + inversion H.
+    + inversion_clear H0.
+      apply IHxs; auto.
+      omega.
+Qed.
+
+Lemma apply_parameters_lift_e_equals_e:
+  forall xs k e,
+  apply_parameters xs k (lift (length xs) k e) = e.
+Proof.
+  induction xs; intros.
+  - apply lift_zero_e_equals_e.
+  - simpl.
+    rewrite subst_lift_simplification; try omega.
+    apply IHxs.
 Qed.
 
 Lemma apply_parameters_bound_lt:
@@ -1816,13 +1862,18 @@ Proof.
     destruct (le_gt_dec (length xs) n).
     + cut (n = length xs); try omega; intro.
       rewrite subst_bound_eq; auto.
-      replace a with x.
-      * admit.
-      * admit.
+      apply item_ignore_head in H0.
+      * rewrite rev_length in H0.
+        rewrite H1 in H0 |- *.
+        replace (length xs - length xs) with 0 in H0; try omega.
+        inversion_clear H0.
+        apply apply_parameters_lift_e_equals_e.
+      * rewrite rev_length; auto.
     + rewrite subst_bound_lt; auto.
       apply IHxs; auto.
-      admit.
-Admitted.
+      eapply item_ignore_tail; eauto.
+      rewrite rev_length; auto.
+Qed.
 
 Lemma apply_parameters_bound_ge:
   forall xs n,
@@ -1845,16 +1896,15 @@ Proof.
   - inversion H.
   - simpl.
     destruct (le_gt_dec k n).
-    + apply item_ignore_head.
+    + apply item_insert_head.
+      * rewrite rev_length.
+        rewrite length_sequence with (b := true); auto.
       * rewrite rev_length.
         rewrite length_sequence with (b := true).
-        replace k with n; try omega.
-        replace (n - n) with 0; try omega.
+        replace n with k; try omega.
+        replace (k - k) with 0; try omega.
         constructor.
-      * rewrite rev_length.
-        rewrite length_sequence with (b := true).
-        omega.
-    + apply item_ignore_tail.
+    + apply item_insert_tail.
       apply IHk; omega.
 Qed.
 
