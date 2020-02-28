@@ -2795,6 +2795,26 @@ Proof.
     eapply P; eauto.
 Qed.
 
+Lemma multistep_reduction_closed:
+  forall R,
+  reduction_closed R ->
+  forall a b,
+  R a b ->
+  forall c,
+  [a =>* c] ->
+  exists2 d,
+  [b =>* d] & R c d.
+Proof.
+  intros.
+  generalize b H0; clear b H0.
+  induction H1; simpl; intros.
+  - eapply H; eauto.
+  - exists b; auto with cps.
+  - destruct IHclos_refl_trans1 with b as (w, ?, ?); auto.
+    destruct IHclos_refl_trans2 with w as (v, ?, ?); auto.
+    exists v; eauto with cps.
+Qed.
+
 (* I'd like to try a coinductive definition later on... but let's see... *)
 
 Definition barb a b: Prop :=
@@ -2840,8 +2860,45 @@ Lemma barb_tran:
   forall a b c,
   [a ~~ b] -> [b ~~ c] -> [a ~~ c].
 Proof.
-  admit.
-Admitted.
+  unfold barb at 3; intros.
+  destruct H with n h as (R, ?, ?).
+  destruct H0 with n h as (S, ?, ?).
+  exists (fun a c =>
+    exists2 b, R a b & S b c).
+  - clear a b c H H0 n h H2 H4.
+    split; split; do 5 intro.
+    + destruct H as (d, ?, ?).
+      destruct H1 as ((?, _), _).
+      destruct H3 as ((?, _), _).
+      destruct H1 with a d c as (x, ?, ?); auto.
+      destruct multistep_reduction_closed with S d b x as (y, ?, ?); auto.
+      exists y; auto.
+      exists x; auto.
+    + destruct H as (d, ?, ?).
+      destruct H1 as ((_, ?), _).
+      destruct H3 as ((?, ?), _).
+      destruct H1 with a d n as (x, ?, ?); auto.
+      destruct multistep_reduction_closed with S d b x as (y, ?, ?); auto.
+      destruct H4 with x y n as (z, ?, ?); auto.
+      exists z; eauto with cps.
+    + destruct H as (d, ?, ?).
+      destruct H1 as (_, (?, _)).
+      destruct H3 as (_, (?, _)).
+      destruct H3 with a d c as (x, ?, ?); auto.
+      destruct multistep_reduction_closed with (transp _ R) d b x as (y, ?, ?);
+        auto.
+      exists y; auto.
+      exists x; auto.
+    + destruct H as (d, ?, ?).
+      destruct H1 as (_, (?, ?)).
+      destruct H3 as (_, (_, ?)).
+      destruct H3 with a d n as (x, ?, ?); auto.
+      destruct multistep_reduction_closed with (transp _ R) d b x as (y, ?, ?);
+        auto.
+      destruct H4 with x y n as (z, ?, ?); auto.
+      exists z; eauto with cps.
+  - exists (h b); auto.
+Qed.
 
 Hint Resolve barb_tran: cps.
 
