@@ -1335,7 +1335,7 @@ Qed.
 Hint Resolve cong_struct: cps.
 
 Lemma cong_jmp:
-  JMP rst(struct).
+  JMP cong.
 Proof.
   auto with cps.
 Qed.
@@ -1343,7 +1343,7 @@ Qed.
 Hint Resolve cong_jmp: cps.
 
 Lemma cong_distr:
-  DISTR rst(struct).
+  DISTR cong.
 Proof.
   auto with cps.
 Qed.
@@ -1351,7 +1351,7 @@ Qed.
 Hint Resolve cong_distr: cps.
 
 Lemma cong_contr:
-  CONTR rst(struct).
+  CONTR cong.
 Proof.
   auto with cps.
 Qed.
@@ -1359,13 +1359,13 @@ Qed.
 Hint Resolve cong_contr: cps.
 
 Lemma cong_eta:
-  ETA rst(struct).
+  ETA cong.
 Proof.
   auto with cps.
 Qed.
 
 Lemma cong_gc:
-  GC rst(struct).
+  GC cong.
 Proof.
   auto with cps.
 Qed.
@@ -1373,7 +1373,7 @@ Qed.
 Hint Resolve cong_gc: cps.
 
 Lemma cong_bind_left:
-  LEFT rst(struct).
+  LEFT cong.
 Proof.
   induction 1; eauto with cps.
 Qed.
@@ -1381,14 +1381,14 @@ Qed.
 Hint Resolve cong_bind_left: cps.
 
 Lemma cong_bind_right:
-  RIGHT rst(struct).
+  RIGHT cong.
 Proof.
   induction 1; eauto with cps.
 Qed.
 
 Hint Resolve cong_bind_right: cps.
 
-Instance cong_is_equiv: Equivalence rst(struct).
+Instance cong_is_equiv: Equivalence cong.
 Proof.
   split.
   - exact cong_refl.
@@ -1968,7 +1968,7 @@ Definition FLOAT_LEFT (R: relation pseudoterm): Prop :=
      (map (subst 0 0) ms) (subst 0 (length ms) m)).
 
 Lemma cong_float_left:
-  FLOAT_LEFT rst(struct).
+  FLOAT_LEFT cong.
 Proof.
   unfold FLOAT_LEFT; intros.
   eapply cong_tran.
@@ -1995,7 +1995,7 @@ Definition FLOAT_RIGHT (R: relation pseudoterm): Prop :=
         (map (lift (length ms) 0) ns) (lift (length ms) (length ns) n))).
 
 Lemma cong_float_right:
-  FLOAT_RIGHT rst(struct).
+  FLOAT_RIGHT cong.
 Proof.
   unfold FLOAT_RIGHT; intros.
   eapply cong_tran.
@@ -2197,7 +2197,7 @@ Admitted.
 *)
 
 Lemma cong_contr_derivable:
-  CONTR rst(struct).
+  CONTR cong.
 Proof.
   unfold CONTR; intros.
   apply cong_symm.
