@@ -1307,23 +1307,23 @@ Qed.
 
 Hint Resolve cong_refl: cps.
 
-Lemma cong_symm:
+Lemma cong_sym:
   forall a b,
   [a == b] -> [b == a].
 Proof.
   auto with cps.
 Qed.
 
-Hint Resolve cong_symm: cps.
+Hint Resolve cong_sym: cps.
 
-Lemma cong_tran:
+Lemma cong_trans:
   forall a b c,
   [a == b] -> [b == c] -> [a == c].
 Proof.
   eauto with cps.
 Qed.
 
-Hint Resolve cong_tran: cps.
+Hint Resolve cong_trans: cps.
 
 Lemma cong_struct:
   forall a b,
@@ -1392,8 +1392,8 @@ Instance cong_is_equiv: Equivalence cong.
 Proof.
   split.
   - exact cong_refl.
-  - exact cong_symm.
-  - exact cong_tran.
+  - exact cong_sym.
+  - exact cong_trans.
 Defined.
 
 (******************************************************************************)
@@ -1971,7 +1971,7 @@ Lemma cong_float_left:
   FLOAT_LEFT cong.
 Proof.
   unfold FLOAT_LEFT; intros.
-  eapply cong_tran.
+  eapply cong_trans.
   - apply cong_distr; auto.
   - apply cong_bind_right.
     apply cong_struct; apply struct_gc_helper.
@@ -1998,7 +1998,7 @@ Lemma cong_float_right:
   FLOAT_RIGHT cong.
 Proof.
   unfold FLOAT_RIGHT; intros.
-  eapply cong_tran.
+  eapply cong_trans.
   - apply cong_distr; auto.
   - apply cong_bind_left.
     apply cong_gc.
@@ -2200,15 +2200,15 @@ Lemma cong_contr_derivable:
   CONTR cong.
 Proof.
   unfold CONTR; intros.
-  apply cong_symm.
+  apply cong_sym.
   (* Is there a more elegant way? *)
-  eapply cong_tran;
-    [| eapply cong_tran;
-      [| eapply cong_tran;
-        [| eapply cong_tran;
-          [| eapply cong_tran ] ] ] ].
+  eapply cong_trans;
+    [| eapply cong_trans;
+      [| eapply cong_trans;
+        [| eapply cong_trans;
+          [| eapply cong_trans ] ] ] ].
   - apply cong_bind_left.
-    apply cong_symm.
+    apply cong_sym.
     apply cong_eta with (ts := map (lift 1 0) ts).
   - apply cong_distr.
     induction ts; simpl.
@@ -2340,18 +2340,6 @@ where "[ a => b ]" := (step a b): type_scope.
 
 Hint Constructors step: cps.
 
-Lemma step_jmp:
-  JMP step.
-Proof.
-  unfold JMP; intros.
-  replace c with (lift 0 (length ts) c) at 2.
-  - rewrite lift_lift_simplification; try omega.
-    apply step_ctxjmp with (h := context_hole); auto.
-  - apply lift_zero_e_equals_e.
-Qed.
-
-Hint Resolve step_jmp: cps.
-
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       h@1<x@4, k@0, y@3>                   k@0<z@2, y@3>
@@ -2373,6 +2361,18 @@ Goal [ex1 => ex3].
 Proof.
   apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
 Qed.
+
+Lemma step_jmp:
+  JMP step.
+Proof.
+  unfold JMP; intros.
+  replace c with (lift 0 (length ts) c) at 2.
+  - rewrite lift_lift_simplification; try omega.
+    apply step_ctxjmp with (h := context_hole); auto.
+  - apply lift_zero_e_equals_e.
+Qed.
+
+Hint Resolve step_jmp: cps.
 
 (** ** Multi-step reduction *)
 
@@ -2410,14 +2410,14 @@ Qed.
 
 Hint Resolve star_refl: cps.
 
-Lemma star_tran:
+Lemma star_trans:
   forall a b c,
   [a =>* b] -> [b =>* c] -> [a =>* c].
 Proof.
   eauto with cps.
 Qed.
 
-Hint Resolve star_tran: cps.
+Hint Resolve star_trans: cps.
 
 Lemma star_bind_left:
   LEFT star.
@@ -2425,7 +2425,7 @@ Proof.
   induction 1.
   - destruct H; auto with cps.
   - apply star_refl.
-  - eapply star_tran; eauto.
+  - eapply star_trans; eauto.
 Qed.
 
 Hint Resolve star_bind_left: cps.
@@ -2436,7 +2436,7 @@ Proof.
   induction 1.
   - destruct H; auto with cps.
   - apply star_refl.
-  - eapply star_tran; eauto.
+  - eapply star_trans; eauto.
 Qed.
 
 Hint Resolve star_bind_right: cps.
@@ -2486,23 +2486,23 @@ Qed.
 
 Hint Resolve conv_refl: cps.
 
-Lemma conv_symm:
+Lemma conv_sym:
   forall a b,
   [a <=> b] -> [b <=> a].
 Proof.
   auto with cps.
 Qed.
 
-Hint Resolve conv_symm: cps.
+Hint Resolve conv_sym: cps.
 
-Lemma conv_tran:
+Lemma conv_trans:
   forall a b c,
   [a <=> b] -> [b <=> c] -> [a <=> c].
 Proof.
   eauto with cps.
 Qed.
 
-Hint Resolve conv_tran: cps.
+Hint Resolve conv_trans: cps.
 
 Lemma conv_bind_left:
   LEFT conv.
@@ -2520,12 +2520,12 @@ Qed.
 
 Hint Resolve conv_bind_right: cps.
 
-Instance conv_is_equiv: Equivalence rst(step).
+Instance conv_is_equiv: Equivalence conv.
 Proof.
   split.
   - exact conv_refl.
-  - exact conv_symm.
-  - exact conv_tran.
+  - exact conv_sym.
+  - exact conv_trans.
 Defined.
 
 (** ** Parallel reduction *)
@@ -2571,9 +2571,9 @@ Lemma star_parallel:
 Proof.
   induction 1.
   - apply star_refl.
-  - eapply star_tran.
+  - eapply star_trans.
     + apply star_bind_left; eauto.
-    + eapply star_tran.
+    + eapply star_trans.
       * apply star_bind_right; eauto.
       * apply star_ctxjmp; auto.
   - eauto with cps.
@@ -2844,7 +2844,7 @@ Qed.
 
 Hint Resolve barb_refl: cps.
 
-Lemma barb_symm:
+Lemma barb_sym:
   forall a b,
   [a ~~ b] -> [b ~~ a].
 Proof.
@@ -2854,9 +2854,9 @@ Proof.
   split; auto.
 Qed.
 
-Hint Resolve barb_symm: cps.
+Hint Resolve barb_sym: cps.
 
-Lemma barb_tran:
+Lemma barb_trans:
   forall a b c,
   [a ~~ b] -> [b ~~ c] -> [a ~~ c].
 Proof.
@@ -2900,14 +2900,14 @@ Proof.
   - exists (h b); auto.
 Qed.
 
-Hint Resolve barb_tran: cps.
+Hint Resolve barb_trans: cps.
 
 Instance barb_is_equiv: Equivalence barb.
 Proof.
   split.
   - exact barb_refl.
-  - exact barb_symm.
-  - exact barb_tran.
+  - exact barb_sym.
+  - exact barb_trans.
 Defined.
 
 End STCC.
