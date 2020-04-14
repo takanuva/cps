@@ -2271,6 +2271,47 @@ Qed.
 
 (******************************************************************************)
 
+Inductive context: nat -> Set :=
+  | context_hole:
+    context 0
+  | context_left {n} (b: context n) (ts: list pseudoterm) (c: pseudoterm):
+    context (S n)
+  | context_right {n} (b: pseudoterm) (ts: list pseudoterm) (c: context n):
+    context (n + length ts).
+
+Fixpoint apply_context {n} (h: context n) (e: pseudoterm): pseudoterm :=
+  match h with
+  | context_hole => e
+  | context_left b ts c => bind (apply_context b e) ts c
+  | context_right b ts c => bind b ts (apply_context c e)
+  end.
+
+Coercion apply_context: context >-> Funclass.
+
+Inductive static: forall n, context n -> Prop :=
+  | static_hole:
+    static 0 context_hole
+  | static_left:
+    forall n h ts c,
+    static (S n) (context_left h ts c).
+
+Definition nonstatic n h: Prop :=
+  ~static n h.
+
+Lemma context_static_nonstatic_dec:
+  forall n h,
+  { static n h } + { nonstatic n h }.
+Proof.
+  induction h.
+  (* Case: context_hole. *)
+  - left; constructor.
+  (* Case: context_left. *)
+  - left; constructor.
+  (* Case: context_right. *)
+  - right; intro.
+    inversion H.
+Qed.
+
 (** ** One-step reduction. *)
 
 (*
@@ -2304,23 +2345,6 @@ Qed.
     get terms a -`* b ->* c such that for all a there exists b and c where there
     are no longjmp-redexes in c? I don't think so.
 *)
-
-Inductive context: nat -> Set :=
-  | context_hole:
-    context 0
-  | context_left {n} (b: context n) (ts: list pseudoterm) (c: pseudoterm):
-    context (S n)
-  | context_right {n} (b: pseudoterm) (ts: list pseudoterm) (c: context n):
-    context (n + length ts).
-
-Fixpoint apply_context {n} (h: context n) (e: pseudoterm): pseudoterm :=
-  match h with
-  | context_hole => e
-  | context_left b ts c => bind (apply_context b e) ts c
-  | context_right b ts c => bind b ts (apply_context c e)
-  end.
-
-Coercion apply_context: context >-> Funclass.
 
 Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
@@ -2730,9 +2754,13 @@ Inductive converges: pseudoterm -> nat -> Prop :=
     forall b ts c k,
     converges b (S k) -> converges (bind b ts c) k.
 
+Hint Constructors converges: cps.
+
 Definition weakly_converges a n: Prop :=
   exists2 b,
   [a =>* b] & converges b n.
+
+Hint Unfold weakly_converges: cps.
 
 Lemma convergence_is_unique:
   forall e n,
