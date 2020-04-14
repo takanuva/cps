@@ -2312,6 +2312,25 @@ Proof.
     inversion H.
 Qed.
 
+Lemma nonstatic_ind:
+  forall P: (forall n, context n -> Prop),
+  (* Recursion stops when a right context is found; we never reach a hole. *)
+  forall f1: (forall b ts n h, P (n + length ts) (context_right b ts h)),
+  forall f2: (forall n h ts c, P n h -> P (S n) (context_left h ts c)),
+  forall n h, nonstatic n h -> P n h.
+Proof.
+  induction h; intro.
+  (* Case: context_hole. *)
+  - exfalso; apply H.
+    constructor.
+  (* Case: context_left. *)
+  - apply f2; apply IHh.
+    intro; apply H.
+    constructor.
+  (* Case: context_right. *)
+  - apply f1.
+Qed.
+
 (** ** One-step reduction. *)
 
 (*
