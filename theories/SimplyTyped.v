@@ -1777,6 +1777,8 @@ Inductive item (e: pseudoterm): list pseudoterm -> nat -> Prop :=
   | item_cdr:
     forall car cdr n, item e cdr n -> item e (cons car cdr) (S n).
 
+Hint Constructors item: cps.
+
 (* TODO: review names of the following lemmas. *)
 
 Lemma item_insert_tail:
@@ -2956,5 +2958,220 @@ Proof.
   - exact barb_sym.
   - exact barb_trans.
 Defined.
+
+(** ** Type system *)
+
+Definition env: Set :=
+  list pseudoterm.
+
+Definition item_lift (e: pseudoterm) (g: env) (n: nat): Prop :=
+  exists2 x, e = lift (S n) 0 x & item x g n.
+
+Notation flip f :=
+  (fun a b => f b a).
+
+Definition env_append_types (g: env) (ts: list pseudoterm): env :=
+  fold_left (flip cons) ts g.
+
+Inductive typing: env -> relation pseudoterm :=
+  | typing_base:
+    forall g,
+    valid_env g -> typing g base prop
+  | typing_negation:
+    forall g ts,
+    Forall (fun t => typing g t prop) ts -> valid_env g ->
+    typing g (negation ts) prop
+  | typing_bound:
+    forall g n t,
+    valid_env g -> item_lift t g n -> typing g n t
+  | typing_jump:
+    forall g k xs ts,
+    typing g k (negation ts) -> Forall2 (typing g) xs ts ->
+    typing g (jump k xs) void
+  | typing_bind:
+    forall g b ts c,
+    typing (negation ts :: g) b void ->
+    Forall (fun t => typing g t prop) ts ->
+    typing (env_append_types g ts) c void ->
+    typing g (bind b ts c) void
+
+with valid_env: env -> Prop :=
+  | valid_env_nil:
+    valid_env []
+  | valid_env_term_var:
+    forall g t,
+    valid_env g -> typing g t prop -> valid_env (t :: g).
+
+Hint Constructors typing: cps.
+Hint Constructors valid_env: cps.
+
+Lemma typing_deepind:
+  forall P: (forall g e t, Prop),
+  forall f1: (forall g, P g base prop),
+  forall f2: (forall g ts, Forall (fun t => P g t prop) ts ->
+              P g (negation ts) prop),
+  forall f3: (forall g n t, item_lift t g n -> P g n t),
+  forall f4: (forall g k xs ts, P g k (negation ts) -> Forall2 (P g) xs ts ->
+              P g (jump k xs) void),
+  forall f5: (forall g b ts c, P (negation ts :: g) b void ->
+              Forall (fun t => P g t prop) ts ->
+              P (env_append_types g ts) c void -> P g (bind b ts c) void),
+  forall g e t,
+  typing g e t -> P g e t.
+Proof.
+  do 6 intro; fix H 4.
+  destruct 1.
+  - apply f1.
+  - apply f2; auto.
+    clear f1 f2 f3 f4 f5 H1.
+    induction H0; auto.
+  - apply f3; auto.
+  - apply f4 with ts; auto.
+    clear f1 f2 f3 f4 f5 H0.
+    induction H1; auto.
+  - apply f5; auto.
+    clear f1 f2 f3 f4 f5 H0_ H0_0.
+    induction H0; auto.
+Qed.
+
+Inductive insert x: nat -> relation env :=
+  | insert_head:
+    forall tail,
+    insert x 0 tail (x :: tail)
+  | insert_tail:
+    forall n head tail new_tail,
+    insert x n tail new_tail ->
+    insert x (S n) (head :: tail) (lift 1 n head :: new_tail).
+
+Hint Constructors insert: cps.
+
+Lemma item_lift_insert_ge:
+  forall x n g h,
+  insert x n g h ->
+  forall m,
+  n <= m ->
+  forall y, item_lift y g m -> item_lift (lift 1 n y) h (S m).
+Proof.
+  induction 1; intros.
+  - destruct H0 as (z, ?, ?).
+    exists z; auto with cps.
+    rewrite H0.
+    rewrite lift_lift_simplification; auto with arith.
+  - destruct H1 as (z, ?, ?).
+    dependent destruction H2.
+    + inversion H0.
+    + rename n0 into m.
+      destruct IHinsert with m (lift (S m) 0 z); try omega.
+      * exists z; auto.
+      * rewrite lift_lift_simplification in H3; try omega.
+        exists x0; auto with cps.
+        rewrite H1; rewrite lift_lift_simplification; try omega.
+        admit.
+Admitted.
+
+Lemma item_lift_insert_lt:
+  forall e n g h,
+  insert e n g h ->
+  forall m,
+  n > m ->
+  forall y, item_lift y g m -> item_lift (lift 1 n y) h m.
+Proof.
+  induction 1; intros.
+  - inversion H.
+  - destruct H1.
+    dependent destruction H2.
+    + clear IHinsert H0.
+      exists (lift 1 n head); auto with cps.
+      symmetry; rewrite lift_lift_permutation; auto with arith.
+    + rename n0 into m.
+      destruct IHinsert with m (lift (S m) 0 x) as (z, ?, ?); try omega.
+      * exists x; auto.
+      * exists z; auto with cps.
+        admit.
+Admitted.
+
+Lemma env_append_types_simpl:
+  forall ts g,
+  env_append_types g ts = rev ts ++ g.
+Proof.
+  induction ts; simpl; intros.
+  - reflexivity.
+  - rewrite app_assoc_reverse.
+    apply IHts.
+Qed.
+
+Lemma typing_weak_lift:
+  forall g e t,
+  typing g e t ->
+  forall x n h,
+  insert x n g h -> valid_env h -> typing h (lift 1 n e) (lift 1 n t).
+Proof.
+  induction 1 using typing_deepind; intros.
+  (* Case: typing_base. *)
+  - apply typing_base.
+    assumption.
+  (* Case: typing_negation. *)
+  - simpl.
+    apply typing_negation; auto.
+    induction H; simpl.
+    + constructor.
+    + constructor; auto.
+      apply H with x; auto.
+  (* Case: typing_bound. *)
+  - rename n0 into m.
+    destruct (le_gt_dec m n).
+    + rewrite lift_bound_ge; auto.
+      apply typing_bound; auto.
+      apply item_lift_insert_ge with x g; auto.
+    + rewrite lift_bound_lt; auto.
+      apply typing_bound; auto.
+      apply item_lift_insert_lt with x g; auto.
+  (* Case: typing_jump. *)
+  - simpl.
+    apply typing_jump with (map (lift 1 n) ts).
+    + apply IHtyping with x; auto.
+    + clear IHtyping.
+      induction H; simpl.
+      * constructor.
+      * constructor; auto.
+        apply H with x; auto.
+  (* Case: typing_bind. *)
+  - simpl.
+    apply typing_bind.
+    + apply IHtyping with x.
+      * constructor; auto.
+      * constructor; auto.
+        clear IHtyping IHtyping0.
+        constructor; auto.
+        induction H; simpl; auto.
+        constructor; auto.
+        replace prop with (lift 1 n prop); auto.
+        apply H with x; auto.
+    + clear IHtyping IHtyping0.
+      induction H; simpl; auto.
+      constructor; auto.
+      replace prop with (lift 1 n prop); auto.
+      apply H with x; auto.
+    + apply IHtyping0 with x; auto.
+      * clear IHtyping IHtyping0.
+        rewrite Nat.add_comm.
+        do 2 rewrite env_append_types_simpl.
+        induction ts using rev_ind; simpl; auto.
+        rewrite app_length; simpl.
+        rewrite map_app; simpl.
+        replace (length ts + 1 + n) with (S (length ts + n)); try omega.
+        do 2 rewrite rev_app_distr; simpl.
+        admit.
+Admitted.
+
+Theorem weakening:
+  forall g e t,
+  typing g e t ->
+  forall x,
+  valid_env (x :: g) -> typing (x :: g) (lift 1 0 e) (lift 1 0 t).
+Proof.
+  intros.
+  apply typing_weak_lift with g x; auto with cps.
+Qed.
 
 End STCC.
