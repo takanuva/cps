@@ -2460,6 +2460,13 @@ Inductive context: Set :=
   | context_left (b: context) (ts: list pseudoterm) (c: pseudoterm)
   | context_right (b: pseudoterm) (ts: list pseudoterm) (c: context).
 
+Lemma context_eq_dec:
+  forall h r: context,
+  { h = r } + { h <> r }.
+Proof.
+  admit.
+Admitted.
+
 Reserved Notation "# h" (at level 0, right associativity, format "# h").
 
 Fixpoint context_depth (h: context): nat :=
@@ -2732,6 +2739,32 @@ Proof.
       rewrite H1.
       eexists (context_right b ts x); auto.
       simpl; omega.
+Qed.
+
+Lemma step_redex_inv:
+  forall P: pseudoterm -> Prop,
+  forall (h: context) xs ts c e,
+  forall f1: P (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c)))
+                  ts c),
+  forall f2: (forall r, #h = #r -> P (bind (r (jump #h xs)) ts c)),
+  forall f3: (forall c2, [c => c2] -> P (bind (h (jump #h xs)) ts c2)),
+  [bind (h (jump #h xs)) ts c => e] -> P e.
+Proof.
+  intros.
+  dependent destruction H.
+  - rename h0 into r.
+    destruct context_eq_dec with h r.
+    + destruct e.
+      apply context_is_injective in x; auto.
+      dependent destruction x.
+      exact f1.
+    + edestruct context_difference as (s, ?, ?); eauto.
+      erewrite H0.
+      apply f2; auto.
+  - destruct step_noninterference with h xs b2 as (r, ?, ?); auto.
+    rewrite H0.
+    apply f2; auto.
+  - apply f3; auto.
 Qed.
 
 (** ** Multi-step reduction *)
