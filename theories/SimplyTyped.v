@@ -2682,6 +2682,58 @@ Qed.
 
 Hint Resolve step_jmp: cps.
 
+(*
+  This lemma shows that free variables are preserved in redexes. If we have a
+  context H, and the term H[k<xs>] reduces to a term e, given that k is free in
+  the hole of H, then e will keep the subterm k<xs>, i.e., there is a such that
+  e = R[k<xs>] and R and H will bind the same variables in their holes.
+*)
+Lemma step_noninterference:
+  forall h: context,
+  forall xs e,
+  [h (jump #h xs) => e] ->
+  exists2 r: context,
+  e = r (jump #h xs) & #h = #r.
+Proof.
+  intro.
+  (* First we have to generalize the assumptions; we do not specifically care
+     that the continuation in subject position is equal to #h, but rather that
+     it's greater than it, representing it's free, so that it can't be changed
+     by the redex. *)
+  set (n := #h) at 1 2.
+  assert (n >= #h); auto.
+  generalize n H; clear n H.
+  (* Now we can generate the appropriate inductive hypotheses. *)
+  induction h; simpl; intros.
+  (* Case: context_hole. *)
+  - inversion H0.
+  (* Case: context_left. *)
+  - dependent destruction H0.
+    + rename h0 into r.
+      assert (h <> r).
+      * destruct 1.
+        apply context_is_injective in x; auto.
+        inversion x; omega.
+      * edestruct context_difference; eauto.
+        eexists (context_left x0 ts c); simpl; try omega.
+        f_equal; eassumption.
+    + destruct IHh with n xs b2; eauto with arith.
+      rewrite H1.
+      eexists (context_left x ts c); auto.
+      simpl; omega.
+    + eexists (context_left h ts c2); auto.
+  (* Case: context_right. *)
+  - dependent destruction H0.
+    + rename h0 into r.
+      eexists (context_right _ ts h); auto.
+      simpl; f_equal.
+    + eexists (context_right b2 ts h); auto.
+    + destruct IHh with n xs c2; eauto with arith.
+      rewrite H1.
+      eexists (context_right b ts x); auto.
+      simpl; omega.
+Qed.
+
 (** ** Multi-step reduction *)
 
 Notation star := rt(step).
