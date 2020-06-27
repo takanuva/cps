@@ -2455,15 +2455,23 @@ Qed.
 
 (******************************************************************************)
 
-Inductive context: nat -> Set :=
-  | context_hole:
-    context 0
-  | context_left {n} (b: context n) (ts: list pseudoterm) (c: pseudoterm):
-    context (S n)
-  | context_right {n} (b: pseudoterm) (ts: list pseudoterm) (c: context n):
-    context (n + length ts).
+Inductive context: Set :=
+  | context_hole
+  | context_left (b: context) (ts: list pseudoterm) (c: pseudoterm)
+  | context_right (b: pseudoterm) (ts: list pseudoterm) (c: context).
 
-Fixpoint apply_context {n} (h: context n) (e: pseudoterm): pseudoterm :=
+Reserved Notation "# h" (at level 0, right associativity, format "# h").
+
+Fixpoint context_depth (h: context): nat :=
+  match h with
+  | context_hole => 0
+  | context_left b ts c => S #b
+  | context_right b ts c => #c + length ts
+  end
+
+where "# h" := (context_depth h).
+
+Fixpoint apply_context (h: context) (e: pseudoterm): pseudoterm :=
   match h with
   | context_hole => e
   | context_left b ts c => bind (apply_context b e) ts c
@@ -2472,19 +2480,19 @@ Fixpoint apply_context {n} (h: context n) (e: pseudoterm): pseudoterm :=
 
 Coercion apply_context: context >-> Funclass.
 
-Inductive static: forall n, context n -> Prop :=
+Inductive static: context -> Prop :=
   | static_hole:
-    static 0 context_hole
+    static context_hole
   | static_left:
-    forall n h ts c,
-    static (S n) (context_left h ts c).
+    forall h ts c,
+    static (context_left h ts c).
 
-Definition nonstatic n h: Prop :=
-  ~static n h.
+Definition nonstatic h: Prop :=
+  ~static h.
 
 Lemma context_static_nonstatic_dec:
-  forall n h,
-  { static n h } + { nonstatic n h }.
+  forall h,
+  { static h } + { nonstatic h }.
 Proof.
   induction h.
   (* Case: context_hole. *)
@@ -2497,11 +2505,11 @@ Proof.
 Qed.
 
 Lemma nonstatic_ind:
-  forall P: (forall n, context n -> Prop),
+  forall P: context -> Prop,
   (* Recursion stops when a right context is found; we never reach a hole. *)
-  forall f1: (forall b ts n h, P (n + length ts) (context_right b ts h)),
-  forall f2: (forall n h ts c, P n h -> P (S n) (context_left h ts c)),
-  forall n h, nonstatic n h -> P n h.
+  forall f1: (forall b ts h, P (context_right b ts h)),
+  forall f2: (forall h ts c, P h -> P (context_left h ts c)),
+  forall h, nonstatic h -> P h.
 Proof.
   induction h; intro.
   (* Case: context_hole. *)
@@ -2553,11 +2561,11 @@ Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
 
 Inductive step: relation pseudoterm :=
   | step_ctxjmp:
-    forall {k} (h: context k),
+    forall (h: context),
     forall xs ts c,
     length xs = length ts ->
-    [bind (h (jump k xs)) ts c =>
-      bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c]
+    [bind (h (jump #h xs)) ts c =>
+      bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c]
   | step_bind_left:
     LEFT step
   | step_bind_right:
@@ -2619,11 +2627,11 @@ Qed.
 Hint Resolve star_step: cps.
 
 Lemma star_ctxjmp:
-  forall {k} (h: context k),
+  forall h: context,
   forall xs ts c,
   length xs = length ts ->
-  [bind (h (jump k xs)) ts c =>*
-    bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c].
+  [bind (h (jump #h xs)) ts c =>*
+    bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c].
 Proof.
   auto with cps.
 Qed.
@@ -2686,11 +2694,11 @@ Qed.
 Hint Resolve conv_step: cps.
 
 Lemma conv_ctxjmp:
-  forall {k} (h: context k),
+  forall h: context,
   forall xs ts c,
   length xs = length ts ->
-  [bind (h (jump k xs)) ts c <=>
-    bind (h (apply_parameters xs 0 (lift (S k) (length ts) c))) ts c].
+  [bind (h (jump #h xs)) ts c <=>
+    bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c].
 Proof.
   auto with cps.
 Qed.
@@ -2764,13 +2772,13 @@ Inductive parallel: relation pseudoterm :=
     forall e,
     parallel e e
   | parallel_ctxjmp:
-    forall {k} (h: context k),
+    forall h: context,
     forall xs ts b c1 c2,
     length xs = length ts ->
-    parallel b (h (jump k xs)) ->
+    parallel b (h (jump #h xs)) ->
     parallel c1 c2 ->
     parallel (bind b ts c1)
-      (bind (h (apply_parameters xs 0 (lift (S k) (length ts) c2))) ts c2)
+      (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c2))) ts c2)
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
@@ -2811,27 +2819,31 @@ Qed.
 Hint Resolve star_parallel: cps.
 
 Lemma context_lift:
-  forall {n} (h: context n),
+  forall h: context,
   forall i k,
-  exists r: context n,
-  forall e, lift i k (h e) = r (lift i (n + k) e).
+  exists2 r: context,
+  forall e, lift i k (h e) = r (lift i (#h + k) e) & #h = #r.
 Proof.
   induction h; simpl; intros.
   - exists context_hole; auto.
-  - edestruct IHh with i (S k) as (r, ?).
+  - edestruct IHh with i (S k) as (r, ?, ?).
     exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
-    intro; simpl; f_equal.
-    rewrite lift_distributes_over_bind; f_equal.
-    replace (S (n + k)) with (n + S k); try omega.
-    apply H.
-  - edestruct IHh with i (k + length ts) as (r, ?).
+    + intro; simpl; f_equal.
+      rewrite lift_distributes_over_bind; f_equal.
+      replace (S (#h + k)) with (#h + S k); try omega.
+      apply H.
+    + simpl.
+      omega.
+  - edestruct IHh with i (k + length ts) as (r, ?, ?).
     replace (length ts) with (length (map (lift i k) ts)).
     + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
-      intro; simpl; f_equal.
-      rewrite map_length.
-      rewrite lift_distributes_over_bind; f_equal.
-      replace (n + length ts + k) with (n + (k + length ts)); try omega.
-      apply H.
+      * intro; simpl; f_equal.
+        rewrite map_length.
+        rewrite lift_distributes_over_bind; f_equal.
+        replace (#h + length ts + k) with (#h + (k + length ts)); try omega.
+        apply H.
+      * simpl.
+        omega.
     + apply map_length.
 Qed.
 
@@ -2850,27 +2862,31 @@ Proof.
 Admitted.
 
 Lemma context_subst:
-  forall {n} (h: context n),
+  forall h: context,
   forall x k,
-  exists r: context n,
-  forall e, subst x k (h e) = r (subst x (n + k) e).
+  exists2 r: context,
+  forall e, subst x k (h e) = r (subst x (#h + k) e) & #h = #r.
 Proof.
   induction h; simpl; intros.
   - exists context_hole; auto.
-  - edestruct IHh with x (S k) as (r, ?).
+  - edestruct IHh with x (S k) as (r, ?, ?).
     exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
-    intro; simpl; f_equal.
-    rewrite subst_distributes_over_bind; f_equal.
-    replace (S (n + k)) with (n + S k); try omega.
-    apply H.
-  - edestruct IHh with x (k + length ts) as (r, ?).
+    + intro; simpl; f_equal.
+      rewrite subst_distributes_over_bind; f_equal.
+      replace (S (#h + k)) with (#h + S k); try omega.
+      apply H.
+    + simpl.
+      omega.
+  - edestruct IHh with x (k + length ts) as (r, ?, ?).
     replace (length ts) with (length (map (subst x k) ts)).
     + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
-      intro; simpl; f_equal.
-      rewrite map_length.
-      rewrite subst_distributes_over_bind; f_equal.
-      replace (n + length ts + k) with (n + (k + length ts)); try omega.
-      apply H.
+      * intro; simpl; f_equal.
+        rewrite map_length.
+        rewrite subst_distributes_over_bind; f_equal.
+        replace (#h + length ts + k) with (#h + (k + length ts)); try omega.
+        apply H.
+      * simpl.
+        omega.
     + apply map_length.
 Qed.
 
@@ -2900,7 +2916,7 @@ Proof.
 Qed.
 
 Lemma parallel_context:
-  forall n (h: context n),
+  forall h: context,
   forall a b,
   parallel a b -> parallel (h a) (h b).
 Proof.
@@ -3058,7 +3074,7 @@ Qed.
 (* I'd like to try a coinductive definition later on... but let's see... *)
 
 Definition barb a b: Prop :=
-  forall n (h: context n),
+  forall h: context,
   bisi (h a) (h b).
 
 Notation "[ a ~~ b ]" := (barb a b)
@@ -3089,7 +3105,7 @@ Lemma barb_sym:
   [a ~~ b] -> [b ~~ a].
 Proof.
   unfold barb; intros.
-  destruct H with n h as (R, (X, Y), I).
+  destruct H with h as (R, (X, Y), I).
   exists (transp _ R); auto.
   split; auto.
 Qed.
@@ -3101,11 +3117,11 @@ Lemma barb_trans:
   [a ~~ b] -> [b ~~ c] -> [a ~~ c].
 Proof.
   unfold barb at 3; intros.
-  destruct H with n h as (R, ?, ?).
-  destruct H0 with n h as (S, ?, ?).
+  destruct H with h as (R, ?, ?).
+  destruct H0 with h as (S, ?, ?).
   exists (fun a c =>
     exists2 b, R a b & S b c).
-  - clear a b c H H0 n h H2 H4.
+  - clear a b c H H0 h H2 H4.
     split; split; do 5 intro.
     + destruct H as (d, ?, ?).
       destruct H1 as ((?, _), _).
