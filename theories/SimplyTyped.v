@@ -2453,7 +2453,7 @@ Proof.
       apply lift_zero_e_equals_e.
 Qed.
 
-(******************************************************************************)
+(** ** One-hole contexts. *)
 
 Inductive context: Set :=
   | context_hole
@@ -2521,6 +2521,77 @@ Proof.
     constructor.
   (* Case: context_right. *)
   - apply f1.
+Qed.
+
+Lemma context_is_injective:
+  forall h r: context,
+  h = r ->
+  forall a b,
+  h a = r b -> a = b.
+Proof.
+  induction h; destruct r; intros; try discriminate.
+  - assumption.
+  - dependent destruction H0.
+    eauto.
+  - dependent destruction H0.
+    eauto.
+Qed.
+
+(*
+  The intuition behind the following technical lemma is as follow:
+
+  We have two contexts H and R there are different, but we do have jumps n<xs>
+  and m<ys> such that H[n<xs>] = R[m<ys>]. This implies that m<ys> is a subterm
+  of H, and n<xs> is a subterm of R, i.e., H and R "mark" two different jumps in
+  the same term. We want to, given a term x, rebuild the context H, but we will
+  exchange the m<ys> in it by the term x, thus making S[n<xs>] equal to R[x].
+
+  This is useful for proving that redexes are non-overlapping.
+*)
+Lemma context_difference:
+  forall h r: context,
+  h <> r ->
+  forall n m xs ys,
+  h (jump n xs) = r (jump m ys) ->
+  forall x,
+  exists2 s: context,
+  r x = s (jump n xs) & #h = #s.
+Proof.
+  induction h; destruct r; simpl; intros.
+  (* Case: (context_hole, context_hole). *)
+  - exfalso; auto.
+  (* Case: (context_hole, context_left). *)
+  - discriminate.
+  (* Case: (context_hole, context_right). *)
+  - discriminate.
+  (* Case: (context_left, context_hole). *)
+  - discriminate.
+  (* Case: (context_left, context_left). *)
+  - dependent destruction H0.
+    edestruct IHh with (r := r) as (s, ?, ?).
+    + congruence.
+    + eassumption.
+    + exists (context_left s ts0 c0); simpl.
+      * f_equal; eassumption.
+      * omega.
+  (* Case: (context_left, context_right). *)
+  - clear IHh.
+    dependent destruction H0.
+    eexists (context_left h ts0 (r x)); auto.
+  (* Case: (context_right, context_hole). *)
+  - discriminate.
+  (* Case: (context_right, context_left). *)
+  - clear IHh.
+    dependent destruction H0.
+    eexists (context_right (r x) ts0 h); auto.
+  (* Case: (context_right, context_right). *)
+  - dependent destruction H0.
+    edestruct IHh with (r := r) as (s, ?, ?).
+    + congruence.
+    + eassumption.
+    + exists (context_right b0 ts0 s); simpl.
+      * f_equal; eassumption.
+      * omega.
 Qed.
 
 (** ** One-step reduction. *)
