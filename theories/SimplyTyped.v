@@ -3561,4 +3561,148 @@ Proof.
   apply typing_weak_lift with g x; auto with cps.
 Qed.
 
+(** ** Normalization. *)
+
+Notation flip f :=
+  (fun a b => f b a).
+
+Definition normal a: Prop :=
+  forall b, ~[a => b].
+
+Definition WN a: Prop :=
+  exists2 b, [a =>* b] & normal b.
+
+Notation SN :=
+  (Acc (flip step)).
+
+Inductive step_in_env: relation env :=
+  | step_in_env_car:
+    forall g t u,
+    step t u -> step_in_env (t :: g) (u :: g)
+  | step_in_env_cdr:
+    forall g h t,
+    step_in_env g h -> step_in_env (t :: g) (t :: h).
+
+Lemma step_in_env_is_well_founded:
+  forall xs: env,
+  Forall SN xs ->
+  Acc (flip step_in_env) xs.
+Proof.
+  induction xs; intros.
+  - constructor; intros.
+    inversion H0.
+  - dependent destruction H.
+    apply IHxs in H0; clear IHxs.
+    induction H; clear H.
+    induction H0.
+    constructor; intros.
+    dependent destruction H2.
+    + intuition.
+    + apply H0; intros.
+      * assumption.
+      * eapply H1; eauto.
+        constructor.
+        assumption.
+Qed.
+
+Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
+  fold_right Nat.add 0 (map f ts).
+
+Lemma sumup_app:
+  forall {T} f a b,
+  @sumup T f (a ++ b) = sumup f a + sumup f b.
+Proof.
+  induction a; simpl; intros.
+  - reflexivity.
+  - unfold sumup; simpl.
+    rewrite plus_assoc_reverse; f_equal.
+    apply IHa.
+Defined.
+
+Fixpoint count (t: pseudoterm): nat :=
+  match t with
+  | base =>
+    1
+  | negation ts =>
+    1 + sumup count ts
+  | _ =>
+    0
+  end.
+
+Lemma count_is_well_founded:
+  well_founded (ltof _ count).
+Proof.
+  apply well_founded_ltof.
+Defined.
+
+Lemma count_arg:
+  forall {t ts g},
+  t = negation (negation ts :: g) ->
+  count (negation (env_prepend ts g)) < count t.
+Proof.
+  intros.
+  rewrite H; simpl.
+  admit.
+Admitted.
+
+Lemma count_ret:
+  forall {t ts g},
+  t = negation (negation ts :: g) ->
+  count (negation g) < count t.
+Proof.
+  intros.
+  rewrite H; simpl.
+  replace (negation ts :: g) with ([negation ts] ++ g); auto.
+  rewrite sumup_app; simpl; auto with arith.
+Defined.
+
+Definition ARR ts (U V: pseudoterm -> Prop): pseudoterm -> Prop :=
+  fun b =>
+    forall c: pseudoterm,
+    U c -> V (bind b ts c).
+
+(* TODO: interpret ~(G, b)... by subst? *)
+Definition L: pseudoterm -> pseudoterm -> Prop :=
+  Fix count_is_well_founded (fun _ => pseudoterm -> Prop) (fun t f =>
+    match t as x return (t = x -> pseudoterm -> Prop) with
+    (* Given ~(G, ~T)... *)
+    | negation (negation ts :: g) =>
+      fun H =>
+        ARR ts (f _ (count_arg H)) (f _ (count_ret H))
+    (* By default... *)
+    | _ =>
+      fun _ => SN
+    end eq_refl).
+
+Lemma L_composition:
+  forall ts g,
+  L (negation (negation ts :: g)) =
+    ARR ts (L (negation (env_prepend ts g))) (L (negation g)).
+Proof.
+  intros.
+  unfold L.
+  rewrite Fix_eq.
+  - fold L.
+    reflexivity.
+  - intros.
+    destruct x; simpl; auto.
+    destruct ts0; simpl; auto.
+    destruct p; simpl; auto.
+    do 2 rewrite H; auto.
+Defined.
+
+Lemma interpretation:
+  forall g e,
+  typing g e void -> L (negation g) e.
+Proof.
+  intros.
+  dependent induction H.
+  - exfalso.
+    admit.
+  - clear IHtyping.
+    admit.
+  - rewrite L_composition in IHtyping1.
+    unfold ARR in IHtyping1; intuition.
+Admitted.
+
 End STCC.
