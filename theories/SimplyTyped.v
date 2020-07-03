@@ -140,6 +140,36 @@ Hint Constructors subterm: cps.
 
 (** ** Metatheory *)
 
+Lemma pseudoterm_eq_dec:
+  forall a b: pseudoterm,
+  { a = b } + { a <> b }.
+Proof.
+  fix H 1.
+  destruct a; destruct b; try (right; intro; discriminate).
+  - left; reflexivity.
+  - left; reflexivity.
+  - left; reflexivity.
+  - left; reflexivity.
+  - destruct Nat.eq_dec with n n0.
+    + left; congruence.
+    + right; congruence.
+  - destruct list_eq_dec with pseudoterm ts ts0.
+    + exact H.
+    + left; congruence.
+    + right; congruence.
+  - destruct list_eq_dec with pseudoterm xs xs0.
+    + exact H.
+    + destruct H with a b; try (right; congruence).
+      left; congruence.
+    + right; congruence.
+  - destruct list_eq_dec with pseudoterm ts ts0.
+    + exact H.
+    + destruct H with a1 b1; try (right; congruence).
+      destruct H with a2 b2; try (right; congruence).
+      left; congruence.
+    + right; congruence.
+Qed.
+
 Fixpoint traverse f k e: pseudoterm :=
   match e with
   | type =>
@@ -2551,7 +2581,8 @@ Qed.
   and m<ys> such that H[n<xs>] = R[m<ys>]. This implies that m<ys> is a subterm
   of H, and n<xs> is a subterm of R, i.e., H and R "mark" two different jumps in
   the same term. We want to, given a term x, rebuild the context H, but we will
-  exchange the m<ys> in it by the term x, thus making S[n<xs>] equal to R[x].
+  exchange the m<ys> in it by the term x, thus making S[n<xs>] equal to R[x],
+  and do the respective thing for R.
 
   This is useful for proving that redexes are non-overlapping.
 *)
@@ -2561,8 +2592,14 @@ Lemma context_difference:
   forall n m xs ys,
   h (jump n xs) = r (jump m ys) ->
   forall x,
-  exists2 s: context,
-  r x = s (jump n xs) & #h = #s.
+  exists s: context,
+       r x = s (jump n xs)
+    /\ #h = #s
+    /\ forall y,
+       exists u: context,
+            h y = u (jump m ys)
+         /\ #r = #u
+         /\ s y = u x.
 Proof.
   induction h; destruct r; simpl; intros.
   (* Case: (context_hole, context_hole). *)
@@ -2575,30 +2612,42 @@ Proof.
   - discriminate.
   (* Case: (context_left, context_left). *)
   - dependent destruction H0.
-    edestruct IHh with (r := r) as (s, ?, ?).
+    edestruct IHh with (r := r) as (s, ?).
     + congruence.
     + eassumption.
     + exists (context_left s ts0 c0); simpl.
+      intuition.
       * f_equal; eassumption.
-      * omega.
+      * edestruct H3 as (u, ?).
+        exists (context_left u ts0 c0); simpl.
+        intuition; f_equal; eauto.
   (* Case: (context_left, context_right). *)
   - clear IHh.
     dependent destruction H0.
-    eexists (context_left h ts0 (r x)); auto.
+    eexists (context_left h ts0 (r x)).
+    intuition.
+    eexists (context_right (h y) ts0 r).
+    intuition.
   (* Case: (context_right, context_hole). *)
   - discriminate.
   (* Case: (context_right, context_left). *)
   - clear IHh.
     dependent destruction H0.
-    eexists (context_right (r x) ts0 h); auto.
+    eexists (context_right (r x) ts0 h).
+    intuition.
+    eexists (context_left r ts0 (h y)).
+    intuition.
   (* Case: (context_right, context_right). *)
   - dependent destruction H0.
-    edestruct IHh with (r := r) as (s, ?, ?).
+    edestruct IHh with (r := r) as (s, ?).
     + congruence.
     + eassumption.
     + exists (context_right b0 ts0 s); simpl.
+      intuition.
       * f_equal; eassumption.
-      * omega.
+      * edestruct H3 as (u, ?).
+        exists (context_right b0 ts0 u); simpl.
+        intuition; f_equal; eauto.
 Qed.
 
 (** ** One-step reduction. *)
@@ -2721,8 +2770,8 @@ Proof.
       * destruct 1.
         apply context_is_injective in x; auto.
         inversion x; omega.
-      * edestruct context_difference; eauto.
-        eexists (context_left x0 ts c); simpl; try omega.
+      * edestruct context_difference as (s, (?, ?)); eauto.
+        eexists (context_left s ts c); simpl; try omega.
         f_equal; eassumption.
     + destruct IHh with n xs b2; eauto with arith.
       rewrite H1.
@@ -2758,7 +2807,7 @@ Proof.
       apply context_is_injective in x; auto.
       dependent destruction x.
       exact f1.
-    + edestruct context_difference as (s, ?, ?); eauto.
+    + edestruct context_difference as (s, (?, (?, _))); eauto.
       erewrite H0.
       apply f2; auto.
   - destruct step_noninterference with h xs b2 as (r, ?, ?); auto.
