@@ -2574,6 +2574,71 @@ Proof.
     eauto.
 Qed.
 
+Inductive same_path: relation context :=
+  | same_path_hole:
+    same_path context_hole context_hole
+  | same_path_left:
+    forall h r ts c1 c2,
+    same_path h r ->
+    same_path (context_left h ts c1) (context_left r ts c2)
+  | same_path_right:
+    forall b1 b2 ts h r,
+    same_path h r ->
+    same_path (context_right b1 ts h) (context_right b2 ts r).
+
+Hint Constructors same_path: cps.
+
+Lemma same_path_refl:
+  forall h,
+  same_path h h.
+Proof.
+  induction h.
+  - constructor.
+  - constructor; auto.
+  - constructor; auto.
+Qed.
+
+Hint Resolve same_path_refl: cps.
+
+Lemma same_path_sym:
+  forall h r,
+  same_path h r -> same_path r h.
+Proof.
+  induction h; destruct r; inversion 1.
+  - constructor.
+  - constructor; auto.
+  - constructor; auto.
+Qed.
+
+Hint Resolve same_path_sym: cps.
+
+Lemma same_path_trans:
+  forall h r,
+  same_path h r ->
+  forall s,
+  same_path r s -> same_path h s.
+Proof.
+  induction 1; inversion_clear 1.
+  - constructor.
+  - constructor; auto.
+  - constructor; auto.
+Qed.
+
+Hint Resolve same_path_trans: cps.
+
+Lemma context_same_path_implies_same_depth:
+  forall h r,
+  same_path h r -> #h = #r.
+Proof.
+  induction 1.
+  - reflexivity.
+  - simpl; omega.
+  - simpl; omega.
+Qed.
+
+Hint Resolve context_same_path_implies_same_depth: cps.
+Hint Rewrite context_same_path_implies_same_depth: cps.
+
 (*
   The intuition behind the following technical lemma is as follow:
 
@@ -2594,11 +2659,11 @@ Lemma context_difference:
   forall x,
   exists s: context,
        r x = s (jump n xs)
-    /\ #h = #s
+    /\ same_path h s
     /\ forall y,
        exists u: context,
             h y = u (jump m ys)
-         /\ #r = #u
+         /\ same_path r u
          /\ s y = u x.
 Proof.
   induction h; destruct r; simpl; intros.
@@ -2626,8 +2691,7 @@ Proof.
     dependent destruction H0.
     eexists (context_left h ts0 (r x)).
     intuition.
-    eexists (context_right (h y) ts0 r).
-    intuition.
+    eexists (context_right (h y) ts0 r); intuition.
   (* Case: (context_right, context_hole). *)
   - discriminate.
   (* Case: (context_right, context_left). *)
@@ -2635,8 +2699,7 @@ Proof.
     dependent destruction H0.
     eexists (context_right (r x) ts0 h).
     intuition.
-    eexists (context_left r ts0 (h y)).
-    intuition.
+    eexists (context_left r ts0 (h y)); intuition.
   (* Case: (context_right, context_right). *)
   - dependent destruction H0.
     edestruct IHh with (r := r) as (s, ?).
@@ -2739,7 +2802,7 @@ Qed.
 Hint Resolve step_jmp: cps.
 
 (*
-  This lemma shows that free variables are preserved in redexes. If we have a
+  This lemma shows that "free jumps" are preserved in redexes. If we have a
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in
   the hole of H, then e will keep the subterm k<xs>, i.e., there is a such that
   e = R[k<xs>] and R and H will bind the same variables in their holes.
@@ -2749,7 +2812,7 @@ Lemma step_noninterference:
   forall xs e,
   [h (jump #h xs) => e] ->
   exists2 r: context,
-  e = r (jump #h xs) & #h = #r.
+  e = r (jump #h xs) & same_path h r.
 Proof.
   intro.
   (* First we have to generalize the assumptions; we do not specifically care
@@ -2771,25 +2834,25 @@ Proof.
         apply context_is_injective in x; auto.
         inversion x; omega.
       * edestruct context_difference as (s, (?, ?)); eauto.
-        eexists (context_left s ts c); simpl; try omega.
-        f_equal; eassumption.
+        eexists (context_left s ts c); intuition.
+        simpl; f_equal; eassumption.
     + destruct IHh with n xs b2; eauto with arith.
       rewrite H1.
-      eexists (context_left x ts c); auto.
-      simpl; omega.
-    + eexists (context_left h ts c2); auto.
+      eexists (context_left x ts c); auto with cps.
+    + eexists (context_left h ts c2); auto with cps.
   (* Case: context_right. *)
   - dependent destruction H0.
     + rename h0 into r.
-      eexists (context_right _ ts h); auto.
-      simpl; f_equal.
-    + eexists (context_right b2 ts h); auto.
+      eexists (context_right _ ts h).
+      * simpl; f_equal.
+      * auto with cps.
+    + eexists (context_right b2 ts h); auto with cps.
     + destruct IHh with n xs c2; eauto with arith.
       rewrite H1.
-      eexists (context_right b ts x); auto.
-      simpl; omega.
+      eexists (context_right b ts x); auto with cps.
 Qed.
 
+(*
 Lemma step_redex_inv:
   forall P: pseudoterm -> Prop,
   forall (h: context) xs ts c e,
@@ -2815,6 +2878,7 @@ Proof.
     apply f2; auto.
   - apply f3; auto.
 Qed.
+*)
 
 (** ** Multi-step reduction *)
 
@@ -3133,12 +3197,56 @@ Proof.
     apply parallel_refl.
 Qed.
 
+Lemma parallel_noninterference:
+  forall h: context,
+  forall xs e,
+  parallel (h (jump #h xs)) e ->
+  exists2 r: context,
+  e = r (jump #h xs) & same_path h r.
+Proof.
+  intros.
+  apply star_parallel in H.
+  induction H using clos_refl_trans_ind_left.
+  - exists h; auto with cps.
+  - destruct IHclos_refl_trans.
+    rewrite H1 in H0.
+    destruct step_noninterference with x xs z.
+    + replace #x with #h; auto with cps.
+    + replace #h with #x; eauto with cps.
+Qed.
+
+(* TODO: remove this, please. *)
+Notation AP := apply_parameters.
+
 (** ** Confluency *)
 
 Lemma parallel_is_confluent:
   confluent parallel.
 Proof.
-  admit.
+  induction 1; unfold transp; intros.
+  - dependent destruction H.
+    + exists e; auto with cps.
+    + eexists (bind (h _) ts c2).
+      * apply parallel_ctxjmp; eauto.
+      * apply parallel_refl.
+    + eexists (bind b2 ts c2).
+      * apply parallel_bind; auto.
+      * apply parallel_refl.
+  - dependent destruction H2.
+    + eexists (bind (h _) ts c2).
+      * apply parallel_refl.
+      * apply parallel_ctxjmp; auto.
+    + admit.
+    + admit.
+  - dependent destruction H1.
+    + exists (bind b2 ts c2).
+      * apply parallel_refl.
+      * apply parallel_bind; auto.
+    + unfold transp in *.
+      admit.
+    + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
+      destruct IHparallel2 with c3 as (c4, ?, ?); auto.
+      eexists (bind b4 ts c4); auto with cps.
 Admitted.
 
 Lemma transitive_parallel_is_confluent:
