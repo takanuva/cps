@@ -3041,13 +3041,14 @@ Inductive parallel: relation pseudoterm :=
     forall e,
     parallel e e
   | parallel_ctxjmp:
-    forall h: context,
-    forall xs ts b c1 c2,
+    forall h r xs ts c1 c2,
+    same_path h r ->
     length xs = length ts ->
-    parallel b (h (jump #h xs)) ->
+    (* Expect H and R to have the same hole to avoid reducing a copied jump. *)
+    parallel (h (jump #h xs)) (r (jump #r xs)) ->
     parallel c1 c2 ->
-    parallel (bind b ts c1)
-      (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c2))) ts c2)
+    parallel (bind (h (jump #h xs)) ts c1)
+      (bind (r (apply_parameters xs 0 (lift (S #r) (length ts) c2))) ts c2)
   | parallel_bind:
     forall b1 b2 ts c1 c2,
     parallel b1 b2 -> parallel c1 c2 ->
@@ -3061,6 +3062,7 @@ Lemma parallel_step:
 Proof.
   induction 1.
   - eapply parallel_ctxjmp; auto.
+    + apply same_path_refl.
     + apply parallel_refl.
     + apply parallel_refl.
   - apply parallel_bind; auto.
@@ -3078,11 +3080,18 @@ Proof.
   induction 1.
   - apply star_refl.
   - eapply star_trans.
-    + apply star_bind_left; eauto.
+    + apply star_bind_left.
+      eassumption.
     + eapply star_trans.
-      * apply star_bind_right; eauto.
-      * apply star_ctxjmp; auto.
-  - eauto with cps.
+      * apply star_bind_right.
+        eassumption.
+      * apply star_ctxjmp.
+        assumption.
+  - eapply star_trans.
+    + apply star_bind_left.
+      eassumption.
+    + apply star_bind_right.
+      assumption.
 Qed.
 
 Hint Resolve star_parallel: cps.
@@ -3215,29 +3224,23 @@ Proof.
     + replace #h with #x; eauto with cps.
 Qed.
 
-(* TODO: remove this, please. *)
-Notation AP := apply_parameters.
-
 (** ** Confluency *)
 
 Lemma parallel_is_confluent:
   confluent parallel.
 Proof.
   induction 1; unfold transp; intros.
-  - dependent destruction H.
-    + exists e; auto with cps.
-    + eexists (bind (h _) ts c2).
-      * apply parallel_ctxjmp; eauto.
-      * apply parallel_refl.
-    + eexists (bind b2 ts c2).
-      * apply parallel_bind; auto.
-      * apply parallel_refl.
-  - dependent destruction H2.
-    + eexists (bind (h _) ts c2).
+  - exists z.
+    + assumption.
+    + apply parallel_refl.
+  - dependent destruction H3.
+    + eexists (bind (r _) ts c2).
       * apply parallel_refl.
       * apply parallel_ctxjmp; auto.
-    + admit.
-    + admit.
+    + unfold transp in * |- *.
+      admit.
+    + unfold transp in *.
+      admit.
   - dependent destruction H1.
     + exists (bind b2 ts c2).
       * apply parallel_refl.
@@ -3260,9 +3263,7 @@ Lemma transitive_parallel_and_star_are_equivalent:
   forall a b,
   [a =>* b] <-> clos_trans _ parallel a b.
 Proof.
-  split.
-  - induction 1; eauto with cps.
-  - induction 1; eauto with cps.
+  split; induction 1; eauto with cps.
 Qed.
 
 Theorem star_is_confluent:
