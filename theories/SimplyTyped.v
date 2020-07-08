@@ -2517,12 +2517,42 @@ Fixpoint apply_context (h: context) (e: pseudoterm): pseudoterm :=
 
 Coercion apply_context: context >-> Funclass.
 
+Fixpoint compose_context (h: context) (r: context): context :=
+  match h with
+  | context_hole => r
+  | context_left b ts c => context_left (compose_context b r) ts c
+  | context_right b ts c => context_right b ts (compose_context c r)
+  end.
+
+Lemma compose_context_is_sound:
+  forall h r e,
+  compose_context h r e = h (r e).
+Proof.
+  induction h; intros; simpl.
+  - reflexivity.
+  - rewrite IHh.
+    reflexivity.
+  - rewrite IHh.
+    reflexivity.
+Qed.
+
 Inductive static: context -> Prop :=
   | static_hole:
     static context_hole
   | static_left:
     forall h ts c,
-    static (context_left h ts c).
+    static h -> static (context_left h ts c).
+
+Hint Constructors static: cps.
+
+Lemma static_compose_context:
+  forall h r,
+  static h -> static r -> static (compose_context h r).
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - auto with cps.
+Qed.
 
 Definition nonstatic h: Prop :=
   ~static h.
@@ -2535,7 +2565,12 @@ Proof.
   (* Case: context_hole. *)
   - left; constructor.
   (* Case: context_left. *)
-  - left; constructor.
+  - destruct IHh; simpl.
+    + left; constructor.
+      assumption.
+    + right; intro.
+      inversion_clear H.
+      apply n; assumption.
   (* Case: context_right. *)
   - right; intro.
     inversion H.
@@ -2556,6 +2591,7 @@ Proof.
   - apply f2; apply IHh.
     intro; apply H.
     constructor.
+    assumption.
   (* Case: context_right. *)
   - apply f1.
 Qed.
