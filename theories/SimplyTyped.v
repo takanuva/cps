@@ -1965,7 +1965,7 @@ Hint Resolve cong_right_cycle: cps.
 Arguments lift i k e: simpl nomatch.
 Arguments subst y k e: simpl nomatch.
 
-Inductive item (e: pseudoterm): list pseudoterm -> nat -> Prop :=
+Inductive item {T} (e: T): list T -> nat -> Prop :=
   | item_car:
     forall cdr, item e (cons e cdr) 0
   | item_cdr:
@@ -1976,8 +1976,8 @@ Hint Constructors item: cps.
 (* TODO: review names of the following lemmas. *)
 
 Lemma item_insert_tail:
-  forall xs ys x k,
-  item x xs k -> item x (xs ++ ys) k.
+  forall {T} xs ys x k,
+  @item T x xs k -> @item T x (xs ++ ys) k.
 Proof.
   induction 1.
   - constructor.
@@ -1985,9 +1985,9 @@ Proof.
 Qed.
 
 Lemma item_ignore_tail:
-  forall xs x ys k,
+  forall {T} xs x ys k,
   length xs > k ->
-  item x (xs ++ ys) k -> item x xs k.
+  @item T x (xs ++ ys) k -> @item T x xs k.
 Proof.
   induction xs; intros.
   - inversion H.
@@ -2002,9 +2002,9 @@ Proof.
 Qed.
 
 Lemma item_insert_head:
-  forall xs ys x k,
+  forall {T} xs ys x k,
   k >= length xs ->
-  item x ys (k - length xs) -> item x (xs ++ ys) k.
+  @item T x ys (k - length xs) -> @item T x (xs ++ ys) k.
 Proof.
   induction xs; intros.
   - simpl.
@@ -2019,9 +2019,9 @@ Proof.
 Qed.
 
 Lemma item_ignore_head:
-  forall xs x ys k,
+  forall {T} xs x ys k,
   k >= length xs ->
-  item x (xs ++ ys) k -> item x ys (k - length xs).
+  @item T x (xs ++ ys) k -> @item T x ys (k - length xs).
 Proof.
   induction xs; intros.
   - simpl in H0 |- *.
@@ -2085,7 +2085,7 @@ Qed.
 
 Lemma high_sequence_rev_lifts_by_one:
   forall n k,
-  n < k -> item (S n) (rev (high_sequence k)) n.
+  n < k -> item (bound (S n)) (rev (high_sequence k)) n.
 Proof.
   intros.
   induction k.
@@ -2494,8 +2494,14 @@ Lemma context_eq_dec:
   forall h r: context,
   { h = r } + { h <> r }.
 Proof.
-  admit.
-Admitted.
+  decide equality.
+  - apply pseudoterm_eq_dec.
+  - apply list_eq_dec.
+    apply pseudoterm_eq_dec.
+  - apply list_eq_dec.
+    apply pseudoterm_eq_dec.
+  - apply pseudoterm_eq_dec.
+Qed.
 
 Reserved Notation "# h" (at level 0, right associativity, format "# h").
 
@@ -2534,6 +2540,16 @@ Proof.
     reflexivity.
   - rewrite IHh.
     reflexivity.
+Qed.
+
+Lemma compose_context_depth:
+  forall h r,
+  #(compose_context h r) = #h + #r.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite IHh; omega.
 Qed.
 
 Inductive static: context -> Prop :=
@@ -3322,6 +3338,206 @@ Proof.
   exact star_is_confluent.
 Qed.
 
+(** ** Head Reduction *)
+
+Definition env: Set :=
+  list pseudoterm.
+
+Inductive long: list env -> list pseudoterm -> relation pseudoterm :=
+  | long_head:
+    forall b,
+    long [] [] b b
+  | long_tail:
+    forall tss ts cs c b e,
+    long tss cs (bind b ts c) e ->
+    long (ts :: tss) (c :: cs) b e.
+
+Hint Constructors long: cps.
+
+Lemma long_rev:
+  forall tss ts cs c h b,
+  long tss cs h b -> long (tss ++ [ts]) (cs ++ [c]) h (bind b ts c).
+Proof.
+  induction tss; intros.
+  - dependent destruction H; simpl.
+    auto with cps.
+  - dependent destruction H; simpl.
+    constructor.
+    apply IHtss; auto.
+Qed.
+
+Lemma long_rev_inv:
+  forall tss ts cs c h b,
+  long (tss ++ [ts]) (cs ++ [c]) h (bind b ts c) -> long tss cs h b.
+Proof.
+  induction tss; intros.
+  - destruct cs; simpl in H.
+    + dependent destruction H.
+      dependent destruction H.
+      constructor.
+    + exfalso.
+      dependent destruction H.
+      destruct cs; inversion H.
+  - destruct cs.
+    + simpl in H.
+      dependent destruction H.
+      destruct tss; inversion H.
+    + constructor; simpl in H.
+      dependent destruction H.
+      eapply IHtss.
+      eassumption.
+Qed.
+
+Lemma long_tail_inv:
+  forall tss cs ts c b e,
+  long (tss ++ [ts]) (cs ++ [c]) b e ->
+  exists x, bind x ts c = e.
+Proof.
+  induction tss; intros.
+  - destruct cs.
+    + dependent destruction H.
+      dependent destruction H.
+      exists b; auto.
+    + inversion H.
+      destruct cs; inversion H6.
+  - destruct cs.
+    + dependent destruction H.
+      destruct tss; inversion H.
+    + dependent destruction H.
+      edestruct IHtss; eauto.
+Qed.
+
+Lemma long_rev_ind:
+  forall P: list env -> list pseudoterm -> relation pseudoterm,
+  forall f1: (forall b, P [] [] b b),
+  forall f2: (forall tss cs ts c h b, long tss cs h b ->
+              P tss cs h b -> P (tss ++ [ts]) (cs ++ [c]) h (bind b ts c)),
+  forall tss cs b e, long tss cs b e -> P tss cs b e.
+Proof.
+  induction tss using rev_ind; intros.
+  - destruct cs.
+    + dependent destruction H.
+      apply f1.
+    + inversion H.
+  - destruct cs using rev_ind.
+    + destruct tss; inversion H.
+    + clear IHcs.
+      rename x into ts, x0 into c.
+      edestruct long_tail_inv; eauto.
+      destruct H0.
+      apply long_rev_inv in H.
+      apply f2; auto.
+Qed.
+
+Lemma long_type_body_length:
+  forall tss cs b e,
+  long tss cs b e -> length tss = length cs.
+Proof.
+  induction 1; simpl; auto.
+Qed.
+
+Hint Resolve long_type_body_length: cps.
+
+Lemma long_implies_context:
+  forall tss cs,
+  length tss = length cs ->
+  exists h,
+  #h = length tss /\ static h /\ forall b e,
+  long tss cs b e -> e = h b.
+Proof.
+  induction tss; intros.
+  - destruct cs; try discriminate.
+    exists context_hole; intuition.
+    inversion H0; auto.
+  - destruct cs; try discriminate.
+    destruct IHtss with cs as (h, (?, (?, ?))); auto.
+    exists (compose_context h (context_left context_hole a p)).
+    repeat split; simpl; intros.
+    + rewrite compose_context_depth; simpl; omega.
+    + apply static_compose_context; auto with cps.
+    + rewrite compose_context_is_sound; simpl.
+      dependent destruction H3.
+      rewrite H2 with (bind b a p) e; auto.
+Qed.
+
+Lemma item_too_far:
+  forall {T} xs x k,
+  length xs <= k ->
+  ~@item T x xs k.
+Proof.
+  induction xs; intros.
+  - inversion 1.
+  - intro.
+    dependent destruction H0.
+    + simpl in H; omega.
+    + eapply IHxs with (k := n).
+      * simpl in H; omega.
+      * eassumption.
+Qed.
+
+Lemma item_last_item:
+  forall {T} xs k,
+  length xs = k ->
+  forall a b,
+  @item T a (xs ++ [b]) k -> a = b.
+Proof.
+  intros.
+  dependent induction H0.
+  + destruct xs; try discriminate.
+    dependent destruction x; auto.
+  + destruct xs; try discriminate.
+    dependent destruction x.
+    eapply IHitem; eauto.
+Qed.
+
+Definition LONGJMP (R: relation pseudoterm): Prop :=
+  forall tss cs k xs e1,
+  long tss cs (jump (bound k) xs) e1 ->
+  forall ts,
+  length xs = length ts ->
+  item ts tss k ->
+  forall c,
+  item c cs k ->
+  forall e2,
+  long tss cs (apply_parameters xs 0 (lift (S k) (length ts) c)) e2 ->
+  R e1 e2.
+
+Lemma step_longjmp:
+  LONGJMP step.
+Proof.
+  unfold LONGJMP; intros until 1.
+  dependent induction H using long_rev_ind; intros.
+  - inversion H1.
+  - edestruct long_tail_inv; eauto.
+    destruct H4.
+    destruct (lt_eq_lt_dec (length tss) k) as [ [ ? | ? ] | ? ].
+    + exfalso.
+      apply item_too_far with (tss ++ [ts]) ts0 k; auto.
+      rewrite app_length; simpl; omega.
+    + apply long_rev_inv in H3.
+      destruct long_implies_context with tss cs; eauto with cps.
+      destruct H4; destruct H5.
+      erewrite H6 with _ b in H |- *; eauto.
+      erewrite H6 with _ x in H3 |- *; eauto.
+      apply long_type_body_length in H.
+      apply item_last_item in H1; auto.
+      apply item_last_item in H2; try congruence.
+      destruct H1; destruct H2.
+      replace k with #x0.
+      * apply step_ctxjmp.
+        assumption.
+      * intuition.
+    + apply step_bind_left.
+      apply long_rev_inv in H3.
+      eapply IHlong.
+      * reflexivity.
+      * eassumption.
+      * eapply item_ignore_tail; eauto.
+      * eapply item_ignore_tail; eauto.
+        replace (length cs) with (length tss); eauto with cps.
+      * assumption.
+Qed.
+
 (** ** Observational theory *)
 
 Inductive converges: pseudoterm -> nat -> Prop :=
@@ -3517,9 +3733,6 @@ Proof.
 Defined.
 
 (** ** Type system *)
-
-Definition env: Set :=
-  list pseudoterm.
 
 Definition item_lift (e: pseudoterm) (g: env) (n: nat): Prop :=
   exists2 x, e = lift (S n) 0 x & item x g n.
