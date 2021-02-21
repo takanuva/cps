@@ -1,11 +1,11 @@
 (******************************************************************************)
-(*   Copyright (c) 2019, 2020 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 (** * The Simply Typed CPS Calculus *)
 
+Require Import Lia.
 Require Import List.
 Require Import Arith.
-Require Import Omega.
 Require Import Setoid.
 Require Import Equality.
 Require Import Morphisms.
@@ -306,13 +306,13 @@ Proof.
   - reflexivity.
   (* Case: bound. *)
   - destruct (le_gt_dec l n).
-    + rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_ge; try omega.
-      f_equal; omega.
-    + rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_lt; try omega.
+    + rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
       reflexivity.
   (* Case: negation. *)
   - do 3 rewrite lift_distributes_over_negation.
@@ -324,10 +324,10 @@ Proof.
   (* Case: bind. *)
   - do 3 rewrite lift_distributes_over_bind.
     f_equal; auto.
-    + apply IHe1; omega.
+    + apply IHe1; lia.
     + list induction over H.
     + rewrite map_length.
-      apply IHe2; omega.
+      apply IHe2; lia.
 Qed.
 
 Lemma lift_lift_permutation:
@@ -345,19 +345,19 @@ Proof.
   - reflexivity.
   (* Case: bound. *)
   - destruct (le_gt_dec l n); destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_ge; try omega.
-      f_equal; omega.
-    + absurd (k <= n); omega.
-    + rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_ge; try omega.
-      rewrite lift_bound_lt; try omega.
+    + rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + absurd (k <= n); lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_lt; try lia.
       reflexivity.
-    + rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_lt; try omega.
+    + rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
       reflexivity.
   (* Case: negation. *)
   - do 4 rewrite lift_distributes_over_negation.
@@ -370,11 +370,11 @@ Proof.
   - do 4 rewrite lift_distributes_over_bind.
     f_equal; auto.
     + replace (S (i + l)) with (i + S l); auto.
-      apply IHe1; omega.
+      apply IHe1; lia.
     + list induction over H.
     + do 2 rewrite map_length.
       rewrite plus_assoc_reverse.
-      apply IHe2; omega.
+      apply IHe2; lia.
 Qed.
 
 Lemma lift_lift_permutation_inverse:
@@ -473,27 +473,27 @@ Proof.
   - reflexivity.
   (* Case: bound. *)
   - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
-    + destruct n; try omega.
+    + destruct n; try lia.
       destruct (le_gt_dec (p + k) n).
-      * rewrite lift_bound_ge; try omega.
-        rewrite subst_bound_gt; try omega.
-        rewrite lift_bound_ge; try omega.
-        rewrite subst_bound_gt; try omega.
-        f_equal; omega.
+      * rewrite lift_bound_ge; try lia.
+        rewrite subst_bound_gt; try lia.
+        rewrite lift_bound_ge; try lia.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
       * rewrite lift_bound_lt; auto with arith.
         rewrite subst_bound_gt; auto with arith.
-        rewrite lift_bound_lt; try omega.
-        rewrite subst_bound_gt; try omega.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_gt; try lia.
         reflexivity.
     + destruct e.
-      rewrite lift_bound_lt; try omega.
+      rewrite lift_bound_lt; try lia.
       rewrite subst_bound_eq; auto.
       rewrite subst_bound_eq; auto.
-      apply lift_lift_permutation_inverse; omega.
-    + rewrite lift_bound_lt; try omega.
-      rewrite subst_bound_lt; try omega.
+      apply lift_lift_permutation_inverse; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
       rewrite subst_bound_lt; auto.
-      rewrite lift_bound_lt; try omega.
+      rewrite lift_bound_lt; try lia.
       reflexivity.
   (* Case: negation. *)
   - rewrite lift_distributes_over_negation.
@@ -511,12 +511,12 @@ Proof.
     do 2 rewrite subst_distributes_over_bind.
     rewrite lift_distributes_over_bind.
     f_equal.
-    + replace (S (p + k)) with (S p + k); try omega.
+    + replace (S (p + k)) with (S p + k); try lia.
       apply IHe1.
     + list induction over H.
     + do 2 rewrite map_length.
-      replace (p + k + length ts) with (p + length ts + k); try omega.
-      replace (S (p + k) + length ts) with (S (p + length ts + k)); try omega.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (S (p + k) + length ts) with (S (p + length ts + k)); try lia.
       apply IHe2.
 Qed.
 
@@ -547,12 +547,12 @@ Proof.
   - destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; auto.
       rewrite lift_bound_ge; auto.
-      rewrite subst_bound_gt; try omega.
-      f_equal; omega.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
     + rewrite lift_bound_lt; auto.
       rewrite lift_bound_lt; auto.
       rewrite subst_bound_lt; auto.
-      omega.
+      lia.
   (* Case: negation. *)
   - do 2 rewrite lift_distributes_over_negation.
     rewrite subst_distributes_over_negation.
@@ -566,10 +566,10 @@ Proof.
   - do 2 rewrite lift_distributes_over_bind.
     rewrite subst_distributes_over_bind.
     f_equal.
-    + apply IHe1; omega.
+    + apply IHe1; lia.
     + list induction over H.
     + rewrite map_length.
-      apply IHe2; omega.
+      apply IHe2; lia.
 Qed.
 
 Lemma lift_and_subst_commute:
@@ -588,23 +588,23 @@ Proof.
   - reflexivity.
   (* Case: bound. *)
   - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ]; simpl.
-    + rewrite lift_bound_ge; try omega.
-      rewrite subst_bound_gt; try omega.
-      rewrite lift_bound_ge; try omega.
-      rewrite subst_bound_gt; try omega.
-      f_equal; omega.
-    + rewrite lift_bound_ge; try omega.
-      rewrite subst_bound_eq; try omega.
-      rewrite subst_bound_eq; try omega.
-      apply lift_lift_simplification; omega.
+    + rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite subst_bound_eq; try lia.
+      apply lift_lift_simplification; lia.
     + rewrite subst_bound_lt; auto.
       destruct (le_gt_dec k n).
       * rewrite lift_bound_ge; auto.
-        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_lt; try lia.
         reflexivity.
       * rewrite lift_bound_lt; auto.
         rewrite subst_bound_lt; auto.
-        omega.
+        lia.
   (* Case: negation. *)
   - rewrite lift_distributes_over_negation.
     do 2 rewrite subst_distributes_over_negation.
@@ -621,12 +621,12 @@ Proof.
     do 2 rewrite subst_distributes_over_bind.
     rewrite lift_distributes_over_bind.
     f_equal.
-    + replace (S (i + p)) with (i + S p); try omega.
-      apply IHe1; omega.
+    + replace (S (i + p)) with (i + S p); try lia.
+      apply IHe1; lia.
     + list induction over H.
     + do 2 rewrite map_length.
-      replace (i + p + length ts) with (i + (p + length ts)); try omega.
-      apply IHe2; omega.
+      replace (i + p + length ts) with (i + (p + length ts)); try lia.
+      apply IHe2; lia.
 Qed.
 
 Hint Resolve lift_and_subst_commute: cps.
@@ -646,30 +646,30 @@ Proof.
   - reflexivity.
   (* Case: bound. *)
   - destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ].
-    + destruct n; try omega.
-      rewrite subst_bound_gt; try omega.
+    + destruct n; try lia.
+      rewrite subst_bound_gt; try lia.
       destruct (lt_eq_lt_dec (p + k) n) as [ [ ? | ? ] | ? ].
-      * rewrite subst_bound_gt; try omega.
-        rewrite subst_bound_gt; try omega.
-        rewrite subst_bound_gt; try omega.
+      * rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
         reflexivity.
-      * rewrite subst_bound_eq; try omega.
-        rewrite subst_bound_eq; try omega.
-        rewrite subst_lift_simplification; try omega.
+      * rewrite subst_bound_eq; try lia.
+        rewrite subst_bound_eq; try lia.
+        rewrite subst_lift_simplification; try lia.
         reflexivity.
-      * rewrite subst_bound_lt; try omega.
-        rewrite subst_bound_lt; try omega.
-        rewrite subst_bound_gt; try omega.
+      * rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_gt; try lia.
         reflexivity.
-    + rewrite subst_bound_eq; try omega.
-      rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_eq; try omega.
-      rewrite lift_and_subst_commute; try omega.
-      f_equal; omega.
-    + rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_lt; try omega.
+    + rewrite subst_bound_eq; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_and_subst_commute; try lia.
+      f_equal; lia.
+    + rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
       reflexivity.
   (* Case: negation. *)
   - do 4 rewrite subst_distributes_over_negation.
@@ -681,13 +681,13 @@ Proof.
   (* Case: bind. *)
   - do 4 rewrite subst_distributes_over_bind.
     f_equal.
-    + replace (S (p + k)) with (S p + k); try omega.
-      apply IHe1; omega.
+    + replace (S (p + k)) with (S p + k); try lia.
+      apply IHe1; lia.
     + list induction over H.
     + do 2 rewrite map_length.
-      replace (p + k + length ts) with (p + length ts + k); try omega.
-      replace (S (p + k) + length ts) with (S (p + length ts + k)); try omega.
-      apply IHe2; omega.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (S (p + k) + length ts) with (S (p + length ts + k)); try lia.
+      apply IHe2; lia.
 Qed.
 
 Lemma subst_distributes_over_itself:
@@ -756,7 +756,7 @@ Proof.
   - rename n0 into m.
     destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; auto.
-      constructor; omega.
+      constructor; lia.
     + rewrite lift_bound_lt; auto.
   (* Case: negation. *)
   - rewrite lift_distributes_over_negation.
@@ -805,9 +805,9 @@ Proof.
   - rename n0 into m.
     destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; auto.
-      constructor; omega.
+      constructor; lia.
     + rewrite lift_bound_lt; auto.
-      constructor; omega.
+      constructor; lia.
   (* Case: negation. *)
   - rewrite lift_distributes_over_negation.
     constructor.
@@ -819,10 +819,10 @@ Proof.
   (* Case: bind. *)
   - rewrite lift_distributes_over_bind.
     constructor.
-    + apply IHe1; omega.
+    + apply IHe1; lia.
     + dependent induction H; simpl; auto.
     + rewrite map_length.
-      apply IHe2; omega.
+      apply IHe2; lia.
 Qed.
 
 Lemma substing_over_n_preserves_not_free_in_n:
@@ -844,9 +844,9 @@ Proof.
   - rename n0 into m.
     destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
     + rewrite subst_bound_gt; auto.
-      constructor; omega.
+      constructor; lia.
     + rewrite subst_bound_eq; auto.
-      apply lifting_more_than_n_makes_not_free_in_n; omega.
+      apply lifting_more_than_n_makes_not_free_in_n; lia.
     + rewrite subst_bound_lt; auto.
   (* Case: negation. *)
   - rewrite subst_distributes_over_negation.
@@ -938,7 +938,7 @@ Proof.
   - rewrite IHxs.
     rewrite lift_addition_distributes_over_subst.
     rewrite map_length.
-    do 3 f_equal; omega.
+    do 3 f_equal; lia.
 Qed.
 
 Lemma lift_distributes_over_apply_parameters:
@@ -962,7 +962,7 @@ Proof.
   - rewrite IHxs.
     rewrite subst_addition_distributes_over_itself.
     rewrite map_length.
-    do 3 f_equal; omega.
+    do 3 f_equal; lia.
 Qed.
 
 Lemma subst_distributes_over_apply_parameters:
@@ -993,25 +993,25 @@ Proof.
   - destruct (le_gt_dec (S (S k)) n).
     + rewrite lift_bound_ge; auto.
       rewrite lift_bound_ge; auto.
-      rewrite subst_bound_gt; try omega.
-      rewrite subst_bound_gt; try omega.
-      rewrite subst_bound_gt; try omega.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
       reflexivity.
     + rewrite lift_bound_lt; auto.
       rewrite lift_bound_lt; auto.
       destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
       * rewrite subst_bound_lt; auto.
-        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_lt; try lia.
         rewrite subst_bound_lt; auto with arith.
       * rewrite subst_bound_eq; auto.
-        rewrite subst_bound_lt; try omega.
+        rewrite subst_bound_lt; try lia.
         rewrite subst_bound_eq; eauto with arith.
-        omega.
+        lia.
       * rewrite subst_bound_gt; auto.
-        rewrite subst_bound_eq; try omega.
+        rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; auto.
         rewrite subst_bound_gt; auto.
-        omega.
+        lia.
   (* Case: negation. *)
   - do 2 rewrite lift_distributes_over_negation.
     do 3 rewrite subst_distributes_over_negation.
@@ -1029,8 +1029,8 @@ Proof.
     + apply IHe1.
     + list induction over H.
     + do 3 rewrite map_length.
-      replace (k + 0 + length ts) with (k + length ts + 0); try omega.
-      replace (k + 1 + length ts) with (k + length ts + 1); try omega.
+      replace (k + 0 + length ts) with (k + length ts + 0); try lia.
+      replace (k + 1 + length ts) with (k + length ts + 1); try lia.
       apply IHe2.
 Qed.
 
@@ -1051,21 +1051,21 @@ Proof.
   (* Case: bound. *)
   - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
     + rewrite subst_bound_lt; auto.
-      rewrite lift_bound_lt; try omega.
-      rewrite lift_bound_lt; try omega.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
       rewrite subst_bound_lt; auto.
     + exfalso.
       inversion H.
       congruence.
     + rewrite subst_bound_gt; auto.
       destruct (le_gt_dec n (p + k)).
-      * rewrite lift_bound_lt; try omega.
-        rewrite lift_bound_lt; try omega.
+      * rewrite lift_bound_lt; try lia.
+        rewrite lift_bound_lt; try lia.
         rewrite subst_bound_gt; auto.
-      * rewrite lift_bound_ge; try omega.
-        rewrite lift_bound_ge; try omega.
-        rewrite subst_bound_gt; try omega.
-        f_equal; omega.
+      * rewrite lift_bound_ge; try lia.
+        rewrite lift_bound_ge; try lia.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
   (* Case: negation. *)
   - rewrite lift_distributes_over_negation.
     do 2 rewrite subst_distributes_over_negation.
@@ -1092,8 +1092,8 @@ Proof.
     rewrite lift_distributes_over_bind.
     inversion_clear H0.
     simpl; f_equal.
-    + replace (S (p + k)) with (S p + k); try omega.
-      replace (S (p + S k)) with (S p + S k); try omega.
+    + replace (S (p + k)) with (S p + k); try lia.
+      replace (S (p + S k)) with (S p + S k); try lia.
       apply IHe1; auto.
     + clear IHe1 IHe2 H1 H3.
       dependent induction H; simpl.
@@ -1101,8 +1101,8 @@ Proof.
       * inversion_clear H2.
         f_equal; auto.
     + do 2 rewrite map_length.
-      replace (p + k + length ts) with (p + length ts + k); try omega.
-      replace (p + S k + length ts) with (p + length ts + S k); try omega.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (p + S k + length ts) with (p + length ts + S k); try lia.
       apply IHe2; auto.
 Qed.
 
@@ -1133,24 +1133,24 @@ Proof.
   (* Case: bound. *)
   - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
     + rewrite subst_bound_lt; auto.
-      rewrite subst_bound_lt; try omega.
-      rewrite subst_bound_lt; try omega.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
       rewrite subst_bound_lt; auto.
     + exfalso.
       inversion H; auto.
     + rewrite subst_bound_gt; auto.
       destruct (lt_eq_lt_dec n (p + S k)) as [ [ ? | ? ] | ? ].
-      * rewrite subst_bound_lt; try omega.
-        rewrite subst_bound_lt; try omega.
+      * rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_lt; try lia.
         rewrite subst_bound_gt; auto.
-      * rewrite subst_bound_eq; try omega.
-        rewrite subst_bound_eq; try omega.
-        replace n with (S (p + k)) at 2; try omega.
-        rewrite subst_lift_simplification; try omega.
-        f_equal; omega.
-      * rewrite subst_bound_gt; try omega.
-        rewrite subst_bound_gt; try omega.
-        rewrite subst_bound_gt; try omega.
+      * rewrite subst_bound_eq; try lia.
+        rewrite subst_bound_eq; try lia.
+        replace n with (S (p + k)) at 2; try lia.
+        rewrite subst_lift_simplification; try lia.
+        f_equal; lia.
+      * rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
         reflexivity.
   (* Case: negation. *)
   - do 4 rewrite subst_distributes_over_negation.
@@ -1172,8 +1172,8 @@ Proof.
   - do 4 rewrite subst_distributes_over_bind.
     inversion_clear H0.
     simpl; f_equal.
-    + replace (S (p + k)) with (S p + k); try omega.
-      replace (S (p + S k)) with (S p + S k); try omega.
+    + replace (S (p + k)) with (S p + k); try lia.
+      replace (S (p + S k)) with (S p + S k); try lia.
       apply IHe1; auto.
     + clear IHe1 IHe2 H1 H3.
       dependent induction H; simpl.
@@ -1181,8 +1181,8 @@ Proof.
       * inversion_clear H2.
         f_equal; auto.
     + do 2 rewrite map_length.
-      replace (p + k + length ts) with (p + length ts + k); try omega.
-      replace (p + S k + length ts) with (p + length ts + S k); try omega.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (p + S k + length ts) with (p + length ts + S k); try lia.
       apply IHe2; auto.
 Qed.
 
@@ -1216,9 +1216,9 @@ Proof.
     rewrite map_cons.
     f_equal.
     + rewrite lift_bound_lt; auto.
-      destruct b; omega.
+      destruct b; lia.
     + replace (S n + k) with (n + S k); auto.
-      omega.
+      lia.
 Qed.
 
 Lemma lifting_over_n_doesnt_change_high_sequence_n:
@@ -1249,9 +1249,9 @@ Proof.
     rewrite map_cons.
     f_equal.
     + rewrite subst_bound_lt; auto.
-      destruct b; omega.
+      destruct b; lia.
     + replace (S n + k) with (n + S k); auto.
-      omega.
+      lia.
 Qed.
 
 Lemma substing_over_n_doesnt_change_high_sequence_n:
@@ -1605,14 +1605,14 @@ Proof.
     + rewrite sequence_succ with (b := true); fold high_sequence.
       rewrite map_cons; f_equal.
       * apply lift_bound_lt; auto.
-      * apply IHn; omega.
+      * apply IHn; lia.
   - rewrite lift_addition_distributes_over_subst; f_equal.
     + rewrite lift_bound_lt; auto.
-      omega.
+      lia.
     + rewrite length_sequence with (b := true).
       symmetry.
-      rewrite lift_lift_permutation; try omega.
-      f_equal; omega.
+      rewrite lift_lift_permutation; try lia.
+      f_equal; lia.
 Qed.
 
 Lemma lift_and_switch_bindings_commute:
@@ -1622,7 +1622,7 @@ Lemma lift_and_switch_bindings_commute:
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
-  apply lift_and_right_cycle_commute with (p := 0) (n := 1); omega.
+  apply lift_and_right_cycle_commute with (p := 0) (n := 1); lia.
 Qed.
 
 Lemma subst_and_right_cycle_commute:
@@ -1640,13 +1640,13 @@ Proof.
     + rewrite sequence_succ with (b := true); fold high_sequence.
       rewrite map_cons; f_equal.
       * apply subst_bound_lt; auto.
-      * apply IHn; omega.
+      * apply IHn; lia.
   - rewrite subst_addition_distributes_over_itself; f_equal.
     + rewrite subst_bound_lt; auto.
-      omega.
+      lia.
     + rewrite length_sequence with (b := true).
-      rewrite lift_and_subst_commute; try omega.
-      f_equal; omega.
+      rewrite lift_and_subst_commute; try lia.
+      f_equal; lia.
 Qed.
 
 Lemma subst_and_switch_bindings_commute:
@@ -1656,7 +1656,7 @@ Lemma subst_and_switch_bindings_commute:
 Proof.
   intros.
   do 2 rewrite switch_bindings_behavior.
-  apply subst_and_right_cycle_commute with (p := 0) (n := 1); omega.
+  apply subst_and_right_cycle_commute with (p := 0) (n := 1); lia.
 Qed.
 
 Lemma struct_jmp_helper:
@@ -1740,8 +1740,8 @@ Proof.
       f_equal.
       rewrite map_length.
       symmetry.
-      rewrite lift_lift_permutation; try omega.
-      f_equal; omega.
+      rewrite lift_lift_permutation; try lia.
+      f_equal; lia.
     + reflexivity.
     + reflexivity.
     + do 2 rewrite map_length; auto.
@@ -1753,15 +1753,15 @@ Proof.
       do 2 rewrite map_length.
       rewrite lift_lift_permutation.
       * reflexivity.
-      * omega.
+      * lia.
     + do 2 rewrite map_length.
       apply lift_and_right_cycle_commute with (p := 0).
-      omega.
+      lia.
     + do 4 rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation.
-      * f_equal; omega.
-      * omega.
+      * f_equal; lia.
+      * lia.
     + induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
@@ -1773,7 +1773,7 @@ Proof.
       * f_equal; auto.
         symmetry.
         rewrite lift_lift_permutation; auto with arith.
-        f_equal; omega.
+        f_equal; lia.
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
@@ -1849,8 +1849,8 @@ Proof.
     + rewrite subst_distributes_over_apply_parameters.
       f_equal.
       rewrite map_length.
-      rewrite lift_and_subst_commute; try omega.
-      f_equal; omega.
+      rewrite lift_and_subst_commute; try lia.
+      f_equal; lia.
     + reflexivity.
     + reflexivity.
     + do 2 rewrite map_length; auto.
@@ -1861,14 +1861,14 @@ Proof.
     + do 2 rewrite map_length.
       rewrite lift_and_subst_commute.
       * reflexivity.
-      * omega.
+      * lia.
     + do 2 rewrite map_length.
       apply subst_and_right_cycle_commute with (p := 0).
-      omega.
+      lia.
     + do 4 rewrite map_length.
       rewrite lift_and_subst_commute.
-      * f_equal; omega.
-      * omega.
+      * f_equal; lia.
+      * lia.
     + induction ns; simpl.
       * reflexivity.
       * f_equal; auto.
@@ -1878,7 +1878,7 @@ Proof.
       * reflexivity.
       * f_equal; auto.
         rewrite lift_and_subst_commute; auto with arith.
-        f_equal; omega.
+        f_equal; lia.
     + dependent induction H; simpl.
       * reflexivity.
       * f_equal; auto.
@@ -1998,7 +1998,7 @@ Proof.
     + inversion_clear H0.
       constructor.
       eapply IHxs; eauto.
-      omega.
+      lia.
 Qed.
 
 Lemma item_insert_head:
@@ -2009,13 +2009,13 @@ Proof.
   induction xs; intros.
   - simpl.
     replace (k - length []) with k in H0; auto.
-    simpl; omega.
+    simpl; lia.
   - simpl in H, H0 |- *.
     destruct k.
     + inversion H.
     + constructor.
       apply IHxs; auto.
-      omega.
+      lia.
 Qed.
 
 Lemma item_ignore_head:
@@ -2031,7 +2031,7 @@ Proof.
     + inversion H.
     + inversion_clear H0.
       apply IHxs; auto.
-      omega.
+      lia.
 Qed.
 
 Lemma apply_parameters_lift_e_equals_e:
@@ -2041,7 +2041,7 @@ Proof.
   induction xs; intros.
   - apply lift_zero_e_equals_e.
   - simpl.
-    rewrite subst_lift_simplification; try omega.
+    rewrite subst_lift_simplification; try lia.
     apply IHxs.
 Qed.
 
@@ -2056,12 +2056,12 @@ Proof.
     inversion H0.
   - simpl; intros.
     destruct (le_gt_dec (length xs) n).
-    + cut (n = length xs); try omega; intro.
+    + cut (n = length xs); try lia; intro.
       rewrite subst_bound_eq; auto.
       apply item_ignore_head in H0.
       * rewrite rev_length in H0.
         rewrite H1 in H0 |- *.
-        replace (length xs - length xs) with 0 in H0; try omega.
+        replace (length xs - length xs) with 0 in H0; try lia.
         inversion_clear H0.
         apply apply_parameters_lift_e_equals_e.
       * rewrite rev_length; auto.
@@ -2076,11 +2076,11 @@ Lemma apply_parameters_bound_ge:
   length xs <= n -> apply_parameters xs 0 (bound n) = n - length xs.
 Proof.
   induction xs; intros.
-  - simpl; f_equal; omega.
+  - simpl; f_equal; lia.
   - simpl in H |- *.
     rewrite subst_bound_gt; auto.
-    rewrite IHxs; try omega.
-    f_equal; omega.
+    rewrite IHxs; try lia.
+    f_equal; lia.
 Qed.
 
 Lemma high_sequence_rev_lifts_by_one:
@@ -2097,11 +2097,11 @@ Proof.
         rewrite length_sequence with (b := true); auto.
       * rewrite rev_length.
         rewrite length_sequence with (b := true).
-        replace n with k; try omega.
-        replace (k - k) with 0; try omega.
+        replace n with k; try lia.
+        replace (k - k) with 0; try lia.
         constructor.
     + apply item_insert_tail.
-      apply IHk; omega.
+      apply IHk; lia.
 Qed.
 
 Lemma right_cycle_bound_lt:
@@ -2110,7 +2110,7 @@ Lemma right_cycle_bound_lt:
 Proof.
   intros.
   unfold right_cycle; simpl.
-  rewrite lift_bound_lt; try omega.
+  rewrite lift_bound_lt; try lia.
   rewrite length_sequence with (b := true).
   rewrite subst_bound_lt; auto.
   apply apply_parameters_bound_lt.
@@ -2124,15 +2124,15 @@ Lemma right_cycle_bound_eq:
 Proof.
   intros.
   unfold right_cycle; simpl.
-  rewrite lift_bound_lt; try omega.
+  rewrite lift_bound_lt; try lia.
   rewrite length_sequence with (b := true).
   rewrite subst_bound_eq; auto.
   rewrite lift_bound_ge; auto.
   rewrite apply_parameters_bound_ge.
   - rewrite length_sequence with (b := true).
-    f_equal; omega.
+    f_equal; lia.
   - rewrite length_sequence with (b := true).
-    omega.
+    lia.
 Qed.
 
 Lemma right_cycle_bound_gt:
@@ -2141,14 +2141,14 @@ Lemma right_cycle_bound_gt:
 Proof.
   intros.
   unfold right_cycle; simpl.
-  rewrite lift_bound_ge; try omega.
+  rewrite lift_bound_ge; try lia.
   rewrite length_sequence with (b := true).
-  rewrite subst_bound_gt; try omega.
+  rewrite subst_bound_gt; try lia.
   rewrite apply_parameters_bound_ge; simpl.
   - rewrite length_sequence with (b := true).
-    f_equal; omega.
+    f_equal; lia.
   - rewrite length_sequence with (b := true).
-    omega.
+    lia.
 Qed.
 
 (* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
@@ -2246,25 +2246,25 @@ Proof.
   - reflexivity.
   - destruct (le_gt_dec (2 + k) n); simpl.
     + rewrite lift_bound_ge; auto.
-      rewrite subst_bound_gt; try omega.
+      rewrite subst_bound_gt; try lia.
       rewrite lift_bound_ge; auto.
-      rewrite subst_bound_gt; try omega.
-      f_equal; omega.
-    + rewrite lift_bound_lt; try omega.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
       destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
       * rewrite subst_bound_lt; auto.
         rewrite lift_bound_lt; auto.
         rewrite subst_bound_lt; auto.
       * rewrite subst_bound_eq; auto.
         rewrite lift_bound_ge; auto.
-        rewrite lift_bound_lt; try omega.
-        rewrite subst_bound_gt; try omega.
-        f_equal; omega.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
       * rewrite subst_bound_gt; auto.
-        rewrite lift_bound_lt; try omega.
-        rewrite subst_bound_eq; try omega.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; auto.
-        f_equal; omega.
+        f_equal; lia.
   - rewrite lift_distributes_over_negation.
     rewrite subst_distributes_over_negation.
     rewrite lift_distributes_over_negation.
@@ -2344,7 +2344,7 @@ Proof.
     rewrite map_length.
     f_equal.
     + list induction over ts.
-    + do 2 f_equal; omega.
+    + do 2 f_equal; lia.
 Qed.
 
 (* I have no idea what to call this one... *)
@@ -2365,7 +2365,7 @@ Proof.
   - rename n0 into m.
     destruct (le_gt_dec (k + m) n).
     + rewrite lift_bound_ge; auto.
-      rewrite lift_bound_ge; try omega.
+      rewrite lift_bound_ge; try lia.
       admit.
     + rewrite lift_bound_lt; auto.
       destruct (le_gt_dec k n).
@@ -2388,7 +2388,7 @@ Proof.
     + apply IHe1.
     + list induction over H.
     + rewrite map_length.
-      replace (k + n + length ts) with (k + length ts + n); try omega.
+      replace (k + n + length ts) with (k + length ts + n); try lia.
       apply IHe2.
 Admitted.
 
@@ -2442,7 +2442,7 @@ Proof.
     apply cong_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
     rewrite length_sequence with (b := true).
-    rewrite lift_lift_simplification; try omega.
+    rewrite lift_lift_simplification; try lia.
     rewrite foo.
     apply lifting_more_than_n_makes_not_free_in_n; auto.
   - (* The term is in the form [(switch_bindings 0 b) { M } { N }] now, as we
@@ -2453,7 +2453,7 @@ Proof.
        equal to [N]). *)
     apply cong_float_left.
     + rewrite map_length.
-      apply lifting_more_than_n_makes_not_free_in_n; omega.
+      apply lifting_more_than_n_makes_not_free_in_n; lia.
     + induction ts; simpl.
       * constructor.
       * constructor; auto.
@@ -2470,7 +2470,7 @@ Proof.
       * do 2 rewrite map_length; f_equal.
         rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
         rewrite length_sequence with (b := true).
-        rewrite lift_lift_simplification; try omega.
+        rewrite lift_lift_simplification; try lia.
         rewrite foo.
         unfold remove_closest_binding.
         rewrite subst_lift_simplification; auto.
@@ -2549,7 +2549,7 @@ Proof.
   induction h; simpl; intros.
   - reflexivity.
   - rewrite IHh; auto.
-  - rewrite IHh; omega.
+  - rewrite IHh; lia.
 Qed.
 
 Inductive static: context -> Prop :=
@@ -2684,8 +2684,8 @@ Lemma context_same_path_implies_same_depth:
 Proof.
   induction 1.
   - reflexivity.
-  - simpl; omega.
-  - simpl; omega.
+  - simpl; lia.
+  - simpl; lia.
 Qed.
 
 Hint Resolve context_same_path_implies_same_depth: cps.
@@ -2846,7 +2846,7 @@ Lemma step_jmp:
 Proof.
   unfold JMP; intros.
   replace c with (lift 0 (length ts) c) at 2.
-  - rewrite lift_lift_simplification; try omega.
+  - rewrite lift_lift_simplification; try lia.
     apply step_ctxjmp with (h := context_hole); auto.
   - apply lift_zero_e_equals_e.
 Qed.
@@ -2884,7 +2884,7 @@ Proof.
       assert (h <> r).
       * destruct 1.
         apply context_is_injective in x; auto.
-        inversion x; omega.
+        inversion x; lia.
       * edestruct context_difference as (s, (?, ?)); eauto.
         eexists (context_left s ts c); intuition.
         simpl; f_equal; eassumption.
@@ -3160,20 +3160,20 @@ Proof.
     exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
     + intro; simpl; f_equal.
       rewrite lift_distributes_over_bind; f_equal.
-      replace (S (#h + k)) with (#h + S k); try omega.
+      replace (S (#h + k)) with (#h + S k); try lia.
       apply H.
     + simpl.
-      omega.
+      lia.
   - edestruct IHh with i (k + length ts) as (r, ?, ?).
     replace (length ts) with (length (map (lift i k) ts)).
     + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
       * intro; simpl; f_equal.
         rewrite map_length.
         rewrite lift_distributes_over_bind; f_equal.
-        replace (#h + length ts + k) with (#h + (k + length ts)); try omega.
+        replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
         apply H.
       * simpl.
-        omega.
+        lia.
     + apply map_length.
 Qed.
 
@@ -3203,20 +3203,20 @@ Proof.
     exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
     + intro; simpl; f_equal.
       rewrite subst_distributes_over_bind; f_equal.
-      replace (S (#h + k)) with (#h + S k); try omega.
+      replace (S (#h + k)) with (#h + S k); try lia.
       apply H.
     + simpl.
-      omega.
+      lia.
   - edestruct IHh with x (k + length ts) as (r, ?, ?).
     replace (length ts) with (length (map (subst x k) ts)).
     + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
       * intro; simpl; f_equal.
         rewrite map_length.
         rewrite subst_distributes_over_bind; f_equal.
-        replace (#h + length ts + k) with (#h + (k + length ts)); try omega.
+        replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
         apply H.
       * simpl.
-        omega.
+        lia.
     + apply map_length.
 Qed.
 
@@ -3453,7 +3453,7 @@ Proof.
     destruct IHtss with cs as (h, (?, (?, ?))); auto.
     exists (compose_context h (context_left context_hole a p)).
     repeat split; simpl; intros.
-    + rewrite compose_context_depth; simpl; omega.
+    + rewrite compose_context_depth; simpl; lia.
     + apply static_compose_context; auto with cps.
     + rewrite compose_context_is_sound; simpl.
       dependent destruction H3.
@@ -3469,9 +3469,9 @@ Proof.
   - inversion 1.
   - intro.
     dependent destruction H0.
-    + simpl in H; omega.
+    + simpl in H; lia.
     + eapply IHxs with (k := n).
-      * simpl in H; omega.
+      * simpl in H; lia.
       * eassumption.
 Qed.
 
@@ -3513,7 +3513,7 @@ Proof.
     destruct (lt_eq_lt_dec (length tss) k) as [ [ ? | ? ] | ? ].
     + exfalso.
       apply item_too_far with (tss ++ [ts]) ts0 k; auto.
-      rewrite app_length; simpl; omega.
+      rewrite app_length; simpl; lia.
     + apply long_rev_inv in H3.
       destruct long_implies_context with tss cs; eauto with cps.
       destruct H4; destruct H5.
@@ -3526,7 +3526,7 @@ Proof.
       replace k with #x0.
       * apply step_ctxjmp.
         assumption.
-      * intuition.
+      * congruence.
     + apply step_bind_left.
       apply long_rev_inv in H3.
       eapply IHlong.
@@ -3854,11 +3854,11 @@ Proof.
     dependent destruction H2.
     + inversion H0.
     + rename n0 into m.
-      destruct IHinsert with m (lift (S m) 0 z); try omega.
+      destruct IHinsert with m (lift (S m) 0 z); try lia.
       * exists z; auto.
-      * rewrite lift_lift_simplification in H3; try omega.
+      * rewrite lift_lift_simplification in H3; try lia.
         exists x0; auto with cps.
-        rewrite H1; rewrite lift_lift_simplification; try omega.
+        rewrite H1; rewrite lift_lift_simplification; try lia.
         admit.
 Admitted.
 
@@ -3877,7 +3877,7 @@ Proof.
       exists (lift 1 n head); auto with cps.
       symmetry; rewrite lift_lift_permutation; auto with arith.
     + rename n0 into m.
-      destruct IHinsert with m (lift (S m) 0 x) as (z, ?, ?); try omega.
+      destruct IHinsert with m (lift (S m) 0 x) as (z, ?, ?); try lia.
       * exists x; auto.
       * exists z; auto with cps.
         admit.
@@ -3891,7 +3891,7 @@ Proof.
   - rewrite lift_zero_e_equals_e; auto.
   - rewrite app_length; simpl.
     rewrite map_length.
-    rewrite lift_lift_simplification; try omega.
+    rewrite lift_lift_simplification; try lia.
     rewrite IHts; f_equal.
 Qed.
 
@@ -3953,7 +3953,7 @@ Proof.
         rewrite Nat.add_comm.
         induction H; simpl; auto.
         rewrite map_length.
-        rewrite lift_lift_permutation; try omega.
+        rewrite lift_lift_permutation; try lia.
         constructor; auto.
       * admit.
 Admitted.
