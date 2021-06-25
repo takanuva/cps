@@ -3026,25 +3026,19 @@ Qed.
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in
-  the hole of H, then e will keep the subterm k<xs>, i.e., there is a such that
-  e = R[k<xs>] and R and H will bind the same variables in their holes.
+  the hole of H, then e will keep the subterm k<xs>, i.e., there is a R such
+  that e = R[k<xs>] and both R and H will bind the same variables in their
+  respective holes.
 *)
 Lemma step_noninterference:
   forall h: context,
+  forall n,
+  n >= #h ->
   forall xs e,
-  [h (jump #h xs) => e] ->
+  [h (jump n xs) => e] ->
   exists2 r: context,
-  e = r (jump #h xs) & same_path h r.
+  e = r (jump n xs) & same_path h r.
 Proof.
-  intro.
-  (* First we have to generalize the assumptions; we do not specifically care
-     that the continuation in subject position is equal to #h, but rather that
-     it's greater than it, representing it's free, so that it can't be changed
-     by the redex. *)
-  set (n := #h) at 1 2.
-  assert (n >= #h); auto.
-  generalize n H; clear n H.
-  (* Now we can generate the appropriate inductive hypotheses. *)
   induction h; simpl; intros.
   (* Case: context_hole. *)
   - inversion H0.
@@ -3318,35 +3312,6 @@ Qed.
 
 Hint Resolve star_parallel: cps.
 
-Lemma context_lift:
-  forall h: context,
-  forall i k,
-  exists2 r: context,
-  forall e, lift i k (h e) = r (lift i (#h + k) e) & #h = #r.
-Proof.
-  induction h; simpl; intros.
-  - exists context_hole; auto.
-  - edestruct IHh with i (S k) as (r, ?, ?).
-    exists (context_left r (map (lift i k) ts) (lift i (k + length ts) c)).
-    + intro; simpl; f_equal.
-      rewrite lift_distributes_over_bind; f_equal.
-      replace (S (#h + k)) with (#h + S k); try lia.
-      apply H.
-    + simpl.
-      lia.
-  - edestruct IHh with i (k + length ts) as (r, ?, ?).
-    replace (length ts) with (length (map (lift i k) ts)).
-    + exists (context_right (lift i (S k) b) (map (lift i k) ts) r).
-      * intro; simpl; f_equal.
-        rewrite map_length.
-        rewrite lift_distributes_over_bind; f_equal.
-        replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
-        apply H.
-      * simpl.
-        lia.
-    + apply map_length.
-Qed.
-
 Lemma parallel_lift:
   forall a b,
   parallel a b ->
@@ -3360,35 +3325,6 @@ Proof.
   - do 2 rewrite lift_distributes_over_bind.
     apply parallel_bind; auto.
 Admitted.
-
-Lemma context_subst:
-  forall h: context,
-  forall x k,
-  exists2 r: context,
-  forall e, subst x k (h e) = r (subst x (#h + k) e) & #h = #r.
-Proof.
-  induction h; simpl; intros.
-  - exists context_hole; auto.
-  - edestruct IHh with x (S k) as (r, ?, ?).
-    exists (context_left r (map (subst x k) ts) (subst x (k + length ts) c)).
-    + intro; simpl; f_equal.
-      rewrite subst_distributes_over_bind; f_equal.
-      replace (S (#h + k)) with (#h + S k); try lia.
-      apply H.
-    + simpl.
-      lia.
-  - edestruct IHh with x (k + length ts) as (r, ?, ?).
-    replace (length ts) with (length (map (subst x k) ts)).
-    + exists (context_right (subst x (S k) b) (map (subst x k) ts) r).
-      * intro; simpl; f_equal.
-        rewrite map_length.
-        rewrite subst_distributes_over_bind; f_equal.
-        replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
-        apply H.
-      * simpl.
-        lia.
-    + apply map_length.
-Qed.
 
 Lemma parallel_subst:
   forall a b,
@@ -3430,20 +3366,23 @@ Qed.
 
 Lemma parallel_noninterference:
   forall h: context,
+  forall n,
+  n >= #h ->
   forall xs e,
-  parallel (h (jump #h xs)) e ->
+  parallel (h (jump n xs)) e ->
   exists2 r: context,
-  e = r (jump #h xs) & same_path h r.
+  e = r (jump n xs) & same_path h r.
 Proof.
   intros.
-  apply star_parallel in H.
-  induction H using clos_refl_trans_ind_left.
+  apply star_parallel in H0.
+  induction H0 using clos_refl_trans_ind_left.
   - exists h; auto with cps.
   - destruct IHclos_refl_trans.
-    rewrite H1 in H0.
-    destruct step_noninterference with x xs z.
+    rewrite H2 in H1.
+    destruct step_noninterference with x n xs z.
     + replace #x with #h; auto with cps.
-    + replace #h with #x; eauto with cps.
+    + assumption.
+    + eauto with cps.
 Qed.
 
 (** ** Confluency *)
