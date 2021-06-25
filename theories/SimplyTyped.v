@@ -2853,6 +2853,166 @@ Qed.
 
 Hint Resolve step_jmp: cps.
 
+Lemma context_lift:
+  forall (h: context) i k,
+  exists2 r: context,
+  #h = #r & forall e,
+  lift i k (h e) = r (lift i (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto.
+  - destruct IHh with i (S k) as (r, ?H, ?H).
+    eexists (compose_context (context_left context_hole _ _) r).
+    + simpl; auto.
+    + intros; rewrite lift_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+  - destruct IHh with i (k + length ts) as (r, ?H, ?H).
+    eexists (compose_context (context_right _ (map _ ts) context_hole) r).
+    + simpl.
+      rewrite H; f_equal.
+      rewrite map_length; auto.
+    + intros; rewrite lift_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+Qed.
+
+Lemma context_subst:
+  forall (h: context) y k,
+  exists2 r: context,
+  #h = #r & forall e,
+  subst y k (h e) = r (subst y (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto.
+  - destruct IHh with y (S k) as (r, ?H, ?H).
+    eexists (compose_context (context_left context_hole _ _) r).
+    + simpl; auto.
+    + intros; rewrite subst_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+  - destruct IHh with y (k + length ts) as (r, ?H, ?H).
+    eexists (compose_context (context_right _ (map _ ts) context_hole) r).
+    + simpl.
+      rewrite H; f_equal.
+      rewrite map_length; auto.
+    + intros; rewrite subst_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+Qed.
+
+Lemma step_ctxjmp_helper:
+  forall (h r: context),
+  r = h ->
+  forall xs ts c,
+  length xs = length ts ->
+  forall n,
+  n = #h ->
+  forall a,
+  a = jump n xs ->
+  forall b,
+  b = apply_parameters xs 0 (lift (S n) (length ts) c) ->
+  forall ts',
+  ts' = ts ->
+  forall c',
+  c' = c ->
+  [bind (h a) ts c =>
+    bind (r b) ts' c'].
+Proof.
+  intros.
+  rewrite H, H2, H3, H4, H5, H1.
+  apply step_ctxjmp.
+  assumption.
+Qed.
+
+Lemma step_lift:
+  forall a b,
+  [a => b] ->
+  forall i k,
+  [lift i k a => lift i k b].
+Proof.
+  induction 1; intros.
+  - do 2 rewrite lift_distributes_over_bind.
+    edestruct context_lift as (r, ?H, ?H).
+    do 2 rewrite H1.
+    rewrite lift_distributes_over_jump.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_distributes_over_apply_parameters.
+    eapply step_ctxjmp_helper with (xs := map _ xs).
+    + reflexivity.
+    + do 2 rewrite map_length.
+      assumption.
+    + reflexivity.
+    + f_equal; auto.
+    + f_equal; symmetry.
+      rewrite lift_lift_permutation.
+      * f_equal; try lia.
+        f_equal; auto.
+        apply map_length.
+      * rewrite map_length; lia.
+    + reflexivity.
+    + reflexivity.
+  - do 2 rewrite lift_distributes_over_bind.
+    apply step_bind_left.
+    apply IHstep.
+  - do 2 rewrite lift_distributes_over_bind.
+    apply step_bind_right.
+    apply IHstep.
+Qed.
+
+Lemma step_subst:
+  forall a b,
+  [a => b] ->
+  forall y k,
+  [subst y k a => subst y k b].
+Proof.
+  induction 1; intros.
+  - do 2 rewrite subst_distributes_over_bind.
+    edestruct context_subst as (r, ?H, ?H).
+    do 2 rewrite H1.
+    rewrite subst_distributes_over_jump.
+    rewrite subst_bound_lt; try lia.
+    rewrite subst_distributes_over_apply_parameters.
+    eapply step_ctxjmp_helper with (xs := map _ xs).
+    + reflexivity.
+    + do 2 rewrite map_length.
+      assumption.
+    + reflexivity.
+    + f_equal; auto.
+    + f_equal; symmetry.
+      rewrite lift_and_subst_commute.
+      * f_equal; try lia.
+        f_equal; auto.
+        apply map_length.
+      * rewrite map_length; lia.
+    + reflexivity.
+    + reflexivity.
+  - do 2 rewrite subst_distributes_over_bind.
+    apply step_bind_left.
+    apply IHstep.
+  - do 2 rewrite subst_distributes_over_bind.
+    apply step_bind_right.
+    apply IHstep.
+Qed.
+
+Lemma step_apply_parameters:
+  forall xs k a b,
+  [a => b] ->
+  [apply_parameters xs k a => apply_parameters xs k b].
+Proof.
+  induction xs; intros.
+  - simpl.
+    assumption.
+  - simpl.
+    apply IHxs.
+    apply step_subst.
+    assumption.
+Qed.
+
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in
