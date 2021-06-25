@@ -4142,6 +4142,41 @@ Definition WN a: Prop :=
 Notation SN :=
   (Acc (flip step)).
 
+Lemma SN_preimage:
+  forall f,
+  (forall a b, [a => b] -> [f a => f b]) ->
+  forall e,
+  SN (f e) -> SN e.
+Proof.
+  intros.
+  dependent induction H0.
+  constructor; intros.
+  eapply H0.
+  - eauto.
+  - eassumption.
+  - reflexivity.
+Qed.
+
+Lemma SN_unlift:
+  forall i k e,
+  SN (lift i k e) -> SN e.
+Proof.
+  intros.
+  apply SN_preimage with (lift i k); intros.
+  - apply step_lift; auto.
+  - assumption.
+Qed.
+
+Lemma SN_unsubst:
+  forall y k e,
+  SN (subst y k e) -> SN e.
+Proof.
+  intros.
+  apply SN_preimage with (subst y k); intros.
+  - apply step_subst; auto.
+  - assumption.
+Qed.
+
 Inductive step_in_env: relation env :=
   | step_in_env_car:
     forall g t u,
