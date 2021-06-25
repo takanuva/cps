@@ -2665,18 +2665,28 @@ Qed.
 Hint Resolve same_path_sym: cps.
 
 Lemma same_path_trans:
-  forall h r,
-  same_path h r ->
-  forall s,
-  same_path r s -> same_path h s.
+  forall h r s,
+  same_path h r -> same_path r s -> same_path h s.
 Proof.
-  induction 1; inversion_clear 1.
-  - constructor.
-  - constructor; auto.
-  - constructor; auto.
+  intros.
+  generalize dependent s.
+  induction H; intros.
+  - assumption.
+  - inversion_clear H0.
+    constructor; auto.
+  - inversion_clear H0.
+    constructor; auto.
 Qed.
 
 Hint Resolve same_path_trans: cps.
+
+Instance same_path_is_equiv: Equivalence same_path.
+Proof.
+  split.
+  - exact same_path_refl.
+  - exact same_path_sym.
+  - exact same_path_trans.
+Defined.
 
 Lemma context_same_path_implies_same_depth:
   forall h r,
