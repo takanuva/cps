@@ -3250,6 +3250,47 @@ Proof.
   - exact conv_trans.
 Defined.
 
+(** ** Beta reduction **)
+
+Fixpoint beta (y: pseudoterm) k e: pseudoterm :=
+  match e with
+  | jump (bound n) xs =>
+    match Nat.eq_dec k n with
+    | left _ =>
+      apply_parameters xs 0 (lift (S k) (length xs) y)
+    | right _ =>
+      jump n xs
+    end
+  | bind b ts c =>
+    bind (beta y (S k) b) ts (beta y (k + length ts) c)
+  | _ =>
+    e
+  end.
+
+Example ex4: pseudoterm :=
+  (bind (bind
+    (jump 0 [bound 2; bound 3])
+    [base; base]
+      (jump 6 [bound 3; bound 0]))
+    [base; negation [base; base]; base]
+      (jump 1 [bound 3; bound 0])).
+
+Goal [ex3 => ex4].
+Proof.
+  apply step_ctxjmp with (h := context_right _ [_; _] context_hole); auto.
+Qed.
+
+Goal
+  match ex1 with
+  | bind b ts c =>
+    bind (beta c 0 b) ts c = ex4
+  | _ =>
+    False
+  end.
+Proof.
+  reflexivity.
+Qed.
+
 (** ** Parallel reduction *)
 
 Inductive parallel: relation pseudoterm :=
