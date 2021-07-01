@@ -3252,17 +3252,28 @@ Defined.
 
 (** ** Beta reduction **)
 
-Fixpoint beta (y: pseudoterm) k e: pseudoterm :=
+Fixpoint beta ys k e: pseudoterm :=
   match e with
   | jump (bound n) xs =>
-    match Nat.eq_dec k n with
+    (* If n >= k... *)
+    match ge_dec n k with
     | left _ =>
-      apply_parameters xs 0 (lift (S k) (length xs) y)
+      (* And n < k + |ys|... *)
+      match lt_dec (n - k) (length ys) with
+      | left _ =>
+        (* Then there IS an y in ys for us. *)
+        let y := nth (n - k) ys void in
+        apply_parameters xs 0 (lift (S n) (length xs) y)
+      | right _ =>
+        (* Out of range... *)
+        jump n xs
+      end
     | right _ =>
+      (* Out of range... *)
       jump n xs
     end
   | bind b ts c =>
-    bind (beta y (S k) b) ts (beta y (k + length ts) c)
+    bind (beta ys (S k) b) ts (beta ys (k + length ts) c)
   | _ =>
     e
   end.
@@ -3283,7 +3294,7 @@ Qed.
 Goal
   match ex1 with
   | bind b ts c =>
-    bind (beta c 0 b) ts c = ex4
+    bind (beta [c] 0 b) ts c = ex4
   | _ =>
     False
   end.
