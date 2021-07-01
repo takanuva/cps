@@ -3263,6 +3263,7 @@ Fixpoint beta ys k e: pseudoterm :=
       | left _ =>
         (* Then there IS an y in ys for us. *)
         let y := nth (n - k) ys void in
+        (* Almost sure we should lift by S n... *)
         apply_parameters xs 0 (lift (S n) (length xs) y)
       | right _ =>
         (* Out of range... *)
@@ -3300,6 +3301,35 @@ Goal
   end.
 Proof.
   reflexivity.
+Qed.
+
+Lemma beta_distributes_over_bind:
+  forall ys k b ts c,
+  beta ys k (bind b ts c) =
+    bind (beta ys (S k) b) ts (beta ys (k + length ts) c).
+Proof.
+  auto.
+Qed.
+
+Definition BETA (R: relation pseudoterm): Prop :=
+  forall b ts c,
+  R (bind b ts c) (bind (beta [c] 0 b) ts c).
+
+Lemma star_beta:
+  BETA star.
+Proof.
+  unfold BETA; intros.
+  (* By induction on the number of free jumps to 0 in the original term,
+     excluding any new introduced jumps, plus noninterference. *)
+  admit.
+Admitted.
+
+Lemma conv_beta:
+  BETA conv.
+Proof.
+  unfold BETA; intros.
+  apply conv_star.
+  apply star_beta.
 Qed.
 
 (** ** Parallel reduction *)
