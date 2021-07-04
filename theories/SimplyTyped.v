@@ -4018,6 +4018,27 @@ Proof.
     induction H0; auto.
 Qed.
 
+Lemma typing_bound_cant_be_void:
+  forall g n,
+  ~typing g (bound n) void.
+Proof.
+  intros g n H.
+  dependent destruction H.
+  destruct H0.
+  (* We should have added an inversion lemma, but oh well... *)
+  replace x with void in *.
+  - clear H0 x.
+    induction H1.
+    + dependent destruction H.
+       inversion H.
+    + dependent destruction H.
+      apply IHitem.
+      eapply valid_env_typing.
+      eassumption.
+  - destruct x; try discriminate.
+    reflexivity.
+Qed.
+
 Inductive insert x: nat -> relation env :=
   | insert_head:
     forall tail,
@@ -4208,6 +4229,22 @@ Proof.
   - assumption.
 Qed.
 
+Lemma SN_bind_left:
+  forall b ts c,
+  SN (bind b ts c) -> SN b.
+Proof.
+  intros.
+  apply SN_preimage with (fun b => bind b ts c); auto with cps.
+Qed.
+
+Lemma SN_bind_right:
+  forall b ts c,
+  SN (bind b ts c) -> SN c.
+Proof.
+  intros.
+  apply SN_preimage with (fun c => bind b ts c); auto with cps.
+Qed.
+
 Inductive step_in_env: relation env :=
   | step_in_env_car:
     forall g t u,
@@ -4271,12 +4308,13 @@ Defined.
 Lemma count_arg:
   forall {t ts g},
   t = negation (negation ts :: g) ->
-  count (negation (env_prepend ts g)) < count t.
+  count (negation ts) < count t.
 Proof.
   intros.
   rewrite H; simpl.
-  admit.
-Admitted.
+  replace (negation ts :: g) with ([negation ts] ++ g); auto.
+  rewrite sumup_app; simpl; auto with arith.
+Qed.
 
 Lemma count_ret:
   forall {t ts g},
@@ -4287,7 +4325,7 @@ Proof.
   rewrite H; simpl.
   replace (negation ts :: g) with ([negation ts] ++ g); auto.
   rewrite sumup_app; simpl; auto with arith.
-Defined.
+Qed.
 
 Definition ARR ts (U V: pseudoterm -> Prop): pseudoterm -> Prop :=
   fun b =>
@@ -4310,7 +4348,7 @@ Definition L: pseudoterm -> pseudoterm -> Prop :=
 Lemma L_composition:
   forall ts g,
   L (negation (negation ts :: g)) =
-    ARR ts (L (negation (env_prepend ts g))) (L (negation g)).
+    ARR ts (L (negation ts)) (L (negation g)).
 Proof.
   intros.
   unfold L.
@@ -4324,18 +4362,147 @@ Proof.
     do 2 rewrite H; auto.
 Defined.
 
-Lemma interpretation:
-  forall g e,
-  typing g e void -> L (negation g) e.
+Definition candidate: Type :=
+  pseudoterm -> Prop.
+
+(* A neutral term should no trigger a reduction interacting with its context.
+   I.e., in the lambda calculus, they are neither abstractions, which would
+   trigger a reduction with ([] x), nor <a, b>, which would trigger a reduction
+   with (pi1 []) or (pi2 []). Since the CPS calculus "works at a distance", we
+   would probably need something that DOESN'T jump to bound variables. So I'll
+   probably need to index this by the (size of the) environment. *)
+Axiom neutral: pseudoterm -> Prop.
+
+Record reducible (P: candidate): Prop := {
+  cr1:
+    forall e,
+    P e -> SN e;
+  cr2:
+    forall a b,
+    P a -> [a => b] -> P b;
+  cr3:
+    forall a,
+    (* Since the CPS calculus is non-erasing, do we really need to restrict
+       ourselves to neutral terms here...? *)
+    neutral a -> (forall b, [a => b] -> P b) -> P a
+}.
+
+Lemma cr2_star:
+  forall P,
+  reducible P ->
+  forall a b,
+  P a -> [a =>* b] -> P b.
+Proof.
+  induction 3.
+  - apply cr2 with x; auto.
+  - assumption.
+  - auto.
+Qed.
+
+Lemma reducible_SN:
+  reducible SN.
+Proof.
+  constructor; intros.
+  - assumption.
+  - apply H.
+    assumption.
+  - constructor.
+    assumption.
+Qed.
+
+(* Should probably modularize the following lemma. *)
+
+Lemma reducible_L:
+  forall t,
+  reducible (L t).
 Proof.
   intros.
-  dependent induction H.
+  induction count_is_well_founded with t.
+  clear H; rename H0 into H; unfold ltof in H.
+  (* Ok, start wordering about the type... *)
+  destruct x; try exact reducible_SN.
+  destruct ts; try exact reducible_SN.
+  destruct p; try exact reducible_SN.
+  (* "Arrow types", in a way... *)
+  constructor; intros.
+  - rename ts0 into ts, ts into g.
+    rewrite L_composition in H0.
+    unfold ARR in H0.
+    cut (exists c, L (negation ts) c).
+    + destruct 1 as (c, ?H).
+      apply SN_bind_left with ts c.
+      apply cr1 with (L (negation g)).
+      * apply H.
+        eapply count_ret; eauto.
+      * apply H0.
+        assumption.
+    + (* We should add a free jump here, right...? *)
+      admit.
+  - rename ts0 into ts, ts into g.
+    rewrite L_composition in H0 |- *.
+    unfold ARR in H0 |- *; intros.
+    apply cr2 with (bind a ts c).
+    + apply H.
+      eapply count_ret; eauto.
+    + apply H0.
+      assumption.
+    + apply step_bind_left.
+      assumption.
+  - rename ts0 into ts, ts into g.
+    rewrite L_composition in H1 |- *.
+    unfold ARR in H1 |- *; intros.
+    assert (SN c).
+    + eapply cr1 with (L (negation ts)).
+      * apply H.
+        eapply count_arg; eauto.
+      * assumption.
+    + induction H3; clear H3.
+      apply cr3; intros.
+      * apply H.
+        eapply count_ret; eauto.
+      * (* Oh no! Are we really neutral here?
+
+           We'll probably have to change candidates from sets of terms to
+           relations between environments and terms. Could we derive then that x
+           is neutral based on that, e.g., such that a { k<xs: ts> = x } is
+           neutral in G? *)
+        admit.
+      * dependent destruction H3.
+        -- (* It is neutral, so we CAN'T have a redex here! *)
+           admit.
+        -- apply H1; auto.
+        -- apply H4; auto.
+           apply cr2 with x; auto.
+           apply H.
+           eapply count_arg; eauto.
+Admitted.
+
+Lemma SN_L:
+  forall t e,
+  L t e -> SN e.
+Proof.
+  intros.
+  apply cr1 with (L t); auto.
+  apply reducible_L.
+Qed.
+
+Lemma fundamental:
+  forall e g,
+  typing g e void ->
+  forall cs,
+  Forall2 L g cs ->
+  SN (beta cs 0 e).
+Proof.
+  induction e; inversion_clear 1.
+  (* Case: bound. *)
   - exfalso.
+    (* Commands don't have types, but variables do. *)
+    apply typing_bound_cant_be_void with g n; auto with cps.
+  (* Case: jump. *)
+  - clear IHe.
     admit.
-  - clear IHtyping.
-    admit.
-  - rewrite L_composition in IHtyping1.
-    unfold ARR in IHtyping1; intuition.
+  (* Case: bind. *)
+  - admit.
 Admitted.
 
 End STCC.
