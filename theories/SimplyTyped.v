@@ -3332,6 +3332,182 @@ Proof.
   apply star_beta.
 Qed.
 
+(** ** Multi-hole contexts *)
+
+Inductive multicontext: Set :=
+  | multicontext_context (h: context)
+  | multicontext_left (b: multicontext) (ts: list pseudoterm) (c: pseudoterm)
+  | multicontext_right (b: pseudoterm) (ts: list pseudoterm) (c: multicontext)
+  | multicontext_both (b: multicontext) (ts: list pseudoterm) (c: multicontext).
+
+Coercion multicontext_context: context >-> multicontext.
+
+Lemma multicontext_eq_dec:
+  forall h r: multicontext,
+  { h = r } + { h <> r }.
+Proof.
+  decide equality.
+  - apply context_eq_dec.
+  - apply pseudoterm_eq_dec.
+  - apply list_eq_dec.
+    apply pseudoterm_eq_dec.
+  - apply list_eq_dec.
+    apply pseudoterm_eq_dec.
+  - apply pseudoterm_eq_dec.
+  - apply list_eq_dec.
+    apply pseudoterm_eq_dec.
+Qed.
+
+Fixpoint apply_multicontext (h: multicontext) (f: nat -> pseudoterm) :=
+  match h with
+  | multicontext_context h =>
+      h (f #h)
+  | multicontext_left b ts c =>
+      bind (apply_multicontext b (fun n => f (S n))) ts c
+  | multicontext_right b ts c =>
+      bind b ts (apply_multicontext c (fun n => f (length ts + n)))
+  | multicontext_both b ts c =>
+      bind (apply_multicontext b (fun n => f (S n))) ts
+        (apply_multicontext c (fun n => f (length ts + n)))
+  end.
+
+Coercion apply_multicontext: multicontext >-> Funclass.
+
+Lemma multicontext_image:
+  forall h: multicontext,
+  forall f g,
+  (forall n, f n = g n) -> h f = h g.
+Proof.
+  induction h; simpl; intros.
+  - rewrite H; auto.
+  - f_equal.
+    apply IHh; intros.
+    apply H.
+  - f_equal.
+    apply IHh; intros.
+    apply H.
+  - f_equal.
+    + apply IHh1; intros.
+      apply H.
+    + apply IHh2; intros.
+      apply H.
+Qed.
+
+(* Our multi-hole contexts are sound. TODO: do all holes need the same xs? *)
+Goal
+  forall xs ts c,
+  length xs = length ts ->
+  forall h: multicontext,
+  forall r: context,
+  [bind (r (h (fun n => (jump (#r + n) xs)))) ts c =>*
+    bind
+      (r (h (fun n =>
+               (apply_parameters xs 0
+                 (lift (S (#r + n)) (length ts) c))))) ts c].
+Proof.
+  induction h; simpl; intros.
+  - rewrite <- compose_context_is_sound.
+    rewrite <- compose_context_is_sound.
+    replace (#r + #h) with (#(compose_context r h)).
+    + apply star_ctxjmp.
+      assumption.
+    + apply compose_context_depth.
+  - pose (compose_context r (context_left context_hole ts0 c0)) as X.
+    assert (forall e, r (bind e ts0 c0) = X e).
+    + intros; unfold X.
+      rewrite compose_context_is_sound; simpl.
+      reflexivity.
+    + rewrite H0.
+      rewrite H0.
+      (* Ugly proof... rewrite me... *)
+      rewrite multicontext_image with (g := fun n =>
+        jump (#X + n) xs).
+      rewrite multicontext_image with (f :=
+        (fun n : nat =>
+         apply_parameters xs 0
+           (lift (S (#r + S n)) (length ts) c))) (g := fun n =>
+        apply_parameters xs 0
+           (lift (S (#X + n)) (length ts) c)).
+      apply IHh.
+      * intros; f_equal; f_equal.
+        unfold X.
+        rewrite compose_context_depth; simpl.
+        lia.
+      * intros; f_equal.
+        unfold X.
+        rewrite compose_context_depth; simpl.
+        f_equal; lia.
+  - pose (compose_context r (context_right b ts0 context_hole)) as X.
+    assert (forall e, r (bind b ts0 e) = X e).
+    + intros; unfold X.
+      rewrite compose_context_is_sound; simpl.
+      reflexivity.
+    + rewrite H0.
+      rewrite H0.
+      rewrite multicontext_image with (g := fun n =>
+        jump (#X + n) xs).
+      rewrite multicontext_image with (f :=
+        (fun n : nat =>
+         apply_parameters xs 0
+           (lift (S (#r + (length ts0 + n))) (length ts) c))) (g := fun n =>
+        apply_parameters xs 0
+           (lift (S (#X + n)) (length ts) c)).
+      apply IHh.
+      * intros; f_equal; f_equal.
+        unfold X.
+        rewrite compose_context_depth; simpl.
+        lia.
+      * intros; f_equal.
+        unfold X.
+        rewrite compose_context_depth; simpl.
+        f_equal; lia.
+  - (* Clearly follow from transitivity and the hypotheses. *)
+    eapply star_trans.
+    epose (compose_context r (context_left context_hole ts0 _)) as X.
+    eassert (forall e, r (bind e ts0 _) = X e).
+    intros; unfold X.
+    rewrite compose_context_is_sound; simpl.
+    reflexivity.
+    rewrite H0.
+    rewrite multicontext_image with (g := fun n =>
+      jump (#X + n) xs).
+    apply IHh1.
+    intros; f_equal.
+    unfold X.
+    rewrite compose_context_depth; simpl.
+    f_equal; lia.
+    rewrite compose_context_is_sound; simpl.
+    rewrite compose_context_depth; simpl.
+    rewrite multicontext_image with (g := fun n =>
+      apply_parameters xs 0
+               (lift (S (#r + S n)) (length ts) c)).
+    epose (compose_context r (context_right _ ts0 context_hole)) as X.
+    eassert (forall e, r (bind _ ts0 e) = X e).
+    intros; unfold X.
+    rewrite compose_context_is_sound; simpl.
+    reflexivity.
+    rewrite H0.
+    rewrite H0.
+    rewrite multicontext_image with (g := fun n =>
+      jump (#X + n) xs).
+    rewrite multicontext_image with (f := fun n =>
+      apply_parameters xs 0 _
+    ) (g := fun n =>
+         apply_parameters xs 0
+           (lift (S (#X + n)) (length ts) c)).
+    apply IHh2.
+    intros; f_equal; f_equal.
+    unfold X.
+    rewrite compose_context_depth; simpl.
+    f_equal; lia.
+    intros; f_equal.
+    unfold X.
+    rewrite compose_context_depth; simpl.
+    f_equal; lia.
+    intros; f_equal; f_equal.
+    lia.
+Qed.
+
 (** ** Parallel reduction *)
 
 Inductive parallel: relation pseudoterm :=
