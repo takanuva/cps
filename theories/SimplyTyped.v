@@ -4412,6 +4412,47 @@ Qed.
 
 (* Should probably modularize the following lemma. *)
 
+Lemma reducible_ARR:
+  forall g ts,
+  reducible (L (negation g)) ->
+  reducible (L (negation ts)) ->
+  reducible (L (negation (negation ts :: g))).
+Proof.
+  constructor; intros.
+  - rewrite L_composition in H1.
+    unfold ARR in H1.
+    cut (exists c, L (negation ts) c).
+    + destruct 1 as (c, ?H).
+      apply SN_bind_left with ts c.
+      apply cr1 with (L (negation g)); auto.
+    + (* We should add a free jump here, right...? *)
+      admit.
+  - rewrite L_composition in H1 |- *.
+    unfold ARR in H1 |- *; intros.
+    apply cr2 with (bind a ts c); auto.
+    apply step_bind_left; auto.
+  - rewrite L_composition in H2 |- *.
+    unfold ARR in H2 |- *; intros.
+    assert (SN c).
+    + eapply cr1 with (L (negation ts)); auto.
+    + induction H4; clear H4.
+      apply cr3; intros.
+      * assumption.
+      * (* Oh no! Are we really neutral here?
+
+           We'll probably have to change candidates from sets of terms to
+           relations between environments and terms. Could we derive then that x
+           is neutral based on that, e.g., such that a { k<xs: ts> = x } is
+           neutral in G? *)
+        admit.
+      * dependent destruction H4.
+        -- (* It is neutral, so we CAN'T have a redex here! *)
+           admit.
+        -- apply H2; auto.
+        -- apply H5; auto.
+           apply cr2 with x; auto.
+Admitted.
+
 Lemma reducible_L:
   forall t,
   reducible (L t).
@@ -4424,58 +4465,13 @@ Proof.
   destruct ts; try exact reducible_SN.
   destruct p; try exact reducible_SN.
   (* "Arrow types", in a way... *)
-  constructor; intros.
-  - rename ts0 into ts, ts into g.
-    rewrite L_composition in H0.
-    unfold ARR in H0.
-    cut (exists c, L (negation ts) c).
-    + destruct 1 as (c, ?H).
-      apply SN_bind_left with ts c.
-      apply cr1 with (L (negation g)).
-      * apply H.
-        eapply count_ret; eauto.
-      * apply H0.
-        assumption.
-    + (* We should add a free jump here, right...? *)
-      admit.
-  - rename ts0 into ts, ts into g.
-    rewrite L_composition in H0 |- *.
-    unfold ARR in H0 |- *; intros.
-    apply cr2 with (bind a ts c).
-    + apply H.
-      eapply count_ret; eauto.
-    + apply H0.
-      assumption.
-    + apply step_bind_left.
-      assumption.
-  - rename ts0 into ts, ts into g.
-    rewrite L_composition in H1 |- *.
-    unfold ARR in H1 |- *; intros.
-    assert (SN c).
-    + eapply cr1 with (L (negation ts)).
-      * apply H.
-        eapply count_arg; eauto.
-      * assumption.
-    + induction H3; clear H3.
-      apply cr3; intros.
-      * apply H.
-        eapply count_ret; eauto.
-      * (* Oh no! Are we really neutral here?
-
-           We'll probably have to change candidates from sets of terms to
-           relations between environments and terms. Could we derive then that x
-           is neutral based on that, e.g., such that a { k<xs: ts> = x } is
-           neutral in G? *)
-        admit.
-      * dependent destruction H3.
-        -- (* It is neutral, so we CAN'T have a redex here! *)
-           admit.
-        -- apply H1; auto.
-        -- apply H4; auto.
-           apply cr2 with x; auto.
-           apply H.
-           eapply count_arg; eauto.
-Admitted.
+  rename ts0 into ts, ts into g.
+  apply reducible_ARR.
+  - apply H.
+    eapply count_ret; eauto.
+  - apply H.
+    eapply count_arg; eauto.
+Qed.
 
 Lemma SN_L:
   forall t e,
