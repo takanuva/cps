@@ -153,7 +153,7 @@ Fixpoint traverse f k e: pseudoterm :=
   | jump x xs =>
     jump (traverse f k x) (map (traverse f k) xs)
   | bind b ts c =>
-    bind (traverse f (S k) b) (map (traverse f k) ts)
+    bind (traverse f (S k) b) (traverse_list (traverse f) k ts)
       (traverse f (k + length ts) c)
   end.
 
@@ -163,3 +163,11 @@ Definition lift i: nat -> pseudoterm -> pseudoterm :=
       bound (i + n)
     else
       bound n).
+
+Definition subst y: nat -> pseudoterm -> pseudoterm :=
+  traverse (fun k n =>
+    match lt_eq_lt_dec k n with
+    | inleft (left _) => bound (pred n)
+    | inleft (right _) => lift k 0 y
+    | inright _ => bound n
+    end).
