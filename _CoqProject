@@ -1,3 +1,5 @@
 -R theories Local
 
+theories/Prelude.v
 theories/Syntax.v
+theories/Metatheory.v
