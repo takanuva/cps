@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 
@@ -548,4 +549,64 @@ Proof.
   intros.
   replace k with (0 + k); auto.
   apply subst_addition_distributes_over_itself.
+Qed.
+
+Lemma lifting_over_n_preserves_not_free_n:
+  forall e n,
+  not_free n e ->
+  forall i k,
+  k > n -> not_free n (lift i k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - assumption.
+  (* Case: prop. *)
+  - assumption.
+  (* Case: base. *)
+  - assumption.
+  (* Case: void. *)
+  - assumption.
+  (* Case: bound. *)
+  - rename n0 into m.
+    destruct (le_gt_dec k n).
+    + rewrite lift_bound_ge; auto.
+      constructor; lia.
+    + rewrite lift_bound_lt; auto.
+  (* Case: negation. *)
+  - induction H; simpl.
+    + assumption.
+    + rewrite lift_distributes_over_negation; simpl.
+      dependent destruction H0.
+      dependent destruction H0.
+      apply not_free_negation in H1.
+      apply IHForall in H1.
+      rewrite lift_distributes_over_negation in H1.
+      dependent destruction H1.
+      constructor; constructor; auto.
+      rewrite traverse_list_length.
+      apply H; try lia.
+      assumption.
+  (* Case: jump. *)
+  - rewrite lift_distributes_over_jump.
+    dependent destruction H0.
+    constructor; auto.
+    dependent induction H; auto; simpl.
+    dependent destruction H2.
+    constructor; auto.
+  (* Case: bind. *)
+  - rewrite lift_distributes_over_bind.
+    dependent destruction H0; constructor.
+    + apply IHe1; auto.
+      lia.
+    + clear IHe1 IHe2 H0_ H0_0.
+      induction H; auto; simpl.
+      dependent destruction H0.
+      apply IHForall in H1.
+      constructor; auto.
+      rewrite traverse_list_length.
+      apply H; auto.
+      lia.
+    + rewrite traverse_list_length.
+      apply IHe2; auto.
+      lia.
 Qed.

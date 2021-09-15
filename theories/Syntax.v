@@ -171,3 +171,47 @@ Definition subst y: nat -> pseudoterm -> pseudoterm :=
     | inleft (right _) => lift k 0 y
     | inright _ => bound n
     end).
+
+Inductive not_free: nat -> pseudoterm -> Prop :=
+  | not_free_type:
+    forall n,
+    not_free n type
+  | not_free_prop:
+    forall n,
+    not_free n prop
+  | not_free_base:
+    forall n,
+    not_free n base
+  | not_free_void:
+    forall n,
+    not_free n void
+  | not_free_bound:
+    forall n m,
+    n <> m -> not_free n m
+  | not_free_negation:
+    forall n ts,
+    not_free_list n ts ->
+    not_free n (negation ts)
+  | not_free_jump:
+    forall n x ts,
+    not_free n x ->
+    Forall (not_free n) ts -> not_free n (jump x ts)
+  | not_free_bind:
+    forall n b ts c,
+    not_free (S n) b ->
+    not_free_list n ts ->
+    not_free (length ts + n) c ->
+    not_free n (bind b ts c)
+
+with not_free_list: nat -> list pseudoterm -> Prop :=
+  | not_free_list_nil:
+    forall n,
+    not_free_list n []
+  | not_free_list_cons:
+    forall n t ts,
+    not_free (length ts + n) t ->
+    not_free_list n ts ->
+    not_free_list n (t :: ts).
+
+Global Hint Constructors not_free: cps.
+Global Hint Constructors not_free_list: cps.
