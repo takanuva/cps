@@ -551,6 +551,8 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
+(** ** Free Variables *)
+
 Lemma lifting_over_n_preserves_not_free_n:
   forall e n,
   not_free n e ->
@@ -590,11 +592,120 @@ Proof.
   - rewrite lift_distributes_over_jump.
     dependent destruction H0.
     constructor; auto.
-    dependent induction H; auto; simpl.
-    dependent destruction H2.
+    induction H; auto; simpl.
+    dependent destruction H1.
     constructor; auto.
   (* Case: bind. *)
   - rewrite lift_distributes_over_bind.
+    dependent destruction H0; constructor.
+    + apply IHe1; auto.
+      lia.
+    + clear IHe1 IHe2 H0_ H0_0.
+      induction H; auto; simpl.
+      dependent destruction H0.
+      apply IHForall in H1.
+      constructor; auto.
+      rewrite traverse_list_length.
+      apply H; auto.
+      lia.
+    + rewrite traverse_list_length.
+      apply IHe2; auto.
+      lia.
+Qed.
+
+(* Clearly, if we're lifiting [e]'s var above [k] by [i], anything equal or
+   greater than [k] and smaller than [k + i] is free. *)
+Lemma lifting_more_than_n_makes_not_free_n:
+  forall e i k n,
+  n >= k -> n < k + i -> not_free n (lift i k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - constructor.
+  (* Case: prop. *)
+  - constructor.
+  (* Case: base. *)
+  - constructor.
+  (* Case: void. *)
+  - constructor.
+  (* Case: bound. *)
+  - rename n0 into m.
+    destruct (le_gt_dec k n).
+    + rewrite lift_bound_ge; auto.
+      constructor; lia.
+    + rewrite lift_bound_lt; auto.
+      constructor; lia.
+  (* Case: negation. *)
+  - rewrite lift_distributes_over_negation.
+    constructor.
+    induction H; simpl; auto.
+    + constructor.
+    + constructor; auto.
+      rewrite traverse_list_length.
+      apply H; lia.
+  (* Case: jump. *)
+  - rewrite lift_distributes_over_jump.
+    constructor; auto.
+    induction H; simpl; auto.
+  (* Case: bind. *)
+  - rewrite lift_distributes_over_bind.
+    constructor.
+    + apply IHe1; lia.
+    + induction H; simpl.
+      * constructor.
+      * constructor; auto.
+        rewrite traverse_list_length.
+        apply H; lia.
+    + rewrite traverse_list_length.
+      apply IHe2; lia.
+Qed.
+
+Lemma substing_over_n_preserves_not_free_in_n:
+  forall e n,
+  not_free n e ->
+  forall x k,
+  k > n -> not_free n (subst x k e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - assumption.
+  (* Case: prop. *)
+  - assumption.
+  (* Case: base. *)
+  - assumption.
+  (* Case: void. *)
+  - assumption.
+  (* Case: bound. *)
+  - rename n0 into m.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; auto.
+      constructor; lia.
+    + rewrite subst_bound_eq; auto.
+      apply lifting_more_than_n_makes_not_free_n; lia.
+    + rewrite subst_bound_lt; auto.
+  (* Case: negation. *)
+  - induction H; simpl.
+    + assumption.
+    + rewrite subst_distributes_over_negation; simpl.
+      dependent destruction H0.
+      dependent destruction H0.
+      apply not_free_negation in H1.
+      apply IHForall in H1.
+      rewrite subst_distributes_over_negation in H1.
+      dependent destruction H1.
+      constructor; constructor; auto.
+      rewrite traverse_list_length.
+      apply H; try lia.
+      assumption.
+  (* Case: jump. *)
+  - rewrite subst_distributes_over_jump.
+    dependent destruction H0.
+    constructor; auto.
+    induction H; auto; simpl.
+    dependent destruction H1.
+    constructor; auto.
+  (* Case: bind. *)
+  - rewrite subst_distributes_over_bind.
     dependent destruction H0; constructor.
     + apply IHe1; auto.
       lia.

@@ -215,3 +215,8 @@ with not_free_list: nat -> list pseudoterm -> Prop :=
 
 Global Hint Constructors not_free: cps.
 Global Hint Constructors not_free_list: cps.
+
+Definition free n e: Prop :=
+  ~not_free n e.
+
+Global Hint Unfold free: cps.
