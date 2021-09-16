@@ -613,24 +613,24 @@ Proof.
 Qed.
 
 Lemma lift_addition_distributes_over_apply_parameters:
-  forall xs i k p e,
-  lift i (p + k) (apply_parameters xs p e) =
-    apply_parameters (map (lift i k) xs) p (lift i (p + length xs + k) e).
+  forall ys i k p e,
+  lift i (p + k) (apply_parameters ys p e) =
+    apply_parameters (map (lift i k) ys) p (lift i (p + length ys + k) e).
 Proof.
-  induction xs; simpl; intros.
+  induction ys; simpl; intros.
   (* Case: nil. *)
   - replace (p + 0) with p; auto.
   (* Case: cons. *)
-  - rewrite IHxs.
+  - rewrite IHys.
     rewrite lift_addition_distributes_over_subst.
     rewrite map_length.
     do 3 f_equal; lia.
 Qed.
 
 Lemma lift_distributes_over_apply_parameters:
-  forall xs i k e,
-  lift i k (apply_parameters xs 0 e) =
-    apply_parameters (map (lift i k) xs) 0 (lift i (length xs + k) e).
+  forall ys i k e,
+  lift i k (apply_parameters ys 0 e) =
+    apply_parameters (map (lift i k) ys) 0 (lift i (length ys + k) e).
 Proof.
   intros.
   replace k with (0 + k); auto.

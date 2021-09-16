@@ -172,10 +172,10 @@ Definition subst y: nat -> pseudoterm -> pseudoterm :=
     | inright _ => bound n
     end).
 
-Fixpoint apply_parameters xs k e: pseudoterm :=
-  match xs with
+Fixpoint apply_parameters ys k e: pseudoterm :=
+  match ys with
   | [] => e
-  | x :: xs => apply_parameters xs k (subst x (k + length xs) e)
+  | y :: ys => apply_parameters ys k (subst y (k + length ys) e)
   end.
 
 Global Hint Unfold apply_parameters: cps.
@@ -201,7 +201,7 @@ Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
 
 Global Hint Unfold right_cycle: cps.
 
-Definition remove_closest_binding k e: pseudoterm :=
+Definition remove_binding k e: pseudoterm :=
   subst 0 k e.
 
 Inductive not_free: nat -> pseudoterm -> Prop :=
