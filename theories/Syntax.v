@@ -172,6 +172,38 @@ Definition subst y: nat -> pseudoterm -> pseudoterm :=
     | inright _ => bound n
     end).
 
+Fixpoint apply_parameters xs k e: pseudoterm :=
+  match xs with
+  | [] => e
+  | x :: xs => apply_parameters xs k (subst x (k + length xs) e)
+  end.
+
+Global Hint Unfold apply_parameters: cps.
+
+Definition switch_bindings k e: pseudoterm :=
+  subst 1 k (lift 1 (2 + k) e).
+
+Global Hint Unfold switch_bindings: cps.
+
+Fixpoint sequence (high: bool) (i: nat): list pseudoterm :=
+  match i with
+  | 0 => []
+  | S j => bound (if high then i else j) :: sequence high j
+  end.
+
+Global Hint Unfold sequence: cps.
+
+Notation high_sequence := (sequence true).
+Notation low_sequence := (sequence false).
+
+Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
+  apply_parameters (bound 0 :: high_sequence i) k (lift (S i) (S i + k) e).
+
+Global Hint Unfold right_cycle: cps.
+
+Definition remove_closest_binding k e: pseudoterm :=
+  subst 0 k e.
+
 Inductive not_free: nat -> pseudoterm -> Prop :=
   | not_free_type:
     forall n,

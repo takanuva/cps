@@ -551,6 +551,92 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
+(** ** Parameter Application *)
+
+Lemma apply_parameters_distributes_over_negation:
+  forall ys k ts,
+  apply_parameters ys k (negation ts) =
+    negation (traverse_list (apply_parameters ys) k ts).
+Proof.
+  induction ys; simpl; intros.
+  - f_equal; induction ts; auto.
+    simpl; f_equal.
+    assumption.
+  - rewrite subst_distributes_over_negation.
+    rewrite IHys.
+    f_equal; clear IHys.
+    induction ts; auto; simpl.
+    do 3 rewrite traverse_list_length.
+    f_equal; auto.
+    f_equal; f_equal.
+    lia.
+Qed.
+
+Lemma apply_parameters_distributes_over_jump:
+  forall ys k x xs,
+  apply_parameters ys k (jump x xs) =
+    jump (apply_parameters ys k x) (map (apply_parameters ys k) xs).
+Proof.
+  induction ys; simpl; intros.
+  - f_equal; induction xs; auto.
+    simpl; f_equal.
+    assumption.
+  - rewrite subst_distributes_over_jump.
+    rewrite IHys.
+    f_equal; clear IHys.
+    induction xs; auto; simpl.
+    f_equal; assumption.
+Qed.
+
+Lemma apply_parameters_distributes_over_bind:
+  forall ys k b ts c,
+  apply_parameters ys k (bind b ts c) =
+    bind (apply_parameters ys (S k) b)
+      (traverse_list (apply_parameters ys) k ts)
+        (apply_parameters ys (k + length ts) c).
+Proof.
+  induction ys; simpl; intros.
+  - f_equal; induction ts; auto.
+    simpl; f_equal.
+    assumption.
+  - rewrite subst_distributes_over_bind.
+    rewrite IHys; clear IHys.
+    rewrite traverse_list_length.
+    f_equal.
+    + induction ts; auto; simpl.
+      do 3 rewrite traverse_list_length.
+      f_equal; auto.
+      f_equal; f_equal.
+      lia.
+    + f_equal; f_equal.
+      lia.
+Qed.
+
+Lemma lift_addition_distributes_over_apply_parameters:
+  forall xs i k p e,
+  lift i (p + k) (apply_parameters xs p e) =
+    apply_parameters (map (lift i k) xs) p (lift i (p + length xs + k) e).
+Proof.
+  induction xs; simpl; intros.
+  (* Case: nil. *)
+  - replace (p + 0) with p; auto.
+  (* Case: cons. *)
+  - rewrite IHxs.
+    rewrite lift_addition_distributes_over_subst.
+    rewrite map_length.
+    do 3 f_equal; lia.
+Qed.
+
+Lemma lift_distributes_over_apply_parameters:
+  forall xs i k e,
+  lift i k (apply_parameters xs 0 e) =
+    apply_parameters (map (lift i k) xs) 0 (lift i (length xs + k) e).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply lift_addition_distributes_over_apply_parameters.
+Qed.
+
 (** ** Free Variables *)
 
 Lemma lifting_over_n_preserves_not_free_n:
