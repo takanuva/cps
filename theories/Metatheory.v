@@ -1077,7 +1077,8 @@ Qed.
 
 Lemma lifting_over_n_doesnt_change_sequence_n:
   forall n i k (b: bool),
-  map (lift i ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+  (if b then k > n else k >= n) ->
+  map (lift i k) (sequence b n) = sequence b n.
 Proof.
   induction n; intros.
   (* Case: zero. *)
@@ -1086,28 +1087,32 @@ Proof.
   - simpl; f_equal.
     + rewrite lift_bound_lt; auto.
       destruct b; lia.
-    + replace (S (n + k)) with (n + S k); auto.
+    + apply IHn.
+      destruct b; lia.
 Qed.
 
 Lemma lifting_over_n_doesnt_change_high_sequence_n:
   forall n i k,
-  map (lift i (S (n + k))) (high_sequence n) = high_sequence n.
+  k > n ->
+  map (lift i k) (high_sequence n) = high_sequence n.
 Proof.
   intros.
-  apply lifting_over_n_doesnt_change_sequence_n with (b := true).
+  apply lifting_over_n_doesnt_change_sequence_n with (b := true); auto.
 Qed.
 
 Lemma lifting_over_n_doesnt_change_low_sequence_n:
   forall n i k,
-  map (lift i (n + k)) (low_sequence n) = low_sequence n.
+  k >= n ->
+  map (lift i k) (low_sequence n) = low_sequence n.
 Proof.
   intros.
-  apply lifting_over_n_doesnt_change_sequence_n with (b := false).
+  apply lifting_over_n_doesnt_change_sequence_n with (b := false); auto.
 Qed.
 
 Lemma substing_over_n_doesnt_change_sequence_n:
   forall n x k (b: bool),
-  map (subst x ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+  (if b then k > n else k >= n) ->
+  map (subst x k) (sequence b n) = sequence b n.
 Proof.
   induction n; intros.
   (* Case: zero. *)
@@ -1116,21 +1121,80 @@ Proof.
   - simpl; f_equal.
     + rewrite subst_bound_lt; auto.
       destruct b; lia.
-    + replace (S (n + k)) with (n + S k); auto.
+    + apply IHn.
+      destruct b; lia.
 Qed.
 
 Lemma substing_over_n_doesnt_change_high_sequence_n:
   forall n x k,
-  map (subst x (S (n + k))) (high_sequence n) = high_sequence n.
+  k > n ->
+  map (subst x k) (high_sequence n) = high_sequence n.
 Proof.
   intros.
-  apply substing_over_n_doesnt_change_sequence_n with (b := true).
+  apply substing_over_n_doesnt_change_sequence_n with (b := true); auto.
 Qed.
 
 Lemma substing_over_n_doesnt_change_low_sequence_n:
   forall n x k,
-  map (subst x (n + k)) (low_sequence n) = low_sequence n.
+  k >= n ->
+  map (subst x k) (low_sequence n) = low_sequence n.
 Proof.
   intros.
-  apply substing_over_n_doesnt_change_sequence_n with (b := false).
+  apply substing_over_n_doesnt_change_sequence_n with (b := false); auto.
+Qed.
+
+Lemma lift_and_right_cycle_commute:
+  forall e n i k p,
+  k > n ->
+  lift i (p + k) (right_cycle n p e) = right_cycle n p (lift i (p + k) e).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_addition_distributes_over_apply_parameters.
+  do 2 f_equal.
+  - apply lifting_over_n_doesnt_change_high_sequence_n; auto.
+  - rewrite lift_addition_distributes_over_subst; f_equal.
+    + rewrite lift_bound_lt; auto; lia.
+    + rewrite sequence_length; symmetry.
+      rewrite lift_lift_permutation; try lia.
+      f_equal; lia.
+Qed.
+
+Lemma lift_and_switch_bindings_commute:
+  forall i k e,
+  lift i (S (S k)) (switch_bindings 0 e) =
+    switch_bindings 0 (lift i (S (S k)) e).
+Proof.
+  intros.
+  do 2 rewrite switch_bindings_behavior.
+  apply lift_and_right_cycle_commute with (p := 0) (n := 1); lia.
+Qed.
+
+Lemma subst_and_right_cycle_commute:
+  forall e n x k p,
+  k > n ->
+  subst x (p + k) (right_cycle n p e) =
+    right_cycle n p (subst x (p + k) e).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite subst_addition_distributes_over_apply_parameters.
+  f_equal.
+  - apply substing_over_n_doesnt_change_high_sequence_n; auto.
+  - rewrite subst_addition_distributes_over_itself; f_equal.
+    + rewrite subst_bound_lt; auto.
+      lia.
+    + rewrite sequence_length.
+      rewrite lift_and_subst_commute; try lia.
+      f_equal; lia.
+Qed.
+
+Lemma subst_and_switch_bindings_commute:
+  forall x k e,
+  subst x (2 + k) (switch_bindings 0 e) =
+    switch_bindings 0 (subst x (2 + k) e).
+Proof.
+  intros.
+  do 2 rewrite switch_bindings_behavior.
+  apply subst_and_right_cycle_commute with (p := 0) (n := 1); lia.
 Qed.

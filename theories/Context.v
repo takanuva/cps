@@ -2,8 +2,8 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
-Require Import Setoid.
-Require Import Relations.
+Require Export Setoid.
+Require Export Relations.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 
@@ -20,7 +20,9 @@ Definition RIGHT (R: relation pseudoterm): Prop :=
 Global Hint Unfold RIGHT: cps.
 
 Class Congruence (R: relation pseudoterm) := {
+  (* A congruence is an equivalence relation. *)
   Congruence_Equivalence :> Equivalence R;
+  (* It also is preserved by any contexts. *)
   Congruence_Left: LEFT R;
   Congruence_Right: RIGHT R
 }.
