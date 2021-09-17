@@ -842,7 +842,7 @@ Proof.
       apply IHe2; lia.
 Qed.
 
-Lemma substing_over_n_preserves_not_free_in_n:
+Lemma substing_over_n_preserves_not_free_n:
   forall e n,
   not_free n e ->
   forall x k,
@@ -1065,9 +1065,9 @@ Proof.
 Qed.
 
 Lemma remove_closest_binding_and_subst_commute:
-  forall e x k,
+  forall e y k,
   not_free 0 e ->
-  subst x k (remove_binding 0 e) = remove_binding 0 (subst x (S k) e).
+  subst y k (remove_binding 0 e) = remove_binding 0 (subst y (S k) e).
 Proof.
   intros.
   replace k with (0 + k); auto.
