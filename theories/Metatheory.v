@@ -18,7 +18,12 @@ Proof.
   - f_equal; assumption.
 Qed.
 
-(** ** Lifting *)
+Lemma sequence_length:
+  forall n b,
+  length (sequence b n) = n.
+Proof.
+  induction n; simpl; auto.
+Qed.
 
 Lemma lift_distributes_over_negation:
   forall i k ts,
@@ -203,8 +208,6 @@ Proof.
       rewrite plus_assoc_reverse.
       apply IHe2; lia.
 Qed.
-
-(** ** Substitution *)
 
 Lemma subst_distributes_over_negation:
   forall y k ts,
@@ -551,8 +554,6 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
-(** ** Parameter Application *)
-
 Lemma apply_parameters_distributes_over_negation:
   forall ys k ts,
   apply_parameters ys k (negation ts) =
@@ -637,7 +638,102 @@ Proof.
   apply lift_addition_distributes_over_apply_parameters.
 Qed.
 
-(** ** Free Variables *)
+Lemma subst_addition_distributes_over_apply_parameters:
+  forall ys y k p e,
+  subst y (p + k) (apply_parameters ys p e) =
+    apply_parameters (map (subst y k) ys) p (subst y (p + length ys + k) e).
+Proof.
+  induction ys; simpl; intros.
+  (* Case: nil. *)
+  - replace (p + 0) with p; auto.
+  (* Case: cons. *)
+  - rewrite IHys.
+    rewrite subst_addition_distributes_over_itself.
+    rewrite map_length.
+    do 3 f_equal; lia.
+Qed.
+
+Lemma subst_distributes_over_apply_parameters:
+  forall ys y k e,
+  subst y k (apply_parameters ys 0 e) =
+    apply_parameters (map (subst y k) ys) 0 (subst y (length ys + k) e).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply subst_addition_distributes_over_apply_parameters.
+Qed.
+
+Lemma switch_bindings_behavior:
+  forall e k,
+  switch_bindings k e = right_cycle 1 k e.
+Proof.
+  unfold switch_bindings.
+  unfold right_cycle; simpl.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - destruct (le_gt_dec (S (S k)) n).
+    + rewrite lift_bound_ge; auto.
+      rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      reflexivity.
+    + rewrite lift_bound_lt; auto.
+      rewrite lift_bound_lt; auto.
+      destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; auto.
+        rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_lt; auto with arith.
+      * rewrite subst_bound_eq; auto.
+        rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_eq; eauto with arith.
+        lia.
+      * rewrite subst_bound_gt; auto.
+        rewrite subst_bound_eq; try lia.
+        rewrite lift_bound_ge; auto.
+        rewrite subst_bound_gt; auto.
+        lia.
+  (* Case: negation. *)
+  - do 2 rewrite lift_distributes_over_negation.
+    do 3 rewrite subst_distributes_over_negation.
+    f_equal; induction H; auto.
+    simpl.
+    do 5 rewrite traverse_list_length.
+    f_equal; auto.
+    replace (length l + S (S k)) with (S (S (length l + k))); try lia.
+    do 2 rewrite plus_assoc.
+    apply H.
+  (* Case: jump. *)
+  - do 2 rewrite lift_distributes_over_jump.
+    do 3 rewrite subst_distributes_over_jump.
+    f_equal; auto.
+    list induction over H.
+  (* Case: bind. *)
+  - do 2 rewrite lift_distributes_over_bind.
+    do 3 rewrite subst_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + clear IHe1 IHe2.
+      induction H; auto.
+      simpl.
+      do 5 rewrite traverse_list_length.
+      f_equal; auto.
+      replace (length l + S (S k)) with (S (S (length l + k))); try lia.
+      do 2 rewrite plus_assoc.
+      apply H.
+    + do 3 rewrite traverse_list_length.
+      replace (k + 0 + length ts) with (k + length ts + 0); try lia.
+      replace (k + 1 + length ts) with (k + length ts + 1); try lia.
+      apply IHe2.
+Qed.
 
 Lemma lifting_over_n_preserves_not_free_n:
   forall e n,
@@ -806,4 +902,235 @@ Proof.
     + rewrite traverse_list_length.
       apply IHe2; auto.
       lia.
+Qed.
+
+Lemma lift_preserved_by_useless_subst:
+  forall e i k p x,
+  not_free p e ->
+  lift i (p + k) (subst x p e) = subst x p (lift i (p + S k) e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_lt; auto.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; auto.
+    + exfalso.
+      inversion H; auto.
+    + rewrite subst_bound_gt; auto.
+      destruct (le_gt_dec n (p + k)).
+      * rewrite lift_bound_lt; try lia.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_gt; auto.
+      * rewrite lift_bound_ge; try lia.
+        rewrite lift_bound_ge; try lia.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
+  (* Case: negation. *)
+  - rewrite lift_distributes_over_negation.
+    do 2 rewrite subst_distributes_over_negation.
+    rewrite lift_distributes_over_negation.
+    dependent destruction H0.
+    f_equal.
+    induction H; auto.
+    dependent destruction H0.
+    simpl; f_equal; auto.
+    do 4 rewrite traverse_list_length.
+    do 2 rewrite plus_assoc.
+    apply H; auto.
+  (* Case: jump. *)
+  - rewrite lift_distributes_over_jump.
+    do 2 rewrite subst_distributes_over_jump.
+    rewrite lift_distributes_over_jump.
+    dependent destruction H0.
+    f_equal; auto.
+    induction H; auto.
+    dependent destruction H1.
+    simpl; f_equal; auto.
+  (* Case: bind. *)
+  - rewrite lift_distributes_over_bind.
+    do 2 rewrite subst_distributes_over_bind.
+    rewrite lift_distributes_over_bind.
+    inversion_clear H0.
+    simpl; f_equal.
+    + replace (S (p + k)) with (S p + k); try lia.
+      replace (S (p + S k)) with (S p + S k); try lia.
+      apply IHe1; auto.
+    + clear IHe1 IHe2 H1 H3.
+      induction H; auto.
+      inversion_clear H2.
+      simpl; f_equal; auto.
+      do 4 rewrite traverse_list_length.
+      do 2 rewrite plus_assoc.
+      apply H; auto.
+    + do 2 rewrite traverse_list_length.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (p + S k + length ts) with (p + length ts + S k); try lia.
+      apply IHe2; auto.
+      rewrite plus_comm; auto.
+Qed.
+
+Lemma remove_closest_binding_and_lift_commute:
+  forall e i k,
+  not_free 0 e ->
+  lift i k (remove_binding 0 e) = remove_binding 0 (lift i (S k) e).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply lift_preserved_by_useless_subst.
+  assumption.
+Qed.
+
+Lemma subst_preserved_by_useless_subst:
+  forall e y k p x,
+  not_free p e ->
+  subst y (p + k) (subst x p e) = subst x p (subst y (p + S k) e).
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  (* Case: type. *)
+  - reflexivity.
+  (* Case: prop. *)
+  - reflexivity.
+  (* Case: base. *)
+  - reflexivity.
+  (* Case: void. *)
+  - reflexivity.
+  (* Case: bound. *)
+  - destruct (lt_eq_lt_dec n p) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_lt; auto.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; auto.
+    + exfalso.
+      inversion H; auto.
+    + rewrite subst_bound_gt; auto.
+      destruct (lt_eq_lt_dec n (p + S k)) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_lt; try lia.
+        rewrite subst_bound_gt; auto.
+      * rewrite subst_bound_eq; try lia.
+        rewrite subst_bound_eq; try lia.
+        replace n with (S (p + k)) at 2; try lia.
+        rewrite subst_lift_simplification; try lia.
+        f_equal; lia.
+      * rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
+        rewrite subst_bound_gt; try lia.
+        reflexivity.
+  (* Case: negation. *)
+  - do 4 rewrite subst_distributes_over_negation.
+    dependent destruction H0.
+    f_equal.
+    induction H; auto.
+    dependent destruction H0.
+    simpl; f_equal; auto.
+    do 4 rewrite traverse_list_length.
+    do 2 rewrite plus_assoc.
+    apply H; auto.
+  (* Case: jump. *)
+  - do 4 rewrite subst_distributes_over_jump.
+    dependent destruction H0.
+    f_equal; auto.
+    induction H; auto.
+    dependent destruction H1.
+    simpl; f_equal; auto.
+  (* Case: bind. *)
+  - do 4 rewrite subst_distributes_over_bind.
+    inversion_clear H0.
+    simpl; f_equal.
+    + replace (S (p + k)) with (S p + k); try lia.
+      replace (S (p + S k)) with (S p + S k); try lia.
+      apply IHe1; auto.
+    + clear IHe1 IHe2 H1 H3.
+      induction H; auto.
+      inversion_clear H2.
+      simpl; f_equal; auto.
+      do 4 rewrite traverse_list_length.
+      do 2 rewrite plus_assoc.
+      apply H; auto.
+    + do 2 rewrite traverse_list_length.
+      replace (p + k + length ts) with (p + length ts + k); try lia.
+      replace (p + S k + length ts) with (p + length ts + S k); try lia.
+      apply IHe2; auto.
+      rewrite plus_comm; auto.
+Qed.
+
+Lemma remove_closest_binding_and_subst_commute:
+  forall e x k,
+  not_free 0 e ->
+  subst x k (remove_binding 0 e) = remove_binding 0 (subst x (S k) e).
+Proof.
+  intros.
+  replace k with (0 + k); auto.
+  apply subst_preserved_by_useless_subst.
+  assumption.
+Qed.
+
+Lemma lifting_over_n_doesnt_change_sequence_n:
+  forall n i k (b: bool),
+  map (lift i ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - simpl; f_equal.
+    + rewrite lift_bound_lt; auto.
+      destruct b; lia.
+    + replace (S (n + k)) with (n + S k); auto.
+Qed.
+
+Lemma lifting_over_n_doesnt_change_high_sequence_n:
+  forall n i k,
+  map (lift i (S (n + k))) (high_sequence n) = high_sequence n.
+Proof.
+  intros.
+  apply lifting_over_n_doesnt_change_sequence_n with (b := true).
+Qed.
+
+Lemma lifting_over_n_doesnt_change_low_sequence_n:
+  forall n i k,
+  map (lift i (n + k)) (low_sequence n) = low_sequence n.
+Proof.
+  intros.
+  apply lifting_over_n_doesnt_change_sequence_n with (b := false).
+Qed.
+
+Lemma substing_over_n_doesnt_change_sequence_n:
+  forall n x k (b: bool),
+  map (subst x ((if b then 1 else 0) + (n + k))) (sequence b n) = sequence b n.
+Proof.
+  induction n; intros.
+  (* Case: zero. *)
+  - reflexivity.
+  (* Case: succ. *)
+  - simpl; f_equal.
+    + rewrite subst_bound_lt; auto.
+      destruct b; lia.
+    + replace (S (n + k)) with (n + S k); auto.
+Qed.
+
+Lemma substing_over_n_doesnt_change_high_sequence_n:
+  forall n x k,
+  map (subst x (S (n + k))) (high_sequence n) = high_sequence n.
+Proof.
+  intros.
+  apply substing_over_n_doesnt_change_sequence_n with (b := true).
+Qed.
+
+Lemma substing_over_n_doesnt_change_low_sequence_n:
+  forall n x k,
+  map (subst x (n + k)) (low_sequence n) = low_sequence n.
+Proof.
+  intros.
+  apply substing_over_n_doesnt_change_sequence_n with (b := false).
 Qed.
