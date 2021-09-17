@@ -4,3 +4,4 @@ theories/Prelude.v
 theories/Syntax.v
 theories/Metatheory.v
 theories/AbstractRewriting.v
+theories/Axiomatic.v
