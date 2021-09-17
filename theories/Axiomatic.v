@@ -3,10 +3,12 @@
 (******************************************************************************)
 
 Require Import Setoid.
+Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
+Require Import Local.Context.
 
 (** ** Axiomatic semantics *)
 
@@ -58,18 +60,6 @@ Definition GC (R: relation pseudoterm): Prop :=
   R (bind b ts c) (remove_binding 0 b).
 
 Global Hint Unfold GC: cps.
-
-Definition LEFT (R: relation pseudoterm): Prop :=
-  forall b1 b2 ts c,
-  R b1 b2 -> R (bind b1 ts c) (bind b2 ts c).
-
-Global Hint Unfold LEFT: cps.
-
-Definition RIGHT (R: relation pseudoterm): Prop :=
-  forall b ts c1 c2,
-  R c1 c2 -> R (bind b ts c1) (bind b ts c2).
-
-Global Hint Unfold RIGHT: cps.
 
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
@@ -183,14 +173,20 @@ Qed.
 
 Global Hint Resolve cong_bind_right: cps.
 
-(* TODO: should we prove this is a congruence instead? *)
-
-Instance cong_is_equiv: Equivalence cong.
+Instance cong_is_an_equivalence: Equivalence cong.
 Proof.
   split.
   - exact cong_refl.
   - exact cong_sym.
   - exact cong_trans.
+Defined.
+
+Instance cong_is_a_congruence: Congruence cong.
+Proof.
+  split.
+  - exact cong_is_an_equivalence.
+  - exact cong_bind_left.
+  - exact cong_bind_right.
 Defined.
 
 (* Our (DISTR) rule is particularly annoying to do with de Bruijn indexes and it
