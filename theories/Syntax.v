@@ -164,6 +164,8 @@ Definition lift i: nat -> pseudoterm -> pseudoterm :=
     else
       bound n).
 
+Arguments lift i k e: simpl nomatch.
+
 Definition subst y: nat -> pseudoterm -> pseudoterm :=
   traverse (fun k n =>
     match lt_eq_lt_dec k n with
@@ -171,6 +173,8 @@ Definition subst y: nat -> pseudoterm -> pseudoterm :=
     | inleft (right _) => lift k 0 y
     | inright _ => bound n
     end).
+
+Arguments subst y k e: simpl nomatch.
 
 Fixpoint apply_parameters ys k e: pseudoterm :=
   match ys with

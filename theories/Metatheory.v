@@ -1198,3 +1198,120 @@ Proof.
   do 2 rewrite switch_bindings_behavior.
   apply subst_and_right_cycle_commute with (p := 0) (n := 1); lia.
 Qed.
+
+Lemma apply_parameters_lift_e_equals_e:
+  forall xs k e,
+  apply_parameters xs k (lift (length xs) k e) = e.
+Proof.
+  induction xs; intros.
+  - apply lift_zero_e_equals_e.
+  - simpl.
+    rewrite subst_lift_simplification; try lia.
+    apply IHxs.
+Qed.
+
+Lemma apply_parameters_bound_lt:
+  forall xs n,
+  length xs > n ->
+  forall x,
+  item x (rev xs) n -> apply_parameters xs 0 n = x.
+Proof.
+  induction xs; simpl; intros.
+  - exfalso.
+    inversion H0.
+  - destruct (le_gt_dec (length xs) n).
+    + assert (n = length xs); try lia.
+      rewrite subst_bound_eq; auto.
+      apply item_ignore_head in H0.
+      * rewrite rev_length in H0.
+        rewrite H1 in H0 |- *.
+        replace (length xs - length xs) with 0 in H0; try lia.
+        inversion_clear H0.
+        apply apply_parameters_lift_e_equals_e.
+      * rewrite rev_length; auto.
+    + rewrite subst_bound_lt; auto.
+      apply IHxs; auto.
+      eapply item_ignore_tail; eauto.
+      rewrite rev_length; auto.
+Qed.
+
+Lemma apply_parameters_bound_ge:
+  forall xs n,
+  length xs <= n ->
+  apply_parameters xs 0 (bound n) = n - length xs.
+Proof.
+  induction xs; intros.
+  - simpl; f_equal; lia.
+  - simpl in H |- *.
+    rewrite subst_bound_gt; auto.
+    rewrite IHxs; try lia.
+    f_equal; lia.
+Qed.
+
+Lemma high_sequence_rev_lifts_by_one:
+  forall n k,
+  n < k -> item (bound (S n)) (rev (high_sequence k)) n.
+Proof.
+  intros.
+  induction k; simpl.
+  - exfalso.
+    inversion H.
+  - destruct (le_gt_dec k n).
+    + cut (n = k); try lia.
+      destruct 1.
+      replace n with (length (rev (high_sequence n))) at 4.
+      * apply item_insert_head with (k := 0).
+        constructor.
+      * rewrite rev_length.
+        rewrite sequence_length.
+        reflexivity.
+    + apply item_insert_tail.
+      apply IHk; lia.
+Qed.
+
+Lemma right_cycle_bound_lt:
+  forall k n,
+  n < k -> right_cycle k 0 (bound n) = S n.
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_bound_lt; try lia.
+  rewrite sequence_length.
+  rewrite subst_bound_lt; auto.
+  apply apply_parameters_bound_lt.
+  - rewrite sequence_length; auto.
+  - apply high_sequence_rev_lifts_by_one; auto.
+Qed.
+
+Lemma right_cycle_bound_eq:
+  forall k n,
+  n = k -> right_cycle k 0 (bound n) = 0.
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_bound_lt; try lia.
+  rewrite sequence_length.
+  rewrite subst_bound_eq; auto.
+  rewrite lift_bound_ge; auto.
+  rewrite apply_parameters_bound_ge.
+  - rewrite sequence_length.
+    f_equal; lia.
+  - rewrite sequence_length.
+    lia.
+Qed.
+
+Lemma right_cycle_bound_gt:
+  forall k n,
+  n > k -> right_cycle k 0 (bound n) = n.
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_bound_ge; try lia.
+  rewrite sequence_length.
+  rewrite subst_bound_gt; try lia.
+  rewrite apply_parameters_bound_ge; simpl.
+  - rewrite sequence_length.
+    f_equal; lia.
+  - rewrite sequence_length.
+    lia.
+Qed.
