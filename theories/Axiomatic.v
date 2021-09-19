@@ -64,6 +64,36 @@ Definition GC (R: relation pseudoterm): Prop :=
 
 Global Hint Unfold GC: cps.
 
+(* Float left: L { M } { N } == L { N } { M } if n doesn't appear in M. *)
+
+Definition FLOAT_LEFT (R: relation pseudoterm): Prop :=
+  forall b ms m ns n,
+  not_free (length ms) m ->
+  not_free_list 0 ms ->
+  R (bind (bind b ms m) ns n)
+    (bind (bind
+      (switch_bindings 0 b)
+      (traverse_list (lift 1) 0 ns)
+        (lift 1 (length ns) n))
+      (traverse_list remove_binding 0 ms)
+        (remove_binding (length ms) m)).
+
+(* Float right: L { M } { N } == L { M { N } } if n doesn't appear in L. *)
+
+Definition FLOAT_RIGHT (R: relation pseudoterm): Prop :=
+  forall b ms m ns n,
+  not_free 1 b ->
+  not_free_list 0 ms ->
+  R (bind (bind b ms m) ns n)
+    (bind
+      (* Is this the same as remove_binding 1 b? *)
+      (remove_binding 0 (switch_bindings 0 b))
+      (traverse_list remove_binding 0 ms)
+        (bind
+          (right_cycle (length ms) 0 m)
+          (traverse_list (lift (length ms)) 0 ns)
+            (lift (length ms) (length ns) n))).
+
 (* As of now, I'm still unsure whether we'll need a directed, one-step struct
    relation or just it's congruence version. Just to be sure, we'll define it
    anyway. Note that we do not add contraction here as it is derivable in the
@@ -91,6 +121,15 @@ Global Hint Constructors struct: cps.
 Notation cong := rst(struct).
 Notation "[ a == b ]" := (cong a b)
   (at level 0, a, b at level 200): type_scope.
+
+Lemma cong_eq:
+  forall a b,
+  a = b -> [a == b].
+Proof.
+  intros.
+  destruct H.
+  auto with cps.
+Qed.
 
 Lemma cong_refl:
   forall e,
@@ -498,3 +537,326 @@ Proof.
 Qed.
 
 Global Hint Resolve cong_right_cycle: cps.
+
+Lemma cong_float_left:
+  FLOAT_LEFT cong.
+Proof.
+  unfold FLOAT_LEFT; intros.
+  eapply cong_trans.
+  - apply cong_distr; auto.
+  - apply cong_bind_right.
+    apply cong_struct; apply struct_gc_helper.
+    + admit.
+    + admit.
+Admitted.
+
+Lemma cong_float_right:
+  FLOAT_RIGHT cong.
+Proof.
+  unfold FLOAT_RIGHT; intros.
+  eapply cong_trans.
+  - apply cong_distr; auto.
+  - apply cong_bind_left.
+    apply cong_gc.
+    admit.
+Admitted.
+
+(* TODO: you know what to do here. *)
+
+Goal
+  forall b k,
+  not_free (1 + k) b ->
+  remove_binding k (switch_bindings k b) = remove_binding (1 + k) b.
+Proof.
+  unfold remove_binding.
+  unfold switch_bindings.
+  induction b using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - destruct (lt_eq_lt_dec (1 + k) n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; auto.
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
+    + exfalso.
+      inversion_clear H; auto.
+    + rewrite subst_bound_lt; auto.
+      rewrite lift_bound_lt; try lia.
+      destruct (le_gt_dec k n).
+      * rewrite subst_bound_eq; try lia.
+        rewrite lift_bound_ge; auto.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
+      * rewrite subst_bound_lt; auto.
+        rewrite subst_bound_lt; auto.
+  - rewrite lift_distributes_over_negation.
+    do 3 rewrite subst_distributes_over_negation.
+    f_equal.
+    induction H; auto.
+    inversion_clear H0.
+    inversion_clear H2.
+    simpl; f_equal.
+    + do 4 rewrite traverse_list_length.
+      replace (length l + S (S k)) with (2 + (length l + k)); try lia.
+      replace (length l + S k) with (1 + (length l + k)); try lia.
+      apply H.
+      replace (1 + (length l + k)) with (length l + (1 + k)); try lia.
+      assumption.
+    + apply IHForall.
+      constructor.
+      assumption.
+  - rewrite lift_distributes_over_jump.
+    do 3 rewrite subst_distributes_over_jump.
+    inversion_clear H0.
+    f_equal.
+    + apply IHb.
+      assumption.
+    + induction H; auto.
+      inversion_clear H2.
+      simpl; f_equal; auto.
+      apply H; auto.
+  - rewrite lift_distributes_over_bind.
+    do 3 rewrite subst_distributes_over_bind.
+    do 2 rewrite traverse_list_length.
+    inversion_clear H0.
+    f_equal.
+    + apply IHb1; auto.
+    + clear IHb1 IHb2 H1 H3.
+      induction H; auto.
+      inversion_clear H2.
+      simpl; f_equal; auto.
+      do 4 rewrite traverse_list_length.
+      replace (length l + S (S k)) with (2 + (length l + k)); try lia.
+      replace (length l + S k) with (1 + (length l + k)); try lia.
+      apply H.
+      replace (1 + (length l + k)) with (length l + (1 + k)); try lia.
+      assumption.
+    + apply IHb2.
+      replace (1 + (k + length ts)) with (length ts + (1 + k)); try lia.
+      assumption.
+Qed.
+
+Local Lemma technical1:
+  forall n k c: nat,
+  c < k ->
+  (apply_parameters (high_sequence n) k
+    (lift (1 + n) (k + n) c)) = lift 1 k c.
+Proof.
+  intros.
+  rewrite lift_bound_lt; try lia.
+  rewrite lift_bound_lt; try lia.
+  induction n; simpl.
+  - reflexivity.
+  - rewrite sequence_length.
+    rewrite subst_bound_lt; try lia.
+    assumption.
+Qed.
+
+Local Lemma technical2:
+  forall c n k,
+  c >= n + k ->
+  apply_parameters (high_sequence n) k (1 + n + c) = 1 + c.
+Proof.
+  intros.
+  replace (1 + c) with ((1 + n + c) - n); try lia.
+  cut (1 + n + c > k + n); try lia.
+  generalize (1 + n + c) as m.
+  induction n; simpl; intros.
+  - f_equal; lia.
+  - rewrite sequence_length.
+    rewrite subst_bound_gt; try lia.
+    replace (m - S n) with (pred m - n); try lia.
+    apply IHn; lia.
+Qed.
+
+Local Lemma technical3:
+  forall n k c: nat,
+  c >= n + k ->
+  (apply_parameters (high_sequence n) k
+    (lift (1 + n) (k + n) c)) = lift 1 k c.
+Proof.
+  intros.
+  rewrite lift_bound_ge; try lia.
+  rewrite lift_bound_ge; try lia.
+  apply technical2; auto.
+Qed.
+
+Local Lemma technical4:
+  forall n k c: nat,
+  c >= k ->
+  c < n + k ->
+  (apply_parameters (high_sequence n) k
+    (lift (1 + n) (k + n) c)) = lift 1 k c.
+Proof.
+  intros.
+  rewrite lift_bound_lt; try lia.
+  rewrite lift_bound_ge; try lia.
+  (* So here, we'll actually replace c with something! *)
+  induction n.
+  - exfalso.
+    lia.
+  - (* Are we there yet...? *)
+    simpl; rewrite sequence_length.
+    destruct (le_gt_dec (n + k) c).
+    + clear IHn.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      replace c with (n + k); try lia.
+      replace (n + k + S n) with (1 + n + (n + k)); try lia.
+      apply technical2; auto.
+    + rewrite subst_bound_lt; try lia.
+      apply IHn; lia.
+Qed.
+
+Local Lemma technical5:
+  forall c n k,
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) =
+    lift 1 k c.
+Proof.
+  induction c using pseudoterm_deepind; intros.
+  - induction n; simpl; auto.
+  - induction n; simpl; auto.
+  - induction n; simpl; auto.
+  - induction n; simpl; auto.
+  - rename n0 into m.
+    destruct (le_gt_dec k n).
+    + destruct (le_gt_dec (m + k) n).
+      * apply technical3; auto.
+      * apply technical4; auto.
+    + apply technical1; auto.
+  - do 2 rewrite lift_distributes_over_negation.
+    rewrite apply_parameters_distributes_over_negation.
+    f_equal.
+    induction H; auto.
+    simpl; f_equal; auto.
+    do 3 rewrite traverse_list_length.
+    rewrite plus_assoc.
+    apply H.
+  - do 2 rewrite lift_distributes_over_jump.
+    rewrite apply_parameters_distributes_over_jump.
+    f_equal.
+    + apply IHc.
+    + list induction over H.
+  - do 2 rewrite lift_distributes_over_bind.
+    rewrite apply_parameters_distributes_over_bind.
+    rewrite traverse_list_length.
+    f_equal.
+    + apply IHc1.
+    + clear IHc1 IHc2.
+      induction H; auto.
+      simpl; f_equal; auto.
+      do 3 rewrite traverse_list_length.
+      rewrite plus_assoc.
+      apply H.
+    + replace (k + n + length ts) with (k + length ts + n); try lia.
+      apply IHc2.
+Qed.
+
+(*
+  Turns out the rule (CONTR) is derivable!
+  To show that L { m<x> = M } { m'<x> = M } == L[m/m'] { m<x> = M }...
+
+  In a named version of the calculus, start with symmetry... then:
+
+    1)                           L[m/m'] { m<x> = M } ==      (by LEFT, ETA-1)
+    2)                L { m'<y> = m<y> } { m<x> = M } ==      (by DISTR)
+    3)   L { m<x> = M } { m'<y> = m<y> { m<x> = M } } ==      (by RIGHT, RECJMP)
+    4) L { m<x> = M } { m'<y> = M[y/x] { m<x> = M } } ==      (by RIGHT, GC)
+    5)              L { m<x> = M } { m'<y> = M[y/x] } ==      (by ALPHA)
+    6)                   L { m<x> = M } { m'<x> = M }
+
+  This is a bit bureaucratic when using de Bruijn indexes; we of course don't
+  need an alpha conversion, but we'll need a (FLOAT-LEFT) in the end to fix the
+  bindings' positions, "undoing" the (DISTR) we did, but it should still work.
+*)
+
+Theorem cong_contr:
+  CONTR cong.
+Proof.
+  unfold CONTR; intros.
+  apply cong_sym.
+  (* Is there a more elegant way? *)
+  eapply cong_trans;
+    [| eapply cong_trans;
+      [| eapply cong_trans;
+        [| eapply cong_trans;
+          [| eapply cong_trans ] ] ] ].
+  - apply cong_bind_left.
+    apply cong_sym.
+    apply cong_eta with (ts := traverse_list (lift 1) 0 ts).
+  - apply cong_distr.
+    induction ts; simpl.
+    + constructor.
+    + constructor; auto.
+      rewrite traverse_list_length.
+      apply lifting_more_than_n_makes_not_free_n; lia.
+  - apply cong_bind_right.
+    rewrite traverse_list_length.
+    rewrite lift_bound_ge; auto.
+    rewrite Nat.add_0_r.
+    rewrite right_cycle_distributes_over_jump.
+    rewrite right_cycle_bound_eq; auto.
+    apply cong_recjmp.
+    rewrite map_length.
+    rewrite traverse_list_length.
+    apply sequence_length.
+  - apply cong_bind_right.
+    apply cong_gc.
+    rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
+    rewrite sequence_length.
+    rewrite lift_lift_simplification; try lia.
+    (* This was annoying to show, but it's true! *)
+    rewrite technical5.
+    apply lifting_more_than_n_makes_not_free_n; lia.
+  - (* The term is in the form [(switch_bindings 0 b) { M } { N }] now, as we
+       have changed [b] with the (DISTR) call above. Note that when applying
+       (FLOAT-LEFT) here we will change the term into [b { M } { N }]: only [b]
+       will actually change, as [M] is already equal to [lift 1 0 N] here (thus
+       moving [N] left makes it equal to [M], and moving [M] right makes it
+       equal to [N]). *)
+    apply cong_float_left.
+    + rewrite traverse_list_length.
+      apply lifting_more_than_n_makes_not_free_n; lia.
+    + induction ts; auto with cps.
+      simpl; constructor; auto.
+      rewrite traverse_list_length.
+      rewrite Nat.add_0_r.
+      apply lifting_more_than_n_makes_not_free_n; lia.
+  - (* The term is finally in the form [b { M } { N }], which is what we want,
+       but we still need to prove that as the term form is a bit different. *)
+    apply cong_eq; f_equal.
+    + f_equal.
+      * apply switch_bindings_is_involutive.
+      * induction ts; auto.
+        simpl; f_equal; auto.
+        do 3 rewrite traverse_list_length.
+        rewrite Nat.add_0_r.
+        unfold remove_binding.
+        rewrite subst_lift_simplification; auto.
+        rewrite lift_zero_e_equals_e; auto.
+      * rewrite map_length.
+        do 2 rewrite traverse_list_length.
+        rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
+        rewrite sequence_length.
+        rewrite lift_lift_simplification; try lia.
+        (* Here's that annoying thing again! *)
+        rewrite technical5.
+        unfold remove_binding.
+        rewrite subst_lift_simplification; auto.
+        rewrite lift_zero_e_equals_e.
+        reflexivity.
+    + induction ts; auto.
+      simpl; f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      rewrite Nat.add_0_r.
+      unfold remove_binding.
+      rewrite subst_lift_simplification; auto.
+      apply lift_zero_e_equals_e.
+    + rewrite traverse_list_length.
+      unfold remove_binding.
+      rewrite subst_lift_simplification; auto.
+      apply lift_zero_e_equals_e.
+Qed.

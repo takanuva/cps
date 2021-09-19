@@ -1315,3 +1315,93 @@ Proof.
   - rewrite sequence_length.
     lia.
 Qed.
+
+Lemma right_cycle_distributes_over_jump:
+  forall n p k xs,
+  right_cycle n p (jump k xs) =
+    jump (right_cycle n p k) (map (right_cycle n p) xs).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_distributes_over_jump.
+  rewrite subst_distributes_over_jump.
+  rewrite apply_parameters_distributes_over_jump; simpl.
+  f_equal; list induction over xs.
+Qed.
+
+Lemma switch_bindings_is_involutive:
+  forall e k,
+  switch_bindings k (switch_bindings k e) = e.
+Proof.
+  unfold switch_bindings.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - destruct (le_gt_dec (2 + k) n); simpl.
+    + rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      destruct (lt_eq_lt_dec n k) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_lt; auto.
+        rewrite lift_bound_lt; auto.
+        rewrite subst_bound_lt; auto.
+      * rewrite subst_bound_eq; auto.
+        rewrite lift_bound_ge; auto.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_gt; try lia.
+        f_equal; lia.
+      * rewrite subst_bound_gt; auto.
+        rewrite lift_bound_lt; try lia.
+        rewrite subst_bound_eq; try lia.
+        rewrite lift_bound_ge; auto.
+        f_equal; lia.
+  - rewrite lift_distributes_over_negation.
+    rewrite subst_distributes_over_negation.
+    rewrite lift_distributes_over_negation.
+    rewrite subst_distributes_over_negation.
+    f_equal.
+    induction H; auto.
+    simpl; f_equal; auto.
+    do 4 rewrite traverse_list_length.
+    replace (length l + S (S k)) with (2 + (length l + k)); try lia.
+    apply H.
+  - rewrite lift_distributes_over_jump.
+    rewrite subst_distributes_over_jump.
+    rewrite lift_distributes_over_jump.
+    rewrite subst_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + list induction over H.
+      apply H.
+  - rewrite lift_distributes_over_bind.
+    rewrite subst_distributes_over_bind.
+    rewrite lift_distributes_over_bind.
+    rewrite subst_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + clear IHe1 IHe2.
+      induction H; auto.
+      simpl; f_equal; auto.
+      do 4 rewrite traverse_list_length.
+      replace (length l + S (S k)) with (2 + (length l + k)); try lia.
+      apply H.
+    + do 3 rewrite traverse_list_length.
+      apply IHe2.
+Qed.
+
+Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
+  forall n m,
+  m >= n -> map (right_cycle m 0) (low_sequence n) = high_sequence n.
+Proof.
+  induction n; intros.
+  - reflexivity.
+  - simpl.
+    rewrite IHn; auto with arith.
+    simpl; f_equal.
+    apply right_cycle_bound_lt; auto.
+Qed.
