@@ -22,6 +22,8 @@ Global Hint Constructors clos_refl_sym_trans: cps.
 
 Arguments transp {A}.
 
+Global Hint Unfold transp: cps.
+
 Arguments commut {A}.
 
 Global Hint Unfold commut: cps.
