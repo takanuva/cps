@@ -8,6 +8,7 @@ Require Import Lia.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Metatheory.
 
 Definition LEFT (R: relation pseudoterm): Prop :=
   forall b1 b2 ts c,
@@ -178,13 +179,15 @@ Inductive same_path: relation context :=
   | same_path_hole:
     same_path context_hole context_hole
   | same_path_left:
-    forall h r ts c1 c2,
+    forall h r ts1 ts2 c1 c2,
     same_path h r ->
-    same_path (context_left h ts c1) (context_left r ts c2)
+    length ts1 = length ts2 ->
+    same_path (context_left h ts1 c1) (context_left r ts2 c2)
   | same_path_right:
-    forall b1 b2 ts h r,
+    forall b1 b2 ts1 ts2 h r,
     same_path h r ->
-    same_path (context_right b1 ts h) (context_right b2 ts r).
+    length ts1 = length ts2 ->
+    same_path (context_right b1 ts1 h) (context_right b2 ts2 r).
 
 Global Hint Constructors same_path: cps.
 
@@ -220,15 +223,17 @@ Proof.
   generalize dependent s.
   induction H; intros.
   - assumption.
-  - inversion_clear H0.
+  - inversion_clear H1.
     constructor; auto.
-  - inversion_clear H0.
+    congruence.
+  - inversion_clear H1.
     constructor; auto.
+    congruence.
 Qed.
 
 Global Hint Resolve same_path_trans: cps.
 
-Instance same_path_is_equiv: Equivalence same_path.
+Instance same_path_is_an_equivalence: Equivalence same_path.
 Proof.
   split.
   - exact same_path_refl.
@@ -261,6 +266,7 @@ Hint Rewrite context_same_path_implies_same_depth: cps.
 
   This is useful for proving that redexes are non-overlapping.
 *)
+
 Lemma context_difference:
   forall h r: context,
   h <> r ->
@@ -321,4 +327,64 @@ Proof.
       * edestruct H3 as (u, ?).
         exists (context_right b0 ts0 u); simpl.
         intuition; f_equal; eauto.
+Qed.
+
+Lemma context_lift:
+  forall (h: context) i k,
+  exists2 r: context,
+  same_path h r & forall e,
+  lift i k (h e) = r (lift i (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto with cps.
+  - destruct IHh with i (S k) as (r, ?H, ?H).
+    eexists (compose_context
+      (context_left context_hole (traverse_list _ k ts) _) r).
+    + constructor; auto.
+      rewrite traverse_list_length.
+      reflexivity.
+    + intros; rewrite lift_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+  - destruct IHh with i (k + length ts) as (r, ?H, ?H).
+    eexists (compose_context
+      (context_right _ (traverse_list _ k ts) context_hole) r).
+    + constructor; auto.
+      rewrite traverse_list_length.
+      reflexivity.
+    + intros; rewrite lift_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+Qed.
+
+Lemma context_subst:
+  forall (h: context) y k,
+  exists2 r: context,
+  same_path h r & forall e,
+  subst y k (h e) = r (subst y (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - exists context_hole; auto with cps.
+  - destruct IHh with y (S k) as (r, ?H, ?H).
+    eexists (compose_context
+      (context_left context_hole (traverse_list _ k ts) _) r).
+    + constructor; auto.
+      rewrite traverse_list_length.
+      reflexivity.
+    + intros; rewrite subst_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
+  - destruct IHh with y (k + length ts) as (r, ?H, ?H).
+    eexists (compose_context
+      (context_right _ (traverse_list _ k ts) context_hole) r).
+    + constructor; auto.
+      rewrite traverse_list_length.
+      reflexivity.
+    + intros; rewrite subst_distributes_over_bind.
+      simpl; f_equal.
+      rewrite H0; f_equal.
+      f_equal; lia.
 Qed.

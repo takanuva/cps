@@ -20,16 +20,21 @@ Global Hint Constructors clos_trans: cps.
 Global Hint Constructors clos_refl_trans: cps.
 Global Hint Constructors clos_refl_sym_trans: cps.
 
-Notation flip f := (fun a b => f b a).
+Arguments transp {A}.
 
-Arguments commut {A} R1.
+Arguments commut {A}.
 
 Global Hint Unfold commut: cps.
 
 Definition confluent {T} (R: relation T): Prop :=
-  commut R (flip R).
+  commut R (transp R).
 
 Global Hint Unfold confluent: cps.
+
+Definition comp {A} {B} {C} R S: A -> C -> Prop :=
+  fun a c =>
+    exists2 b: B,
+    R a b & S b c.
 
 Section Confluency.
 
@@ -46,7 +51,7 @@ Section Confluency.
 
   Lemma strip_lemma:
     forall confluency: confluent R,
-    commut t(R) (flip R).
+    commut t(R) (transp R).
   Proof.
     induction 2; intros.
     (* Case: step. *)
