@@ -47,25 +47,29 @@ Require Import Local.Axiomatic.
     are no longjmp-redexes in c? I don't think so.
 *)
 
-Reserved Notation "[ a => b ]" (at level 0, a, b at level 200).
+Definition CTXJMP (R: relation pseudoterm): Prop :=
+  forall (h: context),
+  forall xs ts c,
+  length xs = length ts ->
+  R (bind (h (jump #h xs)) ts c)
+    (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
+
+Global Hint Unfold CTXJMP: cps.
 
 Inductive step: relation pseudoterm :=
   | step_ctxjmp:
-    forall (h: context),
-    forall xs ts c,
-    length xs = length ts ->
-    [bind (h (jump #h xs)) ts c =>
-      bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c]
+    CTXJMP step
   | step_bind_left:
     LEFT step
   | step_bind_right:
     (* TODO: we probably should require that the bound continuation appears free
        in the left side, so that (GC) won't mess things up. *)
-    RIGHT step
-
-where "[ a => b ]" := (step a b): type_scope.
+    RIGHT step.
 
 Global Hint Constructors step: cps.
+
+Notation "[ a => b ]" := (step a b)
+  (at level 0, a, b at level 200): type_scope.
 
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
@@ -161,6 +165,8 @@ Proof.
     apply IHstep.
 Qed.
 
+Global Hint Resolve step_lift: cps.
+
 Lemma step_subst:
   forall a b,
   [a => b] ->
@@ -198,6 +204,8 @@ Proof.
     apply IHstep.
 Qed.
 
+Global Hint Resolve step_subst: cps.
+
 Lemma step_apply_parameters:
   forall xs k a b,
   [a => b] ->
@@ -211,6 +219,8 @@ Proof.
     apply step_subst.
     assumption.
 Qed.
+
+Global Hint Resolve step_apply_parameters: cps.
 
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
@@ -257,3 +267,229 @@ Proof.
       rewrite H1.
       eexists (context_right b ts x); auto with cps.
 Qed.
+
+(** ** Multi-step reduction *)
+
+Notation star := rt(step).
+Notation "[ a =>* b ]" := (star a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma star_step:
+  forall a b,
+  [a => b] -> [a =>* b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_step: cps.
+
+Lemma star_recjmp:
+  RECJMP star.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_recjmp: cps.
+
+Lemma star_ctxjmp:
+  CTXJMP star.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_ctxjmp: cps.
+
+Lemma star_refl:
+  forall e,
+  [e =>* e].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_refl: cps.
+
+Lemma star_trans:
+  forall a b c,
+  [a =>* b] -> [b =>* c] -> [a =>* c].
+Proof.
+  eauto with cps.
+Qed.
+
+Global Hint Resolve star_trans: cps.
+
+Lemma star_bind_left:
+  LEFT star.
+Proof.
+  induction 1.
+  - destruct H; auto with cps.
+  - apply star_refl.
+  - eapply star_trans; eauto.
+Qed.
+
+Global Hint Resolve star_bind_left: cps.
+
+Lemma star_bind_right:
+  RIGHT star.
+Proof.
+  induction 1.
+  - destruct H; auto with cps.
+  - apply star_refl.
+  - eapply star_trans; eauto.
+Qed.
+
+Global Hint Resolve star_bind_right: cps.
+
+Lemma star_lift:
+  forall a b,
+  [a =>* b] ->
+  forall i k,
+  [lift i k a =>* lift i k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve star_lift: cps.
+
+Lemma star_subst:
+  forall a b,
+  [a =>* b] ->
+  forall y k,
+  [subst y k a =>* subst y k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve star_subst: cps.
+
+Lemma star_apply_parameters:
+  forall xs k a b,
+  [a =>* b] ->
+  [apply_parameters xs k a =>* apply_parameters xs k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve star_apply_parameters: cps.
+
+(** ** Reduction convertibility *)
+
+Notation conv := rst(step).
+Notation "[ a <=> b ]" := (conv a b)
+  (at level 0, a, b at level 200): type_scope.
+
+Lemma conv_step:
+  forall a b,
+  [a => b] -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_step: cps.
+
+Lemma conv_recjmp:
+  RECJMP conv.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_recjmp: cps.
+
+Lemma conv_ctxjmp:
+  CTXJMP conv.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_ctxjmp: cps.
+
+Lemma conv_star:
+  forall a b,
+  [a =>* b] -> [a <=> b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_star: cps.
+
+Lemma conv_refl:
+  forall e,
+  [e <=> e].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_refl: cps.
+
+Lemma conv_sym:
+  forall a b,
+  [a <=> b] -> [b <=> a].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_sym: cps.
+
+Lemma conv_trans:
+  forall a b c,
+  [a <=> b] -> [b <=> c] -> [a <=> c].
+Proof.
+  eauto with cps.
+Qed.
+
+Global Hint Resolve conv_trans: cps.
+
+Lemma conv_bind_left:
+  LEFT conv.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_bind_left: cps.
+
+Lemma conv_bind_right:
+  RIGHT conv.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_bind_right: cps.
+
+Lemma conv_lift:
+  forall a b,
+  [a <=> b] ->
+  forall i k,
+  [lift i k a <=> lift i k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_lift: cps.
+
+Lemma conv_subst:
+  forall a b,
+  [a <=> b] ->
+  forall y k,
+  [subst y k a <=> subst y k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_subst: cps.
+
+Lemma conv_apply_parameters:
+  forall xs k a b,
+  [a <=> b] ->
+  [apply_parameters xs k a <=> apply_parameters xs k b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve conv_apply_parameters: cps.
+
+Instance conv_is_an_equivalence: Equivalence conv.
+Proof.
+  split.
+  - exact conv_refl.
+  - exact conv_sym.
+  - exact conv_trans.
+Defined.
