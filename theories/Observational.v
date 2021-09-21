@@ -157,8 +157,7 @@ Proof.
   unfold barb at 3; intros.
   destruct H with h as (R, ?, ?).
   destruct H0 with h as (S, ?, ?).
-  exists (fun a c =>
-    exists2 b, R a b & S b c).
+  exists (comp R S).
   - clear a b c H H0 h H2 H4.
     split; split; do 5 intro.
     + destruct H as (d, ?, ?).

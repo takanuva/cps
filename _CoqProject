@@ -8,3 +8,4 @@ theories/Context.v
 theories/Axiomatic.v
 theories/Reduction.v
 theories/Observational.v
+theories/TypeSystem.v
