@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Equality.
 Require Export Relations.
 Require Import Local.Prelude.
 
@@ -103,3 +104,79 @@ Section Confluency.
   Qed.
 
 End Confluency.
+
+Section Normalization.
+
+  Variable T: Type.
+  Variable R: relation T.
+
+  Definition normal a: Prop :=
+    forall b, ~R a b.
+
+  Definition WN a: Prop :=
+    exists2 b, rt(R) a b & normal b.
+
+  Definition SN :=
+    (Acc (transp R)).
+
+  Lemma SN_preimage:
+    forall f,
+    (forall a b, R a b -> R (f a) (f b)) ->
+    forall e,
+    Acc R (f e) -> Acc R e.
+  Proof.
+    intros.
+    (* There seems to be a bug in the dependent induction tactic... *)
+    remember (f e) as x.
+    generalize dependent e.
+    induction H0; intros.
+    constructor; intros.
+    eapply H1; eauto.
+    rewrite Heqx.
+    apply H.
+    assumption.
+  Qed.
+
+End Normalization.
+
+Section ListNormalization.
+
+  Variable T: Type.
+  Variable R: relation T.
+
+  Inductive step_in_list: relation (list T) :=
+    | step_in_env_car:
+      forall g t u,
+      R t u -> step_in_list (t :: g) (u :: g)
+    | step_in_env_cdr:
+      forall g h t,
+      step_in_list g h -> step_in_list (t :: g) (t :: h).
+
+  (* Still not sure we'll be needing this, but just in case... *)
+
+  Lemma step_in_list_is_well_founded:
+    forall xs,
+    Forall (SN R) xs ->
+    SN step_in_list xs.
+  Proof.
+    induction xs; intros.
+    - constructor; intros.
+      exfalso.
+      inversion H0.
+    - dependent destruction H.
+      apply IHxs in H0; clear IHxs.
+      induction H; clear H.
+      induction H0.
+      constructor; intros.
+      unfold transp in H2.
+      dependent destruction H2.
+      + apply H1.
+        assumption.
+      + apply H0; intros.
+        * assumption.
+        * eapply H1; eauto.
+          constructor.
+          assumption.
+  Qed.
+
+End ListNormalization.
