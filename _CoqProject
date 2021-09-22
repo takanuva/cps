@@ -7,6 +7,7 @@ theories/AbstractRewriting.v
 theories/Context.v
 theories/Axiomatic.v
 theories/Reduction.v
+theories/Confluency.v
 theories/Observational.v
 theories/TypeSystem.v
 theories/Normalization.v
