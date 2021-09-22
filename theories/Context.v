@@ -329,62 +329,94 @@ Proof.
         intuition; f_equal; eauto.
 Qed.
 
-Lemma context_lift:
-  forall (h: context) i k,
-  exists2 r: context,
-  same_path h r & forall e,
-  lift i k (h e) = r (lift i (#h + k) e).
+Fixpoint context_lift i k h: context :=
+  match h with
+  | context_hole =>
+    context_hole
+  | context_left b ts c =>
+    context_left (context_lift i (S k) b)
+      (traverse_list (lift i) k ts) (lift i (k + length ts) c)
+  | context_right b ts c =>
+    context_right (lift i (S k) b)
+      (traverse_list (lift i) k ts) (context_lift i (k + length ts) c)
+  end.
+
+Lemma same_path_context_lift:
+  forall h i k,
+  same_path h (context_lift i k h).
 Proof.
   induction h; simpl; intros.
-  - exists context_hole; auto with cps.
-  - destruct IHh with i (S k) as (r, ?H, ?H).
-    eexists (compose_context
-      (context_left context_hole (traverse_list _ k ts) _) r).
-    + constructor; auto.
-      rewrite traverse_list_length.
+  - reflexivity.
+  - constructor.
+    + apply IHh.
+    + rewrite traverse_list_length.
       reflexivity.
-    + intros; rewrite lift_distributes_over_bind.
-      simpl; f_equal.
-      rewrite H0; f_equal.
-      f_equal; lia.
-  - destruct IHh with i (k + length ts) as (r, ?H, ?H).
-    eexists (compose_context
-      (context_right _ (traverse_list _ k ts) context_hole) r).
-    + constructor; auto.
-      rewrite traverse_list_length.
+  - constructor.
+    + apply IHh.
+    + rewrite traverse_list_length.
       reflexivity.
-    + intros; rewrite lift_distributes_over_bind.
-      simpl; f_equal.
-      rewrite H0; f_equal.
-      f_equal; lia.
 Qed.
 
-Lemma context_subst:
-  forall (h: context) y k,
-  exists2 r: context,
-  same_path h r & forall e,
-  subst y k (h e) = r (subst y (#h + k) e).
+Global Hint Resolve same_path_context_lift: cps.
+
+Lemma context_lift_is_sound:
+  forall (h: context) i k e,
+  lift i k (h e) = context_lift i k h (lift i (#h + k) e).
 Proof.
   induction h; simpl; intros.
-  - exists context_hole; auto with cps.
-  - destruct IHh with y (S k) as (r, ?H, ?H).
-    eexists (compose_context
-      (context_left context_hole (traverse_list _ k ts) _) r).
-    + constructor; auto.
-      rewrite traverse_list_length.
+  - reflexivity.
+  - rewrite lift_distributes_over_bind.
+    f_equal.
+    replace (S (#h + k)) with (#h + S k); try lia.
+    apply IHh.
+  - rewrite lift_distributes_over_bind.
+    f_equal.
+    replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
+    apply IHh.
+Qed.
+
+Fixpoint context_subst y k h: context :=
+  match h with
+  | context_hole =>
+    context_hole
+  | context_left b ts c =>
+    context_left (context_subst y (S k) b)
+      (traverse_list (subst y) k ts) (subst y (k + length ts) c)
+  | context_right b ts c =>
+    context_right (subst y (S k) b)
+      (traverse_list (subst y) k ts) (context_subst y (k + length ts) c)
+  end.
+
+Lemma same_path_context_subst:
+  forall h i k,
+  same_path h (context_subst i k h).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - constructor.
+    + apply IHh.
+    + rewrite traverse_list_length.
       reflexivity.
-    + intros; rewrite subst_distributes_over_bind.
-      simpl; f_equal.
-      rewrite H0; f_equal.
-      f_equal; lia.
-  - destruct IHh with y (k + length ts) as (r, ?H, ?H).
-    eexists (compose_context
-      (context_right _ (traverse_list _ k ts) context_hole) r).
-    + constructor; auto.
-      rewrite traverse_list_length.
+  - constructor.
+    + apply IHh.
+    + rewrite traverse_list_length.
       reflexivity.
-    + intros; rewrite subst_distributes_over_bind.
-      simpl; f_equal.
-      rewrite H0; f_equal.
-      f_equal; lia.
+Qed.
+
+Global Hint Resolve same_path_context_subst: cps.
+
+Lemma context_subst_is_sound:
+  forall (h: context) y k e,
+  subst y k (h e) = context_subst y k h (subst y (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite subst_distributes_over_bind.
+    f_equal.
+    replace (S (#h + k)) with (#h + S k); try lia.
+    apply IHh.
+  - rewrite subst_distributes_over_bind.
+    f_equal.
+    replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
+    apply IHh.
 Qed.

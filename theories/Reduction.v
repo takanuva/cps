@@ -136,8 +136,7 @@ Lemma step_lift:
 Proof.
   induction 1; intros.
   - do 2 rewrite lift_distributes_over_bind.
-    edestruct context_lift as (r, ?H, ?H).
-    do 2 rewrite H1.
+    do 2 rewrite context_lift_is_sound.
     rewrite lift_distributes_over_jump.
     rewrite lift_bound_lt; try lia.
     rewrite lift_distributes_over_apply_parameters.
@@ -150,7 +149,7 @@ Proof.
     + f_equal; auto with cps.
     + f_equal; symmetry.
       rewrite lift_lift_permutation.
-      * assert (#h = #r); auto with cps.
+      * assert (#h = #(context_lift i (S k) h)); auto with cps.
         f_equal; try lia.
         f_equal; auto.
         apply traverse_list_length.
@@ -175,8 +174,7 @@ Lemma step_subst:
 Proof.
   induction 1; intros.
   - do 2 rewrite subst_distributes_over_bind.
-    edestruct context_subst as (r, ?H, ?H).
-    do 2 rewrite H1.
+    do 2 rewrite context_subst_is_sound.
     rewrite subst_distributes_over_jump.
     rewrite subst_bound_lt; try lia.
     rewrite subst_distributes_over_apply_parameters.
@@ -189,7 +187,7 @@ Proof.
     + f_equal; auto with cps.
     + f_equal; symmetry.
       rewrite lift_and_subst_commute.
-      * assert (#h = #r); auto with cps.
+      * assert (#h = #(context_subst y (S k) h)); auto with cps.
         f_equal; try lia.
         f_equal; auto.
         apply traverse_list_length.
