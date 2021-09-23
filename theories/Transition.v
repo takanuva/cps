@@ -95,30 +95,28 @@ Inductive transition: label -> relation pseudoterm :=
     (* This lift was hinted by the "Proof-relevant pi-calculus" paper! *)
 
     transition
-      (label_jmp a xs (lift 1 (length xs) N))
+      (label_jmp a (traverse_list (lift 1) 0 xs) (lift 1 (length xs) N))
       M
       (* Notice the "not free" condition in the rule? ;) *)
-      (bind M' xs (lift 1 (length xs) N)) ->
+      (bind M' (traverse_list (lift 1) 0 xs) (lift 1 (length xs) N)) ->
 
     transition
       (label_jmp (S a) xs N)
       (bind (switch_bindings 0 M) ys O)
       (bind (bind (switch_bindings 0 M') ys O) xs N).
 
-(* TODO: turn the following into an inversion lemma. *)
-
-Record transition_label_jmp_invariant k ts c a b: Prop := {
-  h: context;
-  H1: static h;
-  H2: #h = k;
-  xs: list pseudoterm;
-  H3: length xs = length ts;
-  H4: a = h (jump k xs);
-  H5: b = bind
-            (h
-              (apply_parameters xs 0 (lift (S k) (length ts) c)))
-            ts c
-}.
+Inductive transition_label_jmp_invariant k ts c a b: Prop :=
+  transition_label_jmp_invariant_ctor
+    (h: context)
+    (H1: static h)
+    (H2: #h = k)
+    (xs: list pseudoterm)
+    (H3: length xs = length ts)
+    (H4: a = h (jump k xs))
+    (H5: b = bind
+              (h
+                (apply_parameters xs 0 (lift (S k) (length ts) c)))
+              ts c).
 
 Lemma transition_jmp_preserves_invariant:
   forall k ts c a b,
@@ -127,18 +125,19 @@ Lemma transition_jmp_preserves_invariant:
 Proof.
   intros.
   dependent induction H.
-  - apply Build_transition_label_jmp_invariant with
-      context_hole xs; simpl.
+  - apply transition_label_jmp_invariant_ctor with context_hole xs; simpl.
     + constructor.
     + reflexivity.
-    + assumption.
+    + eassumption.
     + reflexivity.
     + reflexivity.
   - clear H.
-    specialize IHtransition with a ts (lift 1 (length ts) c).
+    specialize IHtransition with
+      a (traverse_list (lift 1) 0 ts) (lift 1 (length ts) c).
     destruct IHtransition; auto.
     dependent destruction H5.
-    apply Build_transition_label_jmp_invariant with
+    rewrite traverse_list_length in H3 |- *.
+    apply transition_label_jmp_invariant_ctor with
       (context_left (context_switch_bindings 0 h) ys O)
       (map (switch_bindings #h) xs); simpl.
     + constructor.
@@ -181,6 +180,120 @@ Proof.
       reflexivity.
 Admitted.
 
+Lemma transition_jmp_inversion:
+  forall P: nat -> list pseudoterm -> pseudoterm -> relation pseudoterm,
+  forall k ts c a b,
+  forall H: (forall h xs,
+             static h ->
+             #h = k ->
+             length xs = length ts ->
+             a = h (jump k xs) ->
+             b = bind (h
+                   (apply_parameters xs 0 (lift (S k) (length ts) c)))
+                   ts c ->
+             P k ts c a b),
+  transition (label_jmp k ts c) a b ->
+  P k ts c a b.
+Proof.
+  intros.
+  destruct transition_jmp_preserves_invariant with k ts c a b; auto.
+  eapply H; eauto.
+Qed.
+
+Local Lemma transition_ctx_jmp_helper:
+    forall M a xs N M' ys O,
+    forall b c d e,
+
+    transition
+      (label_jmp a b c)
+      M
+      (bind M' b c) ->
+
+    b = (traverse_list (lift 1) 0 xs) ->
+    c = (lift 1 (length xs) N) ->
+    d = (switch_bindings 0 M) ->
+    e = (bind (switch_bindings 0 M') ys O) ->
+
+    transition
+      (label_jmp (S a) xs N)
+      (bind d ys O)
+      (bind e xs N).
+Proof.
+  intros until 5.
+  generalize H; clear H.
+  rewrite H0, H1, H2, H3.
+  apply transition_ctx_jmp.
+Qed.
+
+Lemma transition_tau_longjmp:
+  forall h,
+  static h ->
+  forall xs ts c,
+  length xs = length ts ->
+  transition label_tau (bind (h (jump #h xs)) ts c)
+       (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
+Proof.
+  unfold CTXJMP; intros.
+  apply transition_tau with #h.
+  generalize xs ts c H0; clear xs ts c H0.
+  (* Our induction has to happen on #h, not h itself! *)
+  assert (exists k, k = #h); eauto.
+  destruct H0 as (k, ?).
+  replace #h with k; auto.
+  generalize h, H, H0; clear h H H0.
+  induction k; intros.
+  (* Case: zero. *)
+  - (* Clearly we're at a hole! *)
+    destruct H; try discriminate; simpl.
+    (* Immediate jump! *)
+    apply transition_jmp.
+    assumption.
+  (* Case: succ. *)
+  - (* We clearly have a left contetx. *)
+    destruct H; try discriminate.
+    simpl in H0 |- *.
+    (* We will apply a (CTX-JMP) here, but there's a lot of housekeeping. *)
+    eapply transition_ctx_jmp_helper with
+      (b := traverse_list (lift 1) 0 ts)
+      (c := lift 1 (length ts) c).
+    + apply IHk with
+        (h := context_switch_bindings 0 h)
+        (xs := map (switch_bindings #h) xs).
+      * admit.
+      * admit.
+      * admit.
+    + reflexivity.
+    + reflexivity.
+    + rewrite context_switch_bindings_is_sound; simpl.
+      (* Clearly, switch_bindings is involutive. *)
+      replace (context_switch_bindings 0 (context_switch_bindings 0 h)) with h.
+      (* Also, switch_bindings doesn't change depth. *)
+      replace (#(context_switch_bindings 0 h)) with #h.
+      rewrite Nat.add_0_r.
+      rewrite switch_bindings_distributes_over_jump.
+      unfold switch_bindings at 1.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      replace (k + 1) with (S k); try lia.
+      f_equal; f_equal; rewrite map_map.
+      (* Switch bindings is involutive! *)
+      admit.
+      admit.
+      admit.
+    + f_equal.
+      rewrite context_switch_bindings_is_sound.
+      (* Ditto. *)
+      replace (context_switch_bindings 0 (context_switch_bindings 0 h)) with h.
+      replace (#(context_switch_bindings 0 h)) with #h.
+      rewrite Nat.add_0_r.
+      rewrite traverse_list_length.
+      rewrite lift_lift_simplification; try lia.
+      replace (S k + 1) with (S (S k)); try lia.
+      (* There we go. This is valid! ;) *)
+      admit.
+Admitted.
+
 Goal
   (* Merro, lemma 2.4 (2). *)
   forall a b,
@@ -188,22 +301,15 @@ Goal
 Proof.
   split; intros.
   - induction H.
-    + apply transition_tau with #h.
-      induction H; simpl.
-      * apply transition_jmp.
-        assumption.
-      * (* How should we formalize that? *)
-        admit.
-    + apply transition_ctx_tau.
-      assumption.
+    + apply transition_tau_longjmp; auto.
+    + apply transition_ctx_tau; auto.
   - dependent induction H.
     + clear IHtransition.
-      edestruct transition_jmp_preserves_invariant.
-      * eassumption.
-      * rewrite H4.
-        rewrite H5.
-        replace k with #h; auto.
-        apply head_longjmp; auto.
+      inversion H using transition_jmp_inversion; intros.
+      rewrite H3.
+      rewrite H4.
+      replace k with #h; auto.
+      apply head_longjmp; auto.
     + apply head_bind_left.
       apply IHtransition; auto.
-Admitted.
+Qed.
