@@ -1316,6 +1316,24 @@ Proof.
     lia.
 Qed.
 
+Lemma right_cycle_distributes_over_negation:
+  forall n k ts,
+  right_cycle n k (negation ts) =
+    negation (traverse_list (right_cycle n) k ts).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_distributes_over_negation.
+  rewrite subst_distributes_over_negation.
+  rewrite apply_parameters_distributes_over_negation.
+  f_equal.
+  induction ts; auto.
+  simpl; f_equal; auto.
+  do 4 rewrite traverse_list_length.
+  f_equal; f_equal; try lia.
+  f_equal; lia.
+Qed.
+
 Lemma right_cycle_distributes_over_jump:
   forall n p k xs,
   right_cycle n p (jump k xs) =
@@ -1327,6 +1345,86 @@ Proof.
   rewrite subst_distributes_over_jump.
   rewrite apply_parameters_distributes_over_jump; simpl.
   f_equal; list induction over xs.
+Qed.
+
+Lemma right_cycle_distributes_over_bind:
+  forall n k b ts c,
+  right_cycle n k (bind b ts c) =
+    bind (right_cycle n (S k) b)
+      (traverse_list (right_cycle n) k ts)
+      (right_cycle n (k + length ts) c).
+Proof.
+  intros.
+  unfold right_cycle; simpl.
+  rewrite lift_distributes_over_bind.
+  rewrite subst_distributes_over_bind.
+  rewrite apply_parameters_distributes_over_bind.
+  f_equal.
+  - f_equal; f_equal; f_equal.
+    lia.
+  - induction ts; auto.
+    simpl; f_equal; auto.
+    do 4 rewrite traverse_list_length.
+    f_equal; f_equal; try lia.
+    f_equal; lia.
+  - do 2 rewrite traverse_list_length.
+    f_equal; f_equal; try lia.
+    f_equal; lia.
+Qed.
+
+Lemma switch_bindings_distributes_over_negation:
+  forall k ts,
+  switch_bindings k (negation ts) =
+    negation (traverse_list switch_bindings k ts).
+Proof.
+  intros.
+  rewrite switch_bindings_behavior.
+  rewrite right_cycle_distributes_over_negation.
+  f_equal.
+  induction ts; auto.
+  simpl; f_equal; auto.
+  rewrite switch_bindings_behavior.
+  do 2 rewrite traverse_list_length.
+  reflexivity.
+Qed.
+
+Lemma switch_bindings_distributes_over_jump:
+  forall p k xs,
+  switch_bindings p (jump k xs) =
+    jump (switch_bindings p k) (map (switch_bindings p) xs).
+Proof.
+  intros.
+  rewrite switch_bindings_behavior.
+  rewrite right_cycle_distributes_over_jump.
+  f_equal.
+  - rewrite switch_bindings_behavior.
+    reflexivity.
+  - induction xs; auto.
+    simpl; f_equal; auto.
+    rewrite switch_bindings_behavior.
+    reflexivity.
+Qed.
+
+Lemma switch_bindings_distributes_over_bind:
+  forall k b ts c,
+  switch_bindings k (bind b ts c) =
+    bind (switch_bindings (S k) b)
+      (traverse_list switch_bindings k ts)
+        (switch_bindings (k + length ts) c).
+Proof.
+  intros.
+  rewrite switch_bindings_behavior.
+  rewrite right_cycle_distributes_over_bind.
+  f_equal.
+  - rewrite switch_bindings_behavior.
+    reflexivity.
+  - induction ts; auto.
+    simpl; f_equal; auto.
+    rewrite switch_bindings_behavior.
+    do 2 rewrite traverse_list_length.
+    reflexivity.
+  - rewrite switch_bindings_behavior.
+    reflexivity.
 Qed.
 
 Lemma switch_bindings_is_involutive:
@@ -1396,7 +1494,8 @@ Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
   forall n m,
-  m >= n -> map (right_cycle m 0) (low_sequence n) = high_sequence n.
+  m >= n ->
+  map (right_cycle m 0) (low_sequence n) = high_sequence n.
 Proof.
   induction n; intros.
   - reflexivity.

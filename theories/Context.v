@@ -420,3 +420,62 @@ Proof.
     replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
     apply IHh.
 Qed.
+
+Fixpoint context_right_cycle n k h: context :=
+  match h with
+  | context_hole =>
+    context_hole
+  | context_left b ts c =>
+    context_left (context_right_cycle n (S k) b)
+      (traverse_list (right_cycle n) k ts) (right_cycle n (k + length ts) c)
+  | context_right b ts c =>
+    context_right (right_cycle n (S k) b)
+      (traverse_list (right_cycle n) k ts)
+        (context_right_cycle n (k + length ts) c)
+  end.
+
+Lemma context_right_cycle_is_sound:
+  forall (h: context) n k e,
+  right_cycle n k (h e) =
+    context_right_cycle n k h (right_cycle n (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite right_cycle_distributes_over_bind.
+    f_equal.
+    replace (S (#h + k)) with (#h + S k); try lia.
+    apply IHh.
+  - rewrite right_cycle_distributes_over_bind.
+    f_equal.
+    replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
+    apply IHh.
+Qed.
+
+Fixpoint context_switch_bindings k h: context :=
+  match h with
+  | context_hole =>
+    context_hole
+  | context_left b ts c =>
+    context_left (context_switch_bindings (S k) b)
+      (traverse_list switch_bindings k ts) (switch_bindings (k + length ts) c)
+  | context_right b ts c =>
+    context_right (switch_bindings (S k) b)
+      (traverse_list switch_bindings k ts) (context_switch_bindings (k + length ts) c)
+  end.
+
+Lemma context_switch_bindings_is_sound:
+  forall (h: context) k e,
+  switch_bindings k (h e) =
+    context_switch_bindings k h (switch_bindings (#h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite switch_bindings_distributes_over_bind.
+    f_equal.
+    replace (S (#h + k)) with (#h + S k); try lia.
+    apply IHh.
+  - rewrite switch_bindings_distributes_over_bind.
+    f_equal.
+    replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
+    apply IHh.
+Qed.

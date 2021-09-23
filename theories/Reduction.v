@@ -18,7 +18,7 @@ Require Import Local.Axiomatic.
 (*
   We have four assumptions: j, x, y, z.
 
-  For (JMP):
+  For (CTXJMP):
 
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       k@0<x@3, y@2>                        j@4<x@3, y@2, z@1>
