@@ -29,6 +29,10 @@ Arguments commut {A}.
 
 Global Hint Unfold commut: cps.
 
+Arguments same_relation {A}.
+
+Global Hint Unfold same_relation: cps.
+
 Definition confluent {T} (R: relation T): Prop :=
   commut R (transp R).
 

@@ -479,3 +479,54 @@ Proof.
     replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
     apply IHh.
 Qed.
+
+Lemma context_switch_bindings_depth:
+  forall h k,
+  #(context_switch_bindings k h) = #h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    apply IHh.
+  - rewrite traverse_list_length; f_equal.
+    apply IHh.
+Qed.
+
+Global Hint Resolve context_switch_bindings_depth: cps.
+
+Lemma static_context_switch_bindings:
+  forall h,
+  static h ->
+  forall k,
+  static (context_switch_bindings k h).
+Proof.
+  induction 1; simpl; auto with cps.
+Qed.
+
+Global Hint Resolve static_context_switch_bindings: cps.
+
+Lemma context_switch_bindings_is_involutive:
+  forall h k,
+  context_switch_bindings k (context_switch_bindings k h) = h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    + apply IHh.
+    + clear IHh.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      apply switch_bindings_is_involutive.
+    + rewrite traverse_list_length.
+      apply switch_bindings_is_involutive.
+  - f_equal.
+    + apply switch_bindings_is_involutive.
+    + clear IHh.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      apply switch_bindings_is_involutive.
+    + rewrite traverse_list_length.
+      apply IHh.
+Qed.

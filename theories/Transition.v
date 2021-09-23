@@ -9,6 +9,8 @@ Require Import Equality.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
+(* Huh, we only need the arguments command for same_relation... *)
+Require Import Local.AbstractRewriting.
 Require Import Local.Reduction.
 (* TODO: We take only converges from here; might wanna move it to Syntax. *)
 Require Import Local.Observational.
@@ -141,27 +143,16 @@ Proof.
       (context_left (context_switch_bindings 0 h) ys O)
       (map (switch_bindings #h) xs); simpl.
     + constructor.
-      (* Clearly so. *)
-      admit.
-    + f_equal.
-      (* Clearly so. *)
-      admit.
+      apply static_context_switch_bindings; auto.
+    + rewrite context_switch_bindings_depth; auto.
     + rewrite map_length.
       assumption.
     + rewrite context_switch_bindings_is_sound.
       rewrite Nat.add_0_r.
       f_equal; f_equal.
-      unfold switch_bindings at 1.
-      rewrite lift_distributes_over_jump.
-      rewrite subst_distributes_over_jump.
+      rewrite switch_bindings_distributes_over_jump.
       f_equal.
-      * rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; try lia.
-        f_equal; lia.
-      * clear ts H1 H3 c O ys.
-        induction xs; auto.
-        simpl; f_equal; auto.
+      apply switch_bindings_bound_eq; auto.
     + f_equal; f_equal.
       rewrite lift_lift_simplification; try lia.
       rewrite context_switch_bindings_is_sound.
@@ -172,13 +163,12 @@ Proof.
       unfold switch_bindings.
       rewrite lift_distributes_over_apply_parameters.
       rewrite subst_distributes_over_apply_parameters.
-      rewrite map_map.
-      f_equal.
+      rewrite map_map; f_equal.
       rewrite map_length.
       rewrite lift_lift_simplification; try lia.
       rewrite subst_lift_simplification; try lia.
       reflexivity.
-Admitted.
+Qed.
 
 Lemma transition_jmp_inversion:
   forall P: nat -> list pseudoterm -> pseudoterm -> relation pseudoterm,
@@ -234,6 +224,7 @@ Lemma transition_tau_longjmp:
        (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
 Proof.
   unfold CTXJMP; intros.
+  (* We start by applying (TAU) to fix the binding. *)
   apply transition_tau with #h.
   generalize xs ts c H0; clear xs ts c H0.
   (* Our induction has to happen on #h, not h itself! *)
@@ -241,6 +232,7 @@ Proof.
   destruct H0 as (k, ?).
   replace #h with k; auto.
   generalize h, H, H0; clear h H H0.
+  (* Now we can proceed to prove it. *)
   induction k; intros.
   (* Case: zero. *)
   - (* Clearly we're at a hole! *)
@@ -259,57 +251,73 @@ Proof.
     + apply IHk with
         (h := context_switch_bindings 0 h)
         (xs := map (switch_bindings #h) xs).
-      * admit.
-      * admit.
-      * admit.
+      * apply static_context_switch_bindings; auto.
+      * rewrite context_switch_bindings_depth; lia.
+      * rewrite map_length.
+        rewrite traverse_list_length.
+        assumption.
     + reflexivity.
     + reflexivity.
     + rewrite context_switch_bindings_is_sound; simpl.
-      (* Clearly, switch_bindings is involutive. *)
-      replace (context_switch_bindings 0 (context_switch_bindings 0 h)) with h.
-      (* Also, switch_bindings doesn't change depth. *)
-      replace (#(context_switch_bindings 0 h)) with #h.
+      rewrite context_switch_bindings_is_involutive.
+      rewrite context_switch_bindings_depth.
       rewrite Nat.add_0_r.
       rewrite switch_bindings_distributes_over_jump.
-      unfold switch_bindings at 1.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_eq; try lia.
-      rewrite lift_bound_ge; try lia.
-      replace (k + 1) with (S k); try lia.
-      f_equal; f_equal; rewrite map_map.
-      (* Switch bindings is involutive! *)
-      admit.
-      admit.
-      admit.
+      rewrite switch_bindings_bound_eq; try lia.
+      f_equal; f_equal.
+      rewrite map_switch_bindings_is_involutive; auto.
     + f_equal.
       rewrite context_switch_bindings_is_sound.
-      (* Ditto. *)
-      replace (context_switch_bindings 0 (context_switch_bindings 0 h)) with h.
-      replace (#(context_switch_bindings 0 h)) with #h.
+      rewrite context_switch_bindings_is_involutive.
+      rewrite context_switch_bindings_depth.
       rewrite Nat.add_0_r.
       rewrite traverse_list_length.
       rewrite lift_lift_simplification; try lia.
       replace (S k + 1) with (S (S k)); try lia.
-      (* There we go. This is valid! ;) *)
-      admit.
-Admitted.
+      replace k with #h; try lia.
+      f_equal.
+      unfold switch_bindings at 1.
+      rewrite lift_distributes_over_apply_parameters.
+      rewrite subst_distributes_over_apply_parameters.
+      do 2 rewrite map_length.
+      rewrite map_map; f_equal.
+      * symmetry.
+        apply map_switch_bindings_is_involutive.
+      * rewrite lift_lift_simplification; try lia.
+        rewrite subst_lift_simplification; try lia.
+        reflexivity.
+Qed.
 
-Goal
-  (* Merro, lemma 2.4 (2). *)
+Lemma transition_tau_head:
   forall a b,
-  head a b <-> transition label_tau a b.
+  head a b -> transition label_tau a b.
+Proof.
+  induction 1.
+  - apply transition_tau_longjmp; auto.
+  - apply transition_ctx_tau; auto.
+Qed.
+
+Lemma head_transition_tau:
+  forall a b,
+  transition label_tau a b -> head a b.
+Proof.
+  intros.
+  dependent induction H.
+  - clear IHtransition.
+    inversion H using transition_jmp_inversion; intros.
+    rewrite H3.
+    rewrite H4.
+    replace k with #h; auto.
+    apply head_longjmp; auto.
+  - apply head_bind_left.
+    apply IHtransition; auto.
+Qed.
+
+Theorem head_and_transition_tau_are_equivalent:
+  (* Merro, lemma 2.4 (2). *)
+  same_relation head (transition label_tau).
 Proof.
   split; intros.
-  - induction H.
-    + apply transition_tau_longjmp; auto.
-    + apply transition_ctx_tau; auto.
-  - dependent induction H.
-    + clear IHtransition.
-      inversion H using transition_jmp_inversion; intros.
-      rewrite H3.
-      rewrite H4.
-      replace k with #h; auto.
-      apply head_longjmp; auto.
-    + apply head_bind_left.
-      apply IHtransition; auto.
+  - exact transition_tau_head.
+  - exact head_transition_tau.
 Qed.

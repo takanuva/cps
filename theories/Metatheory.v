@@ -1427,6 +1427,19 @@ Proof.
     reflexivity.
 Qed.
 
+Lemma switch_bindings_bound_eq:
+  forall k n,
+  k = n ->
+  switch_bindings k n = S n.
+Proof.
+  intros.
+  unfold switch_bindings.
+  rewrite lift_bound_lt; try lia.
+  rewrite subst_bound_eq; auto.
+  rewrite lift_bound_ge; try lia.
+  f_equal; lia.
+Qed.
+
 Lemma switch_bindings_is_involutive:
   forall e k,
   switch_bindings k (switch_bindings k e) = e.
@@ -1490,6 +1503,15 @@ Proof.
       apply H.
     + do 3 rewrite traverse_list_length.
       apply IHe2.
+Qed.
+
+Lemma map_switch_bindings_is_involutive:
+  forall k xs,
+  map (switch_bindings k) (map (switch_bindings k) xs) = xs.
+Proof.
+  induction xs; auto.
+  simpl; f_equal; auto.
+  apply switch_bindings_is_involutive.
 Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
