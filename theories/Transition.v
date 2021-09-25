@@ -30,7 +30,7 @@ Inductive head: relation pseudoterm :=
 
 Inductive label: Set :=
   | label_tau
-  | label_jmp (n: nat) (ts: list pseudoterm) (b: pseudoterm).
+  | label_jmp (k: nat) (ts: list pseudoterm) (b: pseudoterm).
 
 Inductive transition: label -> relation pseudoterm :=
   | transition_jmp:
@@ -58,6 +58,14 @@ Inductive transition: label -> relation pseudoterm :=
       (label_jmp (S k) ts c)
       (bind (switch_bindings 0 a) us d)
       (bind (bind (switch_bindings 0 b) us d) ts c).
+
+Definition weak (l: label): relation pseudoterm :=
+  match l with
+  | label_tau =>
+    rt(transition label_tau)
+  | label_jmp k ts c =>
+    comp rt(transition label_tau) (transition l)
+  end.
 
 Inductive transition_label_jmp_invariant k ts c a b: Prop :=
   transition_label_jmp_invariant_ctor
