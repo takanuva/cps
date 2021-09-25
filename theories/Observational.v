@@ -64,6 +64,8 @@ Definition barbed_simulation (R: relation pseudoterm): Prop :=
 Definition barbed_bisimulation (R: relation pseudoterm): Prop :=
   barbed_simulation R /\ barbed_simulation (transp R).
 
+(** ** Barbed bisimilarity *)
+
 Definition bisi a b: Prop :=
   exists2 R, barbed_bisimulation R & R a b.
 
@@ -108,6 +110,8 @@ Proof.
     destruct IHclos_refl_trans2 with w as (v, ?, ?); auto.
     exists v; eauto with cps.
 Qed.
+
+(** ** Barbed congruence *)
 
 (* I'd like to try a coinductive definition later on... but let's see... *)
 
@@ -195,10 +199,39 @@ Qed.
 
 Global Hint Resolve barb_trans: cps.
 
-Instance barb_is_an_equivalence: Equivalence barb.
+Lemma barb_bind_left:
+  LEFT barb.
+Proof.
+  unfold LEFT, barb; intros.
+  set (r := context_left context_hole ts c).
+  replace (bind b1 ts c) with (r b1); auto.
+  replace (bind b2 ts c) with (r b2); auto.
+  do 2 rewrite <- compose_context_is_sound.
+  apply H.
+Qed.
+
+Global Hint Resolve barb_bind_left: cps.
+
+Lemma barb_bind_right:
+  RIGHT barb.
+Proof.
+  unfold RIGHT, barb; intros.
+  set (r := context_right b ts context_hole).
+  replace (bind b ts c1) with (r c1); auto.
+  replace (bind b ts c2) with (r c2); auto.
+  do 2 rewrite <- compose_context_is_sound.
+  apply H.
+Qed.
+
+Global Hint Resolve barb_bind_right: cps.
+
+Instance barb_is_a_congruence: Congruence barb.
 Proof.
   split.
-  - exact barb_refl.
-  - exact barb_sym.
-  - exact barb_trans.
+  - split.
+    + exact barb_refl.
+    + exact barb_sym.
+    + exact barb_trans.
+  - exact barb_bind_left.
+  - exact barb_bind_right.
 Defined.
