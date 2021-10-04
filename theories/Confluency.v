@@ -2,6 +2,8 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
+Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
@@ -158,7 +160,20 @@ Proof.
       * apply parallel_refl.
       * apply parallel_ctxjmp; auto.
     + unfold transp in * |- *.
-      admit.
+      rename h0 into s, r0 into t, xs0 into ys.
+      destruct context_eq_dec with h s.
+      * destruct e.
+        apply context_is_injective in x; auto.
+        dependent destruction x.
+        destruct IHparallel1 with (t (jump #t xs)) as (b, ?H, ?H); auto.
+        destruct IHparallel2 with c3 as (c4, ?H, ?H); auto.
+        destruct parallel_noninterference with r #r xs b as (u, ?H, ?H); auto.
+        dependent destruction H9.
+        (* Can we use multicontexts to fix H5 and H6??? *)
+        replace #r with #u in H5 at 2, H6; auto with cps.
+        (* I strongly assume that both r and t copy the hole the same way. *)
+        admit.
+      * admit.
     + unfold transp in *.
       admit.
   - dependent destruction H1.
@@ -166,6 +181,13 @@ Proof.
       * apply parallel_refl.
       * apply parallel_bind; auto.
     + unfold transp in *.
+      destruct IHparallel1 with (r (jump #r xs)) as (b3, ?, ?); auto.
+      destruct IHparallel2 with c3 as (c4, ?, ?); auto.
+      destruct parallel_noninterference with h #h xs b2 as (s, ?, ?); auto.
+      dependent destruction H7.
+      replace #h with #s in H3; auto with cps.
+      destruct parallel_noninterference with s #s xs b3 as (t, ?, ?); auto.
+      dependent destruction H7.
       admit.
     + destruct IHparallel1 with b3 as (b4, ?, ?); auto.
       destruct IHparallel2 with c3 as (c4, ?, ?); auto.

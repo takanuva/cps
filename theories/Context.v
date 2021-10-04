@@ -241,7 +241,7 @@ Proof.
   - exact same_path_trans.
 Defined.
 
-Lemma context_same_path_implies_same_depth:
+Lemma same_path_implies_same_depth:
   forall h r,
   same_path h r -> #h = #r.
 Proof.
@@ -251,8 +251,22 @@ Proof.
   - simpl; lia.
 Qed.
 
-Global Hint Resolve context_same_path_implies_same_depth: cps.
-Hint Rewrite context_same_path_implies_same_depth: cps.
+Global Hint Resolve same_path_implies_same_depth: cps.
+Hint Rewrite same_path_implies_same_depth: cps.
+
+Lemma same_path_same_hole_implies_same_context:
+  forall h r,
+  same_path h r ->
+  forall e,
+  h e = r e -> h = r.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - dependent destruction H1.
+    f_equal; eauto.
+  - dependent destruction H1.
+    f_equal; eauto.
+Qed.
 
 (*
   The intuition behind the following technical lemma is as follow:

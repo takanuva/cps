@@ -174,7 +174,7 @@ Proof.
     apply transition_jmp.
     assumption.
   (* Case: succ. *)
-  - (* We clearly have a left contetx. *)
+  - (* We clearly have a left context. *)
     destruct H; try discriminate.
     simpl in H0 |- *.
     (* We will apply a (CTX-JMP) here, but there's a lot of housekeeping. *)
