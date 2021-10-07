@@ -110,8 +110,32 @@ Lemma redexes_lift_lift_permutation:
   redexes_lift i k (redexes_lift j l e) =
     redexes_lift j (i + l) (redexes_lift i k e).
 Proof.
-  admit.
-Admitted.
+  induction e; simpl; intros.
+  - f_equal.
+    apply lift_lift_permutation; auto.
+  - f_equal.
+    + apply lift_lift_permutation; auto.
+    + induction xs; auto.
+      simpl; f_equal; auto.
+      apply lift_lift_permutation; auto.
+  - f_equal.
+    + apply lift_lift_permutation; auto.
+    + induction xs; auto.
+      simpl; f_equal; auto.
+      apply lift_lift_permutation; auto.
+  - f_equal.
+    + replace (S (i + l)) with (i + S l); try lia.
+      apply IHe1; lia.
+    + clear IHe1 IHe2.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      do 4 rewrite traverse_list_length.
+      rewrite lift_lift_permutation; try lia.
+      f_equal; lia.
+    + do 2 rewrite traverse_list_length.
+      replace (i + l + length ts) with (i + (l + length ts)); try lia.
+      apply IHe2; lia.
+Qed.
 
 Lemma redexes_lift_distributes_over_apply_parameters:
   forall ys i k e,
@@ -119,7 +143,11 @@ Lemma redexes_lift_distributes_over_apply_parameters:
   redexes_apply_parameters (map (lift i k) ys) 0
     (redexes_lift i (length ys + k) e).
 Proof.
-  admit.
+  induction ys; simpl; intros.
+  - reflexivity.
+  - rewrite IHys; f_equal.
+    (* Oh those indices... *)
+    admit.
 Admitted.
 
 Lemma redexes_lift_addition_distributes_over_flow:
@@ -172,6 +200,53 @@ Proof.
   apply redexes_lift_addition_distributes_over_flow with (p := 0).
 Qed.
 
+Inductive compatible: relation redexes :=
+  | compatible_term:
+    forall e,
+    compatible (redexes_term e) (redexes_term e)
+  | compatible_jump:
+    forall r1 r2 f xs,
+    compatible (redexes_jump r1 f xs) (redexes_jump r2 f xs)
+  | compatible_placeholder:
+    forall f xs,
+    compatible (redexes_placeholder f xs) (redexes_placeholder f xs)
+  | compatible_bind:
+    forall b1 b2 ts c1 c2,
+    compatible b1 b2 ->
+    compatible c1 c2 ->
+    compatible (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
+
+Global Hint Constructors compatible: cps.
+
+Lemma compatible_refl:
+  forall e,
+  compatible e e.
+Proof.
+  induction e; auto with cps.
+Qed.
+
+Global Hint Resolve compatible_refl: cps.
+
+Lemma compatible_sym:
+  forall a b,
+  compatible a b -> compatible b a.
+Proof.
+  induction 1; auto with cps.
+Qed.
+
+Global Hint Resolve compatible_sym: cps.
+
+Lemma compatible_trans:
+  forall a b,
+  compatible a b ->
+  forall c,
+  compatible b c -> compatible a c.
+Proof.
+  induction 1; inversion_clear 1; auto with cps.
+Qed.
+
+Global Hint Resolve compatible_trans: cps.
+
 Inductive residuals: redexes -> redexes -> redexes -> Prop :=
   | residuals_jump:
     forall r k xs,
@@ -218,6 +293,48 @@ Proof.
     replace c5 with c3; auto.
 Qed.
 
+Lemma compatible_residuals:
+  forall a b c,
+  residuals a b c ->
+  compatible a b.
+Proof.
+  induction 1.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor; auto.
+Qed.
+
+Global Hint Resolve compatible_residuals: cps.
+
+Lemma residuals_preserve_compatible:
+  forall a1 a2,
+  compatible a1 a2 ->
+  forall b c1,
+  residuals a1 b c1 ->
+  forall c2,
+  residuals a2 b c2 -> compatible c1 c2.
+Proof.
+  induction 1; intros.
+  - exfalso.
+    inversion H.
+  - dependent destruction H.
+    + dependent destruction H0.
+      constructor.
+    + dependent destruction H0.
+      constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    constructor.
+  - dependent destruction H1.
+    dependent destruction H2.
+    assert (compatible b4 b6); eauto.
+    assert (compatible c4 c6); eauto.
+    constructor; auto.
+    (* Yep, these should be compatible. *)
+    admit.
+Admitted.
+
 Lemma residuals_lift:
   forall a b c,
   residuals a b c ->
@@ -248,66 +365,9 @@ Proof.
     + apply traverse_list_length.
 Qed.
 
-Inductive compatible: relation redexes :=
-  | compatible_term:
-    forall e,
-    compatible (redexes_term e) (redexes_term e)
-  | compatible_jump:
-    forall r1 r2 f xs,
-    compatible (redexes_jump r1 f xs) (redexes_jump r2 f xs)
-  | compatible_placeholder:
-    forall f xs,
-    compatible (redexes_placeholder f xs) (redexes_placeholder f xs)
-  | compatible_bind:
-    forall b1 b2 ts c1 c2,
-    compatible b1 b2 ->
-    compatible c1 c2 ->
-    compatible (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
-
-Lemma compatible_residuals:
-  forall a b c,
-  residuals a b c ->
-  compatible a b.
-Proof.
-  induction 1.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor; auto.
-Qed.
-
-Lemma residuals_preserve_compatible:
-  forall a1 a2,
-  compatible a1 a2 ->
-  forall b c1,
-  residuals a1 b c1 ->
-  forall c2,
-  residuals a2 b c2 -> compatible c1 c2.
-Proof.
-  induction 1; intros.
-  - exfalso.
-    inversion H.
-  - dependent destruction H.
-    + dependent destruction H0.
-      constructor.
-    + dependent destruction H0.
-      constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H1.
-    dependent destruction H2.
-    assert (compatible b4 b6); eauto.
-    assert (compatible c4 c6); eauto.
-    constructor; auto.
-    (* Yep, these should be compatible. *)
-    admit.
-Admitted.
-
 Lemma residuals_flow_inversion:
-  forall b1 b2 c1 c2 c3 a,
+  forall b1 b2 c1 c2 a,
   compatible b1 b2 ->
-  residuals c1 c2 c3 ->
   forall k e,
   residuals (redexes_flow c1 a k b1) (redexes_flow c2 a k b2) e ->
   exists b3,
@@ -315,15 +375,16 @@ Lemma residuals_flow_inversion:
 Proof.
   induction 1; simpl; intros.
   - exfalso.
-    inversion H0.
-  - dependent destruction H0.
+    inversion H.
+  - dependent destruction H.
     + eexists; constructor.
     + eexists; constructor.
   - destruct f; eauto.
+    (* We don't really care about our hypothesis at this point. *)
     eexists; constructor.
-  - dependent destruction H2.
+  - dependent destruction H1.
     destruct IHcompatible1 with (S k) b4 as (x, ?); auto.
-    destruct IHcompatible2 with (k + length ts) c7 as (y, ?); auto.
+    destruct IHcompatible2 with (k + length ts) c6 as (y, ?); auto.
     eexists; constructor; eauto.
 Qed.
 
@@ -365,16 +426,15 @@ Proof.
     edestruct residuals_flow_inversion as (b9, ?); eauto.
     + (* From the way we got these terms, they must be compatible. *)
       eapply residuals_preserve_compatible; eauto.
-      (* Transitivity with b2 here! *)
-      admit.
+      eauto with cps.
     + (* By the first inductive hypothesis... *)
       assert (residuals b5 b7 b9); eauto.
       (* By the second inductive hypothesis... *)
       assert (residuals c5 c7 c9); eauto.
       (* Proceed to build the item... *)
       constructor; auto.
-      (* Invert x in H5_, then by subst lemma... *)
-      replace x with (redexes_flow c9 (length ts) 0 b9) in H5_ |- *.
+      (* Invert x, then by subst lemma... *)
+      replace x with (redexes_flow c9 (length ts) 0 b9).
       * admit.
       * eapply residuals_is_unique; eauto.
         admit.

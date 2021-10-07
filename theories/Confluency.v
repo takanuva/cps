@@ -16,7 +16,7 @@ Require Import Local.Residuals.
 
 (** ** Parallel reduction *)
 
-(* I believe this is the smaller relation to be a valid notion of parallel
+(* I believe this is the smallest relation to be a valid notion of parallel
    reduction within the CPS-calculus... should check it later. *)
 
 Inductive parallel: relation pseudoterm :=
