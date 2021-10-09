@@ -9,6 +9,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
+Require Import Local.Reduction.
 
 (** ** Residuals *)
 
@@ -200,6 +201,33 @@ Proof.
   apply redexes_lift_addition_distributes_over_flow with (p := 0).
 Qed.
 
+Lemma redexes_flow_addition_commute:
+  forall b a1 a2 p k c1 c2,
+  redexes_flow c2 a1 (p + S k) (redexes_flow c1 a2 p b) =
+    redexes_flow (redexes_flow c2 a1 (k + a2) c1)
+      a2 p (redexes_flow c2 a1 (p + S k) b).
+Proof.
+  induction b; simpl; intros.
+  - constructor.
+  - constructor.
+  - admit.
+  - f_equal.
+    + replace (S (p + S k)) with (S p + S k); try lia.
+      apply IHb1.
+    + replace (p + S k + length ts) with (p + length ts + S k); try lia.
+      apply IHb2.
+Admitted.
+
+Lemma redexes_flow_commute:
+  forall b a1 a2 k c1 c2,
+  redexes_flow c2 a1 (S k) (redexes_flow c1 a2 0 b) =
+    redexes_flow (redexes_flow c2 a1 (k + a2) c1)
+      a2 0 (redexes_flow c2 a1 (S k) b).
+Proof.
+  intros.
+  apply redexes_flow_addition_commute with (p := 0).
+Qed.
+
 Inductive compatible: relation redexes :=
   | compatible_term:
     forall e,
@@ -246,6 +274,56 @@ Proof.
 Qed.
 
 Global Hint Resolve compatible_trans: cps.
+
+Lemma compatible_lift:
+  forall a b,
+  compatible a b ->
+  forall i k,
+  compatible (redexes_lift i k a) (redexes_lift i k b).
+Proof.
+  induction 1; simpl; constructor; auto.
+Qed.
+
+Lemma compatible_subst:
+  forall a b,
+  compatible a b ->
+  forall y k,
+  compatible (redexes_subst y k a) (redexes_subst y k b).
+Proof.
+  induction 1; simpl; constructor; auto.
+Qed.
+
+Lemma compatible_apply_parameters:
+  forall ys k a b,
+  compatible a b ->
+  compatible (redexes_apply_parameters ys k a)
+    (redexes_apply_parameters ys k b).
+Proof.
+  induction ys; simpl; intros.
+  - assumption.
+  - apply IHys.
+    apply compatible_subst.
+    assumption.
+Qed.
+
+Lemma compatible_flow:
+  forall b1 b2 c1 c2 a,
+  compatible c1 c2 ->
+  compatible b1 b2 ->
+  forall k,
+  compatible (redexes_flow c1 a k b1) (redexes_flow c2 a k b2).
+Proof.
+  induction 2; simpl; intros.
+  - constructor.
+  - constructor.
+  - destruct f; try constructor.
+    destruct (Nat.eq_dec n k); try constructor.
+    destruct (Nat.eq_dec a (length xs)); try constructor.
+    apply compatible_apply_parameters.
+    apply compatible_lift.
+    assumption.
+  - constructor; auto.
+Qed.
 
 Inductive residuals: redexes -> redexes -> redexes -> Prop :=
   | residuals_jump:
@@ -331,9 +409,8 @@ Proof.
     assert (compatible b4 b6); eauto.
     assert (compatible c4 c6); eauto.
     constructor; auto.
-    (* Yep, these should be compatible. *)
-    admit.
-Admitted.
+    apply compatible_flow; auto.
+Qed.
 
 Lemma residuals_lift:
   forall a b c,
@@ -365,6 +442,29 @@ Proof.
     + apply traverse_list_length.
 Qed.
 
+Lemma residuals_subst:
+  forall a b c,
+  residuals a b c ->
+  forall y k,
+  residuals (redexes_subst y k a) (redexes_subst y k b) (redexes_subst y k c).
+Proof.
+  (* This will probably need some tuning on the definition of residuals... *)
+  admit.
+Admitted.
+
+Lemma residuals_apply_parameters:
+  forall ys k a b c,
+  residuals a b c ->
+  residuals (redexes_apply_parameters ys k a) (redexes_apply_parameters ys k b)
+    (redexes_apply_parameters ys k c).
+Proof.
+  induction ys; simpl; intros.
+  - assumption.
+  - apply IHys.
+    apply residuals_subst.
+    assumption.
+Qed.
+
 Lemma residuals_flow_inversion:
   forall b1 b2 c1 c2 a,
   compatible b1 b2 ->
@@ -388,6 +488,35 @@ Proof.
     eexists; constructor; eauto.
 Qed.
 
+Lemma residuals_flow:
+  forall c1 c2 c3,
+  residuals c1 c2 c3 ->
+  forall b1 b2 b3,
+  residuals b1 b2 b3 ->
+  forall k a,
+  residuals (redexes_flow b1 a k c1) (redexes_flow b2 a k c2)
+    (redexes_flow b3 a k c3).
+Proof.
+  (* This induction principle doesn't seem good enough; the residuals might
+     try to postpone a substitution, but flow will try to do it immediately
+     and thus break things. Also, I suspect this one may only be valid for
+     regular terms, i.e., there's no placeholder in c3 itself, but I'm not
+     yet sure. Note that, for the cube to work, we only need k = 0. *)
+  induction 1; simpl; intros.
+  - constructor.
+  - destruct (Nat.eq_dec n k); try constructor.
+    destruct (Nat.eq_dec a (length xs)); try constructor.
+    (* Hm, oh no... *)
+    admit.
+  - destruct (Nat.eq_dec n k); try constructor.
+    destruct (Nat.eq_dec a (length xs)); try constructor.
+    apply residuals_apply_parameters.
+    apply residuals_lift.
+    assumption.
+  - rewrite redexes_flow_commute.
+    constructor; auto.
+Admitted.
+
 Lemma cube:
   forall a r b,
   residuals a r b ->
@@ -401,23 +530,29 @@ Lemma cube:
   residuals b pr d -> residuals c rp d.
 Proof.
   induction 1; inversion_clear 1; intros.
+  (* Case: (jump, jump). *)
   - dependent destruction H.
     dependent destruction H0.
     assumption.
+  (* Case: (jump, mark). *)
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
     constructor.
+  (* Case: (mark, jump). *)
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
     constructor.
+  (* Case: (mark, mark). *)
   - dependent destruction H.
     dependent destruction H0.
     assumption.
+  (* Case: (placeholder, placeholder). *)
   - dependent destruction H.
     dependent destruction H0.
     assumption.
+  (* Case: (bind, bind). *)
   - dependent destruction H1.
     dependent destruction H4.
     dependent destruction H5.
@@ -435,7 +570,7 @@ Proof.
       constructor; auto.
       (* Invert x, then by subst lemma... *)
       replace x with (redexes_flow c9 (length ts) 0 b9).
-      * admit.
+      * apply residuals_flow; auto.
       * eapply residuals_is_unique; eauto.
-        admit.
-Admitted.
+        apply residuals_flow; auto.
+Qed.
