@@ -229,9 +229,6 @@ Proof.
 Qed.
 
 Inductive compatible: relation redexes :=
-  | compatible_term:
-    forall e,
-    compatible (redexes_term e) (redexes_term e)
   | compatible_jump:
     forall r1 r2 f xs,
     compatible (redexes_jump r1 f xs) (redexes_jump r2 f xs)
@@ -245,15 +242,6 @@ Inductive compatible: relation redexes :=
     compatible (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
 
 Global Hint Constructors compatible: cps.
-
-Lemma compatible_refl:
-  forall e,
-  compatible e e.
-Proof.
-  induction e; auto with cps.
-Qed.
-
-Global Hint Resolve compatible_refl: cps.
 
 Lemma compatible_sym:
   forall a b,
@@ -315,7 +303,6 @@ Lemma compatible_flow:
 Proof.
   induction 2; simpl; intros.
   - constructor.
-  - constructor.
   - destruct f; try constructor.
     destruct (Nat.eq_dec n k); try constructor.
     destruct (Nat.eq_dec a (length xs)); try constructor.
@@ -333,17 +320,17 @@ Inductive residuals: redexes -> redexes -> redexes -> Prop :=
       (redexes_jump false k xs)
       (redexes_jump r k xs)
   | residuals_mark:
-    forall r n xs,
+    forall r k xs,
     residuals
-      (redexes_jump r (bound n) xs)
-      (redexes_jump true (bound n) xs)
-      (redexes_placeholder n xs)
+      (redexes_jump r k xs)
+      (redexes_jump true k xs)
+      (redexes_placeholder k xs)
   | residuals_placeholder:
-    forall n xs,
+    forall k xs,
     residuals
-      (redexes_placeholder (bound n) xs)
-      (redexes_placeholder (bound n) xs)
-      (redexes_placeholder (bound n) xs)
+      (redexes_placeholder k xs)
+      (redexes_placeholder k xs)
+      (redexes_placeholder k xs)
   | residuals_bind:
     forall b1 b2 b3 ts c1 c2 c3,
     residuals b1 b2 b3 ->
@@ -351,6 +338,7 @@ Inductive residuals: redexes -> redexes -> redexes -> Prop :=
     residuals
       (redexes_bind b1 ts c1)
       (redexes_bind b2 ts c2)
+      (* We can postpone this flow as well, can't we?! *)
       (redexes_bind (redexes_flow c3 (length ts) 0 b3) ts c3).
 
 Lemma residuals_is_unique:
@@ -394,8 +382,6 @@ Lemma residuals_preserve_compatible:
   residuals a2 b c2 -> compatible c1 c2.
 Proof.
   induction 1; intros.
-  - exfalso.
-    inversion H.
   - dependent destruction H.
     + dependent destruction H0.
       constructor.
@@ -412,6 +398,8 @@ Proof.
     apply compatible_flow; auto.
 Qed.
 
+Global Hint Resolve residuals_preserve_compatible: cps.
+
 Lemma residuals_lift:
   forall a b c,
   residuals a b c ->
@@ -422,17 +410,9 @@ Proof.
   - simpl.
     constructor.
   - simpl.
-    destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; auto.
-      constructor.
-    + rewrite lift_bound_lt; auto.
-      constructor.
+    constructor.
   - simpl.
-    destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; auto.
-      constructor.
-    + rewrite lift_bound_lt; auto.
-      constructor.
+    constructor.
   - simpl.
     rewrite redexes_lift_distributes_over_flow.
     replace (length ts) with (length (traverse_list (lift i) k ts)).
@@ -465,28 +445,23 @@ Proof.
     assumption.
 Qed.
 
-Lemma residuals_flow_inversion:
-  forall b1 b2 c1 c2 a,
+Lemma residuals_compatible:
+  forall b1 b2,
   compatible b1 b2 ->
-  forall k e,
-  residuals (redexes_flow c1 a k b1) (redexes_flow c2 a k b2) e ->
   exists b3,
   residuals b1 b2 b3.
 Proof.
   induction 1; simpl; intros.
-  - exfalso.
-    inversion H.
-  - dependent destruction H.
+  - destruct r2.
     + eexists; constructor.
     + eexists; constructor.
-  - destruct f; eauto.
-    (* We don't really care about our hypothesis at this point. *)
-    eexists; constructor.
-  - dependent destruction H1.
-    destruct IHcompatible1 with (S k) b4 as (x, ?); auto.
-    destruct IHcompatible2 with (k + length ts) c6 as (y, ?); auto.
+  - eexists; constructor.
+  - destruct IHcompatible1 as (b3, ?); auto.
+    destruct IHcompatible2 as (c3, ?); auto.
     eexists; constructor; eauto.
 Qed.
+
+Global Hint Resolve residuals_compatible: cps.
 
 Lemma residuals_flow:
   forall c1 c2 c3,
@@ -504,11 +479,13 @@ Proof.
      yet sure. Note that, for the cube to work, we only need k = 0. *)
   induction 1; simpl; intros.
   - constructor.
-  - destruct (Nat.eq_dec n k); try constructor.
+  - destruct k; try constructor; rename k0 into k.
+    destruct (Nat.eq_dec n k); try constructor.
     destruct (Nat.eq_dec a (length xs)); try constructor.
     (* Hm, oh no... *)
     admit.
-  - destruct (Nat.eq_dec n k); try constructor.
+  - destruct k; try constructor; rename k0 into k.
+    destruct (Nat.eq_dec n k); try constructor.
     destruct (Nat.eq_dec a (length xs)); try constructor.
     apply residuals_apply_parameters.
     apply residuals_lift.
@@ -558,7 +535,7 @@ Proof.
     dependent destruction H5.
     rename b9 into x.
     (* Reconstruct our b9 term, which should exist... *)
-    edestruct residuals_flow_inversion as (b9, ?); eauto.
+    destruct residuals_compatible with b3 b8 as (b9, ?); eauto.
     + (* From the way we got these terms, they must be compatible. *)
       eapply residuals_preserve_compatible; eauto.
       eauto with cps.
@@ -573,4 +550,22 @@ Proof.
       * apply residuals_flow; auto.
       * eapply residuals_is_unique; eauto.
         apply residuals_flow; auto.
+Qed.
+
+Lemma paving:
+  forall a r b,
+  residuals a r b ->
+  forall p c,
+  residuals a p c ->
+  exists pr rp d,
+  residuals b pr d /\ residuals c rp d.
+Proof.
+  intros.
+  assert (compatible p r); eauto with cps.
+  assert (exists pr, residuals p r pr) as (pr, ?); eauto with cps.
+  assert (exists rp, residuals r p rp) as (rp, ?); eauto with cps.
+  assert (exists d, residuals b pr d) as (d, ?); eauto with cps.
+  exists pr, rp, d; split.
+  - assumption.
+  - apply cube with a r b p pr; auto.
 Qed.
