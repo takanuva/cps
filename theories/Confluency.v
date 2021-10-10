@@ -12,7 +12,6 @@ Require Import Local.Metatheory.
 Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.AbstractRewriting.
-Require Import Local.Residuals.
 
 (** ** Parallel reduction *)
 
