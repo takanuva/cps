@@ -108,6 +108,16 @@ Fixpoint redexes_flow y a k e: redexes :=
     e
   end.
 
+Fixpoint redexes_full e: redexes :=
+  match e with
+  | redexes_bind b ts c =>
+    redexes_bind
+      (redexes_flow (redexes_full c) (length ts) 0
+        (redexes_full b)) ts (redexes_full c)
+  | _ =>
+    e
+  end.
+
 Lemma redexes_lift_lift_permutation:
   forall e i j k l,
   k <= l ->
@@ -328,13 +338,74 @@ Proof.
   - constructor; auto.
 Qed.
 
+Inductive union: redexes -> redexes -> redexes -> Prop :=
+  | union_term:
+    forall e,
+    union (redexes_term e) (redexes_term e) (redexes_term e)
+  | union_jump:
+    forall r1 r2 k xs,
+    union
+      (redexes_jump r1 k xs)
+      (redexes_jump r2 k xs)
+      (redexes_jump (orb r1 r2) k xs)
+  | union_placeholder:
+    forall k xs,
+    union
+      (redexes_placeholder k xs)
+      (redexes_placeholder k xs)
+      (redexes_placeholder k xs)
+  | union_bind:
+    forall b1 b2 b3 ts c1 c2 c3,
+    union b1 b2 b3 ->
+    union c1 c2 c3 ->
+    union
+      (redexes_bind b1 ts c1)
+      (redexes_bind b2 ts c2)
+      (redexes_bind b3 ts c3).
+
+Global Hint Constructors union: cps.
+
+Lemma union_sym:
+  forall a b c,
+  union a b c ->
+  union b a c.
+Proof.
+  induction 1; auto with cps.
+  destruct r1, r2; simpl; constructor.
+Qed.
+
+Global Hint Resolve union_sym: cps.
+
+Lemma union_mark_inversion:
+  forall a b c,
+  union (mark a) b c ->
+  c = b.
+Proof.
+  induction a; inversion_clear 1; auto.
+  f_equal; auto.
+Qed.
+
+Global Hint Resolve union_mark_inversion: cps.
+
+Lemma union_compatible:
+  forall a b,
+  compatible a b ->
+  exists c,
+  union a b c.
+Proof.
+  induction 1.
+  - eexists; eauto with cps.
+  - destruct r1, r2; eexists; eauto with cps.
+  - eexists; eauto with cps.
+  - destruct IHcompatible1.
+    destruct IHcompatible2.
+    eexists; eauto with cps.
+Qed.
+
 Inductive residuals: redexes -> redexes -> redexes -> Prop :=
   | residuals_term:
     forall e,
-    residuals
-      (redexes_term e)
-      (redexes_term e)
-      (redexes_term e)
+    residuals (redexes_term e) (redexes_term e) (redexes_term e)
   | residuals_jump:
     forall r k xs,
     residuals
@@ -538,3 +609,234 @@ Proof.
   - assumption.
   - apply cube with a r b p pr; auto.
 Qed.
+
+Lemma redexes_flow_mark_equals_mark:
+  forall e y a k,
+  redexes_flow y a k (mark e) = mark e.
+Proof.
+  induction e; auto; intros.
+  simpl.
+  rewrite IHe1.
+  rewrite IHe2.
+  reflexivity.
+Qed.
+
+Lemma redexes_full_mark_equals_mark:
+  forall e,
+  redexes_full (mark e) = mark e.
+Proof.
+  induction e; auto; simpl.
+  rewrite IHe1.
+  rewrite IHe2.
+  rewrite redexes_flow_mark_equals_mark.
+  reflexivity.
+Qed.
+
+(* TODO: these definitions should probably be moved up. *)
+
+Definition residuals_full a b c: Prop :=
+  exists2 c',
+  residuals a b c' & redexes_full c' = c.
+
+Inductive redexes_context: Set :=
+  | redexes_context_hole
+  | redexes_context_left
+      (b: redexes_context) (ts: list pseudoterm) (c: redexes)
+  | redexes_context_right
+      (b: redexes) (ts: list pseudoterm) (c: redexes_context).
+
+Fixpoint apply_redexes_context h e: redexes :=
+  match h with
+  | redexes_context_hole =>
+    e
+  | redexes_context_left b ts c =>
+    redexes_bind (apply_redexes_context b e) ts c
+  | redexes_context_right b ts c =>
+    redexes_bind b ts (apply_redexes_context c e)
+  end.
+
+Coercion apply_redexes_context: redexes_context >-> Funclass.
+
+Fixpoint mark_context h: redexes_context :=
+  match h with
+  | context_hole =>
+    redexes_context_hole
+  | context_left b ts c =>
+    redexes_context_left (mark_context b) ts (mark c)
+  | context_right b ts c =>
+    redexes_context_right (mark b) ts (mark_context c)
+  end.
+
+Lemma mark_context_is_sound:
+  forall h e,
+  mark_context h (mark e) = mark (h e).
+Proof.
+  induction h; simpl; congruence.
+Qed.
+
+Inductive redexes_same_path: relation redexes_context :=
+  | redexes_same_path_hole:
+    redexes_same_path redexes_context_hole redexes_context_hole
+  | redexes_same_path_left:
+    forall h r ts1 ts2 c1 c2,
+    redexes_same_path h r ->
+    length ts1 = length ts2 ->
+    redexes_same_path
+      (redexes_context_left h ts1 c1)
+      (redexes_context_left r ts2 c2)
+  | redexes_same_path_right:
+    forall b1 b2 ts1 ts2 h r,
+    redexes_same_path h r ->
+    length ts1 = length ts2 ->
+    redexes_same_path
+      (redexes_context_right b1 ts1 h)
+      (redexes_context_right b2 ts2 r).
+
+Global Hint Constructors redexes_same_path: cps.
+
+Lemma compatible_context_left_inversion:
+  forall h: redexes_context,
+  forall e1 b,
+  compatible (h e1) b ->
+  exists r e2,
+  redexes_same_path h r /\ b = r e2.
+Proof.
+  induction h; simpl; intros.
+  - exists redexes_context_hole; simpl.
+    exists b; auto with cps.
+  - dependent destruction H.
+    destruct IHh with e1 b2 as (r, (e2, (?, ?))); auto.
+    exists (redexes_context_left r ts c2), e2; simpl.
+    dependent destruction H2.
+    firstorder with cps.
+  - dependent destruction H.
+    destruct IHh with e1 c2 as (r, (e2, (?, ?))); auto.
+    exists (redexes_context_right b2 ts r), e2; simpl.
+    dependent destruction H2.
+    firstorder with cps.
+Qed.
+
+Lemma compatible_context_changing_hole:
+  forall h r,
+  redexes_same_path h r ->
+  forall a b,
+  compatible (h a) (r b) ->
+  forall c d,
+  compatible c d -> compatible (h c) (r d).
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - dependent destruction H1.
+    constructor; auto.
+    eapply IHredexes_same_path; eauto.
+  - dependent destruction H1.
+    constructor; auto.
+    eapply IHredexes_same_path; eauto.
+Qed.
+
+Lemma compatible_compatible_same_path:
+  forall h r,
+  redexes_same_path h r ->
+  forall a b,
+  compatible (h a) (r b) -> compatible a b.
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - dependent destruction H1; auto.
+  - dependent destruction H1; auto.
+Qed.
+
+Global Hint Resolve compatible_compatible_same_path: cps.
+
+(* Lemma redexes_flow_redexes_context:
+  forall h c a k e,
+  redexes_flow c a k (mark_context h e) =
+    mark_context h (redexes_flow c a (k + #h) e).
+Proof.
+  induction h; simpl; intros.
+  - f_equal; lia.
+  - f_equal.
+    + rewrite IHh; f_equal; f_equal.
+      lia.
+    + apply redexes_flow_mark_equals_mark.
+  - f_equal.
+    + apply redexes_flow_mark_equals_mark.
+    + rewrite IHh; f_equal; f_equal.
+      lia.
+Qed.
+
+Lemma redexes_full_redexes_context_simplification:
+  forall h n,
+  n >= #h ->
+  forall xs,
+  redexes_full (mark_context h (redexes_placeholder n xs)) =
+    mark_context h (redexes_placeholder n xs).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    + rewrite IHh; try lia.
+      rewrite redexes_flow_redexes_context.
+      f_equal; simpl.
+      destruct (Nat.eq_dec n #h); try lia.
+      reflexivity.
+    + apply redexes_full_mark_equals_mark.
+  - f_equal.
+    + rewrite IHh; try lia.
+      rewrite redexes_full_mark_equals_mark.
+      apply redexes_flow_mark_equals_mark.
+    + apply IHh; lia.
+Qed. *)
+
+Goal
+  forall a b,
+  parallel a b ->
+  exists2 r,
+  residuals_full (mark a) r (mark b) & True (* has one jump to each binding *).
+Proof.
+  induction 1; simpl.
+  - exists (mark e).
+    + exists (mark e).
+      * induction e; simpl; auto with cps.
+      * apply redexes_full_mark_equals_mark.
+    + trivial.
+  - clear H1 H2.
+    destruct IHparallel1 as (p, (b', ?, ?), ?).
+    destruct IHparallel2 as (q, (c', ?, ?), ?).
+    rewrite <- mark_context_is_sound in H1.
+    edestruct compatible_context_left_inversion
+      with (h := mark_context h) (b := p)
+      as (h', (k, (?, ?))); eauto with cps.
+    dependent destruction H8; simpl in H1.
+    (* ..... *)
+    assert (exists p',
+      union (mark_context h (redexes_jump true #h xs)) (h' k) p').
+    apply union_compatible.
+    eapply compatible_context_changing_hole.
+    assumption.
+    eapply compatible_residuals.
+    eassumption.
+    assert (compatible (redexes_jump false #h xs) k).
+    eapply compatible_compatible_same_path; eauto.
+    eapply compatible_residuals.
+    eassumption.
+    eauto with cps.
+    (* ..... *)
+    destruct H8 as (p', ?).
+    eexists (redexes_bind p' ts q).
+    + eexists (redexes_bind _ ts c').
+      * constructor; auto.
+        admit.
+      * simpl; f_equal; auto.
+        (* Fine! *)
+        admit.
+    + trivial.
+  - destruct IHparallel1 as (p, (b', ?, ?), ?).
+    destruct IHparallel2 as (q, (c', ?, ?), ?).
+    exists (redexes_bind p ts q).
+    + exists (redexes_bind b' ts c').
+      * auto with cps.
+      * simpl; rewrite H2, H5; f_equal.
+        apply redexes_flow_mark_equals_mark.
+    + trivial.
+Admitted.
