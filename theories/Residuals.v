@@ -788,49 +788,190 @@ Proof.
     + apply IHh; lia.
 Qed. *)
 
+Lemma residuals_preserve_hole:
+  forall h r a b,
+  redexes_same_path h r ->
+  forall c,
+  residuals (h a) (r b) c ->
+  exists s e,
+  redexes_same_path h s /\ residuals a b e /\ c = s e.
+Proof.
+  induction 1; simpl; intros.
+  - exists redexes_context_hole; simpl.
+    exists c; firstorder with cps.
+  - dependent destruction H1.
+    destruct IHredexes_same_path with b3 as (s, (e, (?, (?, ?)))); auto.
+    exists (redexes_context_left s ts2 c4), e; simpl.
+    split; [| split ].
+    + auto with cps.
+    + assumption.
+    + congruence.
+  - dependent destruction H1.
+    destruct IHredexes_same_path with c3 as (s, (e, (?, (?, ?)))); auto.
+    exists (redexes_context_right b4 ts2 s), e; simpl.
+    split; [| split ].
+    + auto with cps.
+    + assumption.
+    + congruence.
+Qed.
+
+(* Huh, this is a mess. TODO: Clean up this file please. *)
+
+Definition arities: Set :=
+  list (option nat).
+
+Inductive regular: arities -> redexes -> Prop :=
+  | regular_term:
+    forall g e,
+    regular g (redexes_term e)
+  | regular_jump:
+    forall g n xs,
+    regular g (redexes_jump false n xs)
+  | regular_mark:
+    forall g a n xs,
+    item (Some a) g n ->
+    a = length xs ->
+    regular g (redexes_jump true n xs)
+  | regular_placeholder:
+    forall g a n xs,
+    item (Some a) g n ->
+    a = length xs ->
+    regular g (redexes_placeholder n xs)
+  | regular_bind:
+    forall g b ts c,
+    regular (Some (length ts) :: g) b ->
+    regular (repeat None (length ts) ++ g) c ->
+    regular g (redexes_bind b ts c).
+
+Global Hint Constructors regular: cps.
+
+Lemma regular_tail:
+  forall g1 e,
+  regular g1 e ->
+  forall g2,
+  regular (g1 ++ g2) e.
+Proof.
+  induction 1; intros.
+  - constructor.
+  - constructor.
+  - econstructor; eauto.
+    apply item_insert_tail; auto.
+  - econstructor; eauto.
+    apply item_insert_tail; auto.
+  - constructor.
+    + simpl in IHregular1; auto.
+    + rewrite app_assoc; auto.
+Qed.
+
+Lemma regular_mark_term:
+  forall g e,
+  regular g (mark e).
+Proof.
+  intros.
+  replace g with ([] ++ g); auto.
+  apply regular_tail.
+  induction e; simpl; auto with cps.
+  constructor.
+  + eapply regular_tail in IHe1; eauto.
+  + eapply regular_tail in IHe2; eauto.
+Qed.
+
+Lemma regular_union:
+  forall a b c,
+  union a b c ->
+  forall g,
+  regular g a -> regular g b -> regular g c.
+Proof.
+  induction 1; intros.
+  - constructor.
+  - dependent destruction H.
+    + dependent destruction H0; simpl.
+      * constructor.
+      * econstructor; eauto.
+    + dependent destruction H0; simpl.
+      * econstructor; eauto.
+      * econstructor; eauto.
+  - assumption.
+  - dependent destruction H1.
+    dependent destruction H2.
+    constructor; auto.
+Qed.
+
+Lemma regular_single_jump:
+  forall h g xs,
+  regular (g ++ [Some (length xs)])
+    (mark_context h (redexes_jump true (length g + #h) xs)).
+Proof.
+  induction h; simpl; intros.
+  - rewrite plus_comm.
+    econstructor; eauto.
+    apply item_insert_head.
+    constructor.
+  - constructor.
+    + rewrite app_comm_cons.
+      rewrite <- plus_Snm_nSm.
+      apply IHh.
+    + apply regular_mark_term.
+  - constructor.
+    + apply regular_mark_term.
+    + rewrite app_assoc.
+      replace (length g + (#h + length ts)) with
+        (length (repeat None (length ts) ++ g) + #h).
+      * apply IHh.
+      * rewrite app_length.
+        rewrite repeat_length.
+        lia.
+Qed.
+
 Goal
   forall a b,
   parallel a b ->
   exists2 r,
-  residuals_full (mark a) r (mark b) & True (* has one jump to each binding *).
+  (* We also need to show that at most ONE jump to each binding is marked! *)
+  residuals_full (mark a) r (mark b) & regular [] r.
 Proof.
   induction 1; simpl.
   - exists (mark e).
     + exists (mark e).
       * induction e; simpl; auto with cps.
       * apply redexes_full_mark_equals_mark.
-    + trivial.
+    + apply regular_mark_term.
   - clear H1 H2.
     destruct IHparallel1 as (p, (b', ?, ?), ?).
     destruct IHparallel2 as (q, (c', ?, ?), ?).
-    rewrite <- mark_context_is_sound in H1.
+    rewrite <- mark_context_is_sound in H1, H2.
     edestruct compatible_context_left_inversion
       with (h := mark_context h) (b := p)
       as (h', (k, (?, ?))); eauto with cps.
-    dependent destruction H8; simpl in H1.
+    dependent destruction H8; simpl in H1, H2.
+    edestruct residuals_preserve_hole as (r', (e, (?, (?, ?)))); eauto.
+    dependent destruction H10.
+    (* ..... *)
+    dependent destruction H9; [| exfalso; admit ].
     (* ..... *)
     assert (exists p',
-      union (mark_context h (redexes_jump true #h xs)) (h' k) p').
+      union (mark_context h (redexes_jump true #h xs))
+            (h' (redexes_jump false #h xs)) p').
     apply union_compatible.
     eapply compatible_context_changing_hole.
     assumption.
     eapply compatible_residuals.
     eassumption.
-    assert (compatible (redexes_jump false #h xs) k).
-    eapply compatible_compatible_same_path; eauto.
-    eapply compatible_residuals.
-    eassumption.
-    eauto with cps.
+    constructor.
     (* ..... *)
-    destruct H8 as (p', ?).
+    destruct H9 as (p', ?).
     eexists (redexes_bind p' ts q).
-    + eexists (redexes_bind _ ts c').
+    + eexists (redexes_bind (r' (redexes_placeholder #h xs)) ts c').
       * constructor; auto.
         admit.
       * simpl; f_equal; auto.
-        (* Fine! *)
         admit.
-    + trivial.
+    + constructor.
+      * eapply regular_tail in H3.
+        eapply regular_union; eauto.
+        rewrite <- H0.
+        apply regular_single_jump with (g := []).
+      * eapply regular_tail in H6; eauto.
   - destruct IHparallel1 as (p, (b', ?, ?), ?).
     destruct IHparallel2 as (q, (c', ?, ?), ?).
     exists (redexes_bind p ts q).
@@ -838,5 +979,7 @@ Proof.
       * auto with cps.
       * simpl; rewrite H2, H5; f_equal.
         apply redexes_flow_mark_equals_mark.
-    + trivial.
+    + constructor.
+      * eapply regular_tail in H3; eauto.
+      * eapply regular_tail in H6; eauto.
 Admitted.
