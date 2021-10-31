@@ -695,8 +695,7 @@ Inductive redexes_same_path: relation redexes_context :=
 Global Hint Constructors redexes_same_path: cps.
 
 Lemma compatible_context_left_inversion:
-  forall h: redexes_context,
-  forall e1 b,
+  forall (h: redexes_context) e1 b,
   compatible (h e1) b ->
   exists r e2,
   redexes_same_path h r /\ b = r e2.
@@ -734,7 +733,8 @@ Proof.
     eapply IHredexes_same_path; eauto.
 Qed.
 
-Lemma compatible_compatible_same_path:
+(*
+Lemma compatible_preserved_at_hole:
   forall h r,
   redexes_same_path h r ->
   forall a b,
@@ -746,7 +746,8 @@ Proof.
   - dependent destruction H1; auto.
 Qed.
 
-Global Hint Resolve compatible_compatible_same_path: cps.
+Global Hint Resolve compatible_preserved_at_hole: cps.
+*)
 
 (* Lemma redexes_flow_redexes_context:
   forall h c a k e,
@@ -923,6 +924,125 @@ Proof.
         lia.
 Qed.
 
+Fixpoint redexes_context_depth h: nat :=
+  match h with
+  | redexes_context_hole =>
+    0
+  | redexes_context_left b _ _ =>
+    S (redexes_context_depth b)
+  | redexes_context_right _ ts c =>
+    redexes_context_depth c + length ts
+  end.
+
+Lemma regular_cant_jump_too_far:
+  forall n h g,
+  n = length g + redexes_context_depth h ->
+  forall xs,
+  ~regular g (h (redexes_jump true n xs)).
+Proof.
+  induction h; simpl; intros.
+  - intro.
+    dependent destruction H0.
+    assert (n < length g).
+    + eapply item_valid_index.
+      eassumption.
+    + lia.
+  - intro.
+    dependent destruction H0.
+    eapply IHh; eauto; simpl.
+    lia.
+  - intro.
+    dependent destruction H0.
+    eapply IHh; eauto.
+    rewrite app_length.
+    rewrite repeat_length.
+    lia.
+Qed.
+
+Local Lemma technical1:
+  forall h h',
+  redexes_same_path (mark_context h) h' ->
+  forall k,
+  regular [] (h' k) ->
+  forall xs e,
+  residuals (redexes_jump false #h xs) k e ->
+  k = redexes_jump false #h xs.
+Proof.
+  intros.
+  dependent destruction H1.
+  - reflexivity.
+  - exfalso.
+    eapply regular_cant_jump_too_far with (g := []) (h := h');
+      eauto; simpl.
+    (* Huh, this is a bit ugly... TODO: should we move this? *)
+    replace (redexes_context_depth h') with #h.
+    + eassumption.
+    + clear H0.
+      dependent induction H; destruct h; try discriminate; simpl.
+      * reflexivity.
+      * dependent destruction x; eauto.
+      * dependent destruction x; eauto.
+Qed.
+
+Local Lemma technical2:
+  forall h r,
+  redexes_same_path h r ->
+  forall a b,
+  compatible (h a) (r b) ->
+  forall n xs,
+  exists p,
+  union (h (redexes_jump true n xs)) (r (redexes_jump false n xs)) p.
+Proof.
+  intros.
+  apply union_compatible.
+  eapply compatible_context_changing_hole; eauto.
+  constructor.
+Qed.
+
+Local Lemma technical3:
+  forall h r,
+  redexes_same_path (mark_context h) r ->
+  forall s,
+  redexes_same_path (mark_context h) s ->
+  forall n xs,
+  residuals (mark_context h (redexes_jump false n xs))
+            (r (redexes_jump false n xs))
+            (s (redexes_jump false n xs)) ->
+  forall p,
+  union (mark_context h (redexes_jump true n xs))
+        (r (redexes_jump false n xs)) p ->
+  residuals (mark_context h (redexes_jump false n xs)) p
+            (s (redexes_placeholder n xs)).
+Proof.
+  intros until 1.
+  dependent induction H; simpl; intros.
+  - destruct h; try discriminate.
+    dependent destruction H0.
+    dependent destruction H1.
+    destruct s; try discriminate.
+    simpl; constructor.
+  - destruct h; try discriminate.
+    dependent destruction H1.
+    dependent destruction H3.
+    dependent destruction H4.
+    simpl; constructor; auto.
+    assert (c4 = c2).
+    + apply union_mark_inversion with c.
+      assumption.
+    + dependent destruction H0.
+      assumption.
+  - destruct h; try discriminate.
+    dependent destruction H1.
+    dependent destruction H3.
+    dependent destruction H4.
+    simpl; constructor; auto.
+    assert (b4 = b2).
+    + apply union_mark_inversion with b.
+      assumption.
+    + dependent destruction H0.
+      assumption.
+Qed.
+
 Goal
   forall a b,
   parallel a b ->
@@ -937,34 +1057,37 @@ Proof.
       * apply redexes_full_mark_equals_mark.
     + apply regular_mark_term.
   - clear H1 H2.
+    (* Split our inductive hypotheses... *)
     destruct IHparallel1 as (p, (b', ?, ?), ?).
     destruct IHparallel2 as (q, (c', ?, ?), ?).
     rewrite <- mark_context_is_sound in H1, H2.
+    (* Since h[x]/p = b', p must be a compatible context. *)
     edestruct compatible_context_left_inversion
       with (h := mark_context h) (b := p)
       as (h', (k, (?, ?))); eauto with cps.
     dependent destruction H8; simpl in H1, H2.
+    (* Accordingly, so should b'... *)
     edestruct residuals_preserve_hole as (r', (e, (?, (?, ?)))); eauto.
     dependent destruction H10.
-    (* ..... *)
-    dependent destruction H9; [| exfalso; admit ].
-    (* ..... *)
-    assert (exists p',
-      union (mark_context h (redexes_jump true #h xs))
-            (h' (redexes_jump false #h xs)) p').
-    apply union_compatible.
-    eapply compatible_context_changing_hole.
-    assumption.
-    eapply compatible_residuals.
-    eassumption.
-    constructor.
-    (* ..... *)
-    destruct H9 as (p', ?).
+    (* H'[k] is regular; k can't be marked, as it'll be a jump to a free var. *)
+    assert (k = redexes_jump false #h xs);
+      try (eapply technical1 with (h' := h'); eauto).
+    dependent destruction H10.
+    (* This allows us to simplify the result of the residual as well. *)
+    dependent destruction H9.
+    (* Since H and H' are compatible, H having no marks, we can add a single new
+       mark to H' by taking a union with a mark in H's hole. We already saw H'
+       didn't have such mark. *)
+    edestruct technical2 with (h := mark_context h) (r := h') as (p', ?);
+      eauto with cps.
+    (* We now have properly calculated our marks and can proceed. *)
     eexists (redexes_bind p' ts q).
     + eexists (redexes_bind (r' (redexes_placeholder #h xs)) ts c').
       * constructor; auto.
-        admit.
+        rewrite <- mark_context_is_sound; simpl.
+        apply technical3 with (r := h'); eauto.
       * simpl; f_equal; auto.
+        rewrite <- mark_context_is_sound; simpl.
         admit.
     + constructor.
       * eapply regular_tail in H3.
