@@ -85,3 +85,11 @@ Proof.
   - constructor.
   - constructor; auto.
 Qed.
+
+Lemma item_valid_index:
+  forall {T} x xs k,
+  @item T x xs k ->
+  k < length xs.
+Proof.
+  induction 1; simpl; auto with arith.
+Qed.
