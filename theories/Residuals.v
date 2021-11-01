@@ -1043,6 +1043,126 @@ Proof.
       assumption.
 Qed.
 
+Lemma residuals_preserve_regular:
+  forall a b c,
+  residuals a b c ->
+  forall g,
+  regular g a -> regular g b -> regular g c.
+Proof.
+  induction 1; intros.
+  - assumption.
+  - assumption.
+  - dependent destruction H0.
+    econstructor; eauto.
+  - assumption.
+  - dependent destruction H1.
+    dependent destruction H2.
+    constructor; auto.
+Qed.
+
+Lemma redexes_flow_regular_simplification:
+  forall g x,
+  regular g x ->
+  forall c a k,
+  k >= length g ->
+  redexes_flow c a k x = x.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - assert (n < length g).
+    + eapply item_valid_index.
+      eassumption.
+    + destruct (Nat.eq_dec n k); try lia.
+      reflexivity.
+  - f_equal.
+    + apply IHregular1; simpl.
+      lia.
+    + apply IHregular2; simpl.
+      rewrite app_length, repeat_length.
+      lia.
+Qed.
+
+Lemma redexes_flow_preserve_regular:
+  forall a g b h,
+  regular (h ++ Some a :: g) b ->
+  forall c,
+  regular (repeat None a ++ g) c ->
+  forall k,
+  k = length h ->
+  regular (h ++ Some a :: g) (redexes_flow c a k b).
+Proof.
+  induction b; simpl; intros.
+  - assumption.
+  - assumption.
+  - destruct f; auto.
+    destruct (Nat.eq_dec n k); auto.
+    destruct (Nat.eq_dec a (length xs)); auto.
+    dependent destruction H.
+    (* Aw crap, this must be true but it'll be annoying to prove. *)
+    admit.
+  - dependent destruction H.
+    constructor.
+    + rewrite app_comm_cons.
+      apply IHb1; simpl; auto.
+    + rewrite app_assoc.
+      apply IHb2.
+      * rewrite <- app_assoc.
+        assumption.
+      * assumption.
+      * rewrite app_length, repeat_length.
+        lia.
+Admitted.
+
+Lemma redexes_full_preserve_regular:
+  forall g x,
+  regular g x ->
+  regular g (redexes_full x).
+Proof.
+  induction 1; simpl.
+  - constructor.
+  - constructor.
+  - econstructor; eauto.
+  - econstructor; eauto.
+  - constructor.
+    + apply redexes_flow_preserve_regular with (h := []); auto.
+    + assumption.
+Qed.
+
+Local Lemma technical4:
+  forall (r: redexes_context) g x,
+  regular g (r x) ->
+  forall c a k,
+  k = length g ->
+  redexes_flow (mark c) a k
+    (redexes_full (r x)) =
+  (redexes_full (r (redexes_flow (mark c) a
+    (k + redexes_context_depth r) x))).
+Proof.
+  induction r; simpl; intros.
+  - rewrite redexes_flow_regular_simplification with (g := g).
+    + rewrite redexes_flow_regular_simplification with (g := g).
+      * reflexivity.
+      * assumption.
+      * lia.
+    + apply redexes_full_preserve_regular.
+      assumption.
+    + lia.
+  - dependent destruction H.
+    f_equal.
+    + (* First flow commute (as it has no marks, then induction). *)
+      admit.
+    + apply redexes_full_preserve_regular in H0.
+      erewrite redexes_flow_regular_simplification; eauto.
+      rewrite app_length, repeat_length.
+      lia.
+  - dependent destruction H.
+    f_equal.
+    + admit.
+    + admit.
+Admitted.
+
 Goal
   forall a b,
   parallel a b ->
@@ -1088,6 +1208,11 @@ Proof.
         apply technical3 with (r := h'); eauto.
       * simpl; f_equal; auto.
         rewrite <- mark_context_is_sound; simpl.
+        (* Too much information here!!! *)
+        rewrite H5.
+        (* ................ *)
+        assert (redexes_same_path (mark_context r) r').
+        admit.
         admit.
     + constructor.
       * eapply regular_tail in H3.
