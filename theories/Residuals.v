@@ -1472,6 +1472,26 @@ Inductive redexes_subterm: relation redexes :=
     forall b ts c,
     redexes_subterm c (redexes_bind b ts c).
 
+Fixpoint redexes_mark_count k r: nat :=
+  match r with
+  | redexes_jump true (bound n) _ =>
+    if Nat.eq_dec k n then
+      1
+    else
+      0
+ | redexes_placeholder (bound n) _ =>
+    if Nat.eq_dec k n then
+      1
+    else
+      0
+  | redexes_bind b ts c =>
+    redexes_mark_count (S k) b + redexes_mark_count (k + length ts) c
+  | _ =>
+    0
+  end.
+
+(*
+
 Fixpoint redexes_mark_count r: nat :=
   match r with
   | redexes_jump true _ _ =>
@@ -1523,6 +1543,70 @@ Proof.
       apply H with (redexes_mark_count y); lia.
 Qed.
 
+*)
+
+Lemma regular_ignore_unused_tail:
+  forall e a g,
+  regular (g ++ repeat None a) e ->
+  regular g e.
+Proof.
+  induction e; intros.
+  - constructor.
+  - destruct r.
+    + dependent destruction H.
+      econstructor; eauto.
+      admit.
+    + constructor.
+  - dependent destruction H.
+    econstructor; eauto.
+    admit.
+  - dependent destruction H; constructor.
+    + eapply IHe1; eauto.
+    + rewrite app_assoc in H0.
+      eapply IHe2; eauto.
+Admitted.
+
+Lemma regular_ignore_unmarked_tail:
+  forall a e g,
+  regular (g ++ [Some a]) e ->
+  redexes_mark_count (length g) e = 0 ->
+  regular g e.
+Proof.
+  induction e; intros.
+  - constructor.
+  - destruct r.
+    + simpl in H0.
+      dependent destruction H.
+      destruct (Nat.eq_dec (length g) n); try lia.
+      econstructor; eauto.
+      assert (n < length (g ++ [Some a])).
+      * eapply item_valid_index; eauto.
+      * rewrite app_length in H1; simpl in H1.
+        eapply item_ignore_tail; try lia.
+        eassumption.
+    + constructor.
+  - simpl in H0.
+    dependent destruction H.
+    destruct (Nat.eq_dec (length g) n); try lia.
+    econstructor; eauto.
+    assert (n < length (g ++ [Some a])).
+    + eapply item_valid_index; eauto.
+    + rewrite app_length in H1; simpl in H1.
+      eapply item_ignore_tail; try lia.
+      eassumption.
+  - simpl in H0.
+    dependent destruction H.
+    constructor.
+    + rewrite app_comm_cons in H.
+      apply IHe1; auto.
+      simpl; lia.
+    + rewrite app_assoc in H0.
+      apply IHe2; auto.
+      rewrite app_length.
+      rewrite repeat_length.
+      rewrite plus_comm; lia.
+Qed.
+
 Goal
   forall r a b,
   residuals_full (mark a) r (mark b) ->
@@ -1531,44 +1615,34 @@ Goal
 Proof.
   intros.
   destruct H as (b', ?, ?).
-  dependent induction r using (well_founded_ind
-    redexes_subterm_or_less_marks_is_well_founded); intros.
-  destruct r.
-  - dependent destruction H0.
-    destruct a;
-    destruct b;
-    destruct e;
-    try discriminate;
-    auto with cps;
-    dependent destruction H1;
-    auto with cps.
-  - destruct r.
-    + exfalso.
-      inversion H2.
-      inversion H6.
-    + dependent destruction H0.
-      destruct a; try discriminate.
-      dependent destruction x.
-      destruct b; try discriminate.
-      dependent destruction H1.
-      auto with cps.
-  - exfalso.
-    dependent destruction H0.
-    destruct a; discriminate.
-  - dependent destruction H0.
-    destruct a; try discriminate.
+  generalize dependent b.
+  dependent induction H; intros.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - destruct a; try discriminate.
     destruct b; try discriminate.
     dependent destruction x.
     dependent destruction H1.
     dependent destruction H2.
-    rewrite app_nil_r in H2_0.
-    apply star_trans with (bind a1 ts1 b4).
+    rewrite app_nil_r in H1_0.
+    apply star_trans with (bind a1 ts1 b5).
     + apply star_bind_right.
-      eapply H with (y := r2).
-      * left; constructor.
-      * eassumption.
-      * assumption.
+      eapply IHresiduals2; auto.
+      eapply regular_ignore_unused_tail with (g := []); simpl.
+      eassumption.
+    + clear IHresiduals2.
+      generalize dependent b4.
+      rewrite x0; clear x0.
+      assert (exists n, n >= redexes_mark_count 0 b2) as (n, ?); eauto.
+      generalize H1; clear H1.
+      induction n using lt_wf_ind; intros.
+      destruct n.
+      * apply regular_ignore_unmarked_tail with (g := []) in H1_;
+          simpl; try lia.
+        apply star_bind_left.
+        eapply IHresiduals1; auto.
+        admit.
       * admit.
-    + (* If jump 0 appears on a1, perform it. Otherwise, finish as above. *)
-      admit.
 Admitted.
