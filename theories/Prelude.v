@@ -93,3 +93,15 @@ Lemma item_valid_index:
 Proof.
   induction 1; simpl; auto with arith.
 Qed.
+
+Lemma item_repeat:
+  forall {T} x y k p,
+  @item T x (repeat y k) p ->
+  x = y.
+Proof.
+  induction k; intros.
+  - inversion H.
+  - destruct p.
+    + inversion H; auto.
+    + inversion H; eauto.
+Qed.
