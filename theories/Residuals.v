@@ -1115,6 +1115,184 @@ Proof.
         lia.
 Admitted.
 
+(* -------------------------------------------------------------------------- *)
+
+Inductive redexes_multicontext: Set :=
+  | redexes_multicontext_context
+      (h: redexes_context)
+  | redexes_multicontext_left
+      (b: redexes_multicontext) (ts: list pseudoterm) (c: redexes)
+  | redexes_multicontext_right
+      (b: redexes) (ts: list pseudoterm) (c: redexes_multicontext)
+  | redexes_multicontext_both
+      (b: redexes_multicontext) (ts: list pseudoterm) (c: redexes_multicontext).
+
+Fixpoint apply_redexes_multicontext h f: redexes :=
+  match h with
+  | redexes_multicontext_context h =>
+    h (f (redexes_context_depth h))
+  | redexes_multicontext_left b ts c =>
+    redexes_bind (apply_redexes_multicontext b (fun n => f (S n))) ts c
+  | redexes_multicontext_right b ts c =>
+    redexes_bind b ts (apply_redexes_multicontext c
+      (fun n => f (length ts + n)))
+  | redexes_multicontext_both b ts c =>
+    redexes_bind (apply_redexes_multicontext b (fun n => f (S n))) ts
+      (apply_redexes_multicontext c (fun n => f (length ts + n)))
+  end.
+
+Coercion apply_redexes_multicontext: redexes_multicontext >-> Funclass.
+
+Lemma apply_redexes_multicontext_extensional:
+  forall h f g,
+  (forall x, f x = g x) ->
+  apply_redexes_multicontext h f = apply_redexes_multicontext h g.
+Proof.
+  induction h; simpl; intros.
+  - generalize (redexes_context_depth h).
+    induction h; simpl; intros.
+    + apply H.
+    + f_equal; auto.
+    + f_equal; auto.
+  - f_equal; auto.
+  - f_equal; auto.
+  - f_equal; auto.
+Qed.
+
+Fixpoint redexes_context_flow y a k h: redexes_context :=
+  match h with
+  | redexes_context_hole =>
+    redexes_context_hole
+  | redexes_context_left b ts c =>
+    redexes_context_left (redexes_context_flow y a (S k) b) ts
+      (redexes_flow y a (k + length ts) c)
+  | redexes_context_right b ts c =>
+    redexes_context_right (redexes_flow y a (S k) b) ts
+      (redexes_context_flow y a (k + length ts) c)
+  end.
+
+Lemma redexes_context_flow_is_sound:
+  forall h e a y k,
+  redexes_context_flow a y k h
+    (redexes_flow a y (k + redexes_context_depth h) e) =
+      redexes_flow a y k (h e).
+Proof.
+  induction h; simpl; intros.
+  - rewrite Nat.add_0_r.
+    reflexivity.
+  - f_equal.
+    replace (k + S (redexes_context_depth h)) with
+      (S k + redexes_context_depth h); try lia.
+    apply IHh.
+  - f_equal.
+    replace (k + (redexes_context_depth h + length ts)) with
+      (k + length ts + redexes_context_depth h); try lia.
+    apply IHh.
+Qed.
+
+Lemma redexes_context_flow_depth:
+  forall h y a k,
+  redexes_context_depth (redexes_context_flow a y k h) =
+    redexes_context_depth h.
+Proof.
+  induction h; simpl; eauto.
+Qed.
+
+Fixpoint redexes_multicontext_flow y a k h: redexes_multicontext :=
+  match h with
+  | redexes_multicontext_context h =>
+    redexes_multicontext_context (redexes_context_flow y a k h)
+  | redexes_multicontext_left b ts c =>
+    redexes_multicontext_left (redexes_multicontext_flow y a (S k) b) ts
+      (redexes_flow y a (k + length ts) c)
+  | redexes_multicontext_right b ts c =>
+    redexes_multicontext_right (redexes_flow y a (S k) b) ts
+      (redexes_multicontext_flow y a (k + length ts) c)
+  | redexes_multicontext_both b ts c =>
+    redexes_multicontext_both
+      (redexes_multicontext_flow y a (S k) b) ts
+      (redexes_multicontext_flow y a (k + length ts) c)
+  end.
+
+Lemma redexes_multicontext_flow_is_sound:
+  forall h f a y k,
+  redexes_multicontext_flow a y k h
+    (fun p => redexes_flow a y (k + p) (f p)) =
+      redexes_flow a y k (h f).
+Proof.
+  induction h; simpl; intros.
+  - rewrite <- redexes_context_flow_is_sound; f_equal.
+    rewrite redexes_context_flow_depth.
+    reflexivity.
+  - f_equal.
+    erewrite apply_redexes_multicontext_extensional.
+    + apply IHh.
+    + intros; f_equal; simpl.
+      f_equal; lia.
+  - f_equal.
+    erewrite apply_redexes_multicontext_extensional.
+    + apply IHh.
+    + intros; f_equal; simpl.
+      f_equal; lia.
+  - f_equal.
+    + erewrite apply_redexes_multicontext_extensional.
+      * apply IHh1.
+      * intros; f_equal; simpl.
+        f_equal; lia.
+    + erewrite apply_redexes_multicontext_extensional.
+      * apply IHh2.
+      * intros; f_equal; simpl.
+        f_equal; lia.
+Qed.
+
+(*
+(*
+redexes_full = 
+fix redexes_full (e : redexes) : redexes :=
+  match e with
+  | redexes_bind b ts c =>
+      redexes_bind
+        (redexes_flow (redexes_full c) (length ts) 0
+           (redexes_full b)) ts (redexes_full c)
+  | _ => e
+  end
+*)
+
+Fixpoint redexes_context_full h: redexes_multicontext :=
+  match h with
+  | redexes_context_hole =>
+    redexes_multicontext_hole
+
+
+  | redexes_context_left b ts c =>
+    redexes_multicontext_left (
+      redexes_context_flow (redexes_full c) (length ts) 0
+        (redexes_context_full b)) ts (redexes_full c)
+
+
+  | redexes_context_right b ts c =>
+    redexes_multicontext_both
+      (redexes_multicontext_flow (redexes_full c) (length ts) 0
+        (redexes_context_full b))
+      ts
+      (redexes_context_full c)
+  end.
+
+Lemma redexes_context_full_is_sound:
+  forall h e1,
+  exists e2,
+  redexes_context_full h e2 =
+    redexes_full (h e1).
+Proof.
+  induction h; simpl; intros.
+  - eexists; eauto.
+  - edestruct IHh as (e2, ?).
+    eexists; f_equal.
+    rewrite redexes_context_flow_is_sound; f_equal.
+    eassumption.
+
+*)
+
 Lemma redexes_full_preserve_regular:
   forall g x,
   regular g x ->
@@ -1163,6 +1341,59 @@ Proof.
     + admit.
 Admitted.
 
+Goal
+  forall a b,
+  [a => b] ->
+  exists2 r,
+  residuals_full (mark a) r (mark b) & regular [] r.
+Proof.
+  induction 1.
+  - simpl.
+    do 2 rewrite <- mark_context_is_sound; simpl.
+    eexists (redexes_bind (mark_context h (redexes_jump true #h xs)) ts (mark c)).
+    + eexists (redexes_bind (mark_context h (redexes_placeholder #h xs)) ts (mark c)).
+      * generalize #h.
+        constructor.
+        induction h; simpl; auto with cps.
+        constructor.
+        assumption.
+        induction c0; simpl; auto with cps.
+        constructor.
+        induction b; simpl; auto with cps.
+        assumption.
+        induction c; simpl; auto with cps.
+      * admit.
+    + constructor.
+      * rewrite <- H.
+        apply regular_single_jump with (g := []).
+      * apply regular_mark_term.
+  - destruct IHstep as (p, (b2', ?, ?), ?).
+    exists (redexes_bind p ts (mark c)); simpl.
+    + exists (redexes_bind b2' ts (mark c)); simpl.
+      * constructor; auto.
+        induction c; simpl; auto with cps.
+      * f_equal.
+        rewrite H1.
+        rewrite redexes_flow_mark_equals_mark; auto.
+        rewrite redexes_full_mark_equals_mark; auto.
+    + constructor.
+      * eapply regular_tail in H2; eauto.
+      * apply regular_mark_term.
+  - destruct IHstep as (p, (c2', ?, ?), ?).
+    exists (redexes_bind (mark b) ts p); simpl.
+    + exists (redexes_bind (mark b) ts c2'); simpl.
+      * constructor; auto.
+        induction b; simpl; auto with cps.
+      * f_equal.
+        rewrite redexes_full_mark_equals_mark; auto.
+        rewrite redexes_flow_mark_equals_mark; auto.
+        assumption.
+    + constructor.
+      * apply regular_mark_term.
+      * eapply regular_tail in H2; eauto.
+Admitted.
+
+(*
 Goal
   forall a b,
   parallel a b ->
@@ -1230,4 +1461,114 @@ Proof.
     + constructor.
       * eapply regular_tail in H3; eauto.
       * eapply regular_tail in H6; eauto.
+Admitted.
+*)
+
+Inductive redexes_subterm: relation redexes :=
+  | redexes_subterm_left:
+    forall b ts c,
+    redexes_subterm b (redexes_bind b ts c)
+  | redexes_subterm_right:
+    forall b ts c,
+    redexes_subterm c (redexes_bind b ts c).
+
+Fixpoint redexes_mark_count r: nat :=
+  match r with
+  | redexes_jump true _ _ =>
+    1
+  | redexes_bind b ts c =>
+    redexes_mark_count b + redexes_mark_count c
+  | _ =>
+    0
+  end.
+
+Definition redexes_less_marks: relation redexes :=
+  ltof _ redexes_mark_count.
+
+Definition redexes_subterm_or_less_marks: relation redexes :=
+  fun a b =>
+    redexes_subterm a b \/ redexes_less_marks a b.
+
+Lemma redexes_subterm_or_less_marks_is_well_founded:
+  well_founded redexes_subterm_or_less_marks.
+Proof.
+  intros a.
+  assert (exists n, n >= redexes_mark_count a) as (n, ?); eauto.
+  generalize dependent a.
+  induction n using lt_wf_ind.
+  induction a; intros.
+  - constructor; intros.
+    destruct H1.
+    + inversion H1.
+    + inversion H1.
+  - constructor; intros.
+    destruct H1.
+    + inversion H1.
+    + destruct r.
+      * unfold redexes_less_marks, ltof in H1.
+        simpl in H0, H1.
+        apply H with 0; lia.
+      * inversion H1.
+  - constructor; intros.
+    destruct H1.
+    + inversion H1.
+    + inversion H1.
+  - constructor; intros.
+    destruct H1.
+    + simpl in H0.
+      dependent destruction H1.
+      * apply IHa1; lia.
+      * apply IHa2; lia.
+    + unfold redexes_less_marks, ltof in H1.
+      apply H with (redexes_mark_count y); lia.
+Qed.
+
+Goal
+  forall r a b,
+  residuals_full (mark a) r (mark b) ->
+  regular [] r ->
+  [a =>* b].
+Proof.
+  intros.
+  destruct H as (b', ?, ?).
+  dependent induction r using (well_founded_ind
+    redexes_subterm_or_less_marks_is_well_founded); intros.
+  destruct r.
+  - dependent destruction H0.
+    destruct a;
+    destruct b;
+    destruct e;
+    try discriminate;
+    auto with cps;
+    dependent destruction H1;
+    auto with cps.
+  - destruct r.
+    + exfalso.
+      inversion H2.
+      inversion H6.
+    + dependent destruction H0.
+      destruct a; try discriminate.
+      dependent destruction x.
+      destruct b; try discriminate.
+      dependent destruction H1.
+      auto with cps.
+  - exfalso.
+    dependent destruction H0.
+    destruct a; discriminate.
+  - dependent destruction H0.
+    destruct a; try discriminate.
+    destruct b; try discriminate.
+    dependent destruction x.
+    dependent destruction H1.
+    dependent destruction H2.
+    rewrite app_nil_r in H2_0.
+    apply star_trans with (bind a1 ts1 b4).
+    + apply star_bind_right.
+      eapply H with (y := r2).
+      * left; constructor.
+      * eassumption.
+      * assumption.
+      * admit.
+    + (* If jump 0 appears on a1, perform it. Otherwise, finish as above. *)
+      admit.
 Admitted.
