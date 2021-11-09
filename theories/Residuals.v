@@ -1607,6 +1607,102 @@ Proof.
       rewrite plus_comm; lia.
 Qed.
 
+Lemma redexes_flow_ignore_unused_mark:
+  forall e1 k,
+  redexes_mark_count k e1 = 0 ->
+  forall c a e2,
+  redexes_flow c a k e1 = e2 ->
+  e1 = e2.
+Proof.
+  induction e1; simpl; intros.
+  - assumption.
+  - assumption.
+  - destruct f; auto.
+    destruct (Nat.eq_dec k n); try lia.
+    destruct (Nat.eq_dec n k); try lia.
+    assumption.
+  - destruct e2; try discriminate.
+    dependent destruction H0.
+    f_equal.
+    + eapply IHe1_1; eauto.
+      lia.
+    + eapply IHe1_2; eauto.
+      lia.
+Qed.
+
+Lemma residuals_preserve_no_mark:
+  forall a b c,
+  residuals a b c ->
+  forall k,
+  redexes_mark_count k a = 0 ->
+  redexes_mark_count k b = 0 ->
+  redexes_mark_count k c = 0.
+Proof.
+  induction 1; intros.
+  - assumption.
+  - assumption.
+  - assumption.
+  - assumption.
+  - simpl in H1, H2 |- *.
+    replace (redexes_mark_count (S k) b3) with 0; simpl.
+    + apply IHresiduals2; lia.
+    + symmetry.
+      apply IHresiduals1; lia.
+Qed.
+
+Lemma redexes_mark_leaves_unmarked:
+  forall e k,
+  redexes_mark_count k (mark e) = 0.
+Proof.
+  induction e; simpl; intros; auto.
+  replace (redexes_mark_count (S k) (mark e1)) with 0; simpl.
+  - apply IHe2.
+  - symmetry.
+    apply IHe1.
+Qed.
+
+Lemma regular_doesnt_jump_to_free_vars:
+  forall e g,
+  regular g e ->
+  forall k,
+  k >= length g ->
+  redexes_mark_count k e = 0.
+Proof.
+  induction e; simpl; intros.
+  - reflexivity.
+  - destruct r; auto.
+    destruct f; auto.
+    destruct (Nat.eq_dec k n); auto.
+    exfalso.
+    dependent induction H.
+    assert (n < length g).
+    + eapply item_valid_index; eauto.
+    + lia.
+  - destruct f; auto.
+    destruct (Nat.eq_dec k n); auto.
+    exfalso.
+    dependent induction H.
+    assert (n < length g).
+    + eapply item_valid_index; eauto.
+    + lia.
+  - dependent destruction H.
+    replace (redexes_mark_count (S k) e1) with 0; simpl.
+    + eapply IHe2; eauto.
+      rewrite app_length.
+      rewrite repeat_length.
+      lia.
+    + symmetry.
+      eapply IHe1; eauto.
+      simpl; lia.
+Qed.
+
+Lemma redexes_full_preserves_regular:
+  forall e g,
+  regular g e -> regular g (redexes_full e).
+Proof.
+  admit.
+Admitted.
+
 Goal
   forall r a b,
   residuals_full (mark a) r (mark b) ->
@@ -1617,10 +1713,22 @@ Proof.
   destruct H as (b', ?, ?).
   generalize dependent b.
   dependent induction H; intros.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+  - destruct a;
+    destruct b;
+    destruct e;
+    try discriminate;
+    auto with cps;
+    dependent destruction H1;
+    auto with cps.
+  - destruct a; try discriminate.
+    destruct b; try discriminate.
+    dependent destruction H1.
+    auto with cps.
+  - exfalso.
+    dependent destruction H0.
+    dependent destruction H.
+  - exfalso.
+    destruct a; discriminate.
   - destruct a; try discriminate.
     destruct b; try discriminate.
     dependent destruction x.
@@ -1643,6 +1751,16 @@ Proof.
           simpl; try lia.
         apply star_bind_left.
         eapply IHresiduals1; auto.
+        (* TODO: refactor this portion. *)
+        assert (regular [] b3).
+        eapply residuals_preserve_regular.
+        eassumption.
+        apply regular_mark_term.
+        assumption.
+        eapply redexes_flow_ignore_unused_mark; eauto.
+        (* Full preserves regular, or full preserves no marks? *)
+        apply redexes_full_preserves_regular in H3.
+        apply regular_doesnt_jump_to_free_vars with (k := 0) in H3; auto.
+      * (* Reduce ONE mark and keep going! *)
         admit.
-      * admit.
 Admitted.
