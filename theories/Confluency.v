@@ -16,7 +16,12 @@ Require Import Local.AbstractRewriting.
 (** ** Parallel reduction *)
 
 (* I believe this is the smallest relation to be a valid notion of parallel
-   reduction within the CPS-calculus... should check it later. *)
+   reduction within the CPS-calculus... should check it later.
+
+   NOTE: this relation seems broken. While residuals allow us to duplicate
+   marks, we simply ignore duplicated jumps in the following instead of doing
+   them as well. TODO: could we fix that by making R a multi-hole context and
+   reducing copied jumps as well? *)
 
 Inductive parallel: relation pseudoterm :=
   | parallel_refl:
