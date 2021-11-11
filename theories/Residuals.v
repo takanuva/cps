@@ -1716,6 +1716,30 @@ Proof.
 Admitted.
 
 Goal
+  forall n r,
+  n = redexes_mark_count 0 r ->
+  forall b1 b2,
+  (regular [] r -> [b1 =>* b2]) ->
+  forall ts,
+  regular [Some (length ts)] r ->
+  forall b1',
+  residuals (mark b1) r b1' ->
+  forall c,
+  redexes_flow (mark c) (length ts) 0 (redexes_full b1') = mark b2 ->
+  [bind b1 ts c =>* bind b2 ts c].
+Proof.
+  induction n; intros.
+  (* Case: no marks left. *)
+  - (* Conclude by our hypothesis. *)
+    apply star_bind_left.
+    apply H0.
+    eapply regular_ignore_unmarked_tail; eauto.
+  (* Case: at least one mark left. *)
+  - (* Reduce ONE mark and keep going! *)
+    admit.
+Admitted.
+
+Goal
   forall r a b,
   residuals_full (mark a) r (mark b) ->
   regular [] r ->
@@ -1758,30 +1782,13 @@ Proof.
       eapply IHr2; eauto.
     + clear IHr2.
       symmetry in x0; destruct x0.
-      assert (exists n, n >= redexes_mark_count 0 r1) as (n, ?); eauto.
-      clear a2 c3 H0 H2_0.
-      (* TODO: generalize this in a different lemma. *)
-      specialize IHr1 with a1 b2 b3.
-      generalize dependent b3.
-      generalize dependent b2.
-      generalize dependent a1.
-      generalize dependent r1.
-      induction n using lt_wf_ind; intros.
-      destruct n.
-      * apply regular_ignore_unmarked_tail with (g := []) in H2_;
-          simpl; try lia.
-        apply star_bind_left.
-        eapply IHr1; auto.
-        (* TODO: refactor this portion. *)
-        assert (regular [] b3).
-        eapply residuals_preserve_regular.
-        eassumption.
+      (* TODO: fix this, of course. *)
+      eapply Unnamed_thm0; eauto.
+      intros; eapply IHr1; eauto.
+      eapply redexes_flow_ignore_unused_mark.
+      * eapply regular_doesnt_jump_to_free_vars; eauto.
+        apply redexes_full_preserves_regular.
+        eapply residuals_preserve_regular; eauto.
         apply regular_mark_term.
-        assumption.
-        eapply redexes_flow_ignore_unused_mark; eauto.
-        (* Full preserves regular, or full preserves no marks? *)
-        apply redexes_full_preserves_regular in H2.
-        apply regular_doesnt_jump_to_free_vars with (k := 0) in H2; auto.
-      * (* Reduce ONE mark and keep going! *)
-        admit.
-Admitted.
+      * eassumption.
+Qed.
