@@ -1703,54 +1703,75 @@ Proof.
   admit.
 Admitted.
 
+Lemma residuals_partial_full_application:
+  forall a g,
+  regular g a ->
+  forall b,
+  regular g b ->
+  forall c,
+  residuals_full a b c ->
+  residuals_full (redexes_full a) (redexes_full b) c.
+Proof.
+  admit.
+Admitted.
+
 Goal
   forall r a b,
   residuals_full (mark a) r (mark b) ->
   regular [] r ->
   [a =>* b].
 Proof.
-  intros.
+  intros until 1.
   destruct H as (b', ?, ?).
-  generalize dependent b.
-  dependent induction H; intros.
-  - destruct a;
+  generalize dependent b'.
+  generalize a b; clear a b.
+  induction r; intros.
+  - dependent destruction H.
+    destruct a;
     destruct b;
     destruct e;
     try discriminate;
     auto with cps;
-    dependent destruction H1;
+    dependent destruction H0;
     auto with cps.
-  - destruct a; try discriminate.
-    destruct b; try discriminate.
-    dependent destruction H1.
-    auto with cps.
+  - dependent destruction H.
+    + destruct a; try discriminate.
+      destruct b; try discriminate.
+      dependent destruction H0.
+      auto with cps.
+    + exfalso.
+      dependent destruction H1.
+      dependent destruction H.
   - exfalso.
-    dependent destruction H0.
     dependent destruction H.
-  - exfalso.
     destruct a; discriminate.
-  - destruct a; try discriminate.
+  - dependent destruction H.
+    destruct a; try discriminate.
     destruct b; try discriminate.
     dependent destruction x.
     dependent destruction H1.
     dependent destruction H2.
-    rewrite app_nil_r in H1_0.
-    apply star_trans with (bind a1 ts1 b5).
+    rewrite app_nil_r in H2_0.
+    apply regular_ignore_unused_tail with (g := []) in H2_0.
+    apply star_trans with (bind a1 ts1 b4).
     + apply star_bind_right.
-      eapply IHresiduals2; auto.
-      eapply regular_ignore_unused_tail with (g := []); simpl.
-      eassumption.
-    + clear IHresiduals2.
-      generalize dependent b4.
-      rewrite x0; clear x0.
-      assert (exists n, n >= redexes_mark_count 0 b2) as (n, ?); eauto.
-      generalize H1; clear H1.
+      eapply IHr2; eauto.
+    + clear IHr2.
+      symmetry in x0; destruct x0.
+      assert (exists n, n >= redexes_mark_count 0 r1) as (n, ?); eauto.
+      clear a2 c3 H0 H2_0.
+      (* TODO: generalize this in a different lemma. *)
+      specialize IHr1 with a1 b2 b3.
+      generalize dependent b3.
+      generalize dependent b2.
+      generalize dependent a1.
+      generalize dependent r1.
       induction n using lt_wf_ind; intros.
       destruct n.
-      * apply regular_ignore_unmarked_tail with (g := []) in H1_;
+      * apply regular_ignore_unmarked_tail with (g := []) in H2_;
           simpl; try lia.
         apply star_bind_left.
-        eapply IHresiduals1; auto.
+        eapply IHr1; auto.
         (* TODO: refactor this portion. *)
         assert (regular [] b3).
         eapply residuals_preserve_regular.
@@ -1759,8 +1780,8 @@ Proof.
         assumption.
         eapply redexes_flow_ignore_unused_mark; eauto.
         (* Full preserves regular, or full preserves no marks? *)
-        apply redexes_full_preserves_regular in H3.
-        apply regular_doesnt_jump_to_free_vars with (k := 0) in H3; auto.
+        apply redexes_full_preserves_regular in H2.
+        apply regular_doesnt_jump_to_free_vars with (k := 0) in H2; auto.
       * (* Reduce ONE mark and keep going! *)
         admit.
 Admitted.
