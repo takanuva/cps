@@ -1293,7 +1293,7 @@ Proof.
 
 *)
 
-Lemma redexes_full_preserve_regular:
+Lemma redexes_full_preserves_regular:
   forall g x,
   regular g x ->
   regular g (redexes_full x).
@@ -1324,14 +1324,14 @@ Proof.
       * reflexivity.
       * assumption.
       * lia.
-    + apply redexes_full_preserve_regular.
+    + apply redexes_full_preserves_regular.
       assumption.
     + lia.
   - dependent destruction H.
     f_equal.
     + (* First flow commute (as it has no marks, then induction). *)
       admit.
-    + apply redexes_full_preserve_regular in H0.
+    + apply redexes_full_preserves_regular in H0.
       erewrite redexes_flow_regular_simplification; eauto.
       rewrite app_length, repeat_length.
       lia.
@@ -1479,7 +1479,7 @@ Fixpoint redexes_mark_count k r: nat :=
       1
     else
       0
- | redexes_placeholder (bound n) _ =>
+  | redexes_placeholder (bound n) _ =>
     if Nat.eq_dec k n then
       1
     else
@@ -1489,61 +1489,6 @@ Fixpoint redexes_mark_count k r: nat :=
   | _ =>
     0
   end.
-
-(*
-
-Fixpoint redexes_mark_count r: nat :=
-  match r with
-  | redexes_jump true _ _ =>
-    1
-  | redexes_bind b ts c =>
-    redexes_mark_count b + redexes_mark_count c
-  | _ =>
-    0
-  end.
-
-Definition redexes_less_marks: relation redexes :=
-  ltof _ redexes_mark_count.
-
-Definition redexes_subterm_or_less_marks: relation redexes :=
-  fun a b =>
-    redexes_subterm a b \/ redexes_less_marks a b.
-
-Lemma redexes_subterm_or_less_marks_is_well_founded:
-  well_founded redexes_subterm_or_less_marks.
-Proof.
-  intros a.
-  assert (exists n, n >= redexes_mark_count a) as (n, ?); eauto.
-  generalize dependent a.
-  induction n using lt_wf_ind.
-  induction a; intros.
-  - constructor; intros.
-    destruct H1.
-    + inversion H1.
-    + inversion H1.
-  - constructor; intros.
-    destruct H1.
-    + inversion H1.
-    + destruct r.
-      * unfold redexes_less_marks, ltof in H1.
-        simpl in H0, H1.
-        apply H with 0; lia.
-      * inversion H1.
-  - constructor; intros.
-    destruct H1.
-    + inversion H1.
-    + inversion H1.
-  - constructor; intros.
-    destruct H1.
-    + simpl in H0.
-      dependent destruction H1.
-      * apply IHa1; lia.
-      * apply IHa2; lia.
-    + unfold redexes_less_marks, ltof in H1.
-      apply H with (redexes_mark_count y); lia.
-Qed.
-
-*)
 
 Lemma regular_ignore_unused_tail:
   forall e a g,
@@ -1696,13 +1641,6 @@ Proof.
       simpl; lia.
 Qed.
 
-Lemma redexes_full_preserves_regular:
-  forall e g,
-  regular g e -> regular g (redexes_full e).
-Proof.
-  admit.
-Admitted.
-
 Lemma residuals_partial_full_application:
   forall a g,
   regular g a ->
@@ -1713,6 +1651,32 @@ Lemma residuals_partial_full_application:
   residuals_full (redexes_full a) (redexes_full b) c.
 Proof.
   admit.
+Admitted.
+
+Lemma positive_mark_count_implies_context:
+  forall a b c,
+  residuals (mark a) b c ->
+  forall k,
+  redexes_mark_count k b > 0 ->
+  exists h r xs,
+  redexes_same_path (mark_context h) r /\
+    a = h (jump (k + #h) xs) /\
+    b = r (redexes_jump true (k + #h) xs).
+Proof.
+  intros until 1.
+  dependent induction H; simpl; intros.
+  - exfalso; lia.
+  - exfalso; lia.
+  - destruct a; try discriminate.
+    dependent destruction x.
+    destruct a; try lia.
+    destruct (Nat.eq_dec k0 n); try lia.
+    exists context_hole; simpl.
+    rewrite Nat.add_0_r; destruct e.
+    exists redexes_context_hole, xs0; eauto with cps.
+  - exfalso.
+    destruct a; discriminate.
+  - admit.
 Admitted.
 
 Goal
@@ -1735,8 +1699,24 @@ Proof.
     apply H0.
     eapply regular_ignore_unmarked_tail; eauto.
   (* Case: at least one mark left. *)
-  - (* Reduce ONE mark and keep going! *)
-    admit.
+  - (* Find any mark to reduce. *)
+    edestruct positive_mark_count_implies_context with (k := 0)
+      as (h, (s, (xs, ?))); eauto; try lia.
+    simpl in H4.
+    destruct H4 as (?, (?, ?)).
+    dependent destruction H5.
+    dependent destruction H6.
+    rewrite <- mark_context_is_sound in H2.
+    (* Since there's a context, it should exists in our result as well. *)
+    edestruct residuals_preserve_hole as (t, (e, (?, (?, ?)))); eauto.
+    dependent destruction H6.
+    dependent destruction H7.
+    eapply star_trans.
+    + apply star_ctxjmp.
+      (* We can derive that from H1! *)
+      admit.
+    + (* Follow with IHn... somehow... *)
+      admit.
 Admitted.
 
 Goal
