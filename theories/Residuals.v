@@ -959,90 +959,6 @@ Proof.
     lia.
 Qed.
 
-Local Lemma technical1:
-  forall h h',
-  redexes_same_path (mark_context h) h' ->
-  forall k,
-  regular [] (h' k) ->
-  forall xs e,
-  residuals (redexes_jump false #h xs) k e ->
-  k = redexes_jump false #h xs.
-Proof.
-  intros.
-  dependent destruction H1.
-  - reflexivity.
-  - exfalso.
-    eapply regular_cant_jump_too_far with (g := []) (h := h');
-      eauto; simpl.
-    (* Huh, this is a bit ugly... TODO: should we move this? *)
-    replace (redexes_context_depth h') with #h.
-    + eassumption.
-    + clear H0.
-      dependent induction H; destruct h; try discriminate; simpl.
-      * reflexivity.
-      * dependent destruction x; eauto.
-      * dependent destruction x; eauto.
-Qed.
-
-Local Lemma technical2:
-  forall h r,
-  redexes_same_path h r ->
-  forall a b,
-  compatible (h a) (r b) ->
-  forall n xs,
-  exists p,
-  union (h (redexes_jump true n xs)) (r (redexes_jump false n xs)) p.
-Proof.
-  intros.
-  apply union_compatible.
-  eapply compatible_context_changing_hole; eauto.
-  constructor.
-Qed.
-
-Local Lemma technical3:
-  forall h r,
-  redexes_same_path (mark_context h) r ->
-  forall s,
-  redexes_same_path (mark_context h) s ->
-  forall n xs,
-  residuals (mark_context h (redexes_jump false n xs))
-            (r (redexes_jump false n xs))
-            (s (redexes_jump false n xs)) ->
-  forall p,
-  union (mark_context h (redexes_jump true n xs))
-        (r (redexes_jump false n xs)) p ->
-  residuals (mark_context h (redexes_jump false n xs)) p
-            (s (redexes_placeholder n xs)).
-Proof.
-  intros until 1.
-  dependent induction H; simpl; intros.
-  - destruct h; try discriminate.
-    dependent destruction H0.
-    dependent destruction H1.
-    destruct s; try discriminate.
-    simpl; constructor.
-  - destruct h; try discriminate.
-    dependent destruction H1.
-    dependent destruction H3.
-    dependent destruction H4.
-    simpl; constructor; auto.
-    assert (c4 = c2).
-    + apply union_mark_inversion with c.
-      assumption.
-    + dependent destruction H0.
-      assumption.
-  - destruct h; try discriminate.
-    dependent destruction H1.
-    dependent destruction H3.
-    dependent destruction H4.
-    simpl; constructor; auto.
-    assert (b4 = b2).
-    + apply union_mark_inversion with b.
-      assumption.
-    + dependent destruction H0.
-      assumption.
-Qed.
-
 Lemma residuals_preserve_regular:
   forall a b c,
   residuals a b c ->
@@ -1115,136 +1031,6 @@ Proof.
         lia.
 Admitted.
 
-(* -------------------------------------------------------------------------- *)
-
-Inductive redexes_multicontext: Set :=
-  | redexes_multicontext_context
-      (h: redexes_context)
-  | redexes_multicontext_left
-      (b: redexes_multicontext) (ts: list pseudoterm) (c: redexes)
-  | redexes_multicontext_right
-      (b: redexes) (ts: list pseudoterm) (c: redexes_multicontext)
-  | redexes_multicontext_both
-      (b: redexes_multicontext) (ts: list pseudoterm) (c: redexes_multicontext).
-
-Fixpoint apply_redexes_multicontext h f: redexes :=
-  match h with
-  | redexes_multicontext_context h =>
-    h (f (redexes_context_depth h))
-  | redexes_multicontext_left b ts c =>
-    redexes_bind (apply_redexes_multicontext b (fun n => f (S n))) ts c
-  | redexes_multicontext_right b ts c =>
-    redexes_bind b ts (apply_redexes_multicontext c
-      (fun n => f (length ts + n)))
-  | redexes_multicontext_both b ts c =>
-    redexes_bind (apply_redexes_multicontext b (fun n => f (S n))) ts
-      (apply_redexes_multicontext c (fun n => f (length ts + n)))
-  end.
-
-Coercion apply_redexes_multicontext: redexes_multicontext >-> Funclass.
-
-Lemma apply_redexes_multicontext_extensional:
-  forall h f g,
-  (forall x, f x = g x) ->
-  apply_redexes_multicontext h f = apply_redexes_multicontext h g.
-Proof.
-  induction h; simpl; intros.
-  - generalize (redexes_context_depth h).
-    induction h; simpl; intros.
-    + apply H.
-    + f_equal; auto.
-    + f_equal; auto.
-  - f_equal; auto.
-  - f_equal; auto.
-  - f_equal; auto.
-Qed.
-
-Fixpoint redexes_context_flow y a k h: redexes_context :=
-  match h with
-  | redexes_context_hole =>
-    redexes_context_hole
-  | redexes_context_left b ts c =>
-    redexes_context_left (redexes_context_flow y a (S k) b) ts
-      (redexes_flow y a (k + length ts) c)
-  | redexes_context_right b ts c =>
-    redexes_context_right (redexes_flow y a (S k) b) ts
-      (redexes_context_flow y a (k + length ts) c)
-  end.
-
-Lemma redexes_context_flow_is_sound:
-  forall h e a y k,
-  redexes_context_flow a y k h
-    (redexes_flow a y (k + redexes_context_depth h) e) =
-      redexes_flow a y k (h e).
-Proof.
-  induction h; simpl; intros.
-  - rewrite Nat.add_0_r.
-    reflexivity.
-  - f_equal.
-    replace (k + S (redexes_context_depth h)) with
-      (S k + redexes_context_depth h); try lia.
-    apply IHh.
-  - f_equal.
-    replace (k + (redexes_context_depth h + length ts)) with
-      (k + length ts + redexes_context_depth h); try lia.
-    apply IHh.
-Qed.
-
-Lemma redexes_context_flow_depth:
-  forall h y a k,
-  redexes_context_depth (redexes_context_flow a y k h) =
-    redexes_context_depth h.
-Proof.
-  induction h; simpl; eauto.
-Qed.
-
-Fixpoint redexes_multicontext_flow y a k h: redexes_multicontext :=
-  match h with
-  | redexes_multicontext_context h =>
-    redexes_multicontext_context (redexes_context_flow y a k h)
-  | redexes_multicontext_left b ts c =>
-    redexes_multicontext_left (redexes_multicontext_flow y a (S k) b) ts
-      (redexes_flow y a (k + length ts) c)
-  | redexes_multicontext_right b ts c =>
-    redexes_multicontext_right (redexes_flow y a (S k) b) ts
-      (redexes_multicontext_flow y a (k + length ts) c)
-  | redexes_multicontext_both b ts c =>
-    redexes_multicontext_both
-      (redexes_multicontext_flow y a (S k) b) ts
-      (redexes_multicontext_flow y a (k + length ts) c)
-  end.
-
-Lemma redexes_multicontext_flow_is_sound:
-  forall h f a y k,
-  redexes_multicontext_flow a y k h
-    (fun p => redexes_flow a y (k + p) (f p)) =
-      redexes_flow a y k (h f).
-Proof.
-  induction h; simpl; intros.
-  - rewrite <- redexes_context_flow_is_sound; f_equal.
-    rewrite redexes_context_flow_depth.
-    reflexivity.
-  - f_equal.
-    erewrite apply_redexes_multicontext_extensional.
-    + apply IHh.
-    + intros; f_equal; simpl.
-      f_equal; lia.
-  - f_equal.
-    erewrite apply_redexes_multicontext_extensional.
-    + apply IHh.
-    + intros; f_equal; simpl.
-      f_equal; lia.
-  - f_equal.
-    + erewrite apply_redexes_multicontext_extensional.
-      * apply IHh1.
-      * intros; f_equal; simpl.
-        f_equal; lia.
-    + erewrite apply_redexes_multicontext_extensional.
-      * apply IHh2.
-      * intros; f_equal; simpl.
-        f_equal; lia.
-Qed.
-
 Lemma redexes_full_preserves_regular:
   forall g x,
   regular g x ->
@@ -1259,39 +1045,6 @@ Proof.
     + apply redexes_flow_preserve_regular with (h := []); auto.
     + assumption.
 Qed.
-
-Local Lemma technical4:
-  forall (r: redexes_context) g x,
-  regular g (r x) ->
-  forall c a k,
-  k = length g ->
-  redexes_flow (mark c) a k
-    (redexes_full (r x)) =
-  (redexes_full (r (redexes_flow (mark c) a
-    (k + redexes_context_depth r) x))).
-Proof.
-  induction r; simpl; intros.
-  - rewrite redexes_flow_regular_simplification with (g := g).
-    + rewrite redexes_flow_regular_simplification with (g := g).
-      * reflexivity.
-      * assumption.
-      * lia.
-    + apply redexes_full_preserves_regular.
-      assumption.
-    + lia.
-  - dependent destruction H.
-    f_equal.
-    + (* First flow commute (as it has no marks, then induction). *)
-      admit.
-    + apply redexes_full_preserves_regular in H0.
-      erewrite redexes_flow_regular_simplification; eauto.
-      rewrite app_length, repeat_length.
-      lia.
-  - dependent destruction H.
-    f_equal.
-    + admit.
-    + admit.
-Admitted.
 
 Lemma residuals_full_step:
   forall a b,
@@ -1347,79 +1100,6 @@ Proof.
       * apply regular_mark_term.
       * eapply regular_tail in H2; eauto.
 Admitted.
-
-(*
-Goal
-  forall a b,
-  parallel a b ->
-  exists2 r,
-  (* We also need to show that at most ONE jump to each binding is marked! *)
-  residuals_full (mark a) r (mark b) & regular [] r.
-Proof.
-  induction 1; simpl.
-  - exists (mark e).
-    + exists (mark e).
-      * induction e; simpl; auto with cps.
-      * apply redexes_full_mark_equals_mark.
-    + apply regular_mark_term.
-  - clear H1 H2.
-    (* Split our inductive hypotheses... *)
-    destruct IHparallel1 as (p, (b', ?, ?), ?).
-    destruct IHparallel2 as (q, (c', ?, ?), ?).
-    rewrite <- mark_context_is_sound in H1, H2.
-    (* Since h[x]/p = b', p must be a compatible context. *)
-    edestruct compatible_context_left_inversion
-      with (h := mark_context h) (b := p)
-      as (h', (k, (?, ?))); eauto with cps.
-    dependent destruction H8; simpl in H1, H2.
-    (* Accordingly, so should b'... *)
-    edestruct residuals_preserve_hole as (r', (e, (?, (?, ?)))); eauto.
-    dependent destruction H10.
-    (* H'[k] is regular; k can't be marked, as it'll be a jump to a free var. *)
-    assert (k = redexes_jump false #h xs);
-      try (eapply technical1 with (h' := h'); eauto).
-    dependent destruction H10.
-    (* This allows us to simplify the result of the residual as well. *)
-    dependent destruction H9.
-    (* Since H and H' are compatible, H having no marks, we can add a single new
-       mark to H' by taking a union with a mark in H's hole. We already saw H'
-       didn't have such mark. *)
-    edestruct technical2 with (h := mark_context h) (r := h') as (p', ?);
-      eauto with cps.
-    (* We now have properly calculated our marks and can proceed. *)
-    eexists (redexes_bind p' ts q).
-    + eexists (redexes_bind (r' (redexes_placeholder #h xs)) ts c').
-      * constructor; auto.
-        rewrite <- mark_context_is_sound; simpl.
-        apply technical3 with (r := h'); eauto.
-      * simpl; f_equal; auto.
-        rewrite <- mark_context_is_sound; simpl.
-        (* Too much information here!!! *)
-        rewrite H5.
-        (* ................ *)
-        assert (redexes_same_path (mark_context r) r').
-        admit.
-        admit.
-    + constructor.
-      * eapply regular_tail in H3.
-        eapply regular_union; eauto.
-        rewrite <- H0.
-        apply regular_single_jump with (g := []).
-      * eapply regular_tail in H6; eauto.
-  - destruct IHparallel1 as (p, (b', ?, ?), ?).
-    destruct IHparallel2 as (q, (c', ?, ?), ?).
-    exists (redexes_bind p ts q).
-    + exists (redexes_bind b' ts c').
-      * auto with cps.
-      * simpl; rewrite H2, H5; f_equal.
-        apply redexes_flow_mark_equals_mark.
-    + constructor.
-      * eapply regular_tail in H3; eauto.
-      * eapply regular_tail in H6; eauto.
-Admitted.
-*)
-
-(* -------------------------------------------------------------------------- *)
 
 Fixpoint redexes_mark_count k r: nat :=
   match r with
@@ -1867,6 +1547,9 @@ Proof.
     rewrite repeat_length.
     lia.
 Qed.
+
+(* In fact this could be generalized by any regular [] y, instead of simply
+   having no marks. But I don't think we'll need that. *)
 
 Lemma redexes_flow_preserved_by_single_unmarked_jump:
   forall h k n,
