@@ -1342,9 +1342,38 @@ Proof.
     exists redexes_context_hole, xs0; eauto with cps.
   - exfalso.
     destruct a; discriminate.
-  - admit.
-Admitted.
+  - destruct a; try discriminate.
+    dependent destruction x.
+    destruct (Nat.eq_dec (redexes_mark_count (k + length ts0) c2) 0).
+    + clear IHresiduals2.
+      edestruct IHresiduals1 with (k := S k); auto; try lia.
+      destruct H2 as (r, (xs, (?, (?, ?)))).
+      eexists (context_left _ _ _); simpl.
+      eexists; eexists; simpl.
+      split; [ | split ].
+      * constructor; eauto.
+      * f_equal.
+        replace (k + S #x) with (S k + #x); try lia.
+        eassumption.
+      * simpl; f_equal.
+        replace (k + S #x) with (S k + #x); try lia.
+        assumption.
+    + clear IHresiduals1.
+      edestruct IHresiduals2 with (k := k + length ts0); auto; try lia.
+      destruct H2 as (r, (xs, (?, (?, ?)))).
+      eexists (context_right _ _ _); simpl.
+      eexists; eexists; simpl.
+      split; [ | split ].
+      * constructor; eauto.
+      * f_equal.
+        replace (k + (#x + length ts0)) with (k + length ts0 + #x); try lia.
+        eassumption.
+      * simpl; f_equal.
+        replace (k + (#x + length ts0)) with (k + length ts0 + #x); try lia.
+        assumption.
+Qed.
 
+(*
 Lemma redexes_mark_count_replacing_mark:
   forall (h: redexes_context) k xs n,
   redexes_mark_count k (h (redexes_jump true
@@ -1396,6 +1425,7 @@ Proof.
     + symmetry.
       apply IHe1; lia.
 Qed.
+*)
 
 Lemma redexes_mark_count_total_lt_context:
   forall a b,
