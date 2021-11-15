@@ -1245,54 +1245,6 @@ Proof.
         f_equal; lia.
 Qed.
 
-(*
-(*
-redexes_full = 
-fix redexes_full (e : redexes) : redexes :=
-  match e with
-  | redexes_bind b ts c =>
-      redexes_bind
-        (redexes_flow (redexes_full c) (length ts) 0
-           (redexes_full b)) ts (redexes_full c)
-  | _ => e
-  end
-*)
-
-Fixpoint redexes_context_full h: redexes_multicontext :=
-  match h with
-  | redexes_context_hole =>
-    redexes_multicontext_hole
-
-
-  | redexes_context_left b ts c =>
-    redexes_multicontext_left (
-      redexes_context_flow (redexes_full c) (length ts) 0
-        (redexes_context_full b)) ts (redexes_full c)
-
-
-  | redexes_context_right b ts c =>
-    redexes_multicontext_both
-      (redexes_multicontext_flow (redexes_full c) (length ts) 0
-        (redexes_context_full b))
-      ts
-      (redexes_context_full c)
-  end.
-
-Lemma redexes_context_full_is_sound:
-  forall h e1,
-  exists e2,
-  redexes_context_full h e2 =
-    redexes_full (h e1).
-Proof.
-  induction h; simpl; intros.
-  - eexists; eauto.
-  - edestruct IHh as (e2, ?).
-    eexists; f_equal.
-    rewrite redexes_context_flow_is_sound; f_equal.
-    eassumption.
-
-*)
-
 Lemma redexes_full_preserves_regular:
   forall g x,
   regular g x ->
@@ -1694,15 +1646,32 @@ Proof.
 Qed.
 
 Lemma residuals_partial_full_application:
-  forall a g,
-  regular g a ->
-  forall b,
-  regular g b ->
-  forall c,
-  residuals_full a b c ->
-  residuals_full (redexes_full a) (redexes_full b) c.
+  forall x y z,
+  residuals_full x y z ->
+  forall g,
+  regular g x ->
+  regular g y ->
+  residuals_full (redexes_full x) (redexes_full y) z.
 Proof.
-  admit.
+  intros until 1.
+  destruct H as (z', ?, ?).
+  generalize dependent z.
+  induction H; simpl; intros.
+  - dependent destruction H0.
+    eexists; eauto with cps.
+  - dependent destruction H0.
+    eexists; eauto with cps.
+  - dependent destruction H0.
+    eexists; eauto with cps.
+  - dependent destruction H0.
+    eexists; eauto with cps.
+  - dependent destruction H1.
+    dependent destruction H2.
+    dependent destruction H3.
+    edestruct IHresiduals1 as (b3', ?, ?); eauto.
+    edestruct IHresiduals2 as (c3', ?, ?); eauto.
+    clear IHresiduals1 IHresiduals2.
+    admit.
 Admitted.
 
 Lemma positive_mark_count_implies_context:
@@ -1860,6 +1829,77 @@ Proof.
     f_equal; lia.
 Qed.
 
+Lemma mark_context_depth_and_path_are_sound:
+  forall h s,
+  redexes_same_path (mark_context h) s ->
+  #h = redexes_context_depth s.
+Proof.
+  intros.
+  dependent induction H; simpl.
+  - destruct h; try discriminate; auto.
+  - destruct h; try discriminate; simpl.
+    dependent destruction x; auto.
+  - destruct h; try discriminate; simpl.
+    dependent destruction x; auto.
+Qed.
+
+Lemma regular_preserved_replacing_jump_by_mark:
+  forall (h: redexes_context) g a n xs,
+  regular (g ++ [Some a]) (h (redexes_jump true n xs)) ->
+  n = length g + redexes_context_depth h ->
+  forall e,
+  regular (g ++ [Some a]) (h (mark e)).
+Proof.
+  induction h; simpl; intros.
+  - apply regular_mark_term.
+  - dependent destruction H.
+    constructor; auto.
+    rewrite app_comm_cons in H |- *.
+    eapply IHh; eauto.
+    dependent destruction H1; f_equal.
+    simpl; lia.
+  - dependent destruction H.
+    constructor; auto.
+    rewrite app_assoc in H0 |- *.
+    eapply IHh; eauto.
+    dependent destruction H1; f_equal.
+    rewrite app_length.
+    rewrite repeat_length.
+    lia.
+Qed.
+
+Lemma redexes_flow_preserved_by_single_unmarked_jump:
+  forall h k n,
+  n = k + redexes_context_depth h ->
+  forall y xs e,
+  redexes_flow (mark y) (length xs) k
+    (redexes_full (h (redexes_placeholder n xs))) = e ->
+  redexes_flow (mark y) (length xs) k
+    (redexes_full (h (mark (apply_parameters xs 0
+      (lift (S n) (length xs) y))))) = e.
+Proof.
+  induction h; simpl; intros.
+  - destruct (Nat.eq_dec n k); try lia.
+    destruct (Nat.eq_dec (length xs) (length xs)); try lia.
+    rewrite redexes_full_mark_equals_mark.
+    rewrite redexes_flow_mark_equals_mark.
+    admit.
+  - dependent destruction H0.
+    f_equal.
+    do 2 rewrite redexes_flow_commute.
+    f_equal.
+    apply IHh; auto.
+    lia.
+  - dependent destruction H0.
+    f_equal.
+    do 2 rewrite redexes_flow_commute.
+    f_equal.
+    apply IHh; auto.
+    + lia.
+    + apply IHh; auto.
+      lia.
+Admitted.
+
 Lemma star_residuals_full:
   forall r a b,
   residuals_full (mark a) r (mark b) ->
@@ -1871,9 +1911,27 @@ Proof.
   generalize dependent b'.
   generalize a b; clear a b.
   induction r using redexes_structural_mark_ind; intros.
-  - admit.
-  - admit.
-  - admit.
+  - dependent destruction H.
+    destruct a;
+    try discriminate;
+    destruct b;
+    try discriminate;
+    destruct e;
+    try discriminate;
+    auto with cps;
+    dependent destruction H0;
+    auto with cps.
+  - dependent destruction H.
+    + destruct a; try discriminate.
+      destruct b; try discriminate.
+      dependent destruction H0.
+      auto with cps.
+    + exfalso.
+      inversion H1.
+      inversion H4.
+  - exfalso.
+    dependent destruction H.
+    destruct a; discriminate.
   - dependent destruction H0.
     destruct a; try discriminate.
     destruct b; try discriminate.
@@ -1907,7 +1965,6 @@ Proof.
         dependent destruction H3.
         (* ... *)
         rewrite <- mark_context_is_sound in H0_.
-        (* Since there's a context, it should exists in our result as well. *)
         edestruct residuals_preserve_hole as (t, (e, (?, (?, ?)))); eauto.
         dependent destruction H3.
         dependent destruction H4.
@@ -1915,8 +1972,7 @@ Proof.
         --- apply star_ctxjmp.
             eapply regular_jump_imply_correct_arity with (g := []);
               simpl; eauto.
-            (* Yep, that's true. *)
-            admit.
+            f_equal; apply mark_context_depth_and_path_are_sound; auto.
         --- eapply H with (x := redexes_bind (s (mark _)) _ (mark b4)); simpl.
             +++ rewrite redexes_mark_count_total_mark_is_zero.
                 rewrite Nat.add_0_r.
@@ -1932,10 +1988,36 @@ Proof.
             +++ simpl; f_equal.
                 *** symmetry in x0; destruct x0.
                     rewrite redexes_full_mark_equals_mark.
-                    (* Clearly true given x. *)
-                    admit.
+                    apply mark_context_depth_and_path_are_sound in H1.
+                    apply mark_context_depth_and_path_are_sound in H2.
+                    apply regular_jump_imply_correct_arity
+                      with (g := []) in H2_; auto.
+                    rewrite <- H2_ in x |- *.
+                    apply redexes_flow_preserved_by_single_unmarked_jump; auto.
                 *** apply redexes_full_mark_equals_mark.
             +++ constructor.
-                *** admit.
+                *** eapply regular_preserved_replacing_jump_by_mark
+                      with (g := []); eauto.
+                    simpl; f_equal.
+                    apply mark_context_depth_and_path_are_sound; auto.
                 *** apply regular_mark_term.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Require Import AbstractRewriting.
+
+Definition parallel: relation pseudoterm :=
+  fun a b =>
+    exists2 r, regular [] r & residuals_full (mark a) r (mark b).
+
+Goal
+  confluent parallel.
+Proof.
+  unfold confluent, commut, transp; intros.
+  destruct H as (r, ?, (x', ?, ?)).
+  destruct H0 as (p, ?, (y', ?, ?)).
+  destruct paving with (mark y) r x' p y' as (pr, (rp, (w, (?, ?)))); auto.
+  (* We know w has no marks! *)
+  admit.
 Admitted.
