@@ -118,6 +118,8 @@ Fixpoint redexes_full e: redexes :=
     e
   end.
 
+(* -------------------------------------------------------------------------- *)
+
 (*
 Lemma redexes_lift_lift_permutation:
   forall e i j k l,
@@ -151,19 +153,6 @@ Proof.
       replace (i + l + length ts) with (i + (l + length ts)); try lia.
       apply IHe2; lia.
 Qed.
-
-Lemma redexes_lift_distributes_over_apply_parameters:
-  forall ys i k e,
-  redexes_lift i k (redexes_apply_parameters ys 0 e) =
-  redexes_apply_parameters (map (lift i k) ys) 0
-    (redexes_lift i (length ys + k) e).
-Proof.
-  induction ys; simpl; intros.
-  - reflexivity.
-  - rewrite IHys; f_equal.
-    (* Oh those indices... *)
-    admit.
-Admitted.
 
 Lemma redexes_lift_addition_distributes_over_flow:
   forall b i k p a c,
@@ -216,30 +205,113 @@ Proof.
 Qed.
 *)
 
-(*
-Lemma redexes_flow_addition_commute:
+Lemma redexes_lift_addition_distributes_over_apply_parameters:
+  forall ys i k p e,
+  redexes_lift i (p + k) (redexes_apply_parameters ys p e) =
+    redexes_apply_parameters (map (lift i k) ys) p
+      (redexes_lift i (p + length ys + k) e).
+Proof.
+  induction ys; simpl; intros.
+  - f_equal; lia.
+  - rewrite IHys; f_equal.
+    rewrite map_length.
+    admit.
+Admitted.
+
+Lemma redexes_lift_distributes_over_apply_parameters:
+  forall ys i k e,
+  redexes_lift i k (redexes_apply_parameters ys 0 e) =
+  redexes_apply_parameters (map (lift i k) ys) 0
+    (redexes_lift i (length ys + k) e).
+Proof.
+  intros.
+  apply redexes_lift_addition_distributes_over_apply_parameters with (p := 0).
+Qed.
+
+Lemma redexex_lift_lift_simplification:
+  forall e i j k l,
+  k <= l + j ->
+  l <= k ->
+  redexes_lift i k (redexes_lift j l e) = redexes_lift (i + j) l e.
+Proof.
+  induction e; simpl; intros.
+  - rewrite lift_lift_simplification; auto.
+  - rewrite map_map.
+    rewrite lift_lift_simplification; auto.
+    f_equal; list induction over xs.
+    apply lift_lift_simplification; auto.
+  - rewrite lift_lift_simplification; auto.
+    f_equal; list induction over xs.
+    apply lift_lift_simplification; auto.
+  - f_equal.
+    + apply IHe1; lia.
+    + list induction over ts.
+      do 3 rewrite traverse_list_length.
+      rewrite lift_lift_simplification; try lia.
+      reflexivity.
+    + rewrite traverse_list_length.
+      apply IHe2; lia.
+Qed.
+
+Lemma redexes_flow_and_lift_commute:
+  forall e y a k p i,
+  k <= p ->
+  redexes_flow y a (i + p) (redexes_lift i k e) =
+    redexes_lift i k (redexes_flow y a p e).
+Proof.
+  induction e; simpl; intros.
+  - reflexivity.
+  - reflexivity.
+  - destruct f; auto.
+    destruct (le_gt_dec k n).
+    + rewrite lift_bound_ge; try lia.
+      rewrite map_length.
+      destruct (Nat.eq_dec a (length xs));
+      destruct (Nat.eq_dec n p);
+      destruct (Nat.eq_dec (i + n) (i + p));
+      simpl; try lia.
+      * rewrite redexes_lift_distributes_over_apply_parameters.
+        rewrite redexex_lift_lift_simplification; try lia.
+        f_equal; f_equal; lia.
+      * rewrite lift_bound_ge; auto.
+      * rewrite lift_bound_ge; auto.
+      * rewrite lift_bound_ge; auto.
+    + rewrite lift_bound_lt; try lia.
+      rewrite map_length.
+      destruct (Nat.eq_dec a (length xs));
+      destruct (Nat.eq_dec n p);
+      destruct (Nat.eq_dec n (i + p));
+      simpl; try lia.
+      * rewrite lift_bound_lt; auto.
+      * rewrite lift_bound_lt; auto.
+  - f_equal.
+    + rewrite plus_n_Sm.
+      apply IHe1; lia.
+    + rewrite traverse_list_length.
+      rewrite <- plus_assoc.
+      apply IHe2; lia.
+Qed.
+
+Lemma redexes_flow_addition_distributes_over_itself:
   forall b a1 a2 p k c1 c2,
   redexes_flow c2 a1 (p + S k) (redexes_flow c1 a2 p b) =
     redexes_flow (redexes_flow c2 a1 (k + a2) c1)
       a2 p (redexes_flow c2 a1 (p + S k) b).
 Proof.
   induction b; simpl; intros.
-  - constructor.
-  - constructor.
-  - destruct f; auto.
+  - reflexivity.
+  - reflexivity.
+  - (* Huh, some ugly case analysis... I should have a math simpl tactic! *)
+    destruct f; auto;
     do 2 (destruct (Nat.eq_dec n p);
           destruct (Nat.eq_dec n (p + S k));
           destruct (Nat.eq_dec a1 (length xs));
           destruct (Nat.eq_dec a2 (length xs));
           simpl; auto; try lia).
-    + dependent destruction e.
-      admit.
-    + dependent destruction e.
-      admit.
-    + dependent destruction e.
-      admit.
-    + dependent destruction e.
-      admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
   - f_equal.
     + replace (S (p + S k)) with (S p + S k); try lia.
       apply IHb1.
@@ -254,8 +326,8 @@ Lemma redexes_flow_commute:
       a2 0 (redexes_flow c2 a1 (S k) b).
 Proof.
   intros.
-  apply redexes_flow_addition_commute with (p := 0).
-Qed.*)
+  apply redexes_flow_addition_distributes_over_itself with (p := 0).
+Qed.
 
 Lemma redexes_lift_is_sound:
   forall e i k,
@@ -1559,13 +1631,19 @@ Proof.
     assumption.
   - dependent destruction H0.
     f_equal.
-    (* Flow commute? *)
-    admit.
+    do 2 rewrite redexes_flow_commute.
+    f_equal.
+    apply IHh; auto.
+    lia.
   - dependent destruction H0.
     f_equal.
-    (* Flow commute? *)
-    admit.
-Admitted.
+    + do 2 rewrite redexes_flow_commute.
+      f_equal.
+      apply IHh; auto.
+      lia.
+    + apply IHh; auto.
+      lia.
+Qed.
 
 Lemma star_residuals_full:
   forall r a b,
