@@ -619,6 +619,64 @@ Proof.
       apply IHh.
 Qed.
 
+Lemma right_cycle_lift_simplification:
+  forall e i k,
+  right_cycle i k (lift 1 (k + i) e) = lift 1 k e.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - induction i; auto.
+  - induction i; auto.
+  - induction i; auto.
+  - induction i; auto.
+  - unfold right_cycle; simpl.
+    rewrite sequence_length.
+    destruct (le_gt_dec (k + i) n).
+    + rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite apply_parameters_bound_gt; try lia.
+      * rewrite sequence_length; simpl.
+        f_equal; lia.
+      * rewrite sequence_length; simpl.
+        lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge; try lia.
+        rewrite apply_parameters_high_sequence_bound_in; try lia.
+        f_equal; lia.
+      * rewrite lift_bound_lt; try lia.
+        rewrite apply_parameters_bound_lt; try lia.
+        reflexivity.
+  - do 2 rewrite lift_distributes_over_negation.
+    rewrite right_cycle_distributes_over_negation.
+    f_equal.
+    induction H; simpl; auto.
+    do 3 rewrite traverse_list_length.
+    f_equal; auto.
+    rewrite plus_assoc.
+    apply H.
+  - do 2 rewrite lift_distributes_over_jump.
+    rewrite right_cycle_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + list induction over H.
+  - do 2 rewrite lift_distributes_over_bind.
+    rewrite right_cycle_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + induction H; simpl; auto.
+      do 3 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite plus_assoc.
+      apply H.
+    + rewrite traverse_list_length.
+      replace (k + i + length ts) with (k + length ts + i); try lia.
+      apply IHe2.
+Qed.
+
 (* TODO: does the following lemma use the one declared above...? *)
 
 Lemma float_free_continuation_into_context:
@@ -783,7 +841,11 @@ Proof.
     + clear H.
       induction xs; simpl; auto.
       f_equal; auto.
-      admit.
+      (* Upon careful inspection... *)
+      replace (right_cycle #h 0 (lift 1 #h a)) with (lift 1 0 a).
+      * rewrite subst_lift_simplification; auto.
+        rewrite lift_zero_e_equals_e; auto.
+      * rewrite right_cycle_lift_simplification; auto.
     + rewrite subst_lift_simplification; try lia.
       f_equal; lia.
 Admitted.
