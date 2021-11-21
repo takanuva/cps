@@ -122,7 +122,7 @@ Proof.
     replace (#r + #h) with (#(compose_context r h)).
     + apply star_ctxjmp.
       assumption.
-    + apply compose_context_depth.
+    + apply compose_context_bvars.
   - pose (compose_context r (context_left context_hole ts0 c0)) as X.
     assert (forall e, r (bind e ts0 c0) = X e).
     + intros; unfold X.
@@ -142,11 +142,11 @@ Proof.
       apply IHh.
       * intros; f_equal; f_equal.
         unfold X.
-        rewrite compose_context_depth; simpl.
+        rewrite compose_context_bvars; simpl.
         lia.
       * intros; f_equal.
         unfold X.
-        rewrite compose_context_depth; simpl.
+        rewrite compose_context_bvars; simpl.
         f_equal; lia.
   - pose (compose_context r (context_right b ts0 context_hole)) as X.
     assert (forall e, r (bind b ts0 e) = X e).
@@ -166,11 +166,11 @@ Proof.
       apply IHh.
       * intros; f_equal; f_equal.
         unfold X.
-        rewrite compose_context_depth; simpl.
+        rewrite compose_context_bvars; simpl.
         lia.
       * intros; f_equal.
         unfold X.
-        rewrite compose_context_depth; simpl.
+        rewrite compose_context_bvars; simpl.
         f_equal; lia.
   - (* Clearly follow from transitivity and the hypotheses. *)
     eapply star_trans.
@@ -185,10 +185,10 @@ Proof.
     apply IHh1.
     intros; f_equal.
     unfold X.
-    rewrite compose_context_depth; simpl.
+    rewrite compose_context_bvars; simpl.
     f_equal; lia.
     rewrite compose_context_is_sound; simpl.
-    rewrite compose_context_depth; simpl.
+    rewrite compose_context_bvars; simpl.
     rewrite multicontext_image with (g := fun n =>
       apply_parameters xs 0
                (lift (S (#r + S n)) (length ts) c)).
@@ -209,11 +209,11 @@ Proof.
     apply IHh2.
     intros; f_equal; f_equal.
     unfold X.
-    rewrite compose_context_depth; simpl.
+    rewrite compose_context_bvars; simpl.
     f_equal; lia.
     intros; f_equal.
     unfold X.
-    rewrite compose_context_depth; simpl.
+    rewrite compose_context_bvars; simpl.
     f_equal; lia.
     intros; f_equal; f_equal.
     lia.
@@ -331,7 +331,7 @@ Proof.
     destruct IHtss with cs as (h, (?, (?, ?))); auto.
     exists (compose_context h (context_left context_hole a p)).
     repeat split; simpl; intros.
-    + rewrite compose_context_depth; simpl; lia.
+    + rewrite compose_context_bvars; simpl; lia.
     + apply static_compose_context; auto with cps.
     + rewrite compose_context_is_sound; simpl.
       dependent destruction H3.

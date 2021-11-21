@@ -54,14 +54,14 @@ Qed.
 
 Reserved Notation "# h" (at level 0, right associativity, format "# h").
 
-Fixpoint context_depth (h: context): nat :=
+Fixpoint context_bvars (h: context): nat :=
   match h with
   | context_hole => 0
   | context_left b ts c => S #b
   | context_right b ts c => #c + length ts
   end
 
-where "# h" := (context_depth h).
+where "# h" := (context_bvars h).
 
 Fixpoint apply_context (h: context) (e: pseudoterm): pseudoterm :=
   match h with
@@ -91,7 +91,7 @@ Proof.
     reflexivity.
 Qed.
 
-Lemma compose_context_depth:
+Lemma compose_context_bvars:
   forall h r,
   #(compose_context h r) = #h + #r.
 Proof.
@@ -241,7 +241,7 @@ Proof.
   - exact same_path_trans.
 Defined.
 
-Lemma same_path_implies_same_depth:
+Lemma same_path_implies_same_bvars:
   forall h r,
   same_path h r -> #h = #r.
 Proof.
@@ -251,8 +251,8 @@ Proof.
   - simpl; lia.
 Qed.
 
-Global Hint Resolve same_path_implies_same_depth: cps.
-Hint Rewrite same_path_implies_same_depth: cps.
+Global Hint Resolve same_path_implies_same_bvars: cps.
+Hint Rewrite same_path_implies_same_bvars: cps.
 
 Lemma same_path_same_hole_implies_same_context:
   forall h r,
@@ -494,7 +494,7 @@ Proof.
     apply IHh.
 Qed.
 
-Lemma context_switch_bindings_depth:
+Lemma context_switch_bindings_bvars:
   forall h k,
   #(context_switch_bindings k h) = #h.
 Proof.
@@ -506,7 +506,7 @@ Proof.
     apply IHh.
 Qed.
 
-Global Hint Resolve context_switch_bindings_depth: cps.
+Global Hint Resolve context_switch_bindings_bvars: cps.
 
 Lemma static_context_switch_bindings:
   forall h,

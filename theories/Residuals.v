@@ -953,19 +953,19 @@ Proof.
         lia.
 Qed.
 
-Fixpoint redexes_context_depth h: nat :=
+Fixpoint redexes_context_bvars h: nat :=
   match h with
   | redexes_context_hole =>
     0
   | redexes_context_left b _ _ =>
-    S (redexes_context_depth b)
+    S (redexes_context_bvars b)
   | redexes_context_right _ ts c =>
-    redexes_context_depth c + length ts
+    redexes_context_bvars c + length ts
   end.
 
 Lemma regular_cant_jump_too_far:
   forall n h g,
-  n = length g + redexes_context_depth h ->
+  n = length g + redexes_context_bvars h ->
   forall xs,
   ~regular g (h (redexes_jump true n xs)).
 Proof.
@@ -1449,15 +1449,15 @@ Qed.
 Lemma redexes_mark_count_replacing_mark:
   forall (h: redexes_context) k xs n,
   redexes_mark_count k (h (redexes_jump true
-    (k + redexes_context_depth h) xs)) = 1 + n ->
+    (k + redexes_context_bvars h) xs)) = 1 + n ->
   forall e m,
-  redexes_mark_count (k + redexes_context_depth h) e = m ->
+  redexes_mark_count (k + redexes_context_bvars h) e = m ->
   redexes_mark_count k (h e) = m + n.
 Proof.
   induction h; simpl; intros.
   - rewrite Nat.add_0_r in H, H0.
     destruct (Nat.eq_dec k k); lia.
-  - remember (h (redexes_jump true (k + S (redexes_context_depth h)) xs)) as b.
+  - remember (h (redexes_jump true (k + S (redexes_context_bvars h)) xs)) as b.
     assert (exists o, redexes_mark_count (S k) b = S o) as (o, ?).
     + admit.
     + replace (redexes_mark_count (k + length ts) c) with (n - o); try lia.
@@ -1467,13 +1467,13 @@ Proof.
         eapply IHh; eauto.
       * lia.
   - remember (h (redexes_jump true
-      (k + (redexes_context_depth h + length ts)) xs)) as c.
+      (k + (redexes_context_bvars h + length ts)) xs)) as c.
     assert (exists o, redexes_mark_count (k + length ts) c = S o) as (o, ?).
     + admit.
     + replace (redexes_mark_count (S k) b) with (n - o); try lia.
       assert (redexes_mark_count (k + length ts) (h e) = m + o).
-      * replace (k + (redexes_context_depth h + length ts)) with
-          (k + length ts + redexes_context_depth h) in Heqc, H0; try lia.
+      * replace (k + (redexes_context_bvars h + length ts)) with
+          (k + length ts + redexes_context_bvars h) in Heqc, H0; try lia.
         dependent destruction Heqc.
         eapply IHh; eauto.
       * lia.
@@ -1545,7 +1545,7 @@ Qed.
 Lemma regular_jump_imply_correct_arity:
   forall (h: redexes_context) g a n xs,
   regular (g ++ [Some a]) (h (redexes_jump true n xs)) ->
-  n = length g + redexes_context_depth h ->
+  n = length g + redexes_context_bvars h ->
   length xs = a.
 Proof.
   induction h; simpl; intros.
@@ -1569,10 +1569,10 @@ Proof.
     f_equal; lia.
 Qed.
 
-Lemma mark_context_depth_and_path_are_sound:
+Lemma mark_context_bvars_and_path_are_sound:
   forall h s,
   redexes_same_path (mark_context h) s ->
-  #h = redexes_context_depth s.
+  #h = redexes_context_bvars s.
 Proof.
   intros.
   dependent induction H; simpl.
@@ -1586,7 +1586,7 @@ Qed.
 Lemma regular_preserved_replacing_jump_by_mark:
   forall (h: redexes_context) g a n xs,
   regular (g ++ [Some a]) (h (redexes_jump true n xs)) ->
-  n = length g + redexes_context_depth h ->
+  n = length g + redexes_context_bvars h ->
   forall e,
   regular (g ++ [Some a]) (h (mark e)).
 Proof.
@@ -1613,7 +1613,7 @@ Qed.
 
 Lemma redexes_flow_preserved_by_single_unmarked_jump:
   forall h k n,
-  n = k + redexes_context_depth h ->
+  n = k + redexes_context_bvars h ->
   forall y xs e,
   redexes_flow (mark y) (length xs) k
     (redexes_full (h (redexes_placeholder n xs))) = e ->
@@ -1717,7 +1717,7 @@ Proof.
         --- apply star_ctxjmp.
             eapply regular_jump_imply_correct_arity with (g := []);
               simpl; eauto.
-            f_equal; apply mark_context_depth_and_path_are_sound; auto.
+            f_equal; apply mark_context_bvars_and_path_are_sound; auto.
         --- eapply H with (x := redexes_bind (s (mark _)) _ (mark b4)); simpl.
             +++ rewrite redexes_mark_count_total_mark_is_zero.
                 rewrite Nat.add_0_r.
@@ -1733,8 +1733,8 @@ Proof.
             +++ simpl; f_equal.
                 *** symmetry in x0; destruct x0.
                     rewrite redexes_full_mark_equals_mark.
-                    apply mark_context_depth_and_path_are_sound in H1.
-                    apply mark_context_depth_and_path_are_sound in H2.
+                    apply mark_context_bvars_and_path_are_sound in H1.
+                    apply mark_context_bvars_and_path_are_sound in H2.
                     apply regular_jump_imply_correct_arity
                       with (g := []) in H2_; auto.
                     rewrite <- H2_ in x |- *.
@@ -1744,7 +1744,7 @@ Proof.
                 *** eapply regular_preserved_replacing_jump_by_mark
                       with (g := []); eauto.
                     simpl; f_equal.
-                    apply mark_context_depth_and_path_are_sound; auto.
+                    apply mark_context_bvars_and_path_are_sound; auto.
                 *** apply regular_mark_term.
 Qed.
 

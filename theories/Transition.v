@@ -107,7 +107,7 @@ Proof.
       (map (switch_bindings #h) xs); simpl.
     + constructor.
       apply static_context_switch_bindings; auto.
-    + rewrite context_switch_bindings_depth; auto.
+    + rewrite context_switch_bindings_bvars; auto.
     + rewrite map_length.
       assumption.
     + rewrite context_switch_bindings_is_sound.
@@ -185,7 +185,7 @@ Proof.
         (h := context_switch_bindings 0 h)
         (xs := map (switch_bindings #h) xs).
       * apply static_context_switch_bindings; auto.
-      * rewrite context_switch_bindings_depth; lia.
+      * rewrite context_switch_bindings_bvars; lia.
       * rewrite map_length.
         rewrite traverse_list_length.
         assumption.
@@ -193,7 +193,7 @@ Proof.
     + reflexivity.
     + rewrite context_switch_bindings_is_sound; simpl.
       rewrite context_switch_bindings_is_involutive.
-      rewrite context_switch_bindings_depth.
+      rewrite context_switch_bindings_bvars.
       rewrite Nat.add_0_r.
       rewrite switch_bindings_distributes_over_jump.
       rewrite switch_bindings_bound_eq; try lia.
@@ -202,7 +202,7 @@ Proof.
     + f_equal.
       rewrite context_switch_bindings_is_sound.
       rewrite context_switch_bindings_is_involutive.
-      rewrite context_switch_bindings_depth.
+      rewrite context_switch_bindings_bvars.
       rewrite Nat.add_0_r.
       rewrite traverse_list_length.
       rewrite lift_lift_simplification; try lia.
