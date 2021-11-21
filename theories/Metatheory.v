@@ -1496,6 +1496,91 @@ Proof.
   f_equal; lia.
 Qed.
 
+Lemma right_cycle_switch_bindings_simplification:
+  forall e i k,
+  right_cycle i k (switch_bindings (k + i) e) =
+    right_cycle (S i) k e.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - induction i; auto.
+  - induction i; auto.
+  - induction i; auto.
+  - induction i; auto.
+  - remember (k + i) as p.
+    unfold right_cycle, switch_bindings.
+    destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ];
+    destruct (le_gt_dec (2 + p) n); try lia.
+    + rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      simpl; f_equal.
+      rewrite sequence_length.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      reflexivity.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      simpl; f_equal.
+      rewrite sequence_length.
+      rewrite subst_bound_eq; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_lt; try lia.
+      simpl; f_equal.
+      rewrite sequence_length.
+      rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      simpl; f_equal.
+      rewrite sequence_length.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      reflexivity.
+  - rewrite switch_bindings_distributes_over_negation.
+    do 2 rewrite right_cycle_distributes_over_negation.
+    f_equal.
+    induction H; simpl; auto.
+    do 3 rewrite traverse_list_length.
+    f_equal; auto.
+    rewrite plus_assoc.
+    apply H.
+  - rewrite switch_bindings_distributes_over_jump.
+    do 2 rewrite right_cycle_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + list induction over H.
+  - rewrite switch_bindings_distributes_over_bind.
+    do 2 rewrite right_cycle_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + induction H; simpl; auto.
+      do 3 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite plus_assoc.
+      apply H.
+    + rewrite traverse_list_length.
+      replace (k + i + length ts) with (k + length ts + i); try lia.
+      apply IHe2.
+Qed.
+
 Lemma switch_bindings_is_involutive:
   forall e k,
   switch_bindings k (switch_bindings k e) = e.
