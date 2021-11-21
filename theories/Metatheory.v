@@ -1390,6 +1390,44 @@ Proof.
     f_equal; lia.
 Qed.
 
+Lemma right_cycle_zero_e_equals_e:
+  forall e k,
+  right_cycle 0 k e = e.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - unfold right_cycle; simpl.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite lift_bound_ge; auto.
+      rewrite subst_bound_gt; try lia.
+      reflexivity.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      reflexivity.
+  - rewrite right_cycle_distributes_over_negation.
+    induction H; simpl; auto.
+    rewrite traverse_list_length.
+    dependent destruction IHForall.
+    f_equal; f_equal; auto.
+  - rewrite right_cycle_distributes_over_jump; f_equal.
+    + apply IHe.
+    + list induction over H.
+  - rewrite right_cycle_distributes_over_bind; f_equal.
+    + apply IHe1.
+    + induction H; simpl; auto.
+      rewrite traverse_list_length.
+      dependent destruction IHForall.
+      f_equal; f_equal; auto.
+    + apply IHe2.
+Qed.
+
 Lemma switch_bindings_distributes_over_negation:
   forall k ts,
   switch_bindings k (negation ts) =
