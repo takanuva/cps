@@ -1199,51 +1199,66 @@ Proof.
   apply subst_and_right_cycle_commute with (p := 0) (n := 1); lia.
 Qed.
 
-Lemma apply_parameters_lift_e_equals_e:
+Lemma apply_parameters_lift_simplification:
   forall xs k e,
-  apply_parameters xs k (lift (length xs) k e) = e.
+  apply_parameters xs k (lift (k + length xs) 0 e) = lift k 0 e.
 Proof.
-  induction xs; intros.
-  - apply lift_zero_e_equals_e.
-  - simpl.
+  induction xs; simpl; intros.
+  - f_equal; lia.
+  - replace (k + S (length xs)) with (S (k + length xs)); try lia.
     rewrite subst_lift_simplification; try lia.
     apply IHxs.
 Qed.
 
-Lemma apply_parameters_bound_lt:
-  forall xs n,
+Lemma apply_parameters_bound_in:
+  forall n xs,
   length xs > n ->
   forall x,
-  item x (rev xs) n -> apply_parameters xs 0 n = x.
+  item x (rev xs) n ->
+  forall k,
+  apply_parameters xs k (k + n) = lift k 0 x.
 Proof.
   induction xs; simpl; intros.
   - exfalso.
     inversion H0.
   - destruct (le_gt_dec (length xs) n).
     + assert (n = length xs); try lia.
-      rewrite subst_bound_eq; auto.
+      rewrite subst_bound_eq; try lia.
+      dependent destruction H1.
       apply item_ignore_head in H0.
       * rewrite rev_length in H0.
-        rewrite H1 in H0 |- *.
-        replace (length xs - length xs) with 0 in H0; try lia.
-        inversion_clear H0.
-        apply apply_parameters_lift_e_equals_e.
-      * rewrite rev_length; auto.
-    + rewrite subst_bound_lt; auto.
-      apply IHxs; auto.
+        rewrite Nat.sub_diag in H0.
+        dependent destruction H0.
+        apply apply_parameters_lift_simplification.
+      * rewrite rev_length; lia.
+    + rewrite subst_bound_lt; try lia.
+      apply IHxs; try lia.
       eapply item_ignore_tail; eauto.
       rewrite rev_length; auto.
 Qed.
 
-Lemma apply_parameters_bound_ge:
-  forall xs n,
-  length xs <= n ->
-  apply_parameters xs 0 (bound n) = n - length xs.
+Lemma apply_parameters_bound_gt:
+  forall xs n k,
+  length xs + k <= n ->
+  apply_parameters xs k (bound n) = n - length xs.
 Proof.
   induction xs; intros.
   - simpl; f_equal; lia.
   - simpl in H |- *.
-    rewrite subst_bound_gt; auto.
+    rewrite subst_bound_gt; try lia.
+    rewrite IHxs; try lia.
+    f_equal; lia.
+Qed.
+
+Lemma apply_parameters_bound_lt:
+  forall xs n k,
+  k > n ->
+  apply_parameters xs k (bound n) = n.
+Proof.
+  induction xs; intros.
+  - simpl; f_equal; lia.
+  - simpl in H |- *.
+    rewrite subst_bound_lt; try lia.
     rewrite IHxs; try lia.
     f_equal; lia.
 Qed.
@@ -1278,7 +1293,9 @@ Proof.
   rewrite lift_bound_lt; try lia.
   rewrite sequence_length.
   rewrite subst_bound_lt; auto.
-  apply apply_parameters_bound_lt.
+  replace n with (0 + n) at 1; auto.
+  rewrite apply_parameters_bound_in with (x := S n).
+  - rewrite lift_zero_e_equals_e; auto.
   - rewrite sequence_length; auto.
   - apply high_sequence_rev_lifts_by_one; auto.
 Qed.
@@ -1293,7 +1310,8 @@ Proof.
   rewrite sequence_length.
   rewrite subst_bound_eq; auto.
   rewrite lift_bound_ge; auto.
-  rewrite apply_parameters_bound_ge.
+  rewrite plus_comm.
+  rewrite apply_parameters_bound_gt.
   - rewrite sequence_length.
     f_equal; lia.
   - rewrite sequence_length.
@@ -1309,7 +1327,7 @@ Proof.
   rewrite lift_bound_ge; try lia.
   rewrite sequence_length.
   rewrite subst_bound_gt; try lia.
-  rewrite apply_parameters_bound_ge; simpl.
+  rewrite apply_parameters_bound_gt; simpl.
   - rewrite sequence_length.
     f_equal; lia.
   - rewrite sequence_length.
