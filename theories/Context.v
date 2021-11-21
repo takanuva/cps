@@ -63,6 +63,13 @@ Fixpoint context_bvars (h: context): nat :=
 
 where "# h" := (context_bvars h).
 
+Fixpoint context_depth (h: context): nat :=
+  match h with
+  | context_hole => 0
+  | context_left b ts c => 1 + context_depth b
+  | context_right b ts c => 1 + context_depth c
+  end.
+
 Fixpoint apply_context (h: context) (e: pseudoterm): pseudoterm :=
   match h with
   | context_hole => e
@@ -99,6 +106,13 @@ Proof.
   - reflexivity.
   - rewrite IHh; auto.
   - rewrite IHh; lia.
+Qed.
+
+Lemma compose_context_depth:
+  forall h r,
+  context_depth (compose_context h r) = context_depth h + context_depth r.
+Proof.
+  induction h; simpl; auto.
 Qed.
 
 Inductive static: context -> Prop :=
@@ -253,6 +267,16 @@ Qed.
 
 Global Hint Resolve same_path_implies_same_bvars: cps.
 Hint Rewrite same_path_implies_same_bvars: cps.
+
+Lemma same_path_implies_same_depth:
+  forall h r,
+  same_path h r -> context_depth h = context_depth r.
+Proof.
+  induction 1; simpl; auto.
+Qed.
+
+Global Hint Resolve same_path_implies_same_depth: cps.
+Hint Rewrite same_path_implies_same_depth: cps.
 
 Lemma same_path_same_hole_implies_same_context:
   forall h r,
@@ -507,6 +531,20 @@ Proof.
 Qed.
 
 Global Hint Resolve context_switch_bindings_bvars: cps.
+
+Lemma context_switch_bindings_depth:
+  forall h k,
+  context_depth (context_switch_bindings k h) = context_depth h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    apply IHh.
+  - f_equal.
+    apply IHh.
+Qed.
+
+Global Hint Resolve context_switch_bindings_depth: cps.
 
 Lemma static_context_switch_bindings:
   forall h,
