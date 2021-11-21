@@ -489,6 +489,25 @@ Proof.
     apply IHh.
 Qed.
 
+Lemma context_right_cycle_bvars:
+  forall h i k,
+  #(context_right_cycle i k h) = #h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    apply IHh.
+  - rewrite traverse_list_length; f_equal.
+    apply IHh.
+Qed.
+
+Lemma context_right_cycle_depth:
+  forall h i k,
+  context_depth (context_right_cycle i k h) = context_depth h.
+Proof.
+  induction h; simpl; auto.
+Qed.
+
 Fixpoint context_switch_bindings k h: context :=
   match h with
   | context_hole =>
@@ -536,12 +555,7 @@ Lemma context_switch_bindings_depth:
   forall h k,
   context_depth (context_switch_bindings k h) = context_depth h.
 Proof.
-  induction h; simpl; intros.
-  - reflexivity.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
+  induction h; simpl; auto.
 Qed.
 
 Global Hint Resolve context_switch_bindings_depth: cps.
