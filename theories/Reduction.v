@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
@@ -491,3 +492,331 @@ Proof.
   - exact conv_sym.
   - exact conv_trans.
 Defined.
+
+(** ** Soundness of one-step relation *)
+
+(* TODO: move these lemmas to their proper places!!! *)
+
+Lemma context_grab_outer_left:
+  forall (h: context) e ts c,
+  bind (h e) ts c = context_left h ts c e.
+Proof.
+  auto.
+Qed.
+
+Lemma context_grab_inner_left:
+  forall (h: context) e ts c,
+  h (bind e ts c) =
+    compose_context h (context_left context_hole ts c) e.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal; auto.
+  - f_equal; auto.
+Qed.
+
+Inductive not_free_context: nat -> context -> Prop :=
+  | not_free_context_hole:
+    forall k,
+    not_free_context k context_hole
+  | not_free_context_left:
+    forall k b ts c,
+    not_free_context (S k) b ->
+    not_free_list k ts ->
+    not_free (k + length ts) c ->
+    not_free_context k (context_left b ts c)
+  | not_free_context_right:
+    forall k b ts c,
+    not_free (S k) b ->
+    not_free_list k ts ->
+    not_free_context (k + length ts) c ->
+    not_free_context k (context_right b ts c).
+
+Lemma cong_context:
+  forall (h: context) a b,
+  [a == b] -> [h a == h b].
+Proof.
+  induction h; eauto with cps.
+Qed.
+
+Lemma context_right_cycle_zero_e_equals_e:
+  forall h k,
+  context_right_cycle 0 k h = h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    + apply IHh.
+    + induction ts; simpl; auto.
+      rewrite traverse_list_length.
+      f_equal; auto.
+      apply right_cycle_zero_e_equals_e.
+    + apply right_cycle_zero_e_equals_e.
+  - f_equal.
+    + apply right_cycle_zero_e_equals_e.
+    + induction ts; simpl; auto.
+      rewrite traverse_list_length.
+      f_equal; auto.
+      apply right_cycle_zero_e_equals_e.
+    + apply IHh.
+Qed.
+
+Definition context_remove_binding :=
+  context_subst 0.
+
+Lemma context_remove_binding_is_sound:
+  forall (h: context) k e,
+  remove_binding k (h e) =
+    context_remove_binding k h (remove_binding (#h + k) e).
+Proof.
+  unfold remove_binding, context_remove_binding.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite subst_distributes_over_bind; f_equal.
+    replace (S (#h + k)) with (#h + S k); try lia.
+    apply IHh.
+  - rewrite subst_distributes_over_bind; f_equal.
+    replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
+    apply IHh.
+Qed.
+
+(* TODO: there's something about this in the Axiomatic.v file! *)
+
+Lemma context_remove_binding_switch_bindings_simplification:
+  forall h k,
+  context_remove_binding k (context_switch_bindings k h) =
+    context_remove_binding (S k) h.
+Proof.
+  admit.
+Admitted.
+
+Lemma context_remove_binding_lift_simplification:
+  forall h k,
+  context_remove_binding k (context_lift 1 k h) = h.
+Proof.
+  unfold context_remove_binding.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    + apply IHh.
+    + induction ts; simpl; auto.
+      do 2 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + rewrite traverse_list_length.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+  - f_equal.
+    + rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + induction ts; simpl; auto.
+      do 2 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + rewrite traverse_list_length.
+      apply IHh.
+Qed.
+
+(* TODO: does the following lemma use the one declared above...? *)
+
+Lemma float_free_continuation_into_context:
+  forall h a ts c,
+  not_free_context 0 h ->
+  [bind (h a) ts c ==
+    context_remove_binding 0 h (bind (right_cycle #h 0 a)
+      (traverse_list (lift #h) 0 ts) (lift #h (length ts) c))].
+Proof.
+  intro h.
+  assert (exists n, n = context_depth h) as (n, ?); eauto.
+  generalize dependent h.
+  induction n; simpl; intros.
+  - destruct h; try discriminate.
+    apply cong_eq; simpl; f_equal.
+    + rewrite right_cycle_zero_e_equals_e; auto.
+    + induction ts; simpl; auto.
+      f_equal; auto.
+      rewrite lift_zero_e_equals_e; auto.
+    + rewrite lift_zero_e_equals_e; auto.
+  - destruct h; simpl in H; try lia.
+    + dependent destruction H0; simpl.
+      eapply cong_trans;
+        [| eapply cong_trans ].
+      * apply cong_float_left; auto.
+      * apply cong_bind_left.
+        rewrite context_switch_bindings_is_sound.
+        apply IHn; eauto.
+        --- rewrite context_switch_bindings_depth; lia.
+        --- admit.
+      * apply cong_eq; f_equal.
+        rewrite context_switch_bindings_bvars.
+        rewrite Nat.add_0_r.
+        rewrite context_remove_binding_switch_bindings_simplification.
+        f_equal; f_equal.
+        --- apply right_cycle_switch_bindings_simplification.
+        --- induction ts; simpl; auto.
+            f_equal; auto.
+            do 3 rewrite traverse_list_length.
+            rewrite lift_lift_simplification; try lia.
+            f_equal; lia.
+        --- rewrite traverse_list_length.
+            rewrite lift_lift_simplification; try lia.
+            f_equal; lia.
+    + dependent destruction H0; simpl.
+      eapply cong_trans;
+        [| eapply cong_trans ].
+      * apply cong_float_right; auto.
+      * apply cong_bind_right.
+        rewrite context_right_cycle_is_sound.
+        apply IHn; eauto.
+        --- rewrite context_right_cycle_depth; lia.
+        --- admit.
+      * apply cong_eq; f_equal.
+        --- admit.
+        --- replace (context_remove_binding 0 (context_right_cycle
+              (length ts0) 0 h)) with (context_subst 0 (length ts0) h).
+            +++ f_equal; f_equal.
+                *** rewrite context_right_cycle_bvars.
+                    apply right_cycle_right_cycle_simplification.
+                *** rewrite context_right_cycle_bvars.
+                    induction ts; simpl; auto.
+                    do 3 rewrite traverse_list_length.
+                    f_equal; auto.
+                    rewrite lift_lift_simplification; try lia.
+                    reflexivity.
+                *** rewrite context_right_cycle_bvars.
+                    rewrite traverse_list_length.
+                    rewrite lift_lift_simplification; try lia.
+                    reflexivity.
+            +++ admit.
+Admitted.
+
+(*
+  When proving soundness of reduction, we're gonna need to use the (CONTR) rule,
+  or rather, it's inverse. This will split a single binding in two, and the term
+  may refer to any of them. We'd like to make that there's a single reference to
+  the closest one, namely in the jump at subject position. This will allow us to
+  freely float the continuation closer to the jump, in order to perform a single
+  (JMP) action.
+*)
+
+Local Lemma technical1:
+  forall xs (h: context) k,
+  h (jump (k + #h) xs) =
+    remove_binding k (context_lift 1 k h
+      (jump (k + #h) (map (lift 1 (k + #h)) xs))).
+Proof.
+  unfold remove_binding.
+  induction h; simpl; intros.
+  - rewrite subst_distributes_over_jump; f_equal.
+    + rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + induction xs; simpl; auto.
+      f_equal; auto.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+  - rewrite subst_distributes_over_bind; f_equal.
+    + replace (k + S #h) with (S k + #h); try lia.
+      apply IHh.
+    + induction ts; simpl; auto.
+      do 2 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + rewrite traverse_list_length.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+  - rewrite subst_distributes_over_bind; f_equal.
+    + rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + induction ts; simpl; auto.
+      do 2 rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite subst_lift_simplification; try lia.
+      rewrite lift_zero_e_equals_e; auto.
+    + rewrite traverse_list_length.
+      replace (k + (#h + length ts)) with (k + length ts + #h); try lia.
+      apply IHh.
+Qed.
+
+Lemma cong_ctxjmp:
+  CTXJMP cong.
+Proof.
+  unfold CTXJMP; intros.
+  etransitivity;
+    [| etransitivity;
+      [| etransitivity;
+        [| etransitivity ] ] ].
+  - rewrite technical1 with (k := 0); simpl.
+    symmetry.
+    apply cong_contr.
+  - apply cong_bind_left.
+    apply float_free_continuation_into_context.
+    (* Clearly. *)
+    admit.
+  - apply cong_bind_left.
+    rewrite context_lift_bvars.
+    rewrite right_cycle_distributes_over_jump.
+    rewrite right_cycle_bound_eq; auto.
+    rewrite context_remove_binding_lift_simplification.
+    apply cong_context.
+    apply cong_recjmp.
+    do 2 rewrite map_length.
+    do 2 rewrite traverse_list_length.
+    assumption.
+  - apply cong_bind_left.
+    apply cong_context.
+    rewrite traverse_list_length.
+    do 2 rewrite map_length.
+    rewrite lift_lift_simplification; try lia.
+    rewrite lift_lift_simplification; try lia.
+    apply cong_gc.
+    admit.
+  - apply cong_eq.
+    f_equal; f_equal.
+    unfold remove_binding.
+    rewrite subst_distributes_over_apply_parameters.
+    do 2 rewrite map_length.
+    f_equal; simpl.
+    + clear H.
+      induction xs; simpl; auto.
+      f_equal; auto.
+      admit.
+    + rewrite subst_lift_simplification; try lia.
+      f_equal; lia.
+Admitted.
+
+Theorem cong_step:
+  forall a b,
+  [a => b] -> [a == b].
+Proof.
+  induction 1.
+  - apply cong_ctxjmp.
+    assumption.
+  - apply cong_bind_left.
+    assumption.
+  - apply cong_bind_right.
+    assumption.
+Qed.
+
+Global Hint Resolve cong_step: cps.
+
+Corollary cong_star:
+  forall a b,
+  [a =>* b] -> [a == b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve cong_star: cps.
+
+Corollary cong_conv:
+  forall a b,
+  [a <=> b] -> [a == b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve cong_conv: cps.

@@ -413,6 +413,17 @@ Proof.
     apply IHh.
 Qed.
 
+Lemma context_lift_bvars:
+  forall h i k,
+  #(context_lift i k h) = #h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite traverse_list_length.
+    rewrite IHh; auto.
+Qed.
+
 Fixpoint context_subst y k h: context :=
   match h with
   | context_hole =>
@@ -457,6 +468,17 @@ Proof.
     f_equal.
     replace (#h + length ts + k) with (#h + (k + length ts)); try lia.
     apply IHh.
+Qed.
+
+Lemma context_subst_bvars:
+  forall h y k,
+  #(context_subst y k h) = #h.
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite traverse_list_length.
+    rewrite IHh; auto.
 Qed.
 
 Fixpoint context_right_cycle n k h: context :=
