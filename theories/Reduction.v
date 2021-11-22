@@ -493,27 +493,9 @@ Proof.
   - exact conv_trans.
 Defined.
 
-(** ** Soundness of one-step relation *)
+(** ** Soundness of reduction *)
 
 (* TODO: move these lemmas to their proper places!!! *)
-
-Lemma context_grab_outer_left:
-  forall (h: context) e ts c,
-  bind (h e) ts c = context_left h ts c e.
-Proof.
-  auto.
-Qed.
-
-Lemma context_grab_inner_left:
-  forall (h: context) e ts c,
-  h (bind e ts c) =
-    compose_context h (context_left context_hole ts c) e.
-Proof.
-  induction h; simpl; intros.
-  - reflexivity.
-  - f_equal; auto.
-  - f_equal; auto.
-Qed.
 
 Inductive not_free_context: nat -> context -> Prop :=
   | not_free_context_hole:
@@ -677,8 +659,6 @@ Proof.
       apply IHe2.
 Qed.
 
-(* TODO: does the following lemma use the one declared above...? *)
-
 Lemma float_free_continuation_into_context:
   forall h a ts c,
   not_free_context 0 h ->
@@ -799,7 +779,7 @@ Proof.
       apply IHh.
 Qed.
 
-Lemma cong_ctxjmp:
+Theorem cong_ctxjmp:
   CTXJMP cong.
 Proof.
   unfold CTXJMP; intros.
@@ -830,27 +810,31 @@ Proof.
     do 2 rewrite map_length.
     rewrite lift_lift_simplification; try lia.
     rewrite lift_lift_simplification; try lia.
-    apply cong_gc.
-    admit.
+    (* Upon careful inspection... *)
+    replace (map (right_cycle #h 0) (map (lift 1 #h) xs)) with
+      (map (lift 1 0) xs).
+    + apply cong_gc.
+      admit.
+    + clear H.
+      induction xs; simpl; auto.
+      f_equal; auto.
+      rewrite right_cycle_lift_simplification; auto.
   - apply cong_eq.
     f_equal; f_equal.
     unfold remove_binding.
     rewrite subst_distributes_over_apply_parameters.
-    do 2 rewrite map_length.
+    rewrite map_length, Nat.add_0_r.
     f_equal; simpl.
     + clear H.
       induction xs; simpl; auto.
       f_equal; auto.
-      (* Upon careful inspection... *)
-      replace (right_cycle #h 0 (lift 1 #h a)) with (lift 1 0 a).
-      * rewrite subst_lift_simplification; auto.
-        rewrite lift_zero_e_equals_e; auto.
-      * rewrite right_cycle_lift_simplification; auto.
+      rewrite subst_lift_simplification; auto.
+      rewrite lift_zero_e_equals_e; auto.
     + rewrite subst_lift_simplification; try lia.
       f_equal; lia.
 Admitted.
 
-Theorem cong_step:
+Corollary cong_step:
   forall a b,
   [a => b] -> [a == b].
 Proof.
