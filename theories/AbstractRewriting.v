@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Set Implicit Arguments.
 Require Import Equality.
 Require Export Relations.
 Require Import Local.Prelude.
@@ -33,6 +34,18 @@ Arguments same_relation {A}.
 
 Global Hint Unfold same_relation: cps.
 
+Arguments reflexive {A}.
+
+Global Hint Unfold reflexive: cps.
+
+Arguments symmetric {A}.
+
+Global Hint Unfold symmetric: cps.
+
+Arguments transitive {A}.
+
+Global Hint Unfold transitive: cps.
+
 Definition confluent {T} (R: relation T): Prop :=
   commut R (transp R).
 
@@ -43,9 +56,9 @@ Definition comp {A} {B} {C} R S: A -> C -> Prop :=
     exists2 b: B,
     R a b & S b c.
 
-Section Confluency.
+Global Hint Unfold comp: cps.
 
-  Set Implicit Arguments.
+Section Confluency.
 
   Variable T: Type.
   Variable R: relation T.
@@ -184,3 +197,182 @@ Section ListNormalization.
   Qed.
 
 End ListNormalization.
+
+Section BarbedRelations.
+
+  Variable T: Type.
+  Variable L: Type.
+  Variable C: Type.
+
+  Variable R: relation T.
+  Variable P: T -> L -> Prop.
+
+  Hypothesis apply: C -> T -> T.
+
+  (* Set-theoretic definition of barbed relations. *)
+
+  Definition reduction_closed (S: relation T): Prop :=
+    forall a b,
+    S a b ->
+    forall c,
+    R a c ->
+    exists2 d,
+    rt(R) b d & S c d.
+
+  Definition barb_preserving (S: relation T): Prop :=
+    forall a b,
+    S a b ->
+    forall n,
+    P a n -> comp rt(R) P b n.
+
+  Definition barbed_simulation (S: relation T): Prop :=
+    reduction_closed S /\ barb_preserving S.
+
+  Definition barbed_bisimulation (S: relation T): Prop :=
+    barbed_simulation S /\ barbed_simulation (transp S).
+
+  Definition barbed_bisimilarity: relation T :=
+    fun a b =>
+      exists2 S, barbed_bisimulation S & S a b.
+
+  Definition barbed_congruence a b: Prop :=
+    forall h,
+    barbed_bisimilarity (apply h a) (apply h b).
+
+  Lemma symmetric_barbed_simulation_is_bisimulation:
+    forall S,
+    barbed_simulation S ->
+    symmetric S ->
+    barbed_bisimulation S.
+  Proof.
+    intros; split.
+    - assumption.
+    - destruct H; split.
+      + unfold reduction_closed, transp; intros.
+        destruct H with a b c; firstorder.
+      + unfold barb_preserving, transp; intros.
+        firstorder.
+  Qed.
+
+  Lemma barbed_bisimilarity_is_a_bisimulation:
+    barbed_bisimulation barbed_bisimilarity.
+  Proof.
+    apply symmetric_barbed_simulation_is_bisimulation.
+    - split; do 5 intro.
+      + destruct H as (S, ((?, ?), ?), ?).
+        destruct H with a b c as (d, ?, ?); auto.
+        firstorder.
+      + destruct H as (S, ((?, ?), ?), ?).
+        firstorder.
+    - do 3 intro.
+      destruct H as (S, (?, ?), ?).
+      exists (transp S); firstorder.
+  Qed.
+
+  Lemma multistep_reduction_closed:
+    forall S,
+    reduction_closed S ->
+    forall a b,
+    S a b ->
+    forall c,
+    rt(R) a c ->
+    exists2 d,
+    rt(R) b d & S c d.
+  Proof.
+    intros.
+    generalize b H0; clear b H0.
+    induction H1; simpl; intros.
+    - eapply H; eauto.
+    - exists b; auto with cps.
+    - destruct IHclos_refl_trans1 with b as (w, ?, ?); auto.
+      destruct IHclos_refl_trans2 with w as (v, ?, ?); auto.
+      exists v; eauto with cps.
+  Qed.
+
+  Lemma barbed_bisimilarity_refl:
+    reflexive barbed_bisimilarity.
+  Proof.
+    (* We can show that identity is a barbed bisimulation. *)
+    exists eq.
+    - apply symmetric_barbed_simulation_is_bisimulation.
+      + split; do 5 intro.
+        * destruct H; eauto with cps.
+        * destruct H; eauto with cps.
+      + firstorder.
+    - reflexivity.
+  Qed.
+
+  Lemma barbed_bisimilarity_sym:
+    symmetric barbed_bisimilarity.
+  Proof.
+    (* Since there's a bisimulation S, its inverse is one as well. *)
+    destruct 1 as (S, (?, ?), ?).
+    exists (transp S).
+    - split; auto.
+    - assumption.
+  Qed.
+
+  Lemma barbed_bisimilarity_trans:
+    transitive barbed_bisimilarity.
+  Proof.
+    (* Given S1 and S2 that are bisimulations, so is (S1; S2). *)
+    destruct 1 as (S1, (?, ?), ?).
+    destruct 1 as (S2, (?, ?), ?).
+    exists (comp S1 S2).
+    - clear x y z H1 H4.
+      split; split; do 5 intro.
+      + destruct H1 as (d, ?, ?).
+        destruct H as (?, _).
+        destruct H2 as (?, _).
+        destruct H with a d c as (x, ?, ?); auto.
+        edestruct multistep_reduction_closed as (y, ?, ?); eauto.
+        exists y; auto.
+        exists x; auto.
+      + destruct H1 as (d, ?, ?).
+        destruct H as (_, ?).
+        destruct H2 as (?, ?).
+        destruct H with a d n as (x, ?, ?); auto.
+        edestruct multistep_reduction_closed as (y, ?, ?); eauto.
+        destruct H6 with x y n as (z, ?, ?); auto.
+        exists z; eauto with cps.
+      + destruct H1 as (d, ?, ?).
+        destruct H0 as (?, _).
+        destruct H3 as (?, _).
+        destruct H3 with a d c as (x, ?, ?); auto.
+        edestruct multistep_reduction_closed with (S := transp S1) as (y, ?, ?);
+          eauto.
+        exists y; auto.
+        exists x; auto.
+      + destruct H1 as (d, ?, ?).
+        destruct H0 as (?, ?).
+        destruct H3 as (_, ?).
+        destruct H3 with a d n as (x, ?, ?); auto.
+        edestruct multistep_reduction_closed with (S := transp S1) as (y, ?, ?);
+          eauto.
+        destruct H6 with x y n as (z, ?, ?); auto.
+        exists z; eauto with cps.
+    - firstorder.
+  Qed.
+
+  Lemma barbed_congruence_refl:
+    reflexive barbed_congruence.
+  Proof.
+    intros x h.
+    apply barbed_bisimilarity_refl.
+  Qed.
+
+  Lemma barbed_congruence_sym:
+    symmetric barbed_congruence.
+  Proof.
+    intros x y ? h.
+    apply barbed_bisimilarity_sym; auto.
+  Qed.
+
+  Lemma barbed_congruence_trans:
+    transitive barbed_congruence.
+  Proof.
+    intros x y z ? ? h.
+    eapply barbed_bisimilarity_trans; eauto.
+  Qed.
+
+End BarbedRelations.
