@@ -118,6 +118,79 @@ Proof.
   - exact barb_bind_right.
 Defined.
 
+Goal
+  forall R,
+  barbed_simulation step converges R ->
+  barbed_simulation step converges (transp R) ->
+  barbed_simulation step converges rst(R).
+Proof.
+  split.
+  - do 3 intro.
+    assert ((forall c, [a =>* c] -> exists2 d, [b =>* d] & rst(R) c d)
+         /\ (forall c, [b =>* c] -> exists2 d, [a =>* d] & rst(R) c d)).
+    + induction H1; split; intros.
+      * destruct H.
+        eapply multistep_reduction_closed with (S := R) in H2 as (d, ?, ?);
+          eauto.
+        exists d; auto with cps.
+      * destruct H0.
+        eapply multistep_reduction_closed with (S := transp R) in H2
+          as (d, ?, ?); eauto.
+        exists d; auto with cps.
+      * eauto with cps.
+      * eauto with cps.
+      * firstorder.
+      * firstorder.
+      * destruct IHclos_refl_sym_trans1.
+        destruct IHclos_refl_sym_trans2.
+        destruct H2 with c as (d, ?, ?); auto.
+        destruct H4 with d as (e, ?, ?); auto.
+        exists e; eauto with cps.
+      * destruct IHclos_refl_sym_trans1.
+        destruct IHclos_refl_sym_trans2.
+        destruct H5 with c as (d, ?, ?); auto.
+        destruct H3 with d as (e, ?, ?); auto.
+        exists e; eauto with cps.
+    + destruct H2.
+      induction H1; intros.
+      * eauto with cps.
+      * eauto with cps.
+      * eauto with cps.
+      * eauto with cps.
+  - do 4 intro.
+    assert ((weakly_converges a n -> weakly_converges b n)
+         /\ (weakly_converges b n -> weakly_converges a n)).
+    + induction H1; split; intros.
+      * destruct H.
+        destruct H2 as (z, ?, ?).
+        eapply multistep_reduction_closed in H1; eauto.
+        destruct H1 as (w, ?, ?).
+        apply H3 in H5.
+        destruct H5 with n as (k, ?, ?); auto.
+        exists k; eauto with cps.
+      * destruct H0.
+        destruct H2 as (z, ?, ?).
+        assert (transp R y x); eauto.
+        eapply multistep_reduction_closed in H5; eauto.
+        destruct H5 as (w, ?, ?).
+        apply H3 in H6.
+        destruct H6 with n as (k, ?, ?); auto.
+        exists k; eauto with cps.
+      * assumption.
+      * assumption.
+      * firstorder.
+      * firstorder.
+      * firstorder.
+      * firstorder.
+    + destruct H2.
+      induction H1; intros.
+      * unfold weakly_converges in H2, H3.
+        eauto with cps.
+      * apply H2; eexists; eauto with cps.
+      * apply H2; eexists; eauto with cps.
+      * destruct H2 as (w, ?, ?); eexists; eauto with cps.
+Qed.
+
 Theorem barb_cong:
   forall a b,
   [a == b] -> [a ~~ b].
