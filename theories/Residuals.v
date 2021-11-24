@@ -1324,9 +1324,9 @@ Fixpoint redexes_mark_count k r: nat :=
 
 Fixpoint redexes_mark_count_total r: nat :=
   match r with
-  | redexes_jump true f _ =>
+  | redexes_jump true f xs =>
     1
-  | redexes_placeholder f _ =>
+  | redexes_placeholder f xs =>
     1
   | redexes_bind b ts c =>
     redexes_mark_count_total b + redexes_mark_count_total c
@@ -1518,7 +1518,6 @@ Lemma residuals_full_preserve_no_mark:
   forall b c,
   residuals_full a b c ->
   forall g,
-  regular g a ->
   regular g b ->
   redexes_mark_count_total c = 0.
 Proof.
@@ -2031,12 +2030,12 @@ Definition parallel: relation pseudoterm :=
     exists2 r, residuals_full (mark a) r (mark b) & regular [] r.
 
 Goal
-  confluent parallel.
+  diamond parallel.
 Proof.
-  unfold confluent, commut, transp; intros.
+  unfold diamond, commut, transp; intros.
   destruct H as (r, (x', ?, ?), ?).
   destruct H0 as (p, (y', ?, ?), ?).
-  destruct paving with (mark y) r x' p y' as [pr rp w ? ? ? ?]; auto.
+  destruct paving with (mark y) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
   (* We know w has no marks! *)
   exists (unmark (redexes_full w)).
   - exists (redexes_full pr).

@@ -46,10 +46,10 @@ Arguments transitive {A}.
 
 Global Hint Unfold transitive: cps.
 
-Definition confluent {T} (R: relation T): Prop :=
+Definition diamond {T} (R: relation T): Prop :=
   commut R (transp R).
 
-Global Hint Unfold confluent: cps.
+Global Hint Unfold diamond: cps.
 
 Definition comp {A} {B} {C} R S: A -> C -> Prop :=
   fun a c =>
@@ -63,6 +63,9 @@ Section Confluency.
   Variable T: Type.
   Variable R: relation T.
 
+  Definition confluent: Prop :=
+    diamond rt(R).
+
   Definition church_rosser: Prop :=
     forall x y,
     rst(R) x y ->
@@ -70,31 +73,26 @@ Section Confluency.
     rt(R) x z & rt(R) y z.
 
   Lemma strip_lemma:
-    forall confluency: confluent R,
-    commut t(R) (transp R).
+    diamond R -> commut t(R) (transp R).
   Proof.
     induction 2; intros.
     (* Case: step. *)
-    - destruct confluency with y x z as (w, ?, ?); auto.
-      exists w; auto.
-      apply t_step; auto.
+    - destruct H with y x z as (w, ?, ?); auto.
+      exists w; auto with cps.
     (* Case: trans. *)
     - rename z0 into w.
       destruct IHclos_trans1 with w as (v, ?, ?); auto.
       destruct IHclos_trans2 with v as (u, ?, ?); auto.
-      exists u; auto.
-      apply t_trans with v; auto.
+      exists u; eauto with cps.
   Qed.
 
-  Lemma transitive_closure_preserves_confluency:
-    forall confluency: confluent R,
-    confluent t(R).
+  Lemma transitive_closure_preserves_diamond:
+    diamond R -> diamond t(R).
   Proof.
     induction 2; intros.
     (* Case: step. *)
     - destruct strip_lemma with z x y as (w, ?, ?); auto.
-      exists w; auto.
-      apply t_step; auto.
+      exists w; auto with cps.
     (* Case: tran. *)
     - rename z0 into w.
       destruct IHclos_trans1 with w as (v, ?, ?); auto.
@@ -102,8 +100,8 @@ Section Confluency.
       exists u; eauto with cps.
   Qed.
 
-  Lemma confluency_implies_church_rosser:
-    confluent rt(R) -> church_rosser.
+  Lemma confluence_implies_church_rosser:
+    confluent -> church_rosser.
   Proof.
     induction 2.
     (* Case: step. *)
@@ -252,7 +250,7 @@ Section BarbedRelations.
         destruct H with a b c; firstorder.
       + unfold barb_preserving, transp; intros.
         firstorder.
-  Qed.
+  Qed.  
 
   Lemma barbed_bisimilarity_is_a_bisimulation:
     barbed_bisimulation barbed_bisimilarity.

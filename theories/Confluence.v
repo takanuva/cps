@@ -154,13 +154,13 @@ Proof.
     + eauto with cps.
 Qed.
 
-(** ** Confluency *)
+(** ** Confluence *)
 
 (* TODO: can't seem to finish the proof below as it is, the induction seems too
    weak... it should be possible to use the cube lemma to finish it, though. *)
 
-Lemma parallel_is_confluent:
-  confluent parallel.
+Lemma parallel_has_diamond:
+  diamond parallel.
 Proof.
   induction 1; unfold transp; intros.
   - exists z.
@@ -205,26 +205,25 @@ Proof.
       eexists (bind b4 ts c4); auto with cps.
 Admitted.
 
-Lemma transitive_parallel_is_confluent:
-  confluent t(parallel).
+Lemma transitive_parallel_has_diamond:
+  diamond t(parallel).
 Proof.
-  apply transitive_closure_preserves_confluency.
-  exact parallel_is_confluent.
+  apply transitive_closure_preserves_diamond.
+  exact parallel_has_diamond.
 Qed.
 
 Lemma transitive_parallel_and_star_are_equivalent:
-  forall a b,
-  [a =>* b] <-> t(parallel) a b.
+  same_relation t(parallel) star.
 Proof.
   split; induction 1; eauto with cps.
 Qed.
 
-Theorem star_is_confluent:
-  confluent star.
+Theorem step_is_confluent:
+  confluent step.
 Proof.
   compute; intros.
   (* We apply a simple strip lemma here. *)
-  destruct transitive_parallel_is_confluent with x y z as (w, ?, ?).
+  destruct transitive_parallel_has_diamond with x y z as (w, ?, ?).
   - apply transitive_parallel_and_star_are_equivalent; auto.
   - apply transitive_parallel_and_star_are_equivalent; auto.
   - exists w.
@@ -236,6 +235,6 @@ Corollary step_is_church_rosser:
   church_rosser step.
 Proof.
   compute; intros.
-  apply confluency_implies_church_rosser; auto.
-  exact star_is_confluent.
+  apply confluence_implies_church_rosser; auto.
+  exact step_is_confluent.
 Qed.

@@ -8,7 +8,7 @@ theories/Context.v
 theories/Axiomatic.v
 theories/Reduction.v
 theories/Residuals.v
-theories/Confluency.v
+theories/Confluence.v
 theories/Observational.v
 theories/Transition.v
 theories/TypeSystem.v
