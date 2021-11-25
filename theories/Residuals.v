@@ -1078,6 +1078,8 @@ Proof.
   + eapply regular_tail in IHe2; eauto.
 Qed.
 
+Global Hint Resolve regular_mark_term: cps.
+
 Lemma regular_single_jump:
   forall h g xs,
   regular (g ++ [Some (length xs)])
@@ -1160,6 +1162,8 @@ Proof.
     dependent destruction H2.
     constructor; auto.
 Qed.
+
+Global Hint Resolve residuals_preserve_regular: cps.
 
 Lemma redexes_flow_regular_simplification:
   forall g x,
@@ -1245,6 +1249,8 @@ Proof.
     + apply redexes_flow_preserve_regular with (h := []); auto.
     + assumption.
 Qed.
+
+Global Hint Resolve redexes_full_preserves_regular: cps.
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: organize this file. So far, everything above is used to prove that   *)
@@ -1461,19 +1467,6 @@ Proof.
       apply IHresiduals1; lia.
 Qed.
 *)
-
-Lemma residuals_full_preserve_no_mark:
-  forall a,
-  redexes_mark_count_total a = 0 ->
-  forall b c,
-  residuals_full a b c ->
-  forall g,
-  regular g b ->
-  redexes_mark_count_total c = 0.
-Proof.
-  (* Hmm, by the structure and number of marks in b? *)
-  admit.
-Admitted.
 
 Lemma redexes_mark_leaves_unmarked:
   forall e k,
@@ -1827,7 +1820,7 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Goal
+Lemma mark_unmark_is_sound_given_no_marks:
   forall e,
   redexes_mark_count_total e = 0 ->
   e = mark (unmark e).
@@ -1847,3 +1840,18 @@ Proof.
     rewrite <- IHe2; try lia.
     reflexivity.
 Qed.
+
+Lemma residuals_full_preserve_no_mark:
+  forall b,
+  regular [] b ->
+  forall a,
+  redexes_mark_count_total a = 0 ->
+  forall c,
+  residuals_full a b c ->
+  redexes_mark_count_total c = 0.
+Proof.
+  intros.
+  destruct H1 as (c', ?, ?).
+  (* Hmm, by the structure and number of marks in b? *)
+  admit.
+Admitted.

@@ -211,7 +211,8 @@ Admitted.
 
 Definition parallel: relation pseudoterm :=
   fun a b =>
-    exists2 r, residuals_full (mark a) r (mark b) & regular [] r.
+    exists2 r,
+    residuals_full (mark a) r (mark b) & regular [] r.
 
 Lemma parallel_refl:
   forall e,
@@ -427,29 +428,30 @@ Proof.
   destruct H as (r, (x', ?, ?), ?).
   destruct H0 as (p, (y', ?, ?), ?).
   destruct paving with (mark y) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
-  (* We know w has no marks! *)
-  exists (unmark (redexes_full w)).
-  - exists (redexes_full pr).
+  assert (regular [] pr); eauto with cps.
+  assert (regular [] rp); eauto with cps.
+  assert (regular [] x'); eauto with cps.
+  assert (regular [] y'); eauto with cps.
+  (* We know the development of w has no marks! *)
+  assert (redexes_mark_count_total (redexes_full w) = 0).
+  - apply residuals_full_preserve_no_mark with (redexes_full pr) (mark x).
+    + auto with cps.
+    + apply redexes_mark_count_total_mark_is_zero.
     + rewrite <- H1.
-      apply residuals_partial_full_application with (g := []).
-      * exists w; auto.
-        admit.
-      * eapply residuals_preserve_regular; eauto.
-        apply regular_mark_term.
-      * eapply residuals_preserve_regular; eauto.
-    + apply redexes_full_preserves_regular.
-      eapply residuals_preserve_regular; eauto.
-  - exists (redexes_full rp).
-    + rewrite <- H3.
-      apply residuals_partial_full_application with (g := []).
-      * exists w; auto.
-        admit.
-      * eapply residuals_preserve_regular; eauto.
-        apply regular_mark_term.
-      * eapply residuals_preserve_regular; eauto.
-    + apply redexes_full_preserves_regular.
-      eapply residuals_preserve_regular; eauto.
-Admitted.
+      eapply residuals_partial_full_application; eauto.
+      exists w; auto.
+  - exists (unmark (redexes_full w)).
+    + exists (redexes_full pr); auto with cps.
+      rewrite <- H1.
+      eapply residuals_partial_full_application; eauto.
+      exists w; auto.
+      rewrite <- mark_unmark_is_sound_given_no_marks; auto.
+    + exists (redexes_full rp); auto with cps.
+      rewrite <- H3.
+      eapply residuals_partial_full_application; eauto.
+      exists w; auto.
+      rewrite <- mark_unmark_is_sound_given_no_marks; auto.
+Qed.
 
 Lemma transitive_parallel_has_diamond:
   diamond t(parallel).
@@ -470,11 +472,15 @@ Proof.
   compute; intros.
   (* We apply a simple strip lemma here. *)
   destruct transitive_parallel_has_diamond with x y z as (w, ?, ?).
-  - apply transitive_parallel_and_star_are_equivalent; auto.
-  - apply transitive_parallel_and_star_are_equivalent; auto.
+  - apply transitive_parallel_and_star_are_equivalent.
+    assumption.
+  - apply transitive_parallel_and_star_are_equivalent.
+    assumption.
   - exists w.
-    + apply transitive_parallel_and_star_are_equivalent; auto.
-    + apply transitive_parallel_and_star_are_equivalent; auto.
+    + apply transitive_parallel_and_star_are_equivalent.
+      assumption.
+    + apply transitive_parallel_and_star_are_equivalent.
+      assumption.
 Qed.
 
 Corollary step_is_church_rosser:
