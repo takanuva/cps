@@ -11,8 +11,6 @@ Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
 Require Import Local.Reduction.
-(* TODO: logic on confluence should be moved there! *)
-(* Require Import Local.Confluency. *)
 
 (** ** Residuals *)
 
@@ -1248,61 +1246,11 @@ Proof.
     + assumption.
 Qed.
 
-Lemma residuals_full_step:
-  forall a b,
-  [a => b] ->
-  exists2 r,
-  residuals_full (mark a) r (mark b) & regular [] r.
-Proof.
-  induction 1.
-  - simpl.
-    do 2 rewrite <- mark_context_is_sound; simpl.
-    eexists (redexes_bind (mark_context h (redexes_jump true #h xs)) ts (mark c)).
-    + eexists (redexes_bind (mark_context h (redexes_placeholder #h xs)) ts (mark c)).
-      * generalize #h.
-        constructor.
-        induction h; simpl; auto with cps.
-        apply residuals_mark_term.
-      * simpl.
-        rewrite redexes_full_mark_equals_mark.
-        f_equal.
-        rewrite redexes_full_redexes_context_simplification; auto.
-        rewrite redexes_flow_redexes_context; simpl.
-        f_equal.
-        destruct (Nat.eq_dec #h #h); try lia.
-        destruct (Nat.eq_dec (length ts) (length xs)); try lia.
-        rewrite redexes_lift_is_sound.
-        rewrite redexes_apply_parameters_is_sound.
-        rewrite H; reflexivity.
-    + constructor.
-      * rewrite <- H.
-        apply regular_single_jump with (g := []).
-      * apply regular_mark_term.
-  - destruct IHstep as (p, (b2', ?, ?), ?).
-    exists (redexes_bind p ts (mark c)); simpl.
-    + exists (redexes_bind b2' ts (mark c)); simpl.
-      * constructor; auto.
-        apply residuals_mark_term.
-      * f_equal.
-        rewrite H1.
-        rewrite redexes_flow_mark_equals_mark; auto.
-        rewrite redexes_full_mark_equals_mark; auto.
-    + constructor.
-      * eapply regular_tail in H2; eauto.
-      * apply regular_mark_term.
-  - destruct IHstep as (p, (c2', ?, ?), ?).
-    exists (redexes_bind (mark b) ts p); simpl.
-    + exists (redexes_bind (mark b) ts c2'); simpl.
-      * constructor; auto.
-        apply residuals_mark_term.
-      * f_equal.
-        rewrite redexes_full_mark_equals_mark; auto.
-        rewrite redexes_flow_mark_equals_mark; auto.
-        assumption.
-    + constructor.
-      * apply regular_mark_term.
-      * eapply regular_tail in H2; eauto.
-Qed.
+(* -------------------------------------------------------------------------- *)
+(* TODO: organize this file. So far, everything above is used to prove that   *)
+(* parallel includes step. Everything below is needed to prove that star      *)
+(* includes parallel. There might be a few unused lemmas I forgot to remove.  *)
+(* -------------------------------------------------------------------------- *)
 
 Fixpoint redexes_mark_count k r: nat :=
   match r with
@@ -1487,7 +1435,8 @@ Proof.
       rewrite plus_comm; lia.
 Qed.
 
-(*Lemma residuals_preserve_no_mark:
+(*
+Lemma residuals_preserve_no_mark:
   forall a b c,
   residuals a b c ->
   forall k,
@@ -1510,7 +1459,8 @@ Proof.
     + apply IHresiduals2; lia.
     + symmetry.
       apply IHresiduals1; lia.
-Qed.*)
+Qed.
+*)
 
 Lemma residuals_full_preserve_no_mark:
   forall a,
@@ -1521,7 +1471,7 @@ Lemma residuals_full_preserve_no_mark:
   regular g b ->
   redexes_mark_count_total c = 0.
 Proof.
-  (* Hmm, by the number of marks in b? *)
+  (* Hmm, by the structure and number of marks in b? *)
   admit.
 Admitted.
 
@@ -1875,131 +1825,6 @@ Proof.
       lia.
 Qed.
 
-Lemma star_residuals_full:
-  forall r a b,
-  residuals_full (mark a) r (mark b) ->
-  regular [] r ->
-  [a =>* b].
-Proof.
-  intros until 1.
-  destruct H as (b', ?, ?).
-  generalize dependent b'.
-  generalize a b; clear a b.
-  induction r using redexes_structural_mark_ind; intros.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    dependent destruction H0;
-    auto with cps.
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    dependent destruction H0;
-    auto with cps.
-  - dependent destruction H.
-    + destruct a; try discriminate.
-      destruct b; try discriminate.
-      dependent destruction H0.
-      auto with cps.
-    + exfalso.
-      inversion H1.
-      inversion H4.
-  - exfalso.
-    dependent destruction H.
-    destruct a; discriminate.
-  - dependent destruction H0.
-    destruct a; try discriminate.
-    destruct b; try discriminate.
-    dependent destruction x.
-    dependent destruction H1.
-    dependent destruction H2.
-    rewrite app_nil_r in H2_0.
-    apply regular_ignore_unused_tail with (g := []) in H2_0.
-    apply star_trans with (bind a1 ts1 b4).
-    + apply star_bind_right.
-      eapply IHr2; eauto.
-    + assert (exists n, redexes_mark_count 0 r1 = n) as (n, ?); eauto.
-      destruct n.
-      * clear H.
-        apply star_bind_left.
-        (* TODO: refactor me please. *)
-        apply regular_ignore_unmarked_tail with (g := []) in H2_; auto.
-        eapply IHr1; eauto.
-        eapply redexes_flow_ignore_unused_mark; eauto.
-        eapply regular_doesnt_jump_to_free_vars.
-        --- eapply redexes_full_preserves_regular.
-            eapply residuals_preserve_regular; eauto.
-            apply regular_mark_term.
-        --- simpl; lia.
-      * (* TODO: refactor this mess please! *)
-        edestruct positive_mark_count_implies_context with (k := 0) (b := r1)
-          as (h, (s, (xs, ?))); eauto; try lia.
-        simpl in H1.
-        destruct H1 as (?, (?, ?)).
-        dependent destruction H2.
-        dependent destruction H3.
-        (* ... *)
-        rewrite <- mark_context_is_sound in H0_.
-        edestruct residuals_preserve_hole as (t, (e, (?, (?, ?)))); eauto.
-        dependent destruction H3.
-        dependent destruction H4.
-        eapply star_trans.
-        --- apply star_ctxjmp.
-            eapply regular_jump_imply_correct_arity with (g := []);
-              simpl; eauto.
-            f_equal; apply mark_context_bvars_and_path_are_sound; auto.
-        --- eapply H with (x := redexes_bind (s (mark _)) _ (mark b4)); simpl.
-            +++ rewrite redexes_mark_count_total_mark_is_zero.
-                rewrite Nat.add_0_r.
-                apply Nat.lt_lt_add_r.
-                apply redexes_mark_count_total_lt_context.
-                rewrite redexes_mark_count_total_mark_is_zero.
-                simpl; auto.
-            +++ constructor.
-                *** rewrite <- mark_context_is_sound.
-                    eapply residuals_replacing_hole; eauto.
-                    apply residuals_mark_term.
-                *** apply residuals_mark_term.
-            +++ simpl; f_equal.
-                *** symmetry in x0; destruct x0.
-                    rewrite redexes_full_mark_equals_mark.
-                    apply mark_context_bvars_and_path_are_sound in H1.
-                    apply mark_context_bvars_and_path_are_sound in H2.
-                    apply regular_jump_imply_correct_arity
-                      with (g := []) in H2_; auto.
-                    rewrite <- H2_ in x |- *.
-                    apply redexes_flow_preserved_by_single_unmarked_jump; auto.
-                *** apply redexes_full_mark_equals_mark.
-            +++ constructor.
-                *** eapply regular_preserved_replacing_jump_by_mark
-                      with (g := []); eauto.
-                    simpl; f_equal.
-                    apply mark_context_bvars_and_path_are_sound; auto.
-                *** apply regular_mark_term.
-Qed.
-
 (* -------------------------------------------------------------------------- *)
 
 Goal
@@ -2022,40 +1847,3 @@ Proof.
     rewrite <- IHe2; try lia.
     reflexivity.
 Qed.
-
-Require Import AbstractRewriting.
-
-Definition parallel: relation pseudoterm :=
-  fun a b =>
-    exists2 r, residuals_full (mark a) r (mark b) & regular [] r.
-
-Goal
-  diamond parallel.
-Proof.
-  unfold diamond, commut, transp; intros.
-  destruct H as (r, (x', ?, ?), ?).
-  destruct H0 as (p, (y', ?, ?), ?).
-  destruct paving with (mark y) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
-  (* We know w has no marks! *)
-  exists (unmark (redexes_full w)).
-  - exists (redexes_full pr).
-    + rewrite <- H1.
-      apply residuals_partial_full_application with (g := []).
-      * exists w; auto.
-        admit.
-      * eapply residuals_preserve_regular; eauto.
-        apply regular_mark_term.
-      * eapply residuals_preserve_regular; eauto.
-    + apply redexes_full_preserves_regular.
-      eapply residuals_preserve_regular; eauto.
-  - exists (redexes_full rp).
-    + rewrite <- H3.
-      apply residuals_partial_full_application with (g := []).
-      * exists w; auto.
-        admit.
-      * eapply residuals_preserve_regular; eauto.
-        apply regular_mark_term.
-      * eapply residuals_preserve_regular; eauto.
-    + apply redexes_full_preserves_regular.
-      eapply residuals_preserve_regular; eauto.
-Admitted.
