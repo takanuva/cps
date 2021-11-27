@@ -829,6 +829,8 @@ Proof.
   reflexivity.
 Qed.
 
+Global Hint Resolve redexes_full_mark_equals_mark: cps.
+
 (* TODO: these definitions should probably be moved up. *)
 
 Definition residuals_full a b c: Prop :=
@@ -870,6 +872,17 @@ Lemma mark_context_is_sound:
 Proof.
   induction h; simpl; congruence.
 Qed.
+
+Lemma residuals_mark_context:
+  forall a b c,
+  residuals a b c ->
+  forall h,
+  residuals (mark_context h a) (mark_context h b) (mark_context h c).
+Proof.
+  induction h; simpl; auto with cps.
+Qed.
+
+Global Hint Resolve residuals_mark_context: cps.
 
 Inductive redexes_same_path: relation redexes_context :=
   | redexes_same_path_hole:
@@ -930,7 +943,7 @@ Proof.
     eapply IHredexes_same_path; eauto.
 Qed.
 
-Lemma redexes_flow_redexes_context:
+Lemma redexes_flow_mark_context_simplification:
   forall h c a k e,
   redexes_flow c a k (mark_context h e) =
     mark_context h (redexes_flow c a (k + #h) e).
@@ -947,7 +960,7 @@ Proof.
       lia.
 Qed.
 
-Lemma redexes_full_redexes_context_simplification:
+Lemma redexes_full_mark_context_simplification:
   forall h n,
   n >= #h ->
   forall xs,
@@ -958,7 +971,7 @@ Proof.
   - reflexivity.
   - f_equal.
     + rewrite IHh; try lia.
-      rewrite redexes_flow_redexes_context.
+      rewrite redexes_flow_mark_context_simplification.
       f_equal; simpl.
       destruct (Nat.eq_dec n #h); try lia.
       reflexivity.
@@ -1520,43 +1533,16 @@ Proof.
 Qed.
 
 Lemma residuals_partial_full_application:
-  forall x y z,
+  forall y,
+  regular [] y ->
+  forall x,
+  regular [] x ->
+  forall z,
   residuals_full x y z ->
-  forall g,
-  regular g x ->
-  regular g y ->
   residuals_full (redexes_full x) (redexes_full y) z.
 Proof.
-  intros until 1.
-  destruct H as (z', ?, ?).
-  generalize dependent z.
-  induction H; simpl; intros.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H0.
-    eexists; eauto with cps.
-  - dependent destruction H1.
-    dependent destruction H2.
-    dependent destruction H3.
-    edestruct IHresiduals1 as (b3', ?, ?); eauto.
-    edestruct IHresiduals2 as (c3', ?, ?); eauto.
-    clear IHresiduals1 IHresiduals2.
-    (* Hmm... what now...? *)
-    admit.
+  (* Hmm... *)
+  admit.
 Admitted.
 
 Lemma positive_mark_count_implies_context:

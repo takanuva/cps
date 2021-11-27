@@ -232,53 +232,61 @@ Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
 Proof.
+  (* By induction on the step. *)
   unfold parallel; induction 1.
+  (* Case: step_ctxjmp. *)
   - simpl.
+    (* The context can't have any jumps in it. *)
     do 2 rewrite <- mark_context_is_sound; simpl.
+    (* As the hole has a single jump, chose to mark only it. *)
     exists (redexes_bind (mark_context h (redexes_jump true #h xs))
       ts (mark c)).
-    + exists (redexes_bind (mark_context h (redexes_placeholder #h xs))
+    + (* The development will have a placeholder on its place. *)
+      exists (redexes_bind (mark_context h (redexes_placeholder #h xs))
         ts (mark c)).
-      * generalize #h.
-        constructor.
-        induction h; simpl; auto with cps.
-        apply residuals_mark_term.
-      * simpl.
+      * (* The only mark is sound. *)
+        auto with cps.
+      * (* And it's development results in our reduct. *)
+        simpl.
         rewrite redexes_full_mark_equals_mark.
         f_equal.
-        rewrite redexes_full_redexes_context_simplification; auto.
-        rewrite redexes_flow_redexes_context; simpl.
-        f_equal.
+        rewrite redexes_full_mark_context_simplification; auto.
+        rewrite redexes_flow_mark_context_simplification.
+        f_equal; simpl.
         destruct (Nat.eq_dec #h #h); try lia.
         destruct (Nat.eq_dec (length ts) (length xs)); try lia.
         rewrite redexes_lift_is_sound.
         rewrite redexes_apply_parameters_is_sound.
         rewrite H; reflexivity.
-    + constructor.
+    + (* Clearly the single jump is also regular. *)
+      constructor.
       * rewrite <- H.
         apply regular_single_jump with (g := []).
       * apply regular_mark_term.
+  (* Case: step_bind_left. *)
   - destruct IHstep as (p, (b2', ?, ?), ?).
+    (* As there's a single mark, on the left, use it. *)
     exists (redexes_bind p ts (mark c)); simpl.
-    + exists (redexes_bind b2' ts (mark c)); simpl.
-      * constructor; auto.
-        apply residuals_mark_term.
-      * f_equal.
-        rewrite H1.
+    + (* We know which will be the development. *)
+      exists (redexes_bind b2' ts (mark c)); simpl.
+      * constructor; auto with cps.
+      * rewrite H1.
+        f_equal; auto with cps.
         rewrite redexes_flow_mark_equals_mark; auto.
-        rewrite redexes_full_mark_equals_mark; auto.
     + constructor.
       * eapply regular_tail in H2; eauto.
       * apply regular_mark_term.
+  (* Case: step_bind_right. *)
   - destruct IHstep as (p, (c2', ?, ?), ?).
+    (* As there's a single mark, on the right, use it. *)
     exists (redexes_bind (mark b) ts p); simpl.
-    + exists (redexes_bind (mark b) ts c2'); simpl.
-      * constructor; auto.
-        apply residuals_mark_term.
-      * f_equal.
+    + (* Same thing as above, but on the right. *)
+      exists (redexes_bind (mark b) ts c2'); simpl.
+      * constructor; auto with cps.
+      * rewrite H1.
+        f_equal; auto with cps.
         rewrite redexes_full_mark_equals_mark; auto.
         rewrite redexes_flow_mark_equals_mark; auto.
-        assumption.
     + constructor.
       * apply regular_mark_term.
       * eapply regular_tail in H2; eauto.
