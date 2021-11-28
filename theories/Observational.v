@@ -191,7 +191,7 @@ Proof.
       * destruct H2 as (w, ?, ?); eexists; eauto with cps.
 Qed.
 
-Theorem barb_cong:
+Theorem barb_sema:
   forall a b,
   [a == b] -> [a ~~ b].
 Proof.
@@ -203,7 +203,7 @@ Corollary barb_conv:
   [a <=> b] -> [a ~~ b].
 Proof.
   intros.
-  apply barb_cong.
-  apply cong_conv.
+  apply barb_sema.
+  apply sema_conv.
   assumption.
 Qed.

@@ -514,7 +514,7 @@ Inductive not_free_context: nat -> context -> Prop :=
     not_free_context (k + length ts) c ->
     not_free_context k (context_right b ts c).
 
-Lemma cong_context:
+Lemma sema_context:
   forall (h: context) a b,
   [a == b] -> [h a == h b].
 Proof.
@@ -671,7 +671,7 @@ Proof.
   generalize dependent h.
   induction n; simpl; intros.
   - destruct h; try discriminate.
-    apply cong_eq; simpl; f_equal.
+    apply sema_eq; simpl; f_equal.
     + rewrite right_cycle_zero_e_equals_e; auto.
     + induction ts; simpl; auto.
       f_equal; auto.
@@ -679,15 +679,15 @@ Proof.
     + rewrite lift_zero_e_equals_e; auto.
   - destruct h; simpl in H; try lia.
     + dependent destruction H0; simpl.
-      eapply cong_trans;
-        [| eapply cong_trans ].
-      * apply cong_float_left; auto.
-      * apply cong_bind_left.
+      eapply sema_trans;
+        [| eapply sema_trans ].
+      * apply sema_float_left; auto.
+      * apply sema_bind_left.
         rewrite context_switch_bindings_is_sound.
         apply IHn; eauto.
         --- rewrite context_switch_bindings_depth; lia.
         --- admit.
-      * apply cong_eq; f_equal.
+      * apply sema_eq; f_equal.
         rewrite context_switch_bindings_bvars.
         rewrite Nat.add_0_r.
         rewrite context_remove_binding_switch_bindings_simplification.
@@ -702,15 +702,15 @@ Proof.
             rewrite lift_lift_simplification; try lia.
             f_equal; lia.
     + dependent destruction H0; simpl.
-      eapply cong_trans;
-        [| eapply cong_trans ].
-      * apply cong_float_right; auto.
-      * apply cong_bind_right.
+      eapply sema_trans;
+        [| eapply sema_trans ].
+      * apply sema_float_right; auto.
+      * apply sema_bind_right.
         rewrite context_right_cycle_is_sound.
         apply IHn; eauto.
         --- rewrite context_right_cycle_depth; lia.
         --- admit.
-      * apply cong_eq; f_equal.
+      * apply sema_eq; f_equal.
         --- admit.
         --- replace (context_remove_binding 0 (context_right_cycle
               (length ts0) 0 h)) with (context_subst 0 (length ts0) h).
@@ -779,8 +779,8 @@ Proof.
       apply IHh.
 Qed.
 
-Theorem cong_ctxjmp:
-  CTXJMP cong.
+Theorem sema_ctxjmp:
+  CTXJMP sema.
 Proof.
   unfold CTXJMP; intros.
   etransitivity;
@@ -789,23 +789,23 @@ Proof.
         [| etransitivity ] ] ].
   - rewrite technical1 with (k := 0); simpl.
     symmetry.
-    apply cong_contr.
-  - apply cong_bind_left.
+    apply sema_contr.
+  - apply sema_bind_left.
     apply float_free_continuation_into_context.
     (* Clearly. *)
     admit.
-  - apply cong_bind_left.
+  - apply sema_bind_left.
     rewrite context_lift_bvars.
     rewrite right_cycle_distributes_over_jump.
     rewrite right_cycle_bound_eq; auto.
     rewrite context_remove_binding_lift_simplification.
-    apply cong_context.
-    apply cong_recjmp.
+    apply sema_context.
+    apply sema_recjmp.
     do 2 rewrite map_length.
     do 2 rewrite traverse_list_length.
     assumption.
-  - apply cong_bind_left.
-    apply cong_context.
+  - apply sema_bind_left.
+    apply sema_context.
     rewrite traverse_list_length.
     do 2 rewrite map_length.
     rewrite lift_lift_simplification; try lia.
@@ -813,13 +813,13 @@ Proof.
     (* Upon careful inspection... *)
     replace (map (right_cycle #h 0) (map (lift 1 #h) xs)) with
       (map (lift 1 0) xs).
-    + apply cong_gc.
+    + apply sema_gc.
       admit.
     + clear H.
       induction xs; simpl; auto.
       f_equal; auto.
       rewrite right_cycle_lift_simplification; auto.
-  - apply cong_eq.
+  - apply sema_eq.
     f_equal; f_equal.
     unfold remove_binding.
     rewrite subst_distributes_over_apply_parameters.
@@ -834,35 +834,35 @@ Proof.
       f_equal; lia.
 Admitted.
 
-Corollary cong_step:
+Corollary sema_step:
   forall a b,
   [a => b] -> [a == b].
 Proof.
   induction 1.
-  - apply cong_ctxjmp.
+  - apply sema_ctxjmp.
     assumption.
-  - apply cong_bind_left.
+  - apply sema_bind_left.
     assumption.
-  - apply cong_bind_right.
+  - apply sema_bind_right.
     assumption.
 Qed.
 
-Global Hint Resolve cong_step: cps.
+Global Hint Resolve sema_step: cps.
 
-Corollary cong_star:
+Corollary sema_star:
   forall a b,
   [a =>* b] -> [a == b].
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_star: cps.
+Global Hint Resolve sema_star: cps.
 
-Corollary cong_conv:
+Corollary sema_conv:
   forall a b,
   [a <=> b] -> [a == b].
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_conv: cps.
+Global Hint Resolve sema_conv: cps.

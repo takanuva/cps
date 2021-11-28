@@ -115,14 +115,15 @@ Inductive struct: relation pseudoterm :=
 
 Global Hint Constructors struct: cps.
 
-(* We'll just define our structural congruence as the smallest relation closed
-   under the [struct] rules above. *)
+(* We'll just define the structural congruence, representing the axiomatic
+   semantics, as the smallest equivalence relation closed under the [struct]
+   rules above. *)
 
-Notation cong := rst(struct).
-Notation "[ a == b ]" := (cong a b)
+Notation sema := rst(struct).
+Notation "[ a == b ]" := (sema a b)
   (at level 0, a, b at level 200): type_scope.
 
-Lemma cong_eq:
+Lemma sema_eq:
   forall a b,
   a = b -> [a == b].
 Proof.
@@ -131,99 +132,99 @@ Proof.
   auto with cps.
 Qed.
 
-Lemma cong_refl:
+Lemma sema_refl:
   forall e,
   [e == e].
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_refl: cps.
+Global Hint Resolve sema_refl: cps.
 
-Lemma cong_sym:
+Lemma sema_sym:
   forall a b,
   [a == b] -> [b == a].
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_sym: cps.
+Global Hint Resolve sema_sym: cps.
 
-Lemma cong_trans:
+Lemma sema_trans:
   forall a b c,
   [a == b] -> [b == c] -> [a == c].
 Proof.
   eauto with cps.
 Qed.
 
-Global Hint Resolve cong_trans: cps.
+Global Hint Resolve sema_trans: cps.
 
-Lemma cong_struct:
+Lemma sema_struct:
   forall a b,
   struct a b -> [a == b].
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_struct: cps.
+Global Hint Resolve sema_struct: cps.
 
-Lemma cong_recjmp:
-  RECJMP cong.
+Lemma sema_recjmp:
+  RECJMP sema.
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_recjmp: cps.
+Global Hint Resolve sema_recjmp: cps.
 
-Lemma cong_distr:
-  DISTR cong.
+Lemma sema_distr:
+  DISTR sema.
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_distr: cps.
+Global Hint Resolve sema_distr: cps.
 
-Lemma cong_eta:
-  ETA cong.
+Lemma sema_eta:
+  ETA sema.
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_eta: cps.
+Global Hint Resolve sema_eta: cps.
 
-Lemma cong_gc:
-  GC cong.
+Lemma sema_gc:
+  GC sema.
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve cong_gc: cps.
+Global Hint Resolve sema_gc: cps.
 
-Lemma cong_bind_left:
-  LEFT cong.
+Lemma sema_bind_left:
+  LEFT sema.
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_bind_left: cps.
+Global Hint Resolve sema_bind_left: cps.
 
-Lemma cong_bind_right:
-  RIGHT cong.
+Lemma sema_bind_right:
+  RIGHT sema.
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_bind_right: cps.
+Global Hint Resolve sema_bind_right: cps.
 
-Instance cong_is_a_congruence: Congruence cong.
+Instance sema_is_a_congruence: Congruence sema.
 Proof.
   split.
   - split.
-    + exact cong_refl.
-    + exact cong_sym.
-    + exact cong_trans.
-  - exact cong_bind_left.
-  - exact cong_bind_right.
+    + exact sema_refl.
+    + exact sema_sym.
+    + exact sema_trans.
+  - exact sema_bind_left.
+  - exact sema_bind_right.
 Defined.
 
 (* Our (DISTR) rule is particularly annoying to do with de Bruijn indexes and it
@@ -254,7 +255,7 @@ Example ex2: pseudoterm :=
 
 Goal [ex1 == ex2].
 Proof.
-  apply cong_distr.
+  apply sema_distr.
   do 3 constructor.
 Qed.
 
@@ -406,7 +407,7 @@ Qed.
 
 Global Hint Resolve struct_lift: cps.
 
-Lemma cong_lift:
+Lemma sema_lift:
   forall a b,
   [a == b] ->
   forall i k,
@@ -415,7 +416,7 @@ Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_lift: cps.
+Global Hint Resolve sema_lift: cps.
 
 Lemma struct_subst:
   forall a b,
@@ -506,7 +507,7 @@ Qed.
 
 Global Hint Resolve struct_subst: cps.
 
-Lemma cong_subst:
+Lemma sema_subst:
   forall a b,
   [a == b] ->
   forall x k,
@@ -515,9 +516,9 @@ Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_subst: cps.
+Global Hint Resolve sema_subst: cps.
 
-Lemma cong_apply_parameters:
+Lemma sema_apply_parameters:
   forall xs k a b,
   [a == b] ->
   [apply_parameters xs k a == apply_parameters xs k b].
@@ -525,9 +526,9 @@ Proof.
   induction xs; eauto with cps.
 Qed.
 
-Global Hint Resolve cong_apply_parameters: cps.
+Global Hint Resolve sema_apply_parameters: cps.
 
-Lemma cong_right_cycle:
+Lemma sema_right_cycle:
   forall a b,
   [a == b] ->
   forall n k,
@@ -536,28 +537,28 @@ Proof.
   unfold right_cycle; auto with cps.
 Qed.
 
-Global Hint Resolve cong_right_cycle: cps.
+Global Hint Resolve sema_right_cycle: cps.
 
-Lemma cong_float_left:
-  FLOAT_LEFT cong.
+Lemma sema_float_left:
+  FLOAT_LEFT sema.
 Proof.
   unfold FLOAT_LEFT; intros.
-  eapply cong_trans.
-  - apply cong_distr; auto.
-  - apply cong_bind_right.
-    apply cong_struct; apply struct_gc_helper.
+  eapply sema_trans.
+  - apply sema_distr; auto.
+  - apply sema_bind_right.
+    apply sema_struct; apply struct_gc_helper.
     + admit.
     + admit.
 Admitted.
 
-Lemma cong_float_right:
-  FLOAT_RIGHT cong.
+Lemma sema_float_right:
+  FLOAT_RIGHT sema.
 Proof.
   unfold FLOAT_RIGHT; intros.
-  eapply cong_trans.
-  - apply cong_distr; auto.
-  - apply cong_bind_left.
-    apply cong_gc.
+  eapply sema_trans.
+  - apply sema_distr; auto.
+  - apply sema_bind_left.
+    apply sema_gc.
     admit.
 Admitted.
 
@@ -773,38 +774,38 @@ Qed.
   bindings' positions, "undoing" the (DISTR) we did, but it should still work.
 *)
 
-Theorem cong_contr:
-  CONTR cong.
+Theorem sema_contr:
+  CONTR sema.
 Proof.
   unfold CONTR; intros.
-  apply cong_sym.
+  apply sema_sym.
   (* Is there a more elegant way? *)
-  eapply cong_trans;
-    [| eapply cong_trans;
-      [| eapply cong_trans;
-        [| eapply cong_trans;
-          [| eapply cong_trans ] ] ] ].
-  - apply cong_bind_left.
-    apply cong_sym.
-    apply cong_eta with (ts := traverse_list (lift 1) 0 ts).
-  - apply cong_distr.
+  eapply sema_trans;
+    [| eapply sema_trans;
+      [| eapply sema_trans;
+        [| eapply sema_trans;
+          [| eapply sema_trans ] ] ] ].
+  - apply sema_bind_left.
+    apply sema_sym.
+    apply sema_eta with (ts := traverse_list (lift 1) 0 ts).
+  - apply sema_distr.
     induction ts; simpl.
     + constructor.
     + constructor; auto.
       rewrite traverse_list_length.
       apply lifting_more_than_n_makes_not_free_n; lia.
-  - apply cong_bind_right.
+  - apply sema_bind_right.
     rewrite traverse_list_length.
     rewrite lift_bound_ge; auto.
     rewrite Nat.add_0_r.
     rewrite right_cycle_distributes_over_jump.
     rewrite right_cycle_bound_eq; auto.
-    apply cong_recjmp.
+    apply sema_recjmp.
     rewrite map_length.
     rewrite traverse_list_length.
     apply sequence_length.
-  - apply cong_bind_right.
-    apply cong_gc.
+  - apply sema_bind_right.
+    apply sema_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
     rewrite sequence_length.
     rewrite lift_lift_simplification; try lia.
@@ -817,7 +818,7 @@ Proof.
        will actually change, as [M] is already equal to [lift 1 0 N] here (thus
        moving [N] left makes it equal to [M], and moving [M] right makes it
        equal to [N]). *)
-    apply cong_float_left.
+    apply sema_float_left.
     + rewrite traverse_list_length.
       apply lifting_more_than_n_makes_not_free_n; lia.
     + induction ts; auto with cps.
@@ -827,7 +828,7 @@ Proof.
       apply lifting_more_than_n_makes_not_free_n; lia.
   - (* The term is finally in the form [b { M } { N }], which is what we want,
        but we still need to prove that as the term form is a bit different. *)
-    apply cong_eq; f_equal.
+    apply sema_eq; f_equal.
     + f_equal.
       * apply switch_bindings_is_involutive.
       * induction ts; auto.
