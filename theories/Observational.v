@@ -45,8 +45,7 @@ Qed.
 
 (** ** Barbed relations *)
 
-Definition barb: relation pseudoterm :=
-  barbed_congruence step converges apply_context.
+Notation barb := (barbed_congruence step converges apply_context).
 
 Notation "[ a ~~ b ]" := (barb a b)
   (at level 0, a, b at level 200): type_scope.
@@ -84,7 +83,7 @@ Global Hint Resolve barb_trans: cps.
 Lemma barb_bind_left:
   LEFT barb.
 Proof.
-  unfold LEFT, barb; intros.
+  unfold LEFT; intros.
   set (r := context_left context_hole ts c).
   replace (bind b1 ts c) with (r b1); auto.
   replace (bind b2 ts c) with (r b2); auto.
@@ -97,7 +96,7 @@ Global Hint Resolve barb_bind_left: cps.
 Lemma barb_bind_right:
   RIGHT barb.
 Proof.
-  unfold RIGHT, barb; intros.
+  unfold RIGHT; intros.
   set (r := context_right b ts context_hole).
   replace (bind b ts c1) with (r c1); auto.
   replace (bind b ts c2) with (r c2); auto.
