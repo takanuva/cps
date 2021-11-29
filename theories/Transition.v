@@ -59,14 +59,6 @@ Inductive transition: label -> relation pseudoterm :=
       (bind (switch_bindings 0 a) us d)
       (bind (bind (switch_bindings 0 b) us d) ts c).
 
-Definition weak (l: label): relation pseudoterm :=
-  match l with
-  | label_tau =>
-    rt(transition label_tau)
-  | label_jmp k ts c =>
-    comp rt(transition label_tau) (transition l)
-  end.
-
 Inductive transition_label_jmp_invariant k ts c a b: Prop :=
   transition_label_jmp_invariant_ctor
     (h: context)
@@ -256,3 +248,17 @@ Proof.
   - exact transition_tau_head.
   - exact head_transition_tau.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma tau_eq_dec:
+  forall l,
+  { l = label_tau } + { l <> label_tau }.
+Proof.
+  induction l.
+  - left; reflexivity.
+  - right; discriminate.
+Defined.
+
+Definition weak (l: label): relation pseudoterm :=
+  weak_transition transition tau_eq_dec l.
