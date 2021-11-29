@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
 Require Import Equality.
 Require Import Relations.
 Require Import Local.Prelude.
@@ -24,8 +25,7 @@ Inductive converges: pseudoterm -> nat -> Prop :=
 Global Hint Constructors converges: cps.
 
 Definition weakly_converges a n: Prop :=
-  exists2 b,
-  [a =>* b] & converges b n.
+  comp star converges a n.
 
 Global Hint Unfold weakly_converges: cps.
 
@@ -42,6 +42,73 @@ Proof.
   - dependent destruction H0.
     firstorder.
 Qed.
+
+Lemma converges_context_inversion:
+  forall h,
+  static h ->
+  forall k xs n,
+  converges (h (jump (bound k) xs)) n ->
+  n = k - #h.
+Proof.
+  induction 1; simpl; intros.
+  - dependent destruction H.
+    lia.
+  - dependent destruction H0.
+    rename k0 into n.
+    assert (S n = k - #h).
+    + eapply IHstatic; eauto.
+    + lia.
+Qed.
+
+Lemma converges_jump_inversion:
+  forall (h: context) xs k,
+  converges (h (jump #h xs)) k ->
+  k > 0 ->
+  nonstatic h.
+Proof.
+  unfold nonstatic, not; intros.
+  assert (k = #h - #h).
+  - eapply converges_context_inversion; eauto.
+  - lia.
+Qed.
+
+Lemma converges_is_preserved_by_step:
+  forall a b,
+  [a => b] ->
+  forall n,
+  converges a n -> converges b n.
+Proof.
+  induction 1; intros.
+  - dependent destruction H0.
+    constructor.
+    assert (nonstatic h).
+    + eapply converges_jump_inversion; eauto.
+      lia.
+    + generalize dependent k.
+      generalize #h.
+      induction H1 using nonstatic_ind; simpl; intros.
+      * dependent destruction H0.
+        constructor; auto.
+      * dependent destruction H0.
+        constructor; auto.
+  - dependent destruction H0.
+    constructor; auto.
+  - dependent destruction H0.
+    constructor; auto.
+Qed.
+
+Global Hint Resolve converges_is_preserved_by_step: cps.
+
+Lemma converges_is_preserved_by_star:
+  forall a b,
+  [a =>* b] ->
+  forall n,
+  converges a n -> converges b n.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve converges_is_preserved_by_star: cps.
 
 (** ** Barbed relations *)
 
