@@ -99,17 +99,67 @@ Proof.
   admit.
 Admitted.
 
+(* A neutral term should not trigger a reduction interacting with its context.
+   So, e.g., in the lambda calculus, they are neither abstractions, which would
+   trigger a reduction with ([] x), nor <a, b>, which would trigger a reduction
+   with (pi1 []) or (pi2 []). Since the CPS calculus "works at a distance", we
+   need something that DOESN'T jump to a set of variables. Luckly, as we're only
+   dealing with static contexts, they appear in a row, and so this will work in
+   a de Bruijn setting. *)
+Inductive neutral: nat -> nat -> pseudoterm -> Prop :=
+  | neutral_jump:
+    forall k n f xs,
+    f < k \/ f >= k + n ->
+    neutral k n (jump f xs)
+  | neutral_bind:
+    forall k n b ts c,
+    neutral (S k) n b ->
+    neutral (k + length ts) n c ->
+    neutral k n (bind b ts c).
+
+Lemma neutral_weaken:
+  forall e p k n,
+  neutral p (k + n) e -> neutral (p + k) n e.
+Proof.
+  intros.
+  dependent induction H.
+  - constructor.
+    lia.
+  - rename k0 into p.
+    constructor; auto.
+    + apply IHneutral1; auto.
+    + replace (p + k + length ts) with (p + length ts + k); try lia.
+      apply IHneutral2; auto.
+Qed.
+
+Lemma neutral_context_invalid:
+  forall (h: context) k n xs,
+  n > 0 ->
+  ~neutral k n (h (jump (k + #h) xs)).
+Proof.
+  induction h; intros.
+  - simpl; intro.
+    dependent destruction H0.
+    lia.
+  - simpl; intro.
+    dependent destruction H0.
+    eapply IHh with (n := n) (k := S k); auto.
+    replace (S k + #h) with (k + S #h); try lia.
+    eassumption.
+  - simpl; intro.
+    dependent destruction H0.
+    eapply IHh with (n := n) (k := k + length ts); auto.
+    replace (k + length ts + #h) with (k + (#h + length ts)); try lia.
+    eassumption.
+Qed.
+
 Definition ARR ts (U V: pseudoterm -> Prop): pseudoterm -> Prop :=
   fun b =>
     forall c: pseudoterm,
     U c -> V (bind b ts c).
 
-(* A neutral term should not trigger a reduction interacting with its context.
-   E.g., in the lambda calculus, they are neither abstractions, which would
-   trigger a reduction with ([] x), nor <a, b>, which would trigger a reduction
-   with (pi1 []) or (pi2 []). Since the CPS calculus "works at a distance", we
-   would probably need something that DOESN'T jump to bound variables. *)
-Axiom neutral: env -> pseudoterm -> Prop.
+Definition cool (ts g: env) (e: pseudoterm): Prop :=
+  normal step e /\ neutral (length ts) (length g) e.
 
 (* TODO: interpret ~(G, b)... by subst? *)
 Definition L: env -> pseudoterm -> Prop :=
@@ -123,7 +173,7 @@ Definition L: env -> pseudoterm -> Prop :=
              care about jumps to variables which aren't bound in a continuation.
              This is similar to how we dealt with regular terms in the residuals
              theory. *)
-          neutral (ts ++ g) c /\ (f _ (count_arg H)) c)
+          cool ts g c /\ (f _ (count_arg H)) c)
             (f _ (count_ret H))
     (* By default... *)
     | _ =>
@@ -134,7 +184,7 @@ Definition L: env -> pseudoterm -> Prop :=
 Lemma L_composition:
   forall ts g,
   L (negation ts :: g) =
-    ARR ts (fun c => neutral (ts ++ g) c /\ L ts c) (L g).
+    ARR ts (fun c => cool ts g c /\ L ts c) (L g).
 Proof.
   intros.
   unfold L.
@@ -161,7 +211,7 @@ Record reducible g (P: candidate): Prop := {
     forall a,
     (* Since the CPS calculus seems to be non-erasing, do we really need to
        restrict ourselves to neutral terms here...? *)
-    neutral g a -> (forall b, [a => b] -> P b) -> P a
+    neutral 0 g a -> (forall b, [a => b] -> P b) -> P a
 }.
 
 Lemma cr2_star:
@@ -180,7 +230,7 @@ Lemma cr4:
   forall g P,
   reducible g P ->
   forall e,
-  normal step e -> neutral g e -> P e.
+  normal step e -> neutral 0 g e -> P e.
 Proof.
   intros.
   apply cr3 with g; intros.
@@ -202,51 +252,72 @@ Proof.
     assumption.
 Qed.
 
+Definition free_jump (ts g: env): pseudoterm :=
+  jump (length ts + length g) (low_sequence (length ts)).
+
+Lemma reducible_isnt_empty:
+  forall R ts g,
+  reducible (length ts) R ->
+  exists2 c,
+  R c & cool ts g c.
+Proof.
+  intros.
+  exists (free_jump ts g).
+  - apply cr4 with (length ts).
+    + assumption.
+    + do 2 intro.
+      inversion H0.
+    + constructor.
+      lia.
+  - split.
+    + do 2 intro.
+      inversion H0.
+    + constructor.
+      lia.
+Qed.
+
 Lemma reducible_ARR:
   forall g ts,
-  reducible g (L g) ->
-  reducible ts (L ts) ->
-  reducible (negation ts :: g) (L (negation ts :: g)).
+  reducible (length g) (L g) ->
+  reducible (length ts) (L ts) ->
+  reducible (length (negation ts :: g)) (L (negation ts :: g)).
 Proof.
   constructor; intros.
   - rewrite L_composition in H1.
     unfold ARR in H1.
-    assert (exists2 c, L ts c & neutral (ts ++ g) c).
-    + (* We should add a free jump here, right...? *)
-      admit.
-    + destruct H2 as (c, ?, ?).
-      apply SN_bind_left with ts c.
-      apply cr1 with g (L g); auto.
+    destruct reducible_isnt_empty with (L ts) ts g as (c, ?, ?); auto.
+    (* As in the lambda calculus... but instead of a variable, a free jump. *)
+    apply SN_bind_left with ts c.
+    apply cr1 with (length g) (L g); auto.
   - rewrite L_composition in H1 |- *.
     unfold ARR in H1 |- *; intros.
-    apply cr2 with g (bind a ts c); auto.
+    apply cr2 with (length g) (bind a ts c); auto.
     auto with cps.
   - rewrite L_composition in H2 |- *.
     unfold ARR in H2 |- *; intros.
-    destruct H3.
-    assert (SN step c).
-    + eapply cr1 with ts (L ts); auto.
-    + induction H5; clear H5.
-      unfold transp in H6.
-      apply cr3 with g; intros.
-      * assumption.
-      * (* NOW this seems correct to me! Check H1 and H3... *)
-        admit.
-      * dependent destruction H5.
-        --- (* It is neutral, so we CAN'T have a redex here! *)
-            exfalso.
-            (* We can derive that from H1! *)
-            admit.
-        --- apply H2; auto.
-        --- apply H6; auto.
-            +++ (* Sure, from H3 and H5... *)
-                admit.
-            +++ apply cr2 with ts x; auto.
-Admitted.
+    destruct H3 as ((?, ?), ?).
+    (* No need to do induction over SN step c as in the lambda calculus: it's
+       already cool down in normal form! *)
+    apply cr3 with (length g); intros.
+    + assumption.
+    + (* NOW this seems correct to me! Check H1 and H4... *)
+      constructor; auto.
+      apply neutral_weaken with (p := 0); auto.
+    + dependent destruction H6.
+      * (* It is neutral, so we CAN'T have a redex here! *)
+        exfalso.
+        eapply neutral_context_invalid with
+          (k := 0) (n := S (length g)) (h := h); try lia.
+        eassumption.
+      * apply H2; firstorder.
+      * (* In the lambda calculus we'd use cr2 here. *)
+        exfalso.
+        firstorder.
+Qed.
 
 Lemma reducible_L:
   forall g,
-  reducible g (L g).
+  reducible (length g) (L g).
 Proof.
   intros.
   induction sumup_count_is_well_founded with g.
@@ -275,7 +346,7 @@ Lemma SN_L:
   L g e -> SN step e.
 Proof.
   intros.
-  apply cr1 with g (L g); auto.
+  apply cr1 with (length g) (L g); auto.
   apply reducible_L.
 Qed.
 
@@ -298,7 +369,6 @@ Proof.
   destruct H.
   destruct H0.
   destruct H1.
-  rewrite app_nil_r in H1.
   unfold L.
   rewrite Fix_eq; [|
     intros;
@@ -330,3 +400,26 @@ Proof.
   - admit.
 Admitted.
 *)
+
+Theorem strong_normalization:
+  forall g e,
+  typing g e void -> SN step e.
+Proof.
+  intros.
+  eapply cr1.
+  - apply reducible_L.
+  - (* We use the fundamental lemma here. *)
+    admit.
+Admitted.
+
+Corollary consistency:
+  forall e,
+  ~typing [] e void.
+Proof.
+  do 2 intro.
+  assert (SN step e).
+  - apply strong_normalization with [].
+    assumption.
+  - (* It is closed, so it can't be normalizable! *)
+    admit.
+Admitted.
