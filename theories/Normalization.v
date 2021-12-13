@@ -380,13 +380,9 @@ Proof.
   admit.
 Admitted.
 
-(*
 Lemma fundamental:
   forall e g,
-  typing g e void ->
-  forall cs,
-  Forall2 L g cs ->
-  SN (beta cs 0 e).
+  typing g e void -> L g e.
 Proof.
   induction e; inversion_clear 1.
   (* Case: bound. *)
@@ -397,9 +393,11 @@ Proof.
   - clear IHe.
     admit.
   (* Case: bind. *)
-  - admit.
+  - specialize (IHe1 (negation ts :: g) H0).
+    specialize (IHe2 (ts ++ g) H2).
+    rewrite L_composition in IHe1.
+    admit.
 Admitted.
-*)
 
 Theorem strong_normalization:
   forall g e,
@@ -408,7 +406,7 @@ Proof.
   intros.
   eapply cr1.
   - apply reducible_L.
-  - (* We use the fundamental lemma here. *)
+  - (* We use the fundamental lemma here... somehow. *)
     admit.
 Admitted.
 
