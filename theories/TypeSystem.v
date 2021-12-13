@@ -15,11 +15,8 @@ Require Import Local.Metatheory.
 Definition env: Set :=
   list pseudoterm.
 
-Definition item_lift e g n: Prop :=
-  exists2 x, e = lift (S n) 0 x & item x g n.
-
 (* We are free to take a simpler definition here since there are no dependent
-   types. TODO: should we take care of bindings on types anyway...? *)
+   types. We skip several lifting operations on purpose. *)
 
 Inductive typing: env -> relation pseudoterm :=
   | typing_base:
@@ -33,7 +30,7 @@ Inductive typing: env -> relation pseudoterm :=
   | typing_bound:
     forall g n t,
     valid_env g ->
-    item_lift t g n ->
+    item t g n ->
     typing g n t
   | typing_jump:
     forall g k xs ts,
@@ -88,17 +85,23 @@ Lemma typing_deepind:
   forall P: (forall g e t, Prop),
   forall f1: (forall g, P g base prop),
   forall f2: (forall g ts,
+              Forall (fun t => typing g t prop) ts ->
               Forall (fun t => P g t prop) ts ->
               P g (negation ts) prop),
   forall f3: (forall g n t,
               valid_env g ->
-              item_lift t g n ->
+              item t g n ->
               P g n t),
   forall f4: (forall g k xs ts,
+              typing g k (negation ts) ->
+              Forall2 (typing g) xs ts ->
               P g k (negation ts) ->
               Forall2 (P g) xs ts ->
               P g (jump k xs) void),
   forall f5: (forall g b ts c,
+              typing (negation ts :: g) b void ->
+              Forall (fun t => typing g t prop) ts ->
+              typing (ts ++ g) c void ->
               P (negation ts :: g) b void ->
               Forall (fun t => P g t prop) ts ->
               P (ts ++ g) c void ->
@@ -127,12 +130,41 @@ Lemma typing_bound_cant_be_void:
 Proof.
   intros g n H.
   dependent destruction H.
-  destruct H0.
-  destruct x; try discriminate.
-  clear H0.
-  induction H1.
+  induction H0.
   - dependent destruction H.
     inversion H.
   - dependent destruction H.
     eauto with cps.
+Qed.
+
+Lemma typing_bound_cant_be_prop:
+  forall g n,
+  ~typing g (bound n) prop.
+Proof.
+  intros g n H.
+  dependent destruction H.
+  induction H0.
+  - dependent destruction H.
+    inversion H.
+  - dependent destruction H.
+    eauto with cps.
+Qed.
+
+Lemma typing_type_lift_inversion:
+  forall g t,
+  typing g t prop ->
+  forall i k,
+  lift i k t = t.
+Proof.
+  intros until 1.
+  dependent induction H using typing_deepind; intros.
+  - reflexivity.
+  - clear H.
+    rewrite lift_distributes_over_negation; f_equal.
+    induction H0; simpl.
+    + reflexivity.
+    + f_equal; auto.
+  - absurd (typing g n prop).
+    + apply typing_bound_cant_be_prop.
+    + constructor; auto.
 Qed.
