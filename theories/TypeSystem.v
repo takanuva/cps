@@ -2,6 +2,8 @@
 (*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
+Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
@@ -85,14 +87,22 @@ Global Hint Resolve valid_env_inv: cps.
 Lemma typing_deepind:
   forall P: (forall g e t, Prop),
   forall f1: (forall g, P g base prop),
-  forall f2: (forall g ts, Forall (fun t => P g t prop) ts ->
-              P g (negation ts) prop),
-  forall f3: (forall g n t, valid_env g -> item_lift t g n -> P g n t),
-  forall f4: (forall g k xs ts, P g k (negation ts) -> Forall2 (P g) xs ts ->
-              P g (jump k xs) void),
-  forall f5: (forall g b ts c, P (negation ts :: g) b void ->
+  forall f2: (forall g ts,
               Forall (fun t => P g t prop) ts ->
-              P (ts ++ g) c void -> P g (bind b ts c) void),
+              P g (negation ts) prop),
+  forall f3: (forall g n t,
+              valid_env g ->
+              item_lift t g n ->
+              P g n t),
+  forall f4: (forall g k xs ts,
+              P g k (negation ts) ->
+              Forall2 (P g) xs ts ->
+              P g (jump k xs) void),
+  forall f5: (forall g b ts c,
+              P (negation ts :: g) b void ->
+              Forall (fun t => P g t prop) ts ->
+              P (ts ++ g) c void ->
+              P g (bind b ts c) void),
   forall g e t,
   typing g e t -> P g e t.
 Proof.
@@ -118,16 +128,11 @@ Proof.
   intros g n H.
   dependent destruction H.
   destruct H0.
-  (* We should have added an inversion lemma, but oh well... *)
-  replace x with void in *.
-  - clear H0 x.
-    induction H1.
-    + dependent destruction H.
-       inversion H.
-    + dependent destruction H.
-      apply IHitem.
-      eapply valid_env_typing.
-      eassumption.
-  - destruct x; try discriminate.
-    reflexivity.
+  destruct x; try discriminate.
+  clear H0.
+  induction H1.
+  - dependent destruction H.
+    inversion H.
+  - dependent destruction H.
+    eauto with cps.
 Qed.
