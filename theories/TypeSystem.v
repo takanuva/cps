@@ -168,3 +168,166 @@ Proof.
     + apply typing_bound_cant_be_prop.
     + constructor; auto.
 Qed.
+
+Global Hint Resolve typing_type_lift_inversion: cps.
+
+Lemma typing_type_preserved_under_any_env:
+  forall g t,
+  typing g t prop ->
+  forall h,
+  valid_env h ->
+  typing h t prop.
+Proof.
+  intros until 1.
+  dependent induction H using typing_deepind; intros.
+  - constructor; auto.
+  - clear H.
+    constructor; auto.
+    induction H0; simpl.
+    + constructor.
+    + constructor; auto.
+  - absurd (typing g n prop).
+    + apply typing_bound_cant_be_prop.
+    + constructor; auto.
+Qed.
+
+Lemma typing_negation_inversion:
+  forall g k ts,
+  typing g k (negation ts) ->
+  forall h,
+  valid_env h ->
+  Forall (fun t => typing h t prop) ts.
+Proof.
+  intros until 1.
+  dependent destruction H.
+  dependent induction H0; intros.
+  - dependent destruction H.
+    dependent destruction H.
+    induction H; simpl.
+    + constructor.
+    + constructor; auto.
+      eapply typing_type_preserved_under_any_env; eauto.
+  - apply IHitem; auto.
+    eapply valid_env_inv; eauto.
+Qed.
+
+Lemma typing_bound_has_type:
+  forall t g n,
+  item t g n ->
+  valid_env g ->
+  forall h,
+  valid_env h -> typing h t prop.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    eapply typing_type_preserved_under_any_env; eauto.
+  - apply IHitem; auto.
+    eapply valid_env_inv.
+    eassumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+(* TODO: move this to Prelude. *)
+
+Inductive insert item: nat -> relation env :=
+  | insert_head:
+    forall tail,
+    insert item 0 tail (item :: tail)
+  | insert_tail:
+    forall k head tail1 tail2,
+    insert item k tail1 tail2 ->
+    insert item (S k) (head :: tail1) (head :: tail2).
+
+Global Hint Constructors insert: cps.
+
+Lemma insert_bound_ge:
+  forall x n g h,
+  insert x n g h ->
+  forall m,
+  n <= m ->
+  forall y,
+  item y g m -> item y h (S m).
+Proof.
+  induction 1; intros.
+  - auto with cps.
+  - destruct m.
+    + exfalso.
+      inversion H0.
+    + dependent destruction H1.
+      auto with arith cps.
+Qed.
+
+Lemma insert_bound_lt:
+  forall e n g h,
+  insert e n g h ->
+  forall m,
+  n > m ->
+  forall t,
+  item t g m -> item t h m.
+Proof.
+  induction 1; intros.
+  - inversion H.
+  - destruct m.
+    + dependent destruction H1.
+      constructor.
+    + dependent destruction H1.
+      constructor.
+      apply IHinsert; auto.
+      lia.
+Qed.
+
+Lemma typing_weak_lift:
+  forall g e t,
+  typing g e t ->
+  forall x n h,
+  insert x n g h ->
+  valid_env h ->
+  typing h (lift 1 n e) (lift 1 n t).
+Proof.
+  induction 1 using typing_deepind; intros.
+  - constructor; auto.
+  - rewrite lift_distributes_over_negation.
+    constructor; auto.
+    clear H0.
+    induction H; simpl.
+    + constructor.
+    + constructor; auto.
+      rewrite traverse_list_length.
+      replace (lift 1 (length l + n) x0) with x0; auto.
+      * clear IHForall.
+        eapply typing_type_preserved_under_any_env; eauto.
+      * symmetry.
+        eapply typing_type_lift_inversion.
+        eassumption.
+  - rename n0 into k.
+    replace (lift 1 k t) with t.
+    + destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge; auto.
+        constructor; auto.
+        eapply insert_bound_ge; eauto.
+      * rewrite lift_bound_lt; auto.
+        constructor; auto.
+        eapply insert_bound_lt; eauto.
+    + symmetry.
+      eapply typing_type_lift_inversion.
+      eapply typing_bound_has_type; eauto.
+  - eapply typing_negation_inversion in H; eauto.
+    rewrite lift_distributes_over_jump.
+    apply typing_jump with (ts := traverse_list (lift 1) n ts).
+    + eapply IHtyping; eauto.
+    + clear k IHtyping.
+      dependent induction H1; simpl.
+      * constructor.
+      * dependent destruction H0.
+        dependent destruction H5.
+        constructor; eauto.
+        rewrite traverse_list_length.
+        clear IHForall2 H0 H2 H6.
+        specialize (H1 x0 n h H3 H4).
+        assert (lift 1 n y = y); eauto with cps.
+        assert (lift 1 (length l' + n) y = y); eauto with cps.
+        replace (lift 1 (length l' + n) y) with (lift 1 n y); auto.
+        congruence.
+  - admit.
+Admitted.
