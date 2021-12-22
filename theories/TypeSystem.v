@@ -171,6 +171,19 @@ Qed.
 
 Global Hint Resolve typing_type_lift_inversion: cps.
 
+Lemma typing_type_list_lift_inversion:
+  forall ts g,
+  Forall (fun t : pseudoterm => typing g t prop) ts ->
+  forall i k,
+  traverse_list (lift i) k ts = ts.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - f_equal; eauto with cps.
+Qed.
+
+Global Hint Resolve typing_type_list_lift_inversion: cps.
+
 Lemma typing_type_preserved_under_any_env:
   forall g t,
   typing g t prop ->
@@ -285,49 +298,35 @@ Lemma typing_weak_lift:
   valid_env h ->
   typing h (lift 1 n e) (lift 1 n t).
 Proof.
-  induction 1 using typing_deepind; intros.
-  - constructor; auto.
-  - rewrite lift_distributes_over_negation.
-    constructor; auto.
-    clear H0.
-    induction H; simpl.
-    + constructor.
-    + constructor; auto.
-      rewrite traverse_list_length.
-      replace (lift 1 (length l + n) x0) with x0; auto.
-      * clear IHForall.
-        eapply typing_type_preserved_under_any_env; eauto.
-      * symmetry.
-        eapply typing_type_lift_inversion.
-        eassumption.
-  - rename n0 into k.
-    replace (lift 1 k t) with t.
-    + destruct (le_gt_dec k n).
-      * rewrite lift_bound_ge; auto.
-        constructor; auto.
-        eapply insert_bound_ge; eauto.
-      * rewrite lift_bound_lt; auto.
-        constructor; auto.
-        eapply insert_bound_lt; eauto.
-    + symmetry.
-      eapply typing_type_lift_inversion.
-      eapply typing_bound_has_type; eauto.
-  - eapply typing_negation_inversion in H; eauto.
-    rewrite lift_distributes_over_jump.
-    apply typing_jump with (ts := traverse_list (lift 1) n ts).
-    + eapply IHtyping; eauto.
-    + clear k IHtyping.
-      dependent induction H1; simpl.
-      * constructor.
-      * dependent destruction H0.
-        dependent destruction H5.
-        constructor; eauto.
-        rewrite traverse_list_length.
-        clear IHForall2 H0 H2 H6.
-        specialize (H1 x0 n h H3 H4).
-        assert (lift 1 n y = y); eauto with cps.
-        assert (lift 1 (length l' + n) y = y); eauto with cps.
-        replace (lift 1 (length l' + n) y) with (lift 1 n y); auto.
-        congruence.
-  - admit.
+  admit.
 Admitted.
+
+Theorem weakening:
+  forall g e t,
+  typing g e t ->
+  forall x,
+  valid_env (x :: g) ->
+  typing (x :: g) (lift 1 0 e) (lift 1 0 t).
+Proof.
+  intros.
+  eapply typing_weak_lift; eauto with cps.
+Qed.
+
+Corollary typing_lift:
+  forall g e t,
+  typing g e t ->
+  forall h,
+  valid_env (h ++ g) ->
+  typing (h ++ g) (lift (length h) 0 e) (lift (length h) 0 t).
+Proof.
+  induction h; simpl; intros.
+  - do 2 rewrite lift_zero_e_equals_e.
+    assumption.
+  - rewrite <- lift_lift_simplification with (i := 1) (k := 0) (e := e);
+      try lia.
+    rewrite <- lift_lift_simplification with (i := 1) (k := 0) (e := t);
+      try lia.
+    apply weakening; auto.
+    apply IHh.
+    eapply valid_env_inv; eauto.
+Qed.
