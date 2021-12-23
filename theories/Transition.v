@@ -9,7 +9,6 @@ Require Import Equality.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
-(* Huh, we only need the arguments command for same_relation... *)
 Require Import Local.AbstractRewriting.
 Require Import Local.Reduction.
 (* TODO: We take only converges from here; might wanna move it to Syntax. *)
@@ -262,3 +261,24 @@ Defined.
 
 Definition weak (l: label): relation pseudoterm :=
   weak_transition transition tau_eq_dec l.
+
+Definition bisi: relation pseudoterm :=
+  bisimilarity transition tau_eq_dec.
+
+Lemma bisi_refl:
+  reflexive bisi.
+Proof.
+  apply bisimilarity_refl.
+Qed.
+
+Lemma bisi_sym:
+  symmetric bisi.
+Proof.
+  apply bisimilarity_sym.
+Qed.
+
+Lemma bisi_trans:
+  transitive bisi.
+Proof.
+  apply bisimilarity_trans.
+Qed.
