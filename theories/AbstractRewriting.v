@@ -30,9 +30,17 @@ Arguments commut {A}.
 
 Global Hint Unfold commut: cps.
 
+Arguments union {A}.
+
+Global Hint Unfold union: cps.
+
 Arguments same_relation {A}.
 
 Global Hint Unfold same_relation: cps.
+
+Arguments inclusion {A}.
+
+Global Hint Unfold inclusion: cps.
 
 Arguments reflexive {A}.
 
@@ -57,6 +65,43 @@ Definition comp {A} {B} {C} R S: A -> C -> Prop :=
     R a b & S b c.
 
 Global Hint Unfold comp: cps.
+
+Section Relations.
+
+  Variable T: Type.
+  Variable R: relation T.
+
+  Lemma t_rt_inclusion:
+    inclusion t(R) rt(R).
+  Proof.
+    induction 1; eauto with cps.
+  Qed.
+
+  Lemma rt_characterization:
+    same_relation rt(R) (union eq t(R)).
+  Proof.
+    unfold same_relation, inclusion; split; intros.
+    - induction H.
+      + right; auto with cps.
+      + left; auto.
+      + destruct IHclos_refl_trans1;
+        destruct IHclos_refl_trans2.
+        * destruct H1, H2.
+          left; auto.
+        * destruct H1.
+          right; auto.
+        * destruct H2.
+          right; auto.
+        * right.
+          eauto with cps.
+    - destruct H.
+      + destruct H.
+        auto with cps.
+      + apply t_rt_inclusion.
+        assumption.
+  Qed.
+
+End Relations.
 
 Section Confluency.
 
@@ -123,6 +168,10 @@ End Confluency.
 Section Normalization.
 
   Variable T: Type.
+
+  Definition SN (R: relation T) :=
+    (Acc (transp R)).
+
   Variable R: relation T.
 
   Definition normal a: Prop :=
@@ -131,14 +180,11 @@ Section Normalization.
   Definition WN a: Prop :=
     exists2 b, rt(R) a b & normal b.
 
-  Definition SN :=
-    (Acc (transp R)).
-
   Lemma SN_preimage:
     forall f,
     (forall a b, R a b -> R (f a) (f b)) ->
     forall e,
-    Acc R (f e) -> Acc R e.
+    SN R (f e) -> SN R e.
   Proof.
     intros.
     (* The dependent induction tactic seems to generalize variables... *)
@@ -150,6 +196,24 @@ Section Normalization.
     rewrite Heqx.
     apply H.
     assumption.
+  Qed.
+
+  Lemma SN_R_t_R:
+    forall e,
+    SN R e <-> SN t(R) e.
+  Proof.
+    split; induction 1.
+    - clear H.
+      constructor; intros.
+      induction H.
+      + apply H0.
+        assumption.
+      + apply IHclos_trans2; intros.
+        apply IHclos_trans1; auto with cps.
+    - clear H.
+      constructor; intros.
+      apply H0.
+      auto with cps.
   Qed.
 
 End Normalization.
