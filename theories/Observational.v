@@ -125,6 +125,21 @@ Proof.
     apply converges_is_preserved_by_star with c; auto.
 Qed.
 
+Lemma weakly_convergence_is_unique:
+  forall e n,
+  weakly_converges e n ->
+  forall m,
+  weakly_converges e m -> n = m.
+Proof.
+  intros.
+  destruct H as (a, ?, ?).
+  destruct H0 as (b, ?, ?).
+  destruct step_is_confluent with a e b as (c, ?, ?); auto.
+  assert (converges c n); eauto with cps.
+  assert (converges c m); eauto with cps.
+  apply convergence_is_unique with c; auto.
+Qed.
+
 (** ** Observational relations *)
 
 (* We'd like to show that defining weak convergence by using either head or full
