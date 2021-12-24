@@ -239,6 +239,28 @@ Proof.
     apply IHtransition; auto.
 Qed.
 
+Lemma converges_transition_jmp:
+  forall k ts c a b,
+  transition (label_jmp k ts c) a b ->
+  converges a 0.
+Proof.
+  intros.
+  apply transition_jmp_preserves_invariant in H.
+  dependent destruction H.
+  dependent destruction H4.
+  clear H3 H5.
+  assert (exists k, k = #h + 0) as (k, ?); eauto.
+  replace #h with k; try lia.
+  generalize dependent k.
+  generalize O as n.
+  induction H1; simpl; intros.
+  - destruct H.
+    constructor.
+  - constructor.
+    apply IHstatic.
+    lia.
+Qed.
+
 Theorem head_and_transition_tau_are_equivalent:
   (* Merro, lemma 2.4 (2). *)
   same_relation head (transition label_tau).
