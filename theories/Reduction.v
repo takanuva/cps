@@ -49,8 +49,7 @@ Require Import Local.Axiomatic.
 *)
 
 Definition CTXJMP (R: relation pseudoterm): Prop :=
-  forall (h: context),
-  forall xs ts c,
+  forall (h: context) xs ts c,
   length xs = length ts ->
   R (bind (h (jump #h xs)) ts c)
     (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
@@ -493,7 +492,70 @@ Proof.
   - exact conv_trans.
 Defined.
 
-(** ** Soundness of reduction *)
+(** ** Head reduction *)
+
+Definition LONGJMP (R: relation pseudoterm): Prop :=
+  forall h r xs ts c,
+  static h ->
+  static r ->
+  length xs = length ts ->
+  R (r (bind (h (jump #h xs)) ts c))
+    (r (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c)).
+
+Global Hint Unfold LONGJMP: cps.
+
+Inductive head: relation pseudoterm :=
+  | head_longjmp:
+    LONGJMP head.
+
+Lemma head_bind_left:
+  LEFT head.
+Proof.
+  unfold LEFT; intros.
+  dependent destruction H.
+  apply (head_longjmp h (context_left r ts c)).
+  - assumption.
+  - constructor.
+    assumption.
+  - assumption.
+Qed.
+
+Global Hint Resolve head_bind_left: cps.
+
+Lemma step_head:
+  forall a b,
+  head a b -> [a => b].
+Proof.
+  intros.
+  dependent destruction H.
+  induction H0; simpl.
+  - apply step_ctxjmp.
+    assumption.
+  - apply step_bind_left.
+    assumption.
+Qed.
+
+Global Hint Resolve step_head: cps.
+
+Lemma star_head:
+  forall a b,
+  head a b -> [a =>* b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_head: cps.
+
+Lemma conv_head:
+  forall a b,
+  head a b -> [a <=> b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_head: cps.
+
+(** ** Soundness of reduction w.r.t. axiomatic semantics *)
 
 (* TODO: move these lemmas to their proper places!!! *)
 

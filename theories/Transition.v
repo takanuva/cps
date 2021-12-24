@@ -14,19 +14,6 @@ Require Import Local.Reduction.
 (* TODO: We take only converges from here; might wanna move it to Syntax. *)
 Require Import Local.Observational.
 
-(* TODO: I'll need to define head reduction properly and elsewhere! *)
-
-Inductive head: relation pseudoterm :=
-  | head_longjmp:
-    forall h,
-    static h ->
-    forall xs ts c,
-    length xs = length ts ->
-    head (bind (h (jump #h xs)) ts c)
-         (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c)
-  | head_bind_left:
-    LEFT head.
-
 Inductive label: Set :=
   | label_tau
   | label_jmp (k: nat) (ts: list pseudoterm) (b: pseudoterm).
@@ -216,7 +203,9 @@ Lemma transition_tau_head:
   forall a b,
   head a b -> transition label_tau a b.
 Proof.
-  induction 1.
+  intros.
+  destruct H.
+  induction H0; simpl.
   - apply transition_tau_longjmp; auto.
   - apply transition_ctx_tau; auto.
 Qed.
@@ -233,7 +222,7 @@ Proof.
     rewrite H4.
     rewrite H5.
     replace k with #h; auto.
-    apply head_longjmp; auto.
+    apply (head_longjmp h context_hole); auto with cps.
   (* Case: transition_tau_ctx. *)
   - apply head_bind_left.
     apply IHtransition; auto.
