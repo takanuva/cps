@@ -125,6 +125,30 @@ Proof.
     apply converges_is_preserved_by_star with c; auto.
 Qed.
 
+(** ** Observational relations *)
+
+(* We'd like to show that defining weak convergence by using either head or full
+   reduction coincide; this will allow us to further extend Merro's results:
+   enabling full reduction won't change the observable behavior of terms, since
+   the observational relations introduced by either of the reduction relations
+   will also coincide. Of course, one of the sides is trivial. *)
+
+Conjecture head_reduction_preserves_convergence:
+  forall a k,
+  weakly_converges a k -> comp rt(head) converges a k.
+
+Lemma weakly_convergence_characterization:
+  forall a k,
+  weakly_converges a k <-> comp rt(head) converges a k.
+Proof.
+  split; intros.
+  - apply head_reduction_preserves_convergence; auto.
+  - destruct H as (b, ?, ?).
+    exists b; auto.
+    clear H0.
+    induction H; eauto with cps.
+Qed.
+
 (** ** Barbed relations *)
 
 Notation barb := (barbed_congruence step converges apply_context).
