@@ -11,6 +11,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Axiomatic.
 Require Import Local.Reduction.
+Require Import Local.Confluence.
 
 (** ** Observational theory *)
 
@@ -109,6 +110,20 @@ Proof.
 Qed.
 
 Global Hint Resolve converges_is_preserved_by_star: cps.
+
+Lemma weakly_converges_is_preserved_by_conv:
+  forall a b,
+  [a <=> b] ->
+  forall n,
+  weakly_converges a n -> weakly_converges b n.
+Proof.
+  destruct 2 as (c, ?, ?).
+  assert [c <=> b].
+  - eauto with cps.
+  - destruct step_is_church_rosser with c b as (d, ?, ?); auto.
+    exists d; auto.
+    apply converges_is_preserved_by_star with c; auto.
+Qed.
 
 (** ** Barbed relations *)
 
