@@ -199,6 +199,10 @@ Proof.
   - exact barb_bind_right.
 Defined.
 
+(* If R and R-1 are barbed simulations, so is the equivalence closure of R.
+   This might be useful in showing that sema is a barbed bisimulation by tracing
+   its individual axioms. *)
+
 Goal
   forall R,
   barbed_simulation step converges R ->
