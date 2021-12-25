@@ -146,13 +146,20 @@ Qed.
    reduction coincide; this will allow us to further extend Merro's results:
    enabling full reduction won't change the observable behavior of terms, since
    the observational relations introduced by either of the reduction relations
-   will also coincide. Of course, one of the sides is trivial. *)
+   will also coincide. Of course, one of the sides is trivial.
+
+   This proof seems way more trickier than I thought... it will probably require
+   a notion of standard reduction sequences, in which we only allow jumps to be
+   performed to unchanged commands (i.e., leftmost first, instead of rightmost
+   first as it's done in the parallel reduction lemmas). If this is complete
+   w.r.t. star, such that forall a =>* b there's a standard sequence from a to
+   b, then it'll reach the correct head position using only head steps. *)
 
 Conjecture head_reduction_preserves_convergence:
   forall a k,
   weakly_converges a k -> comp rt(head) converges a k.
 
-Lemma weakly_convergence_characterization:
+Lemma weak_convergence_characterization:
   forall a k,
   weakly_converges a k <-> comp rt(head) converges a k.
 Proof.
