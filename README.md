@@ -15,6 +15,7 @@ A summary of the proof files, in order, and what they cover.
 - [Reduction.v](theories/Reduction.v): definition of the reduction semantics, including one-step and multi-step reduction, and convertibility congruence, showing they're sound with respect to the axiomatic semantics.
 - [Residuals.v](theories/Residuals.v): development of a theory of residuals and "terms with a mark", necessary for confluence, including the cube lemma.
 - [Confluency.v](theories/Confluency.v): definition of a notion of parallel reduction, including proofs of confluence and of the Church-Rosser property.
+- [Standardization.v](theories/Standardization.v): standard reduction sequences, showing that we're always allowed to perform leftmost jumps first.
 - [Observational.v](theories/Observational.v): observational theory of the calculus, including observational congruence and barbed congruence.
 - [Transition.v](theories/Transition.v): labelled transition semantics, and development on their soundness with regards to the other semantics.
 - [TypeSystem.v](theories/TypeSystem.v): definition of a simply-typed type system for the CPS calculus, and admissibility of the structural rules for it.
