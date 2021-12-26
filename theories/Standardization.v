@@ -114,3 +114,27 @@ Proof.
     + constructor.
       assumption.
 Qed.
+
+Definition internal_step a b: Prop :=
+  exists2 k,
+  k > 0 & indexed_step k a b.
+
+Inductive standard_sequence: nat -> relation pseudoterm :=
+  | standard_sequence_refl:
+    forall k e,
+    standard_sequence k e e
+  | standard_sequence_step:
+    forall a b c k j,
+    k <= j ->
+    standard_sequence k a b ->
+    indexed_step j b c ->
+    standard_sequence j a c.
+
+Theorem standardization:
+  forall a b,
+  [a =>* b] ->
+  exists k,
+  standard_sequence k a b.
+Proof.
+  admit.
+Admitted.
