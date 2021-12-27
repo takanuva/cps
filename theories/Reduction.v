@@ -668,7 +668,29 @@ Lemma context_remove_binding_switch_bindings_simplification:
   context_remove_binding k (context_switch_bindings k h) =
     context_remove_binding (S k) h.
 Proof.
-  admit.
+  unfold context_remove_binding.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    + apply IHh.
+    + clear IHh.
+      induction ts; simpl; auto.
+      f_equal; auto.
+      do 3 rewrite traverse_list_length.
+      replace (length ts + S k) with (S (length ts + k)); try lia.
+      admit.
+    + rewrite traverse_list_length.
+      admit.
+  - f_equal.
+    + admit.
+    + clear IHh.
+      induction ts; simpl; auto.
+      f_equal; auto.
+      do 3 rewrite traverse_list_length.
+      replace (length ts + S k) with (S (length ts + k)); try lia.
+      admit.
+    + rewrite traverse_list_length.
+      apply IHh.
 Admitted.
 
 Lemma context_remove_binding_lift_simplification:
