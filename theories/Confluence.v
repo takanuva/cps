@@ -228,6 +228,47 @@ Qed.
 
 Global Hint Resolve parallel_refl: cps.
 
+Lemma parallel_bind:
+  forall b1 b2 ts c1 c2,
+  parallel b1 b2 ->
+  parallel c1 c2 ->
+  parallel (bind b1 ts c1) (bind b2 ts c2).
+Proof.
+  intros.
+  destruct H as (p, (b2', ?, ?), ?).
+  destruct H0 as (r, (c2', ?, ?), ?).
+  exists (redexes_bind p ts r); simpl.
+  - eexists (redexes_bind b2' ts c2'); simpl.
+    + constructor; auto.
+    + rewrite H1, H3; f_equal.
+      apply redexes_flow_mark_equals_mark.
+  - constructor.
+    + apply regular_tail with (g1 := []).
+      assumption.
+    + apply regular_tail with (g1 := []).
+      assumption.
+Qed.
+
+Global Hint Resolve parallel_bind: cps.
+
+Lemma parallel_bind_left:
+  LEFT parallel.
+Proof.
+  unfold LEFT; intros.
+  apply parallel_bind; auto with cps.
+Qed.
+
+Global Hint Resolve parallel_bind_left: cps.
+
+Lemma parallel_bind_right:
+  RIGHT parallel.
+Proof.
+  unfold RIGHT; intros.
+  apply parallel_bind; auto with cps.
+Qed.
+
+Global Hint Resolve parallel_bind_right: cps.
+
 Lemma parallel_step:
   forall a b,
   [a => b] -> parallel a b.
