@@ -71,6 +71,9 @@ Global Hint Constructors step: cps.
 Notation "[ a => b ]" := (step a b)
   (at level 0, a, b at level 200): type_scope.
 
+Notation "[ a <= b ]" := (transp step a b)
+  (at level 0, a, b at level 200): type_scope.
+
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       h@1<x@4, k@0, y@3>                   k@0<y@3, z@2>
@@ -522,12 +525,20 @@ Qed.
 
 Global Hint Resolve head_bind_left: cps.
 
-Lemma step_head:
-  forall a b,
-  head a b -> [a => b].
+Lemma head_recjmp:
+  RECJMP head.
 Proof.
-  intros.
-  dependent destruction H.
+  unfold RECJMP; intros.
+  apply (head_longjmp context_hole context_hole).
+  - constructor.
+  - constructor.
+  - assumption.
+Qed.
+
+Lemma step_longjmp:
+  LONGJMP step.
+Proof.
+  unfold LONGJMP; intros.
   induction H0; simpl.
   - apply step_ctxjmp.
     assumption.
@@ -535,7 +546,25 @@ Proof.
     assumption.
 Qed.
 
+Global Hint Resolve step_longjmp: cps.
+
+Lemma step_head:
+  forall a b,
+  head a b -> [a => b].
+Proof.
+  destruct 1.
+  apply step_longjmp; auto.
+Qed.
+
 Global Hint Resolve step_head: cps.
+
+Lemma star_longjmp:
+  LONGJMP star.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve star_longjmp: cps.
 
 Lemma star_head:
   forall a b,
@@ -545,6 +574,14 @@ Proof.
 Qed.
 
 Global Hint Resolve star_head: cps.
+
+Lemma conv_longjmp:
+  LONGJMP conv.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve conv_longjmp: cps.
 
 Lemma conv_head:
   forall a b,
@@ -869,7 +906,7 @@ Proof.
   - apply sema_bind_left.
     apply sema_context.
     rewrite traverse_list_length.
-    do 2 rewrite map_length.
+    rewrite traverse_list_length.
     rewrite lift_lift_simplification; try lia.
     rewrite lift_lift_simplification; try lia.
     (* Upon careful inspection... *)
@@ -891,7 +928,7 @@ Proof.
       induction xs; simpl; auto.
       f_equal; auto.
       rewrite subst_lift_simplification; auto.
-      rewrite lift_zero_e_equals_e; auto.
+      apply lift_zero_e_equals_e.
     + rewrite subst_lift_simplification; try lia.
       f_equal; lia.
 Admitted.

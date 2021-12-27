@@ -19,7 +19,7 @@ Definition RECJMP (R: relation pseudoterm): Prop :=
   forall xs ts c,
   length xs = length ts ->
   R (bind (jump 0 xs) ts c)
-    (bind (apply_parameters xs 0 (lift 1 (length xs) c)) ts c).
+    (bind (apply_parameters xs 0 (lift 1 (length ts) c)) ts c).
 
 Global Hint Unfold RECJMP: cps.
 
@@ -268,7 +268,7 @@ Local Lemma struct_recjmp_helper:
   struct (bind (jump 0 xs) ts c) (bind x1 x2 x3).
 Proof.
   intros.
-  rewrite H, H0, H1.
+  rewrite H, H0, H1, H2.
   apply struct_recjmp; auto.
 Qed.
 
@@ -327,7 +327,8 @@ Proof.
       rewrite map_length.
       symmetry.
       rewrite lift_lift_permutation; try lia.
-      f_equal; lia.
+      rewrite H; f_equal.
+      lia.
     + reflexivity.
     + reflexivity.
     + rewrite map_length.
@@ -433,7 +434,8 @@ Proof.
       f_equal.
       rewrite map_length.
       rewrite lift_and_subst_commute; try lia.
-      f_equal; lia.
+      rewrite H; f_equal.
+      lia.
     + reflexivity.
     + reflexivity.
     + rewrite map_length; auto.
@@ -807,7 +809,7 @@ Proof.
   - apply sema_bind_right.
     apply sema_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
-    rewrite sequence_length.
+    rewrite traverse_list_length.
     rewrite lift_lift_simplification; try lia.
     (* This was annoying to show, but it's true! *)
     rewrite technical5.
@@ -838,10 +840,8 @@ Proof.
         unfold remove_binding.
         rewrite subst_lift_simplification; auto.
         rewrite lift_zero_e_equals_e; auto.
-      * rewrite map_length.
-        do 2 rewrite traverse_list_length.
+      * do 3 rewrite traverse_list_length.
         rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.
-        rewrite sequence_length.
         rewrite lift_lift_simplification; try lia.
         (* Here's that annoying thing again! *)
         rewrite technical5.
