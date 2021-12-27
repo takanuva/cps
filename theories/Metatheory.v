@@ -1202,14 +1202,15 @@ Proof.
 Qed.
 
 Lemma apply_parameters_lift_simplification:
-  forall xs k e,
-  apply_parameters xs k (lift (k + length xs) 0 e) = lift k 0 e.
+  forall xs k p e,
+  k <= p ->
+  apply_parameters xs k (lift (p + length xs) 0 e) = lift p 0 e.
 Proof.
   induction xs; simpl; intros.
   - f_equal; lia.
-  - replace (k + S (length xs)) with (S (k + length xs)); try lia.
+  - replace (p + S (length xs)) with (S (p + length xs)); try lia.
     rewrite subst_lift_simplification; try lia.
-    apply IHxs.
+    apply IHxs; auto.
 Qed.
 
 Lemma apply_parameters_bound_in:
@@ -1231,7 +1232,7 @@ Proof.
       * rewrite rev_length in H0.
         rewrite Nat.sub_diag in H0.
         dependent destruction H0.
-        apply apply_parameters_lift_simplification.
+        apply apply_parameters_lift_simplification; auto.
       * rewrite rev_length; lia.
     + rewrite subst_bound_lt; try lia.
       apply IHxs; try lia.
