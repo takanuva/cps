@@ -186,6 +186,44 @@ Qed.
 
 Local Hint Resolve typing_type_list_lift_inversion: cps.
 
+Lemma typing_type_unlift:
+  forall g t i k,
+  typing g (lift i k t) prop ->
+  typing g t prop.
+Proof.
+  intros.
+  dependent induction H using typing_deepind.
+  - destruct t; try discriminate.
+    + constructor; auto.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; auto.
+        discriminate.
+      * rewrite lift_bound_lt in x; auto.
+        discriminate.
+  - destruct t; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; auto.
+        discriminate.
+      * rewrite lift_bound_lt in x; auto.
+        discriminate.
+    + clear H0.
+      dependent destruction x.
+      constructor; auto.
+      dependent induction H1.
+      * destruct ts0; try discriminate.
+        constructor.
+      * destruct ts0; try discriminate.
+        dependent destruction x.
+        constructor; eauto.
+        eapply H0; auto.
+        reflexivity.
+  - absurd (typing g n prop).
+    + apply typing_bound_cant_be_prop.
+    + constructor; auto.
+Qed.
+
 Lemma typing_type_preserved_under_any_env:
   forall g t,
   typing g t prop ->
@@ -308,6 +346,8 @@ Qed.
 
 Local Hint Resolve insert_app_tail: cps.
 
+(** ** Weakening *)
+
 Lemma typing_weak_lift:
   forall g e t,
   typing g e t ->
@@ -326,7 +366,7 @@ Proof.
     induction H1.
     + constructor.
     + constructor; auto.
-      admit.
+      apply typing_type_unlift with 1 n; eauto.
   - rename n0 into k.
     destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; auto.
@@ -363,9 +403,10 @@ Proof.
         clear H H0 H1 IHtyping1 IHtyping2.
         induction H2; simpl; auto.
         constructor.
-        assert (typing (l ++ h) (lift 1 n x0) prop); eauto with cps.
-        admit.
-Admitted.
+        apply typing_type_unlift with 1 n; eauto with cps.
+      * clear H H1 H2 IHtyping1 IHtyping2.
+        induction H0; eauto with cps.
+Qed.
 
 Theorem weakening:
   forall g e t,
