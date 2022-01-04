@@ -83,8 +83,10 @@ Global Hint Resolve valid_env_inv: cps.
 
 Lemma typing_deepind:
   forall P: (forall g e t, Prop),
-  forall f1: (forall g, P g base prop),
+  forall f1: (forall g,
+              valid_env g -> P g base prop),
   forall f2: (forall g ts,
+              valid_env g ->
               Forall (fun t => typing g t prop) ts ->
               Forall (fun t => P g t prop) ts ->
               P g (negation ts) prop),
@@ -111,7 +113,7 @@ Lemma typing_deepind:
 Proof.
   do 6 intro; fix H 4.
   destruct 1.
-  - apply f1.
+  - apply f1; auto.
   - apply f2; auto.
     clear f1 f2 f3 f4 f5 H1.
     induction H0; auto.
@@ -159,9 +161,9 @@ Proof.
   intros until 1.
   dependent induction H using typing_deepind; intros.
   - reflexivity.
-  - clear H.
+  - clear H0.
     rewrite lift_distributes_over_negation; f_equal.
-    induction H0; simpl.
+    induction H1; simpl.
     + reflexivity.
     + f_equal; auto.
   - absurd (typing g n prop).
@@ -169,7 +171,7 @@ Proof.
     + constructor; auto.
 Qed.
 
-Global Hint Resolve typing_type_lift_inversion: cps.
+Local Hint Resolve typing_type_lift_inversion: cps.
 
 Lemma typing_type_list_lift_inversion:
   forall ts g,
@@ -182,7 +184,7 @@ Proof.
   - f_equal; eauto with cps.
 Qed.
 
-Global Hint Resolve typing_type_list_lift_inversion: cps.
+Local Hint Resolve typing_type_list_lift_inversion: cps.
 
 Lemma typing_type_preserved_under_any_env:
   forall g t,
@@ -194,15 +196,17 @@ Proof.
   intros until 1.
   dependent induction H using typing_deepind; intros.
   - constructor; auto.
-  - clear H.
+  - clear H H0.
     constructor; auto.
-    induction H0; simpl.
+    induction H1; simpl.
     + constructor.
     + constructor; auto.
   - absurd (typing g n prop).
     + apply typing_bound_cant_be_prop.
     + constructor; auto.
 Qed.
+
+Local Hint Resolve typing_type_preserved_under_any_env: cps.
 
 Lemma typing_negation_inversion:
   forall g k ts,
@@ -290,15 +294,77 @@ Proof.
       lia.
 Qed.
 
+Lemma insert_app_tail:
+  forall x n ts g h,
+  insert x n g h ->
+  insert x (n + length ts) (ts ++ g) (ts ++ h).
+Proof.
+  induction ts; simpl; intros.
+  - rewrite Nat.add_0_r.
+    assumption.
+  - rewrite <- plus_Snm_nSm; simpl.
+    constructor; auto.
+Qed.
+
+Local Hint Resolve insert_app_tail: cps.
+
 Lemma typing_weak_lift:
   forall g e t,
   typing g e t ->
   forall x n h,
   insert x n g h ->
   valid_env h ->
-  typing h (lift 1 n e) (lift 1 n t).
+  typing h (lift 1 n e) t.
 Proof.
-  admit.
+  intros until 1.
+  induction H using typing_deepind; intros.
+  - auto with cps.
+  - rewrite lift_distributes_over_negation.
+    erewrite typing_type_list_lift_inversion; eauto.
+    apply typing_negation; auto.
+    clear H0.
+    induction H1.
+    + constructor.
+    + constructor; auto.
+      admit.
+  - rename n0 into k.
+    destruct (le_gt_dec k n).
+    + rewrite lift_bound_ge; auto.
+      constructor; auto.
+      apply insert_bound_ge with x k g; auto.
+    + rewrite lift_bound_lt; auto.
+      constructor; auto.
+      apply insert_bound_lt with x k g; auto.
+  - rewrite lift_distributes_over_jump.
+    apply typing_jump with ts.
+    + apply IHtyping with x; auto.
+    + clear IHtyping H H0.
+      induction H1; simpl.
+      * constructor.
+      * constructor; eauto.
+  - rewrite lift_distributes_over_bind.
+    apply typing_bind.
+    + rewrite typing_type_list_lift_inversion with (g := h).
+      * apply valid_env_typing in H.
+        dependent destruction H.
+        apply IHtyping1 with x; eauto with cps.
+      * clear H H1 H2 IHtyping1 IHtyping2.
+        induction H0; eauto with cps.
+    + erewrite typing_type_list_lift_inversion; eauto.
+      clear H H1 H2 H3 IHtyping1 IHtyping2.
+      induction H0.
+      * constructor.
+      * constructor; auto.
+        apply typing_type_preserved_under_any_env with g; auto.
+    + rewrite typing_type_list_lift_inversion with (g := h).
+      * apply valid_env_typing in H1.
+        apply IHtyping2 with x; auto with cps.
+        (* We could use a simpler solution, but let's build it grounds up. *)
+        clear H H0 H1 IHtyping1 IHtyping2.
+        induction H2; simpl; auto.
+        constructor.
+        assert (typing (l ++ h) (lift 1 n x0) prop); eauto with cps.
+        admit.
 Admitted.
 
 Theorem weakening:
@@ -306,7 +372,7 @@ Theorem weakening:
   typing g e t ->
   forall x,
   valid_env (x :: g) ->
-  typing (x :: g) (lift 1 0 e) (lift 1 0 t).
+  typing (x :: g) (lift 1 0 e) t.
 Proof.
   intros.
   eapply typing_weak_lift; eauto with cps.
@@ -317,14 +383,12 @@ Corollary typing_lift:
   typing g e t ->
   forall h,
   valid_env (h ++ g) ->
-  typing (h ++ g) (lift (length h) 0 e) (lift (length h) 0 t).
+  typing (h ++ g) (lift (length h) 0 e) t.
 Proof.
   induction h; simpl; intros.
-  - do 2 rewrite lift_zero_e_equals_e.
+  - rewrite lift_zero_e_equals_e.
     assumption.
   - rewrite <- lift_lift_simplification with (i := 1) (k := 0) (e := e);
-      try lia.
-    rewrite <- lift_lift_simplification with (i := 1) (k := 0) (e := t);
       try lia.
     apply weakening; auto.
     apply IHh.
