@@ -71,9 +71,6 @@ Global Hint Constructors step: cps.
 Notation "[ a => b ]" := (step a b)
   (at level 0, a, b at level 200): type_scope.
 
-Notation "[ a <= b ]" := (transp step a b)
-  (at level 0, a, b at level 200): type_scope.
-
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
       h@1<x@4, k@0, y@3>                   k@0<y@3, z@2>
