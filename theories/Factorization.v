@@ -22,6 +22,22 @@ Inductive full: relation pseudoterm :=
   | full_bind_right:
     RIGHT full.
 
+Local Hint Constructors full: cps.
+
+Lemma full_step:
+  inclusion step full.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Local Hint Resolve full_step: cps.
+
+Lemma rt_full_star:
+  inclusion star rt(full).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
 Inductive inner: relation pseudoterm :=
   | inner_nonstatic_ctxjmp:
     (* TODO: move to a proper abstract rule. Perhaps (NONSTATIC_CTXJMP)? *)

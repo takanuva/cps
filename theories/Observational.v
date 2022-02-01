@@ -12,6 +12,7 @@ Require Import Local.Context.
 Require Import Local.Axiomatic.
 Require Import Local.Reduction.
 Require Import Local.Confluence.
+Require Import Local.Factorization.
 
 (** ** Observational theory *)
 
@@ -155,9 +156,62 @@ Qed.
    w.r.t. star, such that forall a =>* b there's a standard sequence from a to
    b, then it'll reach the correct head position using only head steps. *)
 
-Conjecture head_reduction_preserves_convergence:
+Lemma inner_backwards_preserves_convergence:
+  forall a b,
+  inner a b ->
+  forall k,
+  converges b k -> converges a k.
+Proof.
+  induction 1.
+  - clear H0; generalize #h; intros.
+    dependent destruction H0; constructor.
+    dependent induction H0.
+    + exfalso.
+      destruct h; try discriminate.
+      apply H; auto with cps.
+    + destruct h.
+      * exfalso.
+        apply H; auto with cps.
+      * dependent destruction x; simpl.
+        constructor.
+        eapply IHconverges; eauto.
+        intro; apply H.
+        constructor; auto.
+      * dependent destruction x; simpl.
+        constructor; auto.
+  - intros.
+    dependent destruction H0.
+    constructor; auto.
+  - intros.
+    dependent destruction H0.
+    constructor; auto.
+Qed.
+
+Lemma rt_inner_backwards_preserves_convergence:
+  forall a b,
+  rt(inner) a b ->
+  forall k,
+  converges b k -> converges a k.
+Proof.
+  induction 1; intros.
+  - eapply inner_backwards_preserves_convergence; eauto.
+  - assumption.
+  - firstorder.
+Qed.
+
+(* TODO: is this a theorem? *)
+
+Lemma head_reduction_preserves_convergence:
   forall a k,
   weakly_converges a k -> comp rt(head) converges a k.
+Proof.
+  destruct 1 as (c, ?, ?).
+  apply rt_full_star in H.
+  apply factorization in H.
+  destruct H as (b, ?, ?).
+  exists b; auto.
+  apply rt_inner_backwards_preserves_convergence with c; auto.
+Qed.
 
 Lemma weak_convergence_characterization:
   forall a k,
