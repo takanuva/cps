@@ -9,6 +9,9 @@ Require Import Local.Prelude.
 
 (** ** Relations *)
 
+Notation "'r(' R )" := (clos_refl _ R)
+  (format "'r(' R )"): type_scope.
+
 Notation "'t(' R )" := (clos_trans _ R)
   (format "'t(' R )"): type_scope.
 
@@ -18,6 +21,7 @@ Notation "'rt(' R )" := (clos_refl_trans _ R)
 Notation "'rst(' R )" := (clos_refl_sym_trans _ R)
   (format "'rst(' R )"): type_scope.
 
+Global Hint Constructors clos_refl: cps.
 Global Hint Constructors clos_trans: cps.
 Global Hint Constructors clos_refl_trans: cps.
 Global Hint Constructors clos_refl_sym_trans: cps.
@@ -71,7 +75,7 @@ Section Relations.
   Variable T: Type.
   Variable R: relation T.
 
-  Lemma t_rt_inclusion:
+  Lemma clos_t_clos_rt:
     inclusion t(R) rt(R).
   Proof.
     induction 1; eauto with cps.
@@ -97,7 +101,7 @@ Section Relations.
     - destruct H.
       + destruct H.
         auto with cps.
-      + apply t_rt_inclusion.
+      + apply clos_t_clos_rt.
         assumption.
   Qed.
 
