@@ -175,3 +175,27 @@ Proof.
     + apply rt_inner_and_rt_parallel_inner_are_equivalent in H2.
       eauto with cps.
 Qed.
+
+Goal
+  same_relation rt(full) (comp rt(head) rt(inner)).
+Proof.
+  split.
+  - apply factorization.
+  - (* This could be shown in the confluence file. *)
+    intros x z ?.
+    destruct H as (y, ?, ?).
+    apply clos_rt_rt1n_iff in H.
+    induction H; intros.
+    + induction H0.
+      * apply rt_step.
+        induction H; auto with cps.
+      * auto with cps.
+      * eauto with cps.
+    + apply clos_rt_rt1n_iff in H1.
+      apply rt_trans with y.
+      * clear H0 H1 IHclos_refl_trans_1n.
+        apply rt_step.
+        destruct H.
+        induction H0; auto with cps.
+      * firstorder.
+Qed.
