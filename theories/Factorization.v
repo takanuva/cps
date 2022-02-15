@@ -1,3 +1,7 @@
+(******************************************************************************)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(******************************************************************************)
+
 Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
