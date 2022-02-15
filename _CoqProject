@@ -10,8 +10,11 @@ theories/Reduction.v
 theories/Residuals.v
 theories/Confluence.v
 theories/Factorization.v
-#theories/Standardization.v
+# Ignore this for now...
+# theories/Standardization.v
 theories/Observational.v
 theories/Transition.v
 theories/TypeSystem.v
 theories/Normalization.v
+theories/Simulation.v
+theories/FullAbstraction.v
