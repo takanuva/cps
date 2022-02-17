@@ -134,7 +134,7 @@ Lemma transition_tau_longjmp:
   transition label_tau (bind (h (jump #h xs)) ts c)
        (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
 Proof.
-  unfold CTXJMP; intros.
+  intros.
   (* We start by applying (TAU) to fix the binding. *)
   apply transition_tau with #h.
   generalize xs ts c H0; clear xs ts c H0.
