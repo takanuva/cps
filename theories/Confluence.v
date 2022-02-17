@@ -539,3 +539,31 @@ Proof.
   apply confluence_implies_church_rosser; auto.
   exact step_is_confluent.
 Qed.
+
+Corollary uniqueness_of_normal_form:
+  forall a b,
+  [a <=> b] ->
+  normal step a ->
+  normal step b ->
+  a = b.
+Proof.
+  intros.
+  destruct step_is_church_rosser with a b as (c, ?, ?); auto.
+  assert (a = c /\ b = c) as (?, ?).
+  - split.
+    + clear b H H1 H3.
+      induction H2.
+      * exfalso.
+        apply H0 with y.
+        assumption.
+      * reflexivity.
+      * destruct IHclos_refl_trans1; auto.
+    + clear a H H0 H2.
+      induction H3.
+      * exfalso.
+        apply H1 with y.
+        assumption.
+      * reflexivity.
+      * destruct IHclos_refl_trans1; auto.
+  - congruence.
+Qed.
