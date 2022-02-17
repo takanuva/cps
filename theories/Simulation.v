@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
 Require Import Arith.
 Require Import Relations.
 Require Import Equality.
@@ -69,6 +70,28 @@ Fixpoint lambda_subst (p: lambda_term) (k: nat) (q: lambda_term): lambda_term :=
     lambda_application (lambda_subst p k f) (lambda_subst p k x)
   end.
 
+Fixpoint lambda_size (e: lambda_term): nat :=
+  match e with
+  | lambda_bound n =>
+    1
+  | lambda_abstraction t b =>
+    1 + lambda_size b
+  | lambda_application f x =>
+    lambda_size f + lambda_size x
+  end.
+
+Lemma lambda_size_lift:
+  forall e i k,
+  lambda_size (lambda_lift i k e) = lambda_size e.
+Proof.
+  induction e; simpl; intros.
+  - destruct (le_gt_dec k n); auto.
+  - auto.
+  - auto.
+Qed.
+
+(* Full beta reduction relation. *)
+
 Inductive lambda_full: relation lambda_term :=
   | lambda_full_beta:
     forall t b x,
@@ -88,8 +111,8 @@ Inductive lambda_full: relation lambda_term :=
     lambda_full x1 x2 ->
     lambda_full (lambda_application f x1) (lambda_application f x2).
 
-(* The definitions of call by name and call by value reductions are standard,
-   as of this moment, they were taken from Plotkin's paper. *)
+(* The definitions of call by name and call by value reductions are standard;
+   as of this development, they were taken from Plotkin's paper. *)
 
 Inductive lambda_cbn: relation lambda_term :=
   | lambda_cbn_beta:
@@ -208,3 +231,73 @@ Proof.
       auto with cps.
     + f_equal; auto.
 Qed.
+
+(* The CPS translations are given in Thielecke's dissertation, and are based on
+   those of Plotkin's paper as well. We note that both translations receive the
+   returning continuation as a parameter, but the translation will always set
+   this to be the most recently bound continuation, i.e., the de Bruijn index 0,
+   so this parameter is taken implictly in our setting.
+
+   TODO: fix typing on the following! *)
+
+Inductive cbn_cps: lambda_term -> pseudoterm -> Prop :=
+  | cbn_cps_bound:
+    (* [x](k) = x<k> *)
+    forall n: nat,
+    (* TODO: assume k is fresh! *)
+    cbn_cps n (jump n [bound 0])
+  | cbn_cps_abstraction:
+    (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
+    forall t b b',
+    cbn_cps (lambda_lift 1 0 b) b' ->
+    cbn_cps
+      (lambda_abstraction t b)
+      (bind
+        (jump 1 [bound 0])
+        [void; void]
+        b')
+  | cbn_cps_application:
+    (* [M N](k) = [M](m) { m<f> = f<n, k> { n<h> = [N](h) } } *)
+    forall f x f' x',
+    cbn_cps (lambda_lift 1 0 f) f' ->
+    cbn_cps (lambda_lift 2 0 x) x' ->
+    cbn_cps
+      (lambda_application f x)
+      (bind
+        f'
+        [void]
+        (bind
+          (jump 1 [bound 2; bound 0])
+          [void; void]
+          x')).
+
+Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
+  | cbv_cps_bound:
+    (* [x](k) = k<x> *)
+    forall n: nat,
+    (* TODO: assume k is fresh! *)
+    cbv_cps n (jump 0 [bound n])
+  | cbv_cps_abstraction:
+    (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
+    forall t b b',
+    cbv_cps (lambda_lift 1 0 b) b' ->
+    cbv_cps
+      (lambda_abstraction t b)
+      (bind
+        (jump 1 [bound 0])
+        [void; void]
+        b')
+  | cbv_cps_application:
+    (* [M N](k) = [M](m) { m<f> = [N](n) { n<a> = f<a, k> } } *)
+    forall f x f' x',
+    cbv_cps (lambda_lift 1 0 f) f' ->
+    cbv_cps (lambda_lift 2 0 x) x' ->
+    cbv_cps
+      (lambda_application f x)
+      (bind
+        f'
+        [void]
+        (bind
+          x'
+          [void; void]
+          (jump 1 [bound 2; bound 0]))).
