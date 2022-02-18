@@ -90,6 +90,20 @@ Proof.
   - auto.
 Qed.
 
+(* TODO: do we need this? *)
+
+Goal
+  forall f x,
+  lambda_size f < lambda_size (lambda_application f x) /\
+  lambda_size x < lambda_size (lambda_application f x).
+Proof.
+  assert (forall e, lambda_size e > 0); intros.
+  - induction e; simpl; lia.
+  - simpl; split.
+    + specialize (H x); lia.
+    + specialize (H f); lia.
+Qed.
+
 (* Full beta reduction relation. *)
 
 Inductive lambda_full: relation lambda_term :=
@@ -271,6 +285,21 @@ Inductive cbn_cps: lambda_term -> pseudoterm -> Prop :=
           [void; void]
           x')).
 
+Lemma cbn_cps_is_a_function:
+  forall e c1,
+  cbn_cps e c1 ->
+  forall c2,
+  cbn_cps e c2 -> c1 = c2.
+Proof.
+  induction 1; intros.
+  - dependent destruction H; auto.
+  - dependent destruction H0.
+    f_equal; auto.
+  - dependent destruction H1.
+    f_equal; auto.
+    f_equal; auto.
+Qed.
+
 Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
     (* [x](k) = k<x> *)
@@ -301,3 +330,18 @@ Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
           x'
           [void; void]
           (jump 1 [bound 2; bound 0]))).
+
+Lemma cbv_cps_is_a_function:
+  forall e c1,
+  cbv_cps e c1 ->
+  forall c2,
+  cbv_cps e c2 -> c1 = c2.
+Proof.
+  induction 1; intros.
+  - dependent destruction H; auto.
+  - dependent destruction H0.
+    f_equal; auto.
+  - dependent destruction H1.
+    f_equal; auto.
+    f_equal; auto.
+Qed.
