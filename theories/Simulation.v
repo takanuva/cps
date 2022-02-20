@@ -10,6 +10,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.AbstractRewriting.
+Require Import Local.Observational.
 
 Inductive lambda_type: Set :=
   | lambda_base
@@ -103,6 +104,26 @@ Proof.
     + specialize (H x); lia.
     + specialize (H f); lia.
 Qed.
+
+Inductive lambda_context: Set :=
+  | lambda_context_hole
+  | lambda_context_abstraction (t: lambda_type) (b: lambda_context)
+  | lambda_context_application_left (f: lambda_context) (x: lambda_term)
+  | lambda_context_application_right (f: lambda_term) (x: lambda_context).
+
+Fixpoint lambda_apply_context h e :=
+  match h with
+  | lambda_context_hole =>
+    e
+  | lambda_context_abstraction t b =>
+    lambda_abstraction t (lambda_apply_context b e)
+  | lambda_context_application_left f x =>
+    lambda_application (lambda_apply_context f e) x
+  | lambda_context_application_right f x =>
+    lambda_application f (lambda_apply_context x e)
+  end.
+
+Coercion lambda_apply_context: lambda_context >-> Funclass.
 
 (* Full beta reduction relation. *)
 
