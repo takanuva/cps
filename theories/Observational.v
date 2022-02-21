@@ -3,10 +3,12 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import Arith.
 Require Import Equality.
 Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Axiomatic.
@@ -126,7 +128,7 @@ Proof.
     apply converges_is_preserved_by_star with c; auto.
 Qed.
 
-Lemma weakly_convergence_is_unique:
+Lemma weakly_convergence_is_a_function:
   forall e n,
   weakly_converges e n ->
   forall m,
@@ -139,6 +141,67 @@ Proof.
   assert (converges c n); eauto with cps.
   assert (converges c m); eauto with cps.
   apply convergence_is_unique with c; auto.
+Qed.
+
+Lemma converges_lift:
+  forall e n,
+  converges e n ->
+  forall i k (m: nat),
+  lift i k n = m ->
+  converges (lift i k e) m.
+Proof.
+  induction 1; intros.
+  - rename k0 into p.
+    rewrite lift_distributes_over_jump.
+    rewrite H.
+    constructor.
+  - rename k0 into p.
+    rewrite lift_distributes_over_bind.
+    constructor.
+    apply IHconverges.
+    destruct (le_gt_dec p k).
+    + rewrite lift_bound_ge in H0; auto.
+      rewrite lift_bound_ge; try lia.
+      dependent destruction H0.
+      f_equal; lia.
+    + rewrite lift_bound_lt in H0; auto.
+      rewrite lift_bound_lt; try lia.
+      dependent destruction H0.
+      f_equal; lia.
+Qed.
+
+Lemma converges_subst:
+  forall e n,
+  converges e n ->
+  forall y k (m: nat),
+  subst y k n = m ->
+  converges (subst y k e) m.
+Proof.
+  induction 1; intros.
+  - rename k0 into p.
+    rewrite subst_distributes_over_jump.
+    rewrite H.
+    constructor.
+  - rename k0 into p.
+    rewrite subst_distributes_over_bind.
+    constructor.
+    apply IHconverges.
+    destruct (lt_eq_lt_dec p k) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt in H0; auto.
+      rewrite subst_bound_gt; try lia.
+      dependent destruction H0.
+      f_equal; lia.
+    + rewrite subst_bound_eq in H0; auto.
+      rewrite subst_bound_eq; try lia.
+      destruct y; try discriminate.
+      rewrite lift_bound_ge in H0; try lia.
+      rewrite lift_bound_ge; try lia.
+      dependent destruction H0.
+      f_equal; lia.
+    + rewrite subst_bound_lt in H0; auto.
+      rewrite subst_bound_lt; try lia.
+      dependent destruction H0.
+      f_equal; lia.
 Qed.
 
 (** ** Observational relations *)
