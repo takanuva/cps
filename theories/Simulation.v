@@ -125,6 +125,59 @@ Fixpoint lambda_apply_context h e :=
 
 Coercion lambda_apply_context: lambda_context >-> Funclass.
 
+Fixpoint lambda_context_bvars h: nat :=
+  match h with
+  | lambda_context_hole =>
+    0
+  | lambda_context_abstraction t b =>
+    1 + lambda_context_bvars b
+  | lambda_context_application_left f x =>
+    lambda_context_bvars f
+  | lambda_context_application_right f x =>
+    lambda_context_bvars x
+  end.
+
+Fixpoint lambda_context_depth h: nat :=
+  match h with
+  | lambda_context_hole =>
+    0
+  | lambda_context_abstraction t b =>
+    1 + lambda_context_depth b
+  | lambda_context_application_left f x =>
+    1 + lambda_context_depth f
+  | lambda_context_application_right f x =>
+    1 + lambda_context_depth x
+  end.
+
+Fixpoint lambda_context_lift i k h: lambda_context :=
+  match h with
+  | lambda_context_hole =>
+    lambda_context_hole
+  | lambda_context_abstraction t b =>
+    lambda_context_abstraction t (lambda_context_lift i (S k) b)
+  | lambda_context_application_left f x =>
+    lambda_context_application_left
+      (lambda_context_lift i k f) (lambda_lift i k x)
+  | lambda_context_application_right f x =>
+    lambda_context_application_right
+      (lambda_lift i k f) (lambda_context_lift i k x)
+  end.
+
+Lemma lambda_context_lift_is_sound:
+  forall (h: lambda_context) i k e,
+  lambda_lift i k (h e) =
+    lambda_context_lift i k h (lambda_lift i (lambda_context_bvars h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal; rewrite plus_n_Sm.
+    apply IHh.
+  - f_equal.
+    apply IHh.
+  - f_equal.
+    apply IHh.
+Qed.
+
 (* Full beta reduction relation. *)
 
 Inductive lambda_full: relation lambda_term :=
@@ -366,3 +419,7 @@ Proof.
     f_equal; auto.
     f_equal; auto.
 Qed.
+
+(* Note: if the CPS-calculus properly simulates CBN/CBV reduction, then, by the
+   factorization lemma, it's possible to show that we'll reach the desired value
+   only by using head redutions! They are enough to simulate the results. *)
