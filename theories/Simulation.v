@@ -192,6 +192,20 @@ Proof.
     apply IHh.
 Qed.
 
+Inductive lambda_not_free: nat -> lambda_term -> Prop :=
+  | lambda_not_free_bound:
+    forall n m,
+    n <> m -> lambda_not_free n m
+  | lambda_not_free_abstraction:
+    forall t b n,
+    lambda_not_free (S n) b ->
+    lambda_not_free n (lambda_abstraction t b)
+  | lambda_not_free_application:
+    forall f x n,
+    lambda_not_free n f ->
+    lambda_not_free n x ->
+    lambda_not_free n (lambda_application f x).
+
 (* Full beta reduction relation. *)
 
 Inductive lambda_full: relation lambda_term :=
@@ -398,7 +412,15 @@ Lemma cbn_cps_lift:
   cbn_cps (lambda_lift i k e) (lift i k c).
 Proof.
   induction 1; simpl; intros.
-  - admit.
+  - destruct (le_gt_dec k n).
+    + rewrite lift_distributes_over_jump; simpl.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_lt; try lia.
+      constructor.
+    + rewrite lift_distributes_over_jump; simpl.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      constructor.
   - rewrite lift_distributes_over_bind.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt; try lia.
@@ -419,12 +441,14 @@ Proof.
     + rewrite lambda_lift_lift_permutation; try lia.
       replace (k + 1 + 1) with (2 + k); try lia.
       apply IHcbn_cps2; lia.
-Admitted.
+Qed.
 
 Lemma cbn_cps_is_compositional:
   forall c1 c2,
   [c1 ~~ c2] ->
   forall e1 e2,
+  lambda_not_free 0 e1 ->
+  lambda_not_free 0 e2 ->
   cbn_cps e1 c1 ->
   cbn_cps e2 c2 ->
   forall (h: lambda_context) c3 c4,
@@ -433,44 +457,69 @@ Lemma cbn_cps_is_compositional:
   [c3 ~~ c4].
 Proof.
   intros until h.
+  (* Do some reordering to help with unification... *)
+  move H0 after H2.
+  move H1 after H3.
   generalize dependent e2.
   generalize dependent e1.
   generalize dependent c2.
   generalize dependent c1.
+  (* We'll do induction on the depth of h, not on h itself. *)
   remember (lambda_context_depth h) as k.
   generalize dependent h.
   induction k using lt_wf_ind; intros.
   dependent destruction Heqk.
+  (* There we go. *)
   destruct h; simpl in H.
+  (* Case: lambda_context_hole. *)
   - assert (c1 = c3); eauto with cps.
-    destruct H5.
+    destruct H7.
     assert (c2 = c4); eauto with cps.
-    destruct H5.
+    destruct H7.
     assumption.
-  - dependent destruction H3.
-    dependent destruction H4.
-    rewrite lambda_context_lift_is_sound in H3.
-    rewrite lambda_context_lift_is_sound in H4.
-    rewrite Nat.add_0_r in H3, H4.
+  (* Case: lambda_context_abstraction. *)
+  - dependent destruction H5.
+    dependent destruction H6.
+    rewrite lambda_context_lift_is_sound in H5.
+    rewrite lambda_context_lift_is_sound in H6.
+    rewrite Nat.add_0_r in H5, H6.
     apply barb_bind_right.
     (* We notice that 0 can't be free in e1 or e2, so, if h happens to bind no
        var, so that we have lambda_lift 1 0 e1 in H3 (and ... e2 in H4), those
        may be freely replaced with lambda_lift 1 1, thus fixing what we need. *)
-    eapply H with (m := lambda_context_depth (lambda_context_lift 1 0 h)).
+    destruct (lambda_context_bvars h).
     + admit.
-    + reflexivity.
-    + apply barb_lift.
-      exact H0.
-    + apply cbn_cps_lift.
-      exact H1.
-      admit.
-    + apply cbn_cps_lift.
-      exact H2.
-      admit.
-    + exact H3.
-    + exact H4.
-  - admit.
-  - admit.
+    + eapply H with (m := lambda_context_depth (lambda_context_lift 1 0 h)).
+      * (* Clearly. *)
+        admit.
+      * reflexivity.
+      * apply barb_lift with (k := S n).
+        exact H0.
+      * apply cbn_cps_lift; try lia.
+        exact H2.
+      * (* Clearly. *)
+        admit.
+      * apply cbn_cps_lift; try lia.
+        exact H3.
+      * (* Clearly. *)
+        admit.
+      * exact H5.
+      * exact H6.
+  (* Case: lambda_context_abstraction_left. *)
+  - dependent destruction H5.
+    dependent destruction H6.
+    assert (x' = x'0); eauto with cps.
+    dependent destruction H5.
+    apply barb_bind_left.
+    admit.
+  (* Case: lambda_context_abstraction_right. *)
+  - dependent destruction H5.
+    dependent destruction H6.
+    assert (f' = f'0); eauto with cps.
+    dependent destruction H5.
+    apply barb_bind_right.
+    apply barb_bind_right.
+    admit.
 Admitted.
 
 Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
