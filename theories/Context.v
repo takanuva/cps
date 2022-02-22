@@ -1,10 +1,11 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
+Require Import Arith.
 Require Export Setoid.
 Require Export Relations.
-Require Import Lia.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
@@ -617,4 +618,57 @@ Proof.
       apply switch_bindings_is_involutive.
     + rewrite traverse_list_length.
       apply IHh.
+Qed.
+
+Inductive context_equals_lift h e1 i k: Prop :=
+  | context_equals_lift_mk:
+    forall r,
+    same_path h r ->
+    h = context_lift i k r ->
+    forall e3,
+    e1 = lift i (#h + k) e3 ->
+    context_equals_lift h e1 i k.
+
+Lemma context_equals_lift_inversion:
+  forall (h: context) e1 e2 i k,
+  h e1 = lift i k e2 ->
+  context_equals_lift h e1 i k.
+Proof.
+  induction h; simpl; intros.
+  - econstructor.
+    + constructor.
+    + reflexivity.
+    + simpl; eauto.
+  - destruct e2; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in H; auto.
+        discriminate.
+      * rewrite lift_bound_lt in H; auto.
+        discriminate.
+    + rewrite lift_distributes_over_bind in H.
+      dependent destruction H.
+      edestruct IHh as (r, ?, ?, e3, ?); eauto.
+      eexists (context_left r ts0 _) e3; simpl.
+      * constructor; auto.
+        rewrite traverse_list_length; auto.
+      * f_equal; auto.
+      * rewrite H1; f_equal.
+        lia.
+  - destruct e2; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in H; auto.
+        discriminate.
+      * rewrite lift_bound_lt in H; auto.
+        discriminate.
+    + rewrite lift_distributes_over_bind in H.
+      dependent destruction H.
+      edestruct IHh as (r, ?, ?, e3, ?); eauto.
+      eexists (context_right _ ts0 r) e3; simpl.
+      * constructor; auto.
+        rewrite traverse_list_length; auto.
+      * f_equal; auto.
+      * rewrite H1; f_equal.
+        rewrite traverse_list_length; lia.
 Qed.

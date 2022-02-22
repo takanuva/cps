@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -219,6 +219,72 @@ Proof.
 Qed.
 
 Global Hint Resolve step_apply_parameters: cps.
+
+Lemma step_lift_inversion:
+  forall i k a b,
+  [lift i k a => b] ->
+  exists b',
+  b = lift i k b'.
+Proof.
+  intros.
+  dependent induction H.
+  - destruct a; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; try lia.
+        discriminate.
+      * rewrite lift_bound_lt in x; try lia.
+        discriminate.
+    + rewrite lift_distributes_over_bind in x.
+      dependent destruction x.
+      rewrite traverse_list_length in H |- *.
+      edestruct context_equals_lift_inversion as (r, ?, ?, a3, ?); eauto.
+      (* TODO: this works but PLEASE clean up this mess! I'm too tired. *)
+      destruct a3; try discriminate.
+      exfalso.
+      destruct (le_gt_dec (#h + S k) n).
+      rewrite lift_bound_ge in H2; try lia.
+      discriminate.
+      rewrite lift_bound_lt in H2; try lia.
+      discriminate.
+      rewrite lift_distributes_over_jump in H2.
+      dependent destruction H2.
+      clear a3 x H0.
+      rewrite context_lift_bvars in H, x0 |- *.
+      rewrite map_length in H.
+      eexists (bind (r _) _ _).
+      rewrite lift_distributes_over_bind.
+      rewrite context_lift_is_sound; f_equal; f_equal.
+      rewrite lift_distributes_over_apply_parameters.
+      rewrite lift_lift_permutation; try lia.
+      f_equal; f_equal; lia.
+  - destruct a; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; try lia.
+        discriminate.
+      * rewrite lift_bound_lt in x; try lia.
+        discriminate.
+    + rewrite lift_distributes_over_bind in x.
+      dependent destruction x.
+      edestruct IHstep as (b2', ?); eauto.
+      eexists (bind b2' _ _).
+      rewrite lift_distributes_over_bind; f_equal.
+      assumption.
+  - destruct a; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; try lia.
+        discriminate.
+      * rewrite lift_bound_lt in x; try lia.
+        discriminate.
+    + rewrite lift_distributes_over_bind in x.
+      dependent destruction x.
+      edestruct IHstep as (c2', ?); eauto.
+      eexists (bind _ _ c2').
+      rewrite lift_distributes_over_bind; f_equal.
+      assumption.
+Qed.
 
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a

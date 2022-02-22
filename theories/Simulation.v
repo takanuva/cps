@@ -78,7 +78,7 @@ Fixpoint lambda_size (e: lambda_term): nat :=
   | lambda_abstraction t b =>
     1 + lambda_size b
   | lambda_application f x =>
-    lambda_size f + lambda_size x
+    1 + lambda_size f + lambda_size x
   end.
 
 Lemma lambda_size_lift:
@@ -89,20 +89,6 @@ Proof.
   - destruct (le_gt_dec k n); auto.
   - auto.
   - auto.
-Qed.
-
-(* TODO: do we need this? *)
-
-Goal
-  forall f x,
-  lambda_size f < lambda_size (lambda_application f x) /\
-  lambda_size x < lambda_size (lambda_application f x).
-Proof.
-  assert (forall e, lambda_size e > 0); intros.
-  - induction e; simpl; lia.
-  - simpl; split.
-    + specialize (H x); lia.
-    + specialize (H f); lia.
 Qed.
 
 Inductive lambda_context: Set :=
@@ -373,6 +359,49 @@ Proof.
     f_equal; auto.
     f_equal; auto.
 Qed.
+
+(*
+Local Hint Resolve cbn_cps_is_a_function: cps.
+
+Lemma cbn_cps_is_compositional:
+  forall c1 c2,
+  [c1 ~~ c2] ->
+  forall e1 e2,
+  cbn_cps e1 c1 ->
+  cbn_cps e2 c2 ->
+  forall (h: lambda_context) c3 c4,
+  cbn_cps (h e1) c3 ->
+  cbn_cps (h e2) c4 ->
+  [c3 ~~ c4].
+Proof.
+  intros until h.
+  generalize dependent e2.
+  generalize dependent e1.
+  generalize dependent c2.
+  generalize dependent c1.
+  remember (lambda_context_depth h) as k.
+  generalize dependent h.
+  induction k using lt_wf_ind; intros.
+  dependent destruction Heqk.
+  destruct h; simpl in H.
+  - assert (c1 = c3); eauto with cps.
+    destruct H5.
+    assert (c2 = c4); eauto with cps.
+    destruct H5.
+    assumption.
+  - dependent destruction H3.
+    rewrite lambda_context_lift_is_sound in H3.
+    dependent destruction H4.
+    rewrite lambda_context_lift_is_sound in H4.
+    apply barb_bind_right.
+    eapply H.
+    6: {
+      exact H3.
+    }
+    6: {
+      exact H4.
+    }
+*)
 
 Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
