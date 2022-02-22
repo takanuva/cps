@@ -393,6 +393,18 @@ Qed.
 
 Global Hint Resolve barb_bind_right: cps.
 
+Lemma barb_lift:
+  forall a b,
+  [a ~~ b] ->
+  forall i k,
+  [lift i k a ~~ lift i k b].
+Proof.
+  (* There's no reason this shouldn't be true, and we even checked that this is
+     true for sema. But this seems to be overly complex to prove, so I'll get
+     back to this later on! *)
+  admit.
+Admitted.
+
 Instance barb_is_a_congruence: Congruence barb.
 Proof.
   split.
