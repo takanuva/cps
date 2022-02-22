@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -202,6 +202,48 @@ Proof.
       rewrite subst_bound_lt; try lia.
       dependent destruction H0.
       f_equal; lia.
+Qed.
+
+Lemma converges_unlift:
+  forall i k e n,
+  converges (lift i k e) n ->
+  exists2 m,
+  converges e m & bound n = lift i k m.
+Proof.
+  intros.
+  dependent induction H.
+  - destruct e; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; auto.
+        inversion x.
+      * rewrite lift_bound_lt in x; auto.
+        inversion x.
+    + rewrite lift_distributes_over_jump in x.
+      dependent destruction x.
+      destruct e; try discriminate.
+      exists n; auto with cps.
+  - destruct e; try discriminate.
+    + exfalso.
+      destruct (le_gt_dec k n).
+      * rewrite lift_bound_ge in x; auto.
+        inversion x.
+      * rewrite lift_bound_lt in x; auto.
+        inversion x.
+    + rewrite lift_distributes_over_bind in x.
+      dependent destruction x.
+      edestruct IHconverges; eauto.
+      destruct x.
+      * exfalso.
+        rewrite lift_bound_lt in H1; try lia.
+        discriminate.
+      * exists x; auto with cps.
+        (* TODO: fix this proof, please. *)
+        destruct (le_gt_dec k x).
+        rewrite lift_bound_ge in H1 |- *; try lia.
+        dependent destruction H1; f_equal; lia.
+        rewrite lift_bound_lt in H1 |- *; try lia.
+        congruence.
 Qed.
 
 (** ** Observational relations *)
