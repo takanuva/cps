@@ -9,6 +9,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
+Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Observational.
 
@@ -70,6 +71,33 @@ Fixpoint lambda_subst (p: lambda_term) (k: nat) (q: lambda_term): lambda_term :=
   | lambda_application f x =>
     lambda_application (lambda_subst p k f) (lambda_subst p k x)
   end.
+
+Lemma lambda_lift_lift_permutation:
+  forall e (i j k l : nat),
+  k <= l ->
+  lambda_lift i k (lambda_lift j l e) =
+    lambda_lift j (i + l) (lambda_lift i k e).
+Proof.
+  induction e; simpl; intros.
+  - destruct (le_gt_dec l n);
+    simpl;
+    destruct (le_gt_dec k n);
+    simpl;
+    destruct (le_gt_dec k (j + n));
+    simpl;
+    destruct (le_gt_dec (i + l) (i + n));
+    simpl;
+    destruct (le_gt_dec (i + l) n);
+    simpl;
+    try lia;
+    f_equal; lia.
+  - f_equal.
+    replace (S (i + l)) with (i + S l); try lia.
+    apply IHe; lia.
+  - f_equal.
+    + apply IHe1; auto.
+    + apply IHe2; auto.
+Qed.
 
 Fixpoint lambda_size (e: lambda_term): nat :=
   match e with
@@ -342,7 +370,7 @@ Inductive cbn_cps: lambda_term -> pseudoterm -> Prop :=
         [void]
         (bind
           (jump 1 [bound 2; bound 0])
-          [void; void]
+          [void]
           x')).
 
 Lemma cbn_cps_is_a_function:
@@ -360,8 +388,38 @@ Proof.
     f_equal; auto.
 Qed.
 
-(*
 Local Hint Resolve cbn_cps_is_a_function: cps.
+
+Lemma cbn_cps_lift:
+  forall e c,
+  cbn_cps e c ->
+  forall i k,
+  k > 0 ->
+  cbn_cps (lambda_lift i k e) (lift i k c).
+Proof.
+  induction 1; simpl; intros.
+  - admit.
+  - rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    constructor.
+    rewrite lambda_lift_lift_permutation; try lia.
+    replace (k + 2) with (2 + k); simpl; try lia.
+    apply IHcbn_cps; lia.
+  - rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    constructor.
+    + rewrite lambda_lift_lift_permutation; try lia.
+      apply IHcbn_cps1; lia.
+    + rewrite lambda_lift_lift_permutation; try lia.
+      replace (k + 1 + 1) with (2 + k); try lia.
+      apply IHcbn_cps2; lia.
+Admitted.
 
 Lemma cbn_cps_is_compositional:
   forall c1 c2,
@@ -390,18 +448,30 @@ Proof.
     destruct H5.
     assumption.
   - dependent destruction H3.
-    rewrite lambda_context_lift_is_sound in H3.
     dependent destruction H4.
+    rewrite lambda_context_lift_is_sound in H3.
     rewrite lambda_context_lift_is_sound in H4.
+    rewrite Nat.add_0_r in H3, H4.
     apply barb_bind_right.
-    eapply H.
-    6: {
-      exact H3.
-    }
-    6: {
-      exact H4.
-    }
-*)
+    (* We notice that 0 can't be free in e1 or e2, so, if h happens to bind no
+       var, so that we have lambda_lift 1 0 e1 in H3 (and ... e2 in H4), those
+       may be freely replaced with lambda_lift 1 1, thus fixing what we need. *)
+    eapply H with (m := lambda_context_depth (lambda_context_lift 1 0 h)).
+    + admit.
+    + reflexivity.
+    + apply barb_lift.
+      exact H0.
+    + apply cbn_cps_lift.
+      exact H1.
+      admit.
+    + apply cbn_cps_lift.
+      exact H2.
+      admit.
+    + exact H3.
+    + exact H4.
+  - admit.
+  - admit.
+Admitted.
 
 Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
@@ -431,7 +501,7 @@ Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
         [void]
         (bind
           x'
-          [void; void]
+          [void]
           (jump 1 [bound 2; bound 0]))).
 
 Lemma cbv_cps_is_a_function:
