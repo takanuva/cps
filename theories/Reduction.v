@@ -286,6 +286,28 @@ Proof.
       assumption.
 Qed.
 
+Lemma step_unlift:
+  forall i k a b,
+  [lift i k a => lift i k b] ->
+  [a => b].
+Proof.
+  induction i; intros.
+  - do 2 rewrite lift_zero_e_equals_e in H.
+    assumption.
+  - rewrite <- lift_zero_e_equals_e with (k := k) (e := a).
+    rewrite <- lift_zero_e_equals_e with (k := k) (e := b).
+    rewrite <- subst_lift_simplification with (y := 0) (p := k) (e := a);
+      try lia.
+    rewrite <- subst_lift_simplification with (y := 0) (p := k) (e := b);
+      try lia.
+    apply step_subst.
+    apply IHi with k.
+    rewrite lift_lift_simplification; try lia.
+    rewrite lift_lift_simplification; try lia.
+    rewrite Nat.add_comm; simpl.
+    assumption.
+Qed.
+
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in
