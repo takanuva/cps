@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Export List.
@@ -207,34 +207,6 @@ Global Hint Unfold right_cycle: cps.
 
 Definition remove_binding k e: pseudoterm :=
   subst 0 k e.
-
-Fixpoint beta ys k e: pseudoterm :=
-  match e with
-  | jump (bound n) xs =>
-    (* If n >= k... *)
-    match ge_dec n k with
-    | left _ =>
-      (* And n < k + |ys|... *)
-      match lt_dec (n - k) (length ys) with
-      | left _ =>
-        (* Then there IS an y in ys for us. *)
-        let y := nth (n - k) ys void in
-        (* Almost sure we should lift by S n... *)
-        apply_parameters xs 0 (lift (S n) (length xs) y)
-      | right _ =>
-        (* Out of range... *)
-        jump n xs
-      end
-    | right _ =>
-      (* Out of range... *)
-      jump n xs
-    end
-  | bind b ts c =>
-    (* TODO: should we reduce commands in ts, if any? *)
-    bind (beta ys (S k) b) ts (beta ys (k + length ts) c)
-  | _ =>
-    e
-  end.
 
 Inductive not_free: nat -> pseudoterm -> Prop :=
   | not_free_type:
