@@ -568,6 +568,47 @@ Proof.
     f_equal; auto.
 Qed.
 
+Local Hint Resolve cbv_cps_is_a_function: cps.
+
+Lemma cbv_cps_lift:
+  forall e c,
+  cbv_cps e c ->
+  forall i k,
+  k > 0 ->
+  cbv_cps (lambda_lift i k e) (lift i k c).
+Proof.
+  induction 1; simpl; intros.
+  - destruct (le_gt_dec k n).
+    + rewrite lift_distributes_over_jump; simpl.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_ge; try lia.
+      constructor.
+    + rewrite lift_distributes_over_jump; simpl.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      constructor.
+  - rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    constructor.
+    rewrite lambda_lift_lift_permutation; try lia.
+    replace (k + 2) with (2 + k); simpl; try lia.
+    apply IHcbv_cps; lia.
+  - rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    rewrite lift_bound_lt; try lia.
+    constructor.
+    + rewrite lambda_lift_lift_permutation; try lia.
+      apply IHcbv_cps1; lia.
+    + rewrite lambda_lift_lift_permutation; try lia.
+      replace (S (k + 1)) with (2 + k); try lia.
+      apply IHcbv_cps2; lia.
+Qed.
+
 (* Note: if the CPS-calculus properly simulates CBN/CBV reduction, then, by the
    factorization lemma, it's possible to show that we'll reach the desired value
    only by using head redutions! They are enough to simulate the results. *)
