@@ -16,35 +16,10 @@ Require Import Local.Confluence.
    Essentially" paper, and was hinted to me by dr. Accattoli through private
    communication. This seems way simpler than what I was trying to do. *)
 
-Inductive full: relation pseudoterm :=
-  | full_ctxjmp:
-    CTXJMP full
-  (* | full_gc:
-    GC full *)
-  | full_bind_left:
-    LEFT full
-  | full_bind_right:
-    RIGHT full.
-
-Local Hint Constructors full: cps.
-
-Lemma full_step:
-  inclusion step full.
-Proof.
-  induction 1; eauto with cps.
-Qed.
-
-Local Hint Resolve full_step: cps.
-
-Lemma rt_full_star:
-  inclusion star rt(full).
-Proof.
-  induction 1; eauto with cps.
-Qed.
+(* TODO: we have some unusual rules here... perhaps we should name them. *)
 
 Inductive inner: relation pseudoterm :=
   | inner_nonstatic_ctxjmp:
-    (* TODO: move to a proper abstract rule. Perhaps (NONSTATIC_CTXJMP)? *)
     forall h xs ts c,
     nonstatic h ->
     length xs = length ts ->
@@ -52,46 +27,36 @@ Inductive inner: relation pseudoterm :=
       (bind
          (h (apply_parameters xs 0 (lift (S #h) (length ts) c)))
          ts c)
-  (* | inner_gc:
-    GC inner *)
+  | inner_gc:
+    GC inner
+  | inner_eta:
+    (* It is important that this doesn't change the name in subject position at
+       the head of the term. *)
+    forall b ts h k xs j,
+    static h ->
+    (* TODO: we might have to tweak this definition a bit. *)
+    b = h (jump k xs) ->
+    k <> #h ->
+    inner
+      (bind b ts
+         (jump (lift (length ts) 0 j)
+            (low_sequence (length ts))))
+      (subst j 0 b)
   | inner_bind_left:
     LEFT inner
   | inner_bind_right:
     forall b ts c1 c2,
-    full c1 c2 -> inner (bind b ts c1) (bind b ts c2).
+    [c1 => c2] -> inner (bind b ts c1) (bind b ts c2).
 
-Lemma full_characterization:
-  same_relation full (union head inner).
+Lemma step_inner:
+  inclusion inner step.
 Proof.
-  split; unfold inclusion; intros.
-  - induction H.
-    + destruct context_static_nonstatic_dec with h.
-      * left.
-        apply head_longjmp with (r := context_hole); auto with cps.
-      * right.
-        constructor; auto.
-    (* + right.
-      constructor; auto. *)
-    + destruct IHfull.
-      * left.
-        apply head_bind_left; auto.
-      * right.
-        constructor; auto.
-    + right.
-      constructor; auto.
-  - destruct H.
-    + destruct H.
-      induction H0; simpl.
-      * constructor; auto.
-      * constructor; auto.
-    + induction H.
-      * constructor; auto.
-      (* * constructor; auto. *)
-      * constructor; auto.
-      * constructor; auto.
+  induction 1; auto with cps.
 Qed.
 
-(* Hindley's local postponement lemma. *)
+Global Hint Resolve step_inner: cps.
+
+(* Hindley's local postponement lemma. TODO: move me. *)
 
 Lemma local_postponement:
   forall {T} (R S: relation T),
@@ -161,7 +126,7 @@ Conjecture split:
   inclusion parallel (comp rt(head) parallel_inner).
 
 Theorem factorization:
-  inclusion rt(full) (comp rt(head) rt(inner)).
+  inclusion star (comp rt(head) rt(inner)).
 Proof.
   assert (inclusion rt(union head parallel_inner)
     (comp rt(head) rt(parallel_inner))).
@@ -173,33 +138,35 @@ Proof.
   - unfold inclusion; intros.
     destruct H with x y as (z, ?, ?).
     + clear H.
+      (* Relexive and transitive cases are trivial. *)
       induction H0; eauto with cps.
-      apply full_characterization in H.
-      destruct H; auto with cps.
+      (* Though we usually would argue that a step is either essential or not,
+         this is not the case here due to eta reduction: there are cases in
+         which a step should be split into a head reduction followed by an inner
+         reduction. So we take another route here by using [split]. *)
+      apply parallel_step in H.
+      apply split in H.
+      destruct H as (z, ?, ?).
+      (* Now, this is clearly true. *)
+      apply rt_trans with z.
+      * clear H0 y.
+        induction H; eauto with cps.
+      * auto with cps.
     + apply rt_inner_and_rt_parallel_inner_are_equivalent in H2.
       eauto with cps.
 Qed.
 
-Goal
-  same_relation rt(full) (comp rt(head) rt(inner)).
+Corollary star_characterization:
+  same_relation star (comp rt(head) rt(inner)).
 Proof.
   split.
   - apply factorization.
-  - (* This could be shown in the confluence file. *)
-    intros x z ?.
+  - intros x z ?.
+    (* Clearly true. *)
     destruct H as (y, ?, ?).
-    apply clos_rt_rt1n_iff in H.
-    induction H; intros.
-    + induction H0.
-      * apply rt_step.
-        induction H; auto with cps.
-      * auto with cps.
-      * eauto with cps.
-    + apply clos_rt_rt1n_iff in H1.
-      apply rt_trans with y.
-      * clear H0 H1 IHclos_refl_trans_1n.
-        apply rt_step.
-        destruct H.
-        induction H0; auto with cps.
-      * firstorder.
+    apply star_trans with y.
+    + clear H0 z.
+      induction H; eauto with cps.
+    + clear H x.
+      induction H0; eauto with cps.
 Qed.

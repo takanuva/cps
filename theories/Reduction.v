@@ -14,7 +14,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Axiomatic.
 
-(** ** One-step reduction. *)
+(** ** Beta (generalized jump) reduction. *)
 
 (*
   We have four assumptions: j, x, y, z.
@@ -56,57 +56,38 @@ Definition CTXJMP (R: relation pseudoterm): Prop :=
 
 Global Hint Unfold CTXJMP: cps.
 
-Inductive step: relation pseudoterm :=
-  | step_ctxjmp:
-    CTXJMP step
-  | step_bind_left:
-    LEFT step
-  | step_bind_right:
-    (* TODO: we probably should require that the bound continuation appears free
-       in the left side, so that (GC) won't mess things up. *)
-    RIGHT step.
-
-Global Hint Constructors step: cps.
-
-Notation "[ a => b ]" := (step a b)
-  (at level 0, a, b at level 200): type_scope.
-
 (*
-    \j.\x.\y.\z.                         \j.\x.\y.\z.
-      h@1<x@4, k@0, y@3>                   k@0<y@3, z@2>
-      { k<a, b> =                 =>       { k<a, b> =
-          h@2<b@0, j@6, a@1> }                 h@2<b@0, j@6, a@1> }
-      { h<c, d, e> =                       { h<c, d, e> =
-          d@1<e@0, z@3> }                      d@1<e@0, z@3> }
+  The following is called (CONT-BETA) in Kennedy's paper, where it is presented
+  as a rewriting rule, so we'll name it simply [beta] here. In fact, it's really
+  similar to how beta reduction acts in explicit substitution calculi. Compare
+  also to the reduction used for the pi-calculus in Yoshida's paper, where it
+  represents the replication law.
 *)
 
-Example ex3: pseudoterm :=
-  (bind (bind
-    (jump 0 [bound 2; bound 3])
-    [base; base]
-      (jump 2 [bound 1; bound 6; bound 0]))
-    [base; negation [base; base]; base]
-      (jump 1 [bound 3; bound 0])).
+Inductive beta: relation pseudoterm :=
+  | beta_ctxjmp:
+    CTXJMP beta
+  | beta_bind_left:
+    LEFT beta
+  | beta_bind_right:
+    RIGHT beta.
 
-Goal [ex1 => ex3].
-Proof.
-  apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
-Qed.
+Global Hint Constructors beta: cps.
 
-Lemma step_recjmp:
-  RECJMP step.
+Lemma beta_recjmp:
+  RECJMP beta.
 Proof.
   unfold RECJMP; intros.
   replace c with (lift 0 (length ts) c) at 2.
   - rewrite lift_lift_simplification; try lia.
-    apply step_ctxjmp with (h := context_hole); auto.
+    apply beta_ctxjmp with (h := context_hole); auto.
   - apply lift_zero_e_equals_e.
 Qed.
 
-Global Hint Resolve step_recjmp: cps.
+Global Hint Resolve beta_recjmp: cps.
 
-Local Lemma step_ctxjmp_helper:
-  forall (h r: context),
+Local Lemma beta_ctxjmp_helper:
+  forall h r,
   r = h ->
   forall xs ts c,
   length xs = length ts ->
@@ -120,19 +101,19 @@ Local Lemma step_ctxjmp_helper:
   ts' = ts ->
   forall c',
   c' = c ->
-  [bind (h a) ts c => bind (r b) ts' c'].
+  beta (bind (h a) ts c) (bind (r b) ts' c').
 Proof.
   intros.
   rewrite H, H2, H3, H4, H5, H1.
-  apply step_ctxjmp.
+  apply beta_ctxjmp.
   assumption.
 Qed.
 
-Lemma step_lift:
+Lemma beta_lift:
   forall a b,
-  [a => b] ->
+  beta a b ->
   forall i k,
-  [lift i k a => lift i k b].
+  beta (lift i k a) (lift i k b).
 Proof.
   induction 1; intros.
   - do 2 rewrite lift_distributes_over_bind.
@@ -140,7 +121,7 @@ Proof.
     rewrite lift_distributes_over_jump.
     rewrite lift_bound_lt; try lia.
     rewrite lift_distributes_over_apply_parameters.
-    eapply step_ctxjmp_helper with (xs := map _ xs).
+    eapply beta_ctxjmp_helper with (xs := map _ xs).
     + reflexivity.
     + rewrite map_length.
       rewrite traverse_list_length.
@@ -157,20 +138,20 @@ Proof.
     + reflexivity.
     + reflexivity.
   - do 2 rewrite lift_distributes_over_bind.
-    apply step_bind_left.
-    apply IHstep.
+    apply beta_bind_left.
+    apply IHbeta.
   - do 2 rewrite lift_distributes_over_bind.
-    apply step_bind_right.
-    apply IHstep.
+    apply beta_bind_right.
+    apply IHbeta.
 Qed.
 
-Global Hint Resolve step_lift: cps.
+Global Hint Resolve beta_lift: cps.
 
-Lemma step_subst:
+Lemma beta_subst:
   forall a b,
-  [a => b] ->
+  beta a b ->
   forall y k,
-  [subst y k a => subst y k b].
+  beta (subst y k a) (subst y k b).
 Proof.
   induction 1; intros.
   - do 2 rewrite subst_distributes_over_bind.
@@ -178,7 +159,7 @@ Proof.
     rewrite subst_distributes_over_jump.
     rewrite subst_bound_lt; try lia.
     rewrite subst_distributes_over_apply_parameters.
-    eapply step_ctxjmp_helper with (xs := map _ xs).
+    eapply beta_ctxjmp_helper with (xs := map _ xs).
     + reflexivity.
     + rewrite map_length.
       rewrite traverse_list_length.
@@ -195,34 +176,34 @@ Proof.
     + reflexivity.
     + reflexivity.
   - do 2 rewrite subst_distributes_over_bind.
-    apply step_bind_left.
-    apply IHstep.
+    apply beta_bind_left.
+    apply IHbeta.
   - do 2 rewrite subst_distributes_over_bind.
-    apply step_bind_right.
-    apply IHstep.
+    apply beta_bind_right.
+    apply IHbeta.
 Qed.
 
-Global Hint Resolve step_subst: cps.
+Global Hint Resolve beta_subst: cps.
 
-Lemma step_apply_parameters:
+Lemma beta_apply_parameters:
   forall xs k a b,
-  [a => b] ->
-  [apply_parameters xs k a => apply_parameters xs k b].
+  beta a b ->
+  beta (apply_parameters xs k a) (apply_parameters xs k b).
 Proof.
   induction xs; intros.
   - simpl.
     assumption.
   - simpl.
     apply IHxs.
-    apply step_subst.
+    apply beta_subst.
     assumption.
 Qed.
 
-Global Hint Resolve step_apply_parameters: cps.
+Global Hint Resolve beta_apply_parameters: cps.
 
-Lemma step_lift_inversion:
+Lemma beta_lift_inversion:
   forall i k a b,
-  [lift i k a => b] ->
+  beta (lift i k a) b ->
   exists b',
   b = lift i k b'.
 Proof.
@@ -267,7 +248,7 @@ Proof.
         discriminate.
     + rewrite lift_distributes_over_bind in x.
       dependent destruction x.
-      edestruct IHstep as (b2', ?); eauto.
+      edestruct IHbeta as (b2', ?); eauto.
       eexists (bind b2' _ _).
       rewrite lift_distributes_over_bind; f_equal.
       assumption.
@@ -280,16 +261,16 @@ Proof.
         discriminate.
     + rewrite lift_distributes_over_bind in x.
       dependent destruction x.
-      edestruct IHstep as (c2', ?); eauto.
+      edestruct IHbeta as (c2', ?); eauto.
       eexists (bind _ _ c2').
       rewrite lift_distributes_over_bind; f_equal.
       assumption.
 Qed.
 
-Lemma step_unlift:
+Lemma beta_unlift:
   forall i k a b,
-  [lift i k a => lift i k b] ->
-  [a => b].
+  beta (lift i k a) (lift i k b) ->
+  beta a b.
 Proof.
   induction i; intros.
   - do 2 rewrite lift_zero_e_equals_e in H.
@@ -300,7 +281,7 @@ Proof.
       try lia.
     rewrite <- subst_lift_simplification with (y := 0) (p := k) (e := b);
       try lia.
-    apply step_subst.
+    apply beta_subst.
     apply IHi with k.
     rewrite lift_lift_simplification; try lia.
     rewrite lift_lift_simplification; try lia.
@@ -313,14 +294,14 @@ Qed.
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in
   the hole of H, then e will keep the subterm k<xs>, i.e., there is a R such
   that e = R[k<xs>] and both R and H will bind the same variables in their
-  respective holes.
+  respective holes. This version is specialized for jumps alone.
 *)
-Lemma step_noninterference:
+Lemma beta_noninterference:
   forall h: context,
   forall n,
   n >= #h ->
   forall xs e,
-  [h (jump n xs) => e] ->
+  beta (h (jump n xs)) e ->
   exists2 r: context,
   e = r (jump n xs) & same_path h r.
 Proof.
@@ -353,6 +334,183 @@ Proof.
       rewrite H1.
       eexists (context_right b ts x); auto with cps.
 Qed.
+
+(** ** Tidying reduction. *)
+
+(* TODO: wouldn't it be nice to have a (generalized) contraction in here? *)
+
+Inductive tidy: relation pseudoterm :=
+  | tidy_gc:
+    GC tidy
+  | tidy_eta:
+    ETA tidy
+  | tidy_bind_left:
+    LEFT tidy
+  | tidy_bind_right:
+    RIGHT tidy.
+
+Global Hint Constructors tidy: cps.
+
+Lemma tidy_lift:
+  forall a b,
+  tidy a b ->
+  forall i k,
+  tidy (lift i k a) (lift i k b).
+Proof.
+  (* There's a similar proof on [Axiomatic.v]! *)
+  admit.
+Admitted.
+
+Lemma tidy_subst:
+  forall a b,
+  tidy a b ->
+  forall y k,
+  tidy (subst y k a) (subst y k b).
+Proof.
+  (* There's a similar proof on [Axiomatic.v]! *)
+  admit.
+Admitted.
+
+(** ** One-step reduction. *)
+
+Inductive step: relation pseudoterm :=
+  | step_ctxjmp:
+    CTXJMP step
+  | step_gc:
+    GC step
+  | step_eta:
+    ETA step
+  | step_bind_left:
+    LEFT step
+  | step_bind_right:
+    RIGHT step.
+
+Global Hint Constructors step: cps.
+
+Notation "[ a => b ]" := (step a b)
+  (at level 0, a, b at level 200): type_scope.
+
+(*
+    \j.\x.\y.\z.                         \j.\x.\y.\z.
+      h@1<x@4, k@0, y@3>                   k@0<y@3, z@2>
+      { k<a, b> =                 =>       { k<a, b> =
+          h@2<b@0, j@6, a@1> }                 h@2<b@0, j@6, a@1> }
+      { h<c, d, e> =                       { h<c, d, e> =
+          d@1<e@0, z@3> }                      d@1<e@0, z@3> }
+*)
+
+Example ex3: pseudoterm :=
+  (bind (bind
+    (jump 0 [bound 2; bound 3])
+    [base; base]
+      (jump 2 [bound 1; bound 6; bound 0]))
+    [base; negation [base; base]; base]
+      (jump 1 [bound 3; bound 0])).
+
+Goal [ex1 => ex3].
+Proof.
+  apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
+Qed.
+
+Lemma step_characterization:
+  same_relation step (union beta tidy).
+Proof.
+  split; do 3 intro.
+  - induction H.
+    + left; auto with cps.
+    + right; auto with cps.
+    + right; auto with cps.
+    + destruct IHstep; auto with cps.
+    + destruct IHstep; auto with cps.
+  - destruct H.
+    + induction H.
+      * auto with cps.
+      * auto with cps.
+      * auto with cps.
+    + induction H.
+      * auto with cps.
+      * auto with cps.
+      * auto with cps.
+      * auto with cps.
+Qed.
+
+Lemma step_beta:
+  inclusion beta step.
+Proof.
+  unfold inclusion; intros.
+  apply step_characterization; left.
+  assumption.
+Qed.
+
+Global Hint Resolve step_beta: cps.
+
+Lemma step_tidy:
+  inclusion tidy step.
+Proof.
+  unfold inclusion; intros.
+  apply step_characterization; right.
+  assumption.
+Qed.
+
+Global Hint Resolve step_tidy: cps.
+
+Lemma step_recjmp:
+  RECJMP step.
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve step_recjmp: cps.
+
+Lemma step_lift:
+  forall a b,
+  [a => b] ->
+  forall i k,
+  [lift i k a => lift i k b].
+Proof.
+  intros.
+  apply step_characterization in H.
+  destruct H.
+  - apply step_characterization; left.
+    apply beta_lift; auto.
+  - apply step_characterization; right.
+    apply tidy_lift; auto.
+Qed.
+
+Global Hint Resolve step_lift: cps.
+
+Lemma step_subst:
+  forall a b,
+  [a => b] ->
+  forall y k,
+  [subst y k a => subst y k b].
+Proof.
+  intros.
+  apply step_characterization in H.
+  destruct H.
+  - apply step_characterization; left.
+    apply beta_subst; auto.
+  - apply step_characterization; right.
+    apply tidy_subst; auto.
+Qed.
+
+Global Hint Resolve step_subst: cps.
+
+Lemma step_apply_parameters:
+  forall xs k a b,
+  [a => b] ->
+  [apply_parameters xs k a => apply_parameters xs k b].
+Proof.
+  induction xs; intros.
+  - simpl.
+    assumption.
+  - simpl.
+    apply IHxs.
+    apply step_subst.
+    assumption.
+Qed.
+
+Global Hint Resolve step_apply_parameters: cps.
 
 (** ** Multi-step reduction *)
 
@@ -572,12 +730,15 @@ Qed.
 
 Global Hint Resolve conv_apply_parameters: cps.
 
-Instance conv_is_an_equivalence: Equivalence conv.
+Instance conv_is_a_congruence: Congruence conv.
 Proof.
   split.
-  - exact conv_refl.
-  - exact conv_sym.
-  - exact conv_trans.
+  - split.
+    + exact conv_refl.
+    + exact conv_sym.
+    + exact conv_trans.
+  - apply conv_bind_left.
+  - apply conv_bind_right.
 Defined.
 
 (** ** Head reduction *)
@@ -620,15 +781,23 @@ Proof.
   - assumption.
 Qed.
 
-Lemma step_longjmp:
-  LONGJMP step.
+Lemma beta_longjmp:
+  LONGJMP beta.
 Proof.
   unfold LONGJMP; intros.
   induction H0; simpl.
-  - apply step_ctxjmp.
+  - apply beta_ctxjmp.
     assumption.
-  - apply step_bind_left.
+  - apply beta_bind_left.
     assumption.
+Qed.
+
+Global Hint Resolve beta_longjmp: cps.
+
+Lemma step_longjmp:
+  LONGJMP step.
+Proof.
+  auto with cps.
 Qed.
 
 Global Hint Resolve step_longjmp: cps.
@@ -637,8 +806,7 @@ Lemma step_head:
   forall a b,
   head a b -> [a => b].
 Proof.
-  destruct 1.
-  apply step_longjmp; auto.
+  destruct 1; auto with cps.
 Qed.
 
 Global Hint Resolve step_head: cps.
@@ -679,7 +847,7 @@ Global Hint Resolve conv_head: cps.
 
 (** ** Soundness of reduction w.r.t. axiomatic semantics *)
 
-(* TODO: move these lemmas to their proper places!!! *)
+(* TODO: move these lemmas to their proper places!!! Shame on me. *)
 
 Inductive not_free_context: nat -> context -> Prop :=
   | not_free_context_hole:
@@ -697,6 +865,8 @@ Inductive not_free_context: nat -> context -> Prop :=
     not_free_list k ts ->
     not_free_context (k + length ts) c ->
     not_free_context k (context_right b ts c).
+
+(* TODO: how come I didn't add this lemma at the correct place...? *)
 
 Lemma sema_context:
   forall (h: context) a b,
@@ -746,7 +916,7 @@ Proof.
     apply IHh.
 Qed.
 
-(* TODO: there's something about this in the Axiomatic.v file! *)
+(* TODO: there's something about this in the [Axiomatic.v] file! *)
 
 Lemma context_remove_binding_switch_bindings_simplification:
   forall h k,
@@ -1018,7 +1188,7 @@ Proof.
     rewrite lift_lift_simplification; try lia.
     (* Upon careful inspection... *)
     replace (map (right_cycle #h 0) (map (lift 1 #h) xs)) with
-      (map (lift 1 0) xs).
+      (map (lift 1 0) xs). (* :D *)
     + apply sema_gc.
       admit.
     + clear H.
@@ -1047,6 +1217,9 @@ Proof.
   induction 1.
   - apply sema_ctxjmp.
     assumption.
+  - apply sema_gc.
+    assumption.
+  - apply sema_eta.
   - apply sema_bind_left.
     assumption.
   - apply sema_bind_right.

@@ -76,6 +76,23 @@ Proof.
   - lia.
 Qed.
 
+Lemma converges_is_preserved_by_subst:
+  forall c k p y,
+  converges c (p + S k) ->
+  converges (subst y p c) (p + k).
+Proof.
+  intros.
+  dependent induction H.
+  - rewrite subst_distributes_over_jump.
+    rewrite subst_bound_gt; try lia.
+    rewrite plus_comm; simpl.
+    rewrite plus_comm; constructor.
+  - rewrite subst_distributes_over_bind.
+    constructor.
+    replace (S (p + k)) with (S p + k); try lia.
+    apply IHconverges; lia.
+Qed.
+
 Lemma converges_is_preserved_by_step:
   forall a b,
   [a => b] ->
@@ -95,6 +112,12 @@ Proof.
         constructor; auto.
       * dependent destruction H0.
         constructor; auto.
+  - dependent destruction H0.
+    apply converges_is_preserved_by_subst with (p := 0).
+    assumption.
+  - dependent destruction H.
+    apply converges_is_preserved_by_subst with (p := 0).
+    assumption.
   - dependent destruction H0.
     constructor; auto.
   - dependent destruction H0.
@@ -261,6 +284,93 @@ Qed.
    w.r.t. star, such that forall a =>* b there's a standard sequence from a to
    b, then it'll reach the correct head position using only head steps. *)
 
+Local Lemma subst_backwards_preserves_convergence_gc:
+  forall c y k p,
+  not_free p c ->
+  converges (subst y p c) (p + k) ->
+  converges c (p + S k).
+Proof.
+  intros.
+  dependent induction H0.
+  - destruct c; try discriminate.
+    + exfalso.
+      dependent destruction H.
+      destruct (le_gt_dec n0 n).
+      * rewrite subst_bound_gt in x; try lia.
+        discriminate.
+      * rewrite subst_bound_lt in x; try lia.
+        discriminate.
+    + rewrite subst_distributes_over_jump in x.
+      dependent destruction x.
+      dependent destruction H.
+      destruct c; try discriminate.
+      dependent destruction H.
+      destruct (le_gt_dec n n0).
+      * rewrite subst_bound_gt in x; try lia.
+        dependent destruction x.
+        replace n0 with (n + S k); try lia.
+        constructor.
+      * exfalso.
+        rewrite subst_bound_lt in x; try lia.
+        dependent destruction x.
+        lia.
+  - destruct c; try discriminate.
+    + exfalso.
+      dependent destruction H.
+      destruct (le_gt_dec n0 n).
+      * rewrite subst_bound_gt in x; try lia.
+        discriminate.
+      * rewrite subst_bound_lt in x; try lia.
+        discriminate.
+    + rewrite subst_distributes_over_bind in x.
+      dependent destruction x.
+      dependent destruction H.
+      constructor.
+      rewrite <- plus_Sn_m.
+      eapply IHconverges; eauto.
+Qed.
+
+Local Lemma subst_backwards_preserves_convergence_eta:
+  forall h k xs y,
+  static h ->
+  forall c j p,
+  k <> bound (p + #h) ->
+  c = h (jump k xs) ->
+  converges (subst y p c) (p + j) ->
+  converges c (p + S j).
+Proof.
+  induction 1; intros.
+  - rewrite plus_comm in H.
+    simpl in H, H0.
+    dependent destruction H0.
+    rewrite subst_distributes_over_jump in H1.
+    dependent destruction H1.
+    destruct k; try discriminate.
+    (* H is an equality between terms! *)
+    assert (n <> p); eauto.
+    destruct (le_gt_dec p n).
+    + rewrite subst_bound_gt in x; try lia.
+      dependent destruction x.
+      replace n with (p + S j); try lia.
+      constructor.
+    + exfalso.
+      rewrite subst_bound_lt in x; try lia.
+      dependent destruction x.
+      lia.
+  - simpl in H0, H1.
+    destruct c0; try discriminate.
+    dependent destruction H1.
+    rewrite subst_distributes_over_bind in H2.
+    dependent destruction H2.
+    constructor.
+    rewrite <- plus_Sn_m.
+    apply IHstatic.
+    + rewrite plus_Snm_nSm.
+      assumption.
+    + reflexivity.
+    + assumption.
+Qed.
+
 Lemma inner_backwards_preserves_convergence:
   forall a b,
   inner a b ->
@@ -285,6 +395,18 @@ Proof.
       * dependent destruction x; simpl.
         constructor; auto.
   - intros.
+    constructor.
+    eapply subst_backwards_preserves_convergence_gc with (p := 0).
+    + assumption.
+    + eassumption.
+  - intros.
+    constructor.
+    eapply subst_backwards_preserves_convergence_eta with (p := 0).
+    + eassumption.
+    + eassumption.
+    + eassumption.
+    + eassumption.
+  - intros.
     dependent destruction H0.
     constructor; auto.
   - intros.
@@ -304,21 +426,18 @@ Proof.
   - firstorder.
 Qed.
 
-(* TODO: is this a theorem? *)
-
-Lemma head_reduction_preserves_convergence:
+Theorem head_reduction_preserves_convergence:
   forall a k,
   weakly_converges a k -> comp rt(head) converges a k.
 Proof.
   destruct 1 as (c, ?, ?).
-  apply rt_full_star in H.
   apply factorization in H.
   destruct H as (b, ?, ?).
   exists b; auto.
   apply rt_inner_backwards_preserves_convergence with c; auto.
 Qed.
 
-Lemma weak_convergence_characterization:
+Corollary weak_convergence_characterization:
   forall a k,
   weakly_converges a k <-> comp rt(head) converges a k.
 Proof.
@@ -332,7 +451,7 @@ Qed.
 
 (** ** Barbed relations *)
 
-Notation barb := (barbed_congruence step converges apply_context).
+Notation barb := (barbed_congruence head converges apply_context).
 
 Notation "[ a ~~ b ]" := (barb a b)
   (at level 0, a, b at level 200): type_scope.
@@ -422,6 +541,7 @@ Defined.
 
 Goal
   forall R,
+  (* TODO: generalize this. *)
   barbed_simulation step converges R ->
   barbed_simulation step converges (transp R) ->
   barbed_simulation step converges rst(R).

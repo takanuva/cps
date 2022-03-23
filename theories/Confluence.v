@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -304,6 +304,12 @@ Proof.
       * rewrite <- H.
         apply regular_single_jump with (g := []).
       * apply regular_mark_term.
+  (* Case: step_gc. *)
+  - (* TODO: as of now, can't be proven. Fix this! *)
+    admit.
+  (* Case: step_eta. *)
+  - (* TODO: as of now, can't be proven. Fix this! *)
+    admit.
   (* Case: step_bind_left. *)
   - destruct IHstep as (p, (b2', ?, ?), ?).
     (* As there's a single mark, on the left, use it. *)
@@ -331,7 +337,7 @@ Proof.
     + constructor.
       * apply regular_mark_term.
       * eapply regular_tail in H2; eauto.
-Qed.
+Admitted.
 
 Global Hint Resolve parallel_step: cps.
 
