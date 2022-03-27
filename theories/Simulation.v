@@ -383,7 +383,7 @@ Inductive cbn_cps: lambda_term -> pseudoterm -> Prop :=
         f'
         [void]
         (bind
-          (jump 1 [bound 2; bound 0])
+          (jump 1 [bound 0; bound 2])
           [void]
           x')).
 
@@ -551,7 +551,7 @@ Inductive cbv_cps: lambda_term -> pseudoterm -> Prop :=
         (bind
           x'
           [void]
-          (jump 1 [bound 2; bound 0]))).
+          (jump 1 [bound 0; bound 2]))).
 
 Lemma cbv_cps_is_a_function:
   forall e c1,
