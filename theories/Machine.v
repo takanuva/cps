@@ -1,15 +1,26 @@
+(******************************************************************************)
+(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(******************************************************************************)
+
+Require Import Lia.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.AbstractRewriting.
+Require Import Local.Context.
+Require Import Local.Reduction.
 Require Import Local.Observational.
-Require Import Local.TypeSystem.
 
 Inductive value: Set :=
+  (* We don't really need this in the named setting, but it's surely useful in
+     the de Bruijn setting! With this we can propagate that a variable has been
+     substituted by a free variable. *)
   | value_undefined
+  (* Continuations in memory. *)
   | value_cont (p: list value) (a: nat) (c: pseudoterm).
 
-Notation U := value_undefined.
+Local Notation U := value_undefined.
 
-Notation "< p ; \ a : c >" :=
+Local Notation "< p ; \ a : c >" :=
   (value_cont p a c) (only printing, format "< p ;  \ a :  c >").
 
 Local Notation stack := (list value).
@@ -17,8 +28,10 @@ Local Notation stack := (list value).
 Definition stack_append (ns: list nat) (r s: stack): stack :=
   map (fun n => nth n r U) ns ++ s.
 
-(* These are derived directly from Kennedy's paper, slightly adapting it to use
-   free variables as a signal of termination rather than using a "halt" term. *)
+(* Big-step abstract machine semantics for the CPS-calculus. This was derived
+   directly from Kennedy's paper, slightly adapting it to use free variables as
+   a signal of termination rather than using a "halt" term. This is meant to be
+   an "implementation-friendly" semantics for the calculus. *)
 
 Inductive machine: pseudoterm -> stack -> nat -> Prop :=
   (*
@@ -45,7 +58,7 @@ Inductive machine: pseudoterm -> stack -> nat -> Prop :=
     (* Naughty little index math here! We build the runtime stack for c using s,
        and it may return two continuations: one that we have bound now, from the
        parameters, or one that is already bound in s. We have to map the results
-       to the stack p! So, if the result is a parameter, thus j <= a, we already
+       to the stack r! So, if the result is a parameter, thus j <= a, we already
        know its value in r (which comes from ns). But, if j > a, we'll have to
        remove any newly bound abstractions, subtracting a, and then add any
        new abstractions that have been bound in r but not in s (notice that r is
@@ -66,9 +79,6 @@ Inductive machine: pseudoterm -> stack -> nat -> Prop :=
 
 (* TODO: remove the following! We need to prove equivalence of the above and the
    head reduction! *)
-
-Require Import Lia.
-Require Import Local.Reduction.
 
 Goal
   machine ex1 [] 3.
@@ -98,10 +108,6 @@ Proof.
   compute; reflexivity.
 Qed.
 
-Require Import Local.AbstractRewriting.
-Require Import Local.Context.
-Require Import Local.Reduction.
-
 Goal
   weakly_converges ex1 3.
 Proof.
@@ -130,7 +136,7 @@ Axiom rebuild_stack: stack -> pseudoterm -> pseudoterm.
 
 (* We always know how to lift parameters: their stack's length is strictly
    smaller than their current depth in the term! *)
-Hypothesis rebuild_stack_empty: forall r c, rebuild_stack r c = c.
+Axiom rebuild_stack_empty: forall r c, rebuild_stack r c = c.
 
 Lemma machine_implies_weakly_converges:
   forall r c k,

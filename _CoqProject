@@ -13,6 +13,7 @@ theories/Factorization.v
 # Ignore this for now...
 # theories/Standardization.v
 theories/Observational.v
+theories/Machine.v
 theories/Transition.v
 theories/TypeSystem.v
 theories/Normalization.v
