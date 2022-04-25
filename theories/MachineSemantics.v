@@ -9,8 +9,8 @@ Inductive value: Set :=
 
 Notation U := value_undefined.
 
-Notation "< p ; a : c >" :=
-  (value_cont p a c) (only printing, format "< p ;  a :  c >").
+Notation "< p ; \ a : c >" :=
+  (value_cont p a c) (only printing, format "< p ;  \ a :  c >").
 
 Local Notation stack := (list value).
 
@@ -124,3 +124,28 @@ Proof.
   constructor.
   constructor.
 Qed.
+
+(* Given a stack, we can bind each value in a tail. *)
+Axiom rebuild_stack: stack -> pseudoterm -> pseudoterm.
+
+(* We always know how to lift parameters: their stack's length is strictly
+   smaller than their current depth in the term! *)
+Hypothesis rebuild_stack_empty: forall r c, rebuild_stack r c = c.
+
+Lemma machine_implies_weakly_converges:
+  forall r c k,
+  machine c r k -> weakly_converges (rebuild_stack r c) k.
+Proof.
+  admit.
+Admitted.
+
+Theorem weakly_converges_and_machine_are_equivalent:
+  forall c k,
+  machine c [] k <-> weakly_converges c k.
+Proof.
+  split; intros.
+  - apply machine_implies_weakly_converges in H.
+    rewrite rebuild_stack_empty in H.
+    assumption.
+  - admit.
+Admitted.
