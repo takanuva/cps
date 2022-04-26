@@ -26,10 +26,11 @@ Local Notation "< r ; \ a : c >" :=
 Local Notation stack := (list value).
 
 (* Please note that parameters are written from right to left, but arguments to
-   jumps are written from left to write: we do need to reverse [ns] here! *)
+   jumps are written from left to write! *)
 
 Definition stack_append (ns: list nat) (r s: stack): stack :=
-  map (fun n => nth n r U) (rev ns) ++ s.
+  (* map (fun n => nth n r U) (rev ns) ++ s *)
+  fold_left (fun acc n => nth n r U :: acc) ns s.
 
 (* Big-step abstract machine semantics for the CPS-calculus. This was derived
    directly from Kennedy's paper, slightly adapting it to use free variables as
@@ -562,7 +563,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   (* At this point, e = b. Ok. *)
   unfold a at 1.
   constructor; unfold length.
@@ -572,7 +573,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   (* At this point, e = b, k = h. Ok. *)
   unfold g at 1.
   constructor; unfold length.
@@ -581,7 +582,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   (* At this point, e = b, k = h, p = m. Ok!
      So this becomes h<m, f>. That typechecks! *)
   unfold l at 1.
@@ -589,18 +590,18 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   (* Here the problem was! :) *)
   eapply machine_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   eapply machine_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, rev, map, nth, app.
+  unfold stack_append, fold_left, nth, app.
   eapply machine_halt.
   compute.
   reflexivity.
