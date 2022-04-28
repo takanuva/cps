@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import Arith.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
@@ -69,7 +70,13 @@ Inductive machine: pseudoterm -> stack -> nat -> Prop :=
        always newer and as such has strictly more bindings!). Also remember that
        parameters are in the reverse order, but arguments are not, so we need to
        reverse [ns] here as well. *)
-    j' = nth j (rev ns) (j - a + (length r - length s)) ->
+
+    (* TODO: fix above comment, move following into definition. *)
+    j' = (if le_gt_dec (length s) (length r) then
+            nth j (rev ns) (j - a + (length r - length s))
+          else
+            nth j (rev ns) (j - a - (length s - length r))) ->
+
     (* There we go. *)
     machine (jump k xs) r j'
 
@@ -318,7 +325,6 @@ Proof.
   apply star_ctxjmp.
   reflexivity.
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -329,7 +335,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -339,7 +344,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -348,7 +352,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -356,19 +359,16 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_step.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   apply star_step.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   repeat constructor.
 Qed.
 
@@ -428,7 +428,6 @@ Proof.
   apply star_ctxjmp.
   reflexivity.
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -439,7 +438,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -449,7 +447,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -458,7 +455,6 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_bind_left.
@@ -466,19 +462,16 @@ Proof.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   eapply star_trans.
   apply star_bind_left.
   apply star_step.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   apply star_step.
   apply step_gc.
   repeat (constructor; simpl; try lia).
   compute.
-
   repeat constructor.
 Qed.
 
@@ -687,3 +680,68 @@ Qed.
           }
       }
 *)
+
+(*
+  f@0<j@1>
+  { f<k> =
+    a<k@0> }
+  { j<> =
+    H<> }
+  { b<k> =
+    k@0<> }
+  { c<k> =
+    k@0<> }
+  { a<k> =
+    k<> }
+*)
+
+Goal
+  machine (
+    (bind
+    (bind
+    (bind
+    (bind
+    (bind
+      (jump 0 [bound 1])
+      [void]
+        (jump 4 [bound 0]))
+      []
+        (jump 8 []))
+      [void]
+        (jump 0 []))
+      [void]
+        (jump 0 []))
+      [void]
+        (jump 0 []))
+  ) [] 5.
+Proof.
+  constructor; compute.
+  constructor; compute.
+  constructor; compute.
+  constructor; compute.
+  constructor; compute.
+  eapply machine_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  compute.
+  eapply machine_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  compute.
+  eapply machine_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  compute.
+  eapply machine_halt.
+  compute.
+  reflexivity.
+  compute.
+  reflexivity.
+  compute.
+  reflexivity.
+  compute.
+  reflexivity.
+Qed.
