@@ -17,12 +17,12 @@ Inductive value: Set :=
      substituted by a free variable. *)
   | value_undefined
   (* Continuations in memory. *)
-  | value_cont (p: list value) (a: nat) (c: pseudoterm).
+  | value_cont (p: list value) (ts: list pseudoterm) (c: pseudoterm).
 
 Local Notation U := value_undefined.
 
-Local Notation "< r ; \ a : c >" :=
-  (value_cont r a c) (only printing, format "< r ;  \ a :  c >").
+Local Notation "< r ; \ ts : c >" :=
+  (value_cont r ts c) (only printing, format "< r ;  \ ts :  c >").
 
 Definition heap: Set :=
   list value.
@@ -59,10 +59,11 @@ Inductive big: configuration -> nat -> Prop :=
                   <k<ys>, r> |-> j[ys/xs]
   *)
   | big_jump:
-    forall r s a c k xs ns j j',
+    forall r s a c k xs ts ns j j',
     Forall2 (fun x n => x = bound n) xs ns ->
     a = length ns ->
-    item (value_cont s a c) r k ->
+    item (value_cont s ts c) r k ->
+    a = length ts ->
     big (c, heap_append ns r s) j ->
     (* Naughty little index math here! We build the runtime heap for c using s,
        and it may return two continuations: one that we have bound now, from the
@@ -91,7 +92,7 @@ Inductive big: configuration -> nat -> Prop :=
   *)
   | big_bind:
     forall b ts c r j,
-    big (b, value_cont r (length ts) c :: r) (S j) ->
+    big (b, value_cont r ts c :: r) (S j) ->
     big (bind b ts c, r) j.
 
 (* TODO: remove the following! We need to prove equivalence of the above and the
@@ -107,16 +108,19 @@ Proof.
   repeat constructor.
   reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump; simpl.
   repeat constructor.
   reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump; simpl.
   repeat constructor.
   reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   econstructor 1.
   compute; reflexivity.
@@ -500,35 +504,41 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   constructor; compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   constructor; compute.
-  constructor; compute.
-  eapply big_jump.
-  repeat constructor.
-  compute; reflexivity.
-  repeat constructor.
-  compute.
   constructor; compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
+  compute.
+  constructor; compute.
+  eapply big_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   constructor; compute.
   eapply big_halt.
@@ -558,6 +568,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   (* At this point, e = b. Ok. *)
   unfold a at 1.
@@ -568,6 +579,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   (* At this point, e = b, k = h. Ok. *)
   unfold g at 1.
@@ -577,6 +589,7 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   (* At this point, e = b, k = h, p = m. Ok!
      So this becomes h<m, f>. That typechecks! *)
@@ -585,17 +598,20 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   (* Here the problem was! :) *)
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   unfold heap_append, fold_left, nth, app.
   eapply big_halt.
   compute.
@@ -726,16 +742,19 @@ Proof.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
+  reflexivity.
   compute.
   eapply big_halt.
   compute.
