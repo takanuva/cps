@@ -24,12 +24,16 @@ Local Notation U := value_undefined.
 Local Notation "< r ; \ a : c >" :=
   (value_cont r a c) (only printing, format "< r ;  \ a :  c >").
 
-Local Notation stack := (list value).
+Definition heap: Set :=
+  list value.
+
+Definition configuration: Set :=
+  pseudoterm * heap.
 
 (* Please note that parameters are written from right to left, but arguments to
    jumps are written from left to write! *)
 
-Definition stack_append (ns: list nat) (r s: stack): stack :=
+Definition heap_append (ns: list nat) (r s: heap): heap :=
   (* map (fun n => nth n r U) (rev ns) ++ s *)
   fold_left (fun acc n => nth n r U :: acc) ns s.
 
@@ -38,32 +42,32 @@ Definition stack_append (ns: list nat) (r s: stack): stack :=
    a signal of termination rather than using a "halt" term. This is meant to be
    an "implementation-friendly" semantics for the calculus. *)
 
-Inductive machine: pseudoterm -> stack -> nat -> Prop :=
+Inductive big: configuration -> nat -> Prop :=
   (*
       r(k) is undefined
     --------------------- (M-HALT)
        (k<xs>, r) |-> k
   *)
-  | machine_halt:
+  | big_halt:
     forall k xs r,
     nth k r U = U ->
-    machine (jump k xs) r k
+    big (jump k xs, r) k
 
   (*
       p(k) = <s, \xs.c>      <c, s, xs = r(ys)> |-> j
     --------------------------------------------------- (M-JUMP)
                   <k<ys>, r> |-> j[ys/xs]
   *)
-  | machine_jump:
+  | big_jump:
     forall r s a c k xs ns j j',
     Forall2 (fun x n => x = bound n) xs ns ->
     a = length ns ->
     item (value_cont s a c) r k ->
-    machine c (stack_append ns r s) j ->
-    (* Naughty little index math here! We build the runtime stack for c using s,
+    big (c, heap_append ns r s) j ->
+    (* Naughty little index math here! We build the runtime heap for c using s,
        and it may return two continuations: one that we have bound now, from the
        parameters, or one that is already bound in s. We have to map the results
-       to the stack r! So, if the result is a parameter, thus j <= a, we already
+       to the heap r! So, if the result is a parameter, thus j <= a, we already
        know its value in r (which comes from ns). But, if j > a, we'll have to
        remove any newly bound abstractions, subtracting a, and then add any
        new abstractions that have been bound in r but not in s (notice that r is
@@ -78,38 +82,38 @@ Inductive machine: pseudoterm -> stack -> nat -> Prop :=
             nth j (rev ns) (j - a - (length s - length r))) ->
 
     (* There we go. *)
-    machine (jump k xs) r j'
+    big (jump k xs, r) j'
 
   (*
       <b, r, k = <r, \xs.c>> |-> j
     -------------------------------- (M-BIND)
        <b { k<xs> = c }, r> |-> j
   *)
-  | machine_bind:
+  | big_bind:
     forall b ts c r j,
-    machine b (value_cont r (length ts) c :: r) (S j) ->
-    machine (bind b ts c) r j.
+    big (b, value_cont r (length ts) c :: r) (S j) ->
+    big (bind b ts c, r) j.
 
 (* TODO: remove the following! We need to prove equivalence of the above and the
    head reduction! *)
 
 Goal
-  machine ex1 [] 3.
+  big (ex1, []) 3.
 Proof.
   compute.
   constructor; simpl.
   constructor; simpl.
-  eapply machine_jump; simpl.
+  eapply big_jump; simpl.
   repeat constructor.
   reflexivity.
   repeat constructor.
   compute.
-  eapply machine_jump; simpl.
+  eapply big_jump; simpl.
   repeat constructor.
   reflexivity.
   repeat constructor.
   compute.
-  eapply machine_jump; simpl.
+  eapply big_jump; simpl.
   repeat constructor.
   reflexivity.
   repeat constructor.
@@ -144,27 +148,25 @@ Proof.
   constructor.
 Qed.
 
-(* Given a stack, we can bind each value in a tail. *)
-Axiom rebuild_stack: stack -> pseudoterm -> pseudoterm.
+(* Given a heap, we can bind each value in a tail. *)
+Axiom rebuild_heap: heap -> context.
 
-(* We always know how to lift parameters: their stack's length is strictly
-   smaller than their current depth in the term! *)
-Axiom rebuild_stack_empty: forall r c, rebuild_stack r c = c.
+Axiom rebuild_heap_empty: forall r c, rebuild_heap r c = c.
 
-Lemma machine_implies_weakly_converges:
+Lemma big_implies_weakly_converges:
   forall r c k,
-  machine c r k -> weakly_converges (rebuild_stack r c) k.
+  big (c, r) k -> weakly_converges (rebuild_heap r c) k.
 Proof.
   admit.
 Admitted.
 
-Theorem weakly_converges_and_machine_are_equivalent:
+Theorem weakly_converges_and_big_are_equivalent:
   forall c k,
-  machine c [] k <-> weakly_converges c k.
+  big (c, []) k <-> weakly_converges c k.
 Proof.
   split; intros.
-  - apply machine_implies_weakly_converges in H.
-    rewrite rebuild_stack_empty in H.
+  - apply big_implies_weakly_converges in H.
+    rewrite rebuild_heap_empty in H.
     assumption.
   - admit.
 Admitted.
@@ -490,46 +492,46 @@ Notation Cl := (value_cont [Ch; Cf; Cb] 1 l).
 Notation Cm := (value_cont [Cl; Ch; Cf; Cb] 2 m).
 
 Goal
-  machine ex_cbn [] 0.
+  big (ex_cbn, []) 0.
 Proof.
   constructor; compute.
   constructor; compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
   constructor; compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
-  eapply machine_jump.
-  repeat constructor.
-  compute; reflexivity.
-  repeat constructor.
-  compute.
-  constructor; compute.
-  constructor; compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
   constructor; compute.
-  eapply machine_jump.
-  repeat constructor.
-  compute; reflexivity.
-  repeat constructor.
-  compute.
-  eapply machine_jump.
+  constructor; compute.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
   constructor; compute.
-  eapply machine_halt.
+  eapply big_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  compute.
+  eapply big_jump.
+  repeat constructor.
+  compute; reflexivity.
+  repeat constructor.
+  compute.
+  constructor; compute.
+  eapply big_halt.
   compute.
   reflexivity.
   compute.
@@ -547,55 +549,55 @@ Proof.
 Qed.
 
 Goal
-  machine v [] 0.
+  big (v, []) 0.
 Proof.
   unfold v.
   constructor; unfold length.
   constructor; unfold length.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
+  unfold heap_append, fold_left, nth, app.
   (* At this point, e = b. Ok. *)
   unfold a at 1.
   constructor; unfold length.
   constructor; unfold length.
   constructor; unfold length.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
+  unfold heap_append, fold_left, nth, app.
   (* At this point, e = b, k = h. Ok. *)
   unfold g at 1.
   constructor; unfold length.
   constructor; unfold length.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
+  unfold heap_append, fold_left, nth, app.
   (* At this point, e = b, k = h, p = m. Ok!
      So this becomes h<m, f>. That typechecks! *)
   unfold l at 1.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
+  unfold heap_append, fold_left, nth, app.
   (* Here the problem was! :) *)
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
-  eapply machine_jump.
+  unfold heap_append, fold_left, nth, app.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
-  unfold stack_append, fold_left, nth, app.
-  eapply machine_halt.
+  unfold heap_append, fold_left, nth, app.
+  eapply big_halt.
   compute.
   reflexivity.
   compute.
@@ -696,7 +698,7 @@ Qed.
 *)
 
 Goal
-  machine (
+  big (
     (bind
     (bind
     (bind
@@ -712,30 +714,30 @@ Goal
       [void]
         (jump 0 []))
       [void]
-        (jump 0 []))
-  ) [] 5.
+        (jump 0 [])),
+  []) 5.
 Proof.
   constructor; compute.
   constructor; compute.
   constructor; compute.
   constructor; compute.
   constructor; compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
-  eapply machine_jump.
+  eapply big_jump.
   repeat constructor.
   compute; reflexivity.
   repeat constructor.
   compute.
-  eapply machine_halt.
+  eapply big_halt.
   compute.
   reflexivity.
   compute.
