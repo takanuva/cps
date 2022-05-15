@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
@@ -152,16 +153,72 @@ Proof.
   constructor.
 Qed.
 
-(* Given a heap, we can bind each value in a tail. *)
-Axiom rebuild_heap: heap -> context.
+Fixpoint rebuild_heap (h: heap): context :=
+  match h with
+  | [] =>
+    context_hole
+  | value_undefined :: h' =>
+    rebuild_heap h'
+  | value_cont _ ts c :: h' =>
+    compose_context (rebuild_heap h')
+      (context_left context_hole ts c)
+  end.
 
-Axiom rebuild_heap_empty: forall r c, rebuild_heap r c = c.
+Goal
+  forall r,
+  static (rebuild_heap r).
+Proof.
+  induction r; simpl.
+  - constructor.
+  - destruct a; simpl.
+    + assumption.
+    + apply static_compose_context.
+      * assumption.
+      * do 2 constructor.
+Qed.
+
+Goal
+  forall r,
+  ~(In U r) ->
+  #(rebuild_heap r) = length r.
+Proof.
+  induction r; intros; simpl.
+  - reflexivity.
+  - destruct a; simpl.
+    + exfalso; apply H.
+      constructor.
+      reflexivity.
+    + rewrite compose_context_bvars; simpl.
+      rewrite plus_comm; simpl; f_equal.
+      apply IHr.
+      intro; apply H.
+      constructor 2.
+      assumption.
+Qed.
 
 Lemma big_implies_weakly_converges:
   forall r c k,
-  big (c, r) k -> weakly_converges (rebuild_heap r c) k.
+  big (c, r) k ->
+  weakly_converges c k.
 Proof.
-  admit.
+  intros.
+  dependent induction H; simpl.
+  - eexists.
+    + eapply star_refl.
+    + constructor.
+  - (* We probably need substitution in heaps as Plotkin did! *)
+    rename c0 into c.
+    (* Lets check our inductive hypothesis... *)
+    specialize (IHbig _ _ JMeq_refl).
+    (* Huh...? Perhaps the induction should be on the length of reduction... *)
+    admit.
+  - rename c0 into c.
+    edestruct IHbig; eauto.
+    exists (bind x ts c).
+    + apply star_bind_left.
+      assumption.
+    + constructor.
+      assumption.
 Admitted.
 
 Theorem weakly_converges_and_big_are_equivalent:
@@ -169,8 +226,7 @@ Theorem weakly_converges_and_big_are_equivalent:
   big (c, []) k <-> weakly_converges c k.
 Proof.
   split; intros.
-  - apply big_implies_weakly_converges in H.
-    rewrite rebuild_heap_empty in H.
+  - apply big_implies_weakly_converges with [].
     assumption.
   - admit.
 Admitted.
