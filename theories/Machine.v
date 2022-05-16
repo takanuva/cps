@@ -153,6 +153,148 @@ Proof.
   constructor.
 Qed.
 
+Fixpoint context_to_heap h s: heap :=
+  match h with
+  | context_hole =>
+    s
+  | context_left r ts c =>
+    context_to_heap r (value_cont s ts c :: s)
+  | context_right b ts r =>
+    (* We don't really care about this one. *)
+    []
+  end.
+
+Inductive big_aux: configuration -> nat -> Prop :=
+  | big_aux_halt:
+    forall k xs r,
+    nth k r U = U ->
+    big_aux (jump k xs, r) k
+
+  | big_aux_jump:
+    forall r s a c k xs ts ns j j',
+    Forall2 (fun x n => x = bound n) xs ns ->
+    a = length ns ->
+    item (value_cont s ts c) r k ->
+    a = length ts ->
+    big_aux (c, heap_append ns r s) j ->
+    j' = (if le_gt_dec (length s) (length r) then
+            nth j (rev ns) (j - a + (length r - length s))
+          else
+            nth j (rev ns) (j - a - (length s - length r))) ->
+    big_aux (jump k xs, r) j'
+
+  | big_aux_bind:
+    forall k xs r j h,
+    static h ->
+    #h > 0 ->
+    big_aux (jump k xs, context_to_heap h r) (#h + j) ->
+    big_aux (h (jump k xs), r) j.
+
+Lemma context_to_heap_length:
+  forall h,
+  static h ->
+  forall r,
+  length (context_to_heap h r) = #h + length r.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - rewrite IHstatic; simpl.
+    lia.
+Qed.
+
+Lemma context_to_heap_app:
+  forall h,
+  static h ->
+  forall r,
+  exists2 s,
+  context_to_heap h r = s ++ r & #h = length s.
+Proof.
+  induction 1; intros.
+  - exists []; simpl; auto.
+  - edestruct IHstatic as (s, ?, ?).
+    eexists; simpl.
+    + rewrite H0.
+      replace (s ++ value_cont r ts c :: r) with
+        ((s ++ [value_cont r ts c]) ++ r).
+      * reflexivity.
+      * rewrite <- app_assoc.
+        reflexivity.
+    + rewrite app_length; simpl.
+      lia.
+Qed.
+
+Lemma big_implies_big_aux:
+  forall h,
+  static h ->
+  forall c r k,
+  big (c, context_to_heap h r) (#h + k) ->
+  big_aux (h c, r) k.
+Proof.
+  induction 1; simpl; intros.
+  - induction H.
+    + constructor 1; auto.
+    + econstructor 2; eauto.
+    + replace (bind b ts c0) with (context_left context_hole ts c0 b); auto.
+      dependent destruction IHbig.
+      * constructor; simpl; eauto with cps.
+        constructor; assumption.
+      * constructor; simpl; eauto with cps.
+        econstructor 2; eauto.
+      * rewrite <- compose_context_is_sound.
+        constructor; simpl; eauto with cps.
+        replace (S (#h + j)) with (#h + S j); try lia.
+        assumption.
+  - replace (bind (h c0) ts c) with (context_left context_hole ts c (h c0));
+      auto.
+    replace (S (#h + k)) with (#h + S k) in H0; try lia.
+    specialize (IHstatic _ _ _ H0); clear H0.
+    dependent destruction IHstatic.
+    + destruct h; try discriminate.
+      simpl in x; dependent destruction x.
+      constructor; simpl; auto with cps.
+      constructor 1.
+      assumption.
+    + destruct h; try discriminate.
+      simpl in x0; dependent destruction x0.
+      constructor; simpl; auto with cps.
+      econstructor 2; eauto.
+    + rewrite <- x.
+      rewrite <- compose_context_is_sound.
+      constructor 3; simpl; auto with cps.
+      replace (S (#h0 + k)) with (#h0 + S k); try lia.
+      assumption.
+Qed.
+
+Lemma big_aux_implies_big:
+  forall c r k,
+  big_aux (c, r) k ->
+  big (c, r) k.
+Proof.
+  intros.
+  dependent induction H.
+  - constructor 1; auto.
+  - econstructor 2; eauto.
+  - specialize (IHbig_aux _ _ JMeq_refl).
+    clear H0 H1.
+    generalize dependent j.
+    generalize dependent r.
+    induction H; simpl; intros.
+    + assumption.
+    + constructor 3.
+      apply IHstatic.
+      replace (#h + S j) with (S (#h + j)); try lia.
+      assumption.
+Qed.
+
+Lemma big_and_big_aux_are_equivalent:
+  forall c r k,
+  big_aux (c, r) k <-> big (c, r) k.
+Proof.
+  split; intros.
+  - apply big_aux_implies_big; auto.
+  - apply big_implies_big_aux with (h := context_hole); auto with cps.
+Qed.
+
 Fixpoint rebuild_heap (h: heap): context :=
   match h with
   | [] =>
@@ -163,6 +305,19 @@ Fixpoint rebuild_heap (h: heap): context :=
     compose_context (rebuild_heap h')
       (context_left context_hole ts c)
   end.
+
+Lemma context_to_heap_compose:
+  forall h,
+  static h ->
+  forall r s,
+  context_to_heap (compose_context h r) s =
+    context_to_heap r (context_to_heap h s).
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - rewrite IHstatic.
+    reflexivity.
+Qed.
 
 Goal
   forall r,
