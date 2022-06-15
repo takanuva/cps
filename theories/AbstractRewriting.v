@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -266,6 +266,68 @@ Section ListNormalization.
 
 End ListNormalization.
 
+Section ObservationalRelations.
+
+  Variable T: Type.
+  Variable L: Type.
+  Variable C: Type.
+
+  Variable R: relation T.
+  Variable P: T -> L -> Prop.
+
+  Hypothesis apply: C -> T -> T.
+
+  Definition observational_equivalence a b: Prop :=
+    forall l,
+    comp rt(R) P a l <-> comp rt(R) P b l.
+
+  Definition observational_congruence a b: Prop :=
+    forall h,
+    observational_equivalence (apply h a) (apply h b).
+
+  Lemma observational_equivalence_refl:
+    reflexive observational_equivalence.
+  Proof.
+    firstorder.
+  Qed.
+
+  Lemma observational_equivalence_sym:
+    symmetric observational_equivalence.
+  Proof.
+    firstorder.
+  Qed.
+
+  Lemma observational_equivalence_trans:
+    transitive observational_equivalence.
+  Proof.
+    split; intros.
+    - apply H0; apply H; auto.
+    - apply H; apply H0; auto.
+  Qed.
+
+  Lemma observational_congruence_refl:
+    reflexive observational_congruence.
+  Proof.
+    intros x h.
+    apply observational_equivalence_refl.
+  Qed.
+
+  Lemma observational_congruence_sym:
+    symmetric observational_congruence.
+  Proof.
+    intros x y ? h.
+    apply observational_equivalence_sym; auto.
+  Qed.
+
+  Lemma observational_congruence_trans:
+    transitive observational_congruence.
+  Proof.
+    intros x y z ? ? h.
+    eapply observational_equivalence_trans; eauto.
+  Qed.
+
+End ObservationalRelations.
+
 Section BarbedRelations.
 
   Variable T: Type.
@@ -437,6 +499,46 @@ Section BarbedRelations.
   Proof.
     intros x y z ? ? h.
     eapply barbed_bisimilarity_trans; eauto.
+  Qed.
+
+  Goal
+    inclusion barbed_bisimilarity (observational_equivalence R P).
+  Proof.
+    intros x y ?H l; split; intros.
+    - destruct H as (S, ((?, ?), _), ?).
+      destruct H0 as (z, ?, ?).
+      destruct multistep_reduction_closed with S x y z as (w, ?, ?); auto.
+      destruct H1 with z w l as (v, ?, ?); auto.
+      exists v; eauto with cps.
+    - destruct H as (S, (_, (?, ?)), ?).
+      destruct H0 as (z, ?, ?).
+      destruct multistep_reduction_closed with (transp S) y x z as (w, ?, ?);
+        auto.
+      destruct H1 with z w l as (v, ?, ?); auto.
+      exists v; eauto with cps.
+  Qed.
+
+  Goal
+    confluent R ->
+    barb_preserving rt(R) ->
+    barbed_bisimulation (observational_equivalence R P).
+  Proof.
+    unfold inclusion; intros.
+    apply symmetric_barbed_simulation_is_bisimulation.
+    - split; do 5 intro.
+      + exists b; auto with cps.
+        split; intro.
+        * apply H1.
+          destruct H3.
+          destruct H with x a c as (y, ?, ?); eauto with cps.
+        * apply H1 in H3.
+          destruct H3 as (x, ?, ?).
+          destruct H with x a c as (y, ?, ?); eauto with cps.
+          destruct H0 with x y l as (w, ?, ?); eauto.
+          exists w; eauto with cps.
+      + apply H1.
+        eauto with cps.
+    - apply observational_equivalence_sym.
   Qed.
 
 End BarbedRelations.
