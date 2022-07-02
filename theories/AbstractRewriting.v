@@ -737,4 +737,27 @@ Section StrongBisimulation.
 
   (* TODO: strong bisimulation preserves SN and reduction length. *)
 
+  Variable l: L.
+  Variable S: relation T.
+
+  Hypothesis S_is_bisim: strong_bisimulation S.
+
+  Goal
+    forall a1 b1,
+    rst(S) a1 b1 ->
+    (exists a2, R l a1 a2) <-> (exists b2, R l b1 b2).
+  Proof.
+    induction 1.
+    - split; intros.
+      + destruct H0 as (a2, ?H).
+        destruct S_is_bisim.
+        edestruct H1; eauto.
+      + destruct H0 as (b2, ?H).
+        destruct S_is_bisim.
+        edestruct H2; eauto.
+    - firstorder.
+    - firstorder.
+    - firstorder.
+  Qed.
+
 End StrongBisimulation.
