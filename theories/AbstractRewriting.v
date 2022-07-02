@@ -383,6 +383,8 @@ Section BarbedRelations.
         firstorder.
   Qed.
 
+  (* TODO: we could fix the type of this definition. *)
+
   Lemma multistep_reduction_closed:
     forall S,
     reduction_closed S ->
@@ -543,7 +545,7 @@ Section BarbedRelations.
 
 End BarbedRelations.
 
-Section Bisimulation.
+Section WeakBisimulation.
 
   Variable T: Type.
   Variable L: Type.
@@ -575,10 +577,10 @@ Section Bisimulation.
     exists2 S, bisimulation S & S a b.
 
   Lemma weak_transition_immediate:
-    forall l a b,
-    R l a b -> weak_transition l a b.
+    forall l,
+    inclusion (R l) (weak_transition l).
   Proof.
-    intros.
+    intros l a b ?H.
     unfold weak_transition.
     destruct is_tau_dec with l.
     - destruct e; auto with cps.
@@ -713,4 +715,26 @@ Section Bisimulation.
     - apply bisimilarity_sym.
   Qed.
 
-End Bisimulation.
+End WeakBisimulation.
+
+Section StrongBisimulation.
+
+  Variable T: Type.
+  Variable L: Type.
+
+  Variable R: L -> relation T.
+
+  Definition strong_simulation (S: relation T): Prop :=
+    forall a b,
+    S a b ->
+    forall c l,
+    R l a c ->
+    exists2 d,
+    R l b d & S c d.
+
+  Definition strong_bisimulation (S: relation T): Prop :=
+    strong_simulation S /\ strong_simulation (transp S).
+
+  (* TODO: strong bisimulation preserves SN and reduction length. *)
+
+End StrongBisimulation.
