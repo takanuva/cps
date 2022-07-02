@@ -18,4 +18,5 @@ theories/Transition.v
 theories/TypeSystem.v
 theories/Normalization.v
 theories/Simulation.v
-theories/FullAbstraction.v
+# Ignore this for now...
+# theories/FullAbstraction.v
