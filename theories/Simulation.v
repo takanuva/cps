@@ -192,6 +192,17 @@ Proof.
     apply IHh.
 Qed.
 
+Lemma lambda_context_lift_depth:
+  forall h i k,
+  lambda_context_depth (lambda_context_lift i k h) = lambda_context_depth h.
+Proof.
+  induction h; intros; simpl.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+Qed.
+
 Inductive lambda_not_free: nat -> lambda_term -> Prop :=
   | lambda_not_free_bound:
     forall n m,
@@ -453,7 +464,19 @@ Section CallByName.
       assert (x' = x'0); eauto with cps.
       dependent destruction H5.
       apply barb_bind_left.
-      admit.
+      rewrite lambda_context_lift_is_sound in H5_, H6_.
+      rewrite plus_comm in H5_, H6_; simpl in H5_, H6_.
+      eapply H with (m := lambda_context_depth (lambda_context_lift 1 0 h)).
+      + rewrite lambda_context_lift_depth; auto.
+      + reflexivity.
+      + (* We lifted e1 and e2 by 1... can we derive ?c1 and ?c2 in here? *)
+        admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + exact H5_.
+      + exact H6_.
     (* Case: lambda_context_abstraction_right. *)
     - dependent destruction H5.
       dependent destruction H6.
