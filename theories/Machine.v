@@ -109,95 +109,6 @@ Inductive big: configuration -> Prop :=
     big (b, value_cont r ts c :: r) ->
     big (bind b ts c, r).
 
-(* A small-step variant of Kennedy's machine semantics for a CPS IR. This is
-   useful as it gives us a better inductive principle, allowing us to check for
-   individual steps that are otherwise burried deep in the proof tree of the
-   big-step semantics. Those two should nevertheless be equivalent. *)
-
-Inductive smol: relation configuration :=
-  | smol_jump:
-    forall r s a c k xs ts ns,
-    Forall2 (fun x n => x = bound n) xs ns ->
-    a = length ns ->
-    item (value_cont s ts c) r k ->
-    a = length ts ->
-    smol (jump k xs, r) (c, heap_append ns r s)
-  | smol_bind:
-    forall b ts c r,
-    smol (bind b ts c, r) (b, value_cont r ts c :: r).
-
-Definition smol_eval (c1: configuration): Prop :=
-  exists2 c2,
-  rt(smol) c1 c2 & configuration_final c2.
-
-(* A simple inversion regarding small-step evaluation: it may be properly
-   plugged into a static context, given appropriate changes to the heap. *)
-
-Lemma smol_eval_bind_inv:
-  forall b1 b2 ts c r,
-  (* We note that the inverse here is also true! We just don't need that. *)
-  (smol_eval (b1, value_cont r ts c :: r) ->
-    smol_eval (b2, value_cont r ts c :: r)) ->
-  smol_eval (bind b1 ts c, r) -> smol_eval (bind b2 ts c, r).
-Proof.
-  intros.
-  destruct H0.
-  apply clos_rt_rt1n_iff in H0.
-  dependent destruction H0.
-  - exfalso.
-    destruct H1 as (k, (xs, (s, [? ?]))).
-    inversion H0.
-  - apply clos_rt_rt1n_iff in H1.
-    dependent destruction H0.
-    edestruct H.
-    + exists z; auto.
-    + exists x; auto.
-      eapply rt_trans.
-      * apply rt_step.
-        constructor.
-      * assumption.
-Qed.
-
-Lemma smol_preserves_big:
-  forall c1 c2,
-  smol c1 c2 -> big c2 -> big c1.
-Proof.
-  induction 1; intros.
-  - eapply big_jump; eauto.
-  - constructor; auto.
-Qed.
-
-Lemma big_smol_eval_are_equivalent:
-  forall c,
-  big c <-> smol_eval c.
-Proof.
-  split; intros.
-  - induction H.
-    + eexists.
-      apply rt_refl.
-      unfold configuration_final; eauto.
-    + dependent destruction IHbig.
-      eexists x; auto.
-      eapply rt_trans.
-      * apply rt_step.
-        econstructor; eauto.
-      * assumption.
-    + dependent destruction IHbig.
-      eexists x; auto.
-      eapply rt_trans.
-      * apply rt_step.
-        constructor; auto.
-      * assumption.
-  - dependent destruction H.
-    generalize dependent H0.
-    apply clos_rt_rt1n_iff in H.
-    induction H; intros.
-    + destruct H0 as (k, (xs, (r, [? ?]))).
-      rewrite H; clear H.
-      constructor; auto.
-    + eapply smol_preserves_big; eauto.
-Qed.
-
 (*
 Fixpoint context_to_heap h s: heap :=
   match h with
@@ -227,17 +138,25 @@ Proof.
 Qed.
 *)
 
+(* This lemma may be a bit awkward in the de Bruijn setting, but it should be
+   straightforward in the named setting. What we'd like to show in here is that
+   the following rule is admissible:
+
+             H is static      (H[c[xs/ys]] { k<ys> = c }, r) \/ j
+           --------------------------------------------------------
+                       (H[k<xs>] { k<ys> = c }, r) \/ j
+
+   TODO: properly explain reasoning.
+*)
+
 Lemma backwards_head_preservation:
   forall h,
   static h ->
   forall xs ts,
   length xs = length ts ->
   forall c r,
-  smol_eval
-  (bind
-    (h (apply_parameters xs 0 (lift (S #h) (length ts) c)))
-     ts c, r) ->
-  smol_eval (bind (h (jump #h xs)) ts c, r).
+  big (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c, r) ->
+  big (bind (h (jump #h xs)) ts c, r).
 Proof.
   admit.
 Admitted.
@@ -248,36 +167,33 @@ Lemma big_is_preserved_backwards_by_head:
   forall r,
   big (c2, r) -> big (c1, r).
 Proof.
-  intros.
-  (* We'd like to reason about small-step machine semantics. *)
-  apply big_smol_eval_are_equivalent.
-  apply big_smol_eval_are_equivalent in H0.
-  generalize dependent r.
-  (* TODO: we could make an induction principle for this... *)
+  intros until 1.
+  (* TODO: we could make an induction principle for this, as if we had a
+     head_bind_left constructor... *)
   dependent destruction H.
   induction H0; simpl.
   (* Case: head_step. *)
   - apply backwards_head_preservation; auto.
   (* Case: head_bind_left. *)
   - rename h0 into s; intros.
-    eapply smol_eval_bind_inv.
-    + intros.
-      apply IHstatic.
-      exact H3.
-    + assumption.
-Admitted.
+    dependent destruction H2.
+    constructor; auto.
+Qed.
 
 Lemma convergent_term_is_trivially_final:
   forall c n,
   converges c n -> big (c, []).
 Proof.
   intros.
+  (* We need a stronger induction hypothesis. *)
   assert (exists2 r: heap, [] = r & length r <= n) as (r, ?, ?).
   - exists []; simpl; auto.
     lia.
   - rewrite H0; clear H0.
     generalize dependent r.
+    (* Here we go... *)
     induction H; intros.
+    (* Case: halt. *)
     + constructor.
       generalize dependent k.
       induction r; intros.
@@ -286,6 +202,7 @@ Proof.
         destruct k; try lia.
         simpl; apply IHr.
         lia.
+    (* Case: bind. *)
     + constructor.
       apply IHconverges.
       simpl; lia.
