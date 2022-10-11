@@ -12,6 +12,307 @@ Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.Observational.
 
+Goal
+  forall j a (s r: list pseudoterm),
+  j >= a ->
+  (if le_gt_dec (length s) (length r) then
+     j - a + (length r - length s)
+   else
+     j - a - (length s - length r)) =
+  (* Of course... *)
+  j - a + length r - length s.
+Proof.
+  intros.
+  generalize (length s).
+  generalize (length r).
+  clear s r.
+  intros n m.
+  destruct (le_gt_dec m n).
+  lia.
+  lia.
+Qed.
+
+Inductive value: Set :=
+  (* We don't really need this in the named setting, but it's surely useful in
+     the de Bruijn setting! With this we can propagate that a variable has been
+     substituted by a free variable. *)
+  | value_undefined
+  (* Continuations in memory. *)
+  | value_cont (p: list value) (ts: list pseudoterm) (c: pseudoterm).
+
+Local Notation U := value_undefined.
+
+Local Notation "< r ; \ ts : c >" :=
+  (value_cont r ts c) (only printing, format "< r ;  \ ts :  c >").
+
+Definition heap: Set :=
+  list value.
+
+Definition configuration: Set :=
+  pseudoterm * heap.
+
+(* Please note that parameters are written from right to left, but arguments to
+   jumps are written from left to write!
+
+   TODO: in the future we might want to generalize this beyond lists of names,
+   such as in the case we have primitive values as well. *)
+
+Definition heap_append (ns: list nat) (r s: heap): heap :=
+  (* map (fun n => nth n r U) (rev ns) ++ s *)
+  fold_left (fun acc n => nth n r U :: acc) ns s.
+
+(* A predicate that says that a configuration has reached it's final point, and
+   that it won't reduce any further. This is signaled by a command that jumps to
+   a variable that's not in the heap (i.e., a free variable). *)
+
+Definition configuration_final (c: configuration): Prop :=
+  exists k xs r,
+  c = (jump (bound k) xs, r) /\ nth k r U = U.
+
+(* Big-step abstract machine semantics for the CPS-calculus. This was derived
+   directly from Kennedy's paper, slightly adapting it to use free variables as
+   a signal of termination rather than using a "halt" term. This is meant to be
+   an "implementation-friendly" semantics for the calculus. *)
+
+Inductive big: configuration -> Prop :=
+  (*
+      r(k) is undefined
+    --------------------- (M-HALT)
+       (k<xs>, r) \/ k
+  *)
+  | big_halt:
+    forall k xs r,
+    nth k r U = U ->
+    big (jump k xs, r)
+
+  (*
+      p(k) = <s, \xs.c>       <c, s, xs = r(ys)> \/ j
+    --------------------------------------------------- (M-JUMP)
+                   <k<ys>, r> \/ j[ys/xs]
+  *)
+  | big_jump:
+    forall r s a c k xs ts ns,
+    Forall2 (fun x n => x = bound n) xs ns ->
+    a = length ns ->
+    item (value_cont s ts c) r k ->
+    a = length ts ->
+    big (c, heap_append ns r s) ->
+    big (jump k xs, r)
+
+  (*
+      <b, r, k = <r, \xs.c>> \/ j
+    ------------------------------- (M-BIND)
+       <b { k<xs> = c }, r> \/ j
+  *)
+  | big_bind:
+    forall b ts c r,
+    big (b, value_cont r ts c :: r) ->
+    big (bind b ts c, r).
+
+(* A small-step variant of Kennedy's machine semantics for a CPS IR. This is
+   useful as it gives us a better inductive principle, allowing us to check for
+   individual steps that are otherwise burried deep in the proof tree of the
+   big-step semantics. Those two should nevertheless be equivalent. *)
+
+Inductive smol: relation configuration :=
+  | smol_jump:
+    forall r s a c k xs ts ns,
+    Forall2 (fun x n => x = bound n) xs ns ->
+    a = length ns ->
+    item (value_cont s ts c) r k ->
+    a = length ts ->
+    smol (jump k xs, r) (c, heap_append ns r s)
+  | smol_bind:
+    forall b ts c r,
+    smol (bind b ts c, r) (b, value_cont r ts c :: r).
+
+Definition smol_eval (c1: configuration): Prop :=
+  exists2 c2,
+  rt(smol) c1 c2 & configuration_final c2.
+
+Lemma smol_eval_bind_inv:
+  forall b1 b2 ts c r,
+  (* We note that the inverse here is also true! *)
+  (smol_eval (b1, value_cont r ts c :: r) ->
+    smol_eval (b2, value_cont r ts c :: r)) ->
+  smol_eval (bind b1 ts c, r) -> smol_eval (bind b2 ts c, r).
+Proof.
+  intros.
+  destruct H0.
+  apply clos_rt_rt1n_iff in H0.
+  dependent destruction H0.
+  - exfalso.
+    destruct H1 as (k, (xs, (s, [? ?]))).
+    inversion H0.
+  - apply clos_rt_rt1n_iff in H1.
+    dependent destruction H0.
+    edestruct H.
+    + exists z; auto.
+    + exists x; auto.
+      eapply rt_trans.
+      * apply rt_step.
+        constructor.
+      * assumption.
+Qed.
+
+Lemma smol_preserves_big:
+  forall c1 c2,
+  smol c1 c2 -> big c2 -> big c1.
+Proof.
+  induction 1; intros.
+  - eapply big_jump; eauto.
+  - constructor; auto.
+Qed.
+
+Lemma big_smol_eval_are_equivalent:
+  forall c,
+  big c <-> smol_eval c.
+Proof.
+  split; intros.
+  - induction H.
+    + eexists.
+      apply rt_refl.
+      unfold configuration_final; eauto.
+    + dependent destruction IHbig.
+      eexists x; auto.
+      eapply rt_trans.
+      * apply rt_step.
+        econstructor; eauto.
+      * assumption.
+    + dependent destruction IHbig.
+      eexists x; auto.
+      eapply rt_trans.
+      * apply rt_step.
+        constructor; auto.
+      * assumption.
+  - dependent destruction H.
+    generalize dependent H0.
+    apply clos_rt_rt1n_iff in H.
+    induction H; intros.
+    + destruct H0 as (k, (xs, (r, [? ?]))).
+      rewrite H; clear H.
+      constructor; auto.
+    + eapply smol_preserves_big; eauto.
+Qed.
+
+(*
+Fixpoint context_to_heap h s: heap :=
+  match h with
+  | context_hole =>
+    s
+  | context_left r ts c =>
+    context_to_heap r (value_cont s ts c :: s)
+  | context_right b ts r =>
+    (* We don't really care about this one. *)
+    []
+  end.
+
+Lemma rt_smol_static_context:
+  forall h,
+  static h ->
+  forall k xs r,
+  rt(smol) (h (jump k xs), r) (jump k xs, context_to_heap h r).
+Proof.
+  induction 1; intros.
+  - simpl.
+    apply rt_refl.
+  - simpl.
+    eapply rt_trans.
+    + apply rt_step.
+      constructor.
+    + auto.
+Qed.
+*)
+
+Lemma big_is_preserved_backwards_by_head:
+  forall c1 c2,
+  head c1 c2 ->
+  forall r,
+  big (c2, r) -> big (c1, r).
+Proof.
+  intros.
+  (* We'd like to reason about small-step machine semantics. *)
+  apply big_smol_eval_are_equivalent.
+  apply big_smol_eval_are_equivalent in H0.
+  generalize dependent r.
+  (* TODO: we could make an induction principle for this... *)
+  dependent destruction H.
+  induction H0; simpl.
+  (* Case: head_step. *)
+  - admit.
+  (* Case: head_bind_left. *)
+  - rename h0 into s; intros.
+    eapply smol_eval_bind_inv.
+    + intros.
+      apply IHstatic.
+      exact H3.
+    + assumption.
+Admitted.
+
+Lemma convergent_term_is_trivially_final:
+  forall c n,
+  converges c n -> big (c, []).
+Proof.
+  intros.
+  assert (exists2 r: heap, [] = r & length r <= n) as (r, ?, ?).
+  - exists []; simpl; auto.
+    lia.
+  - rewrite H0; clear H0.
+    generalize dependent r.
+    induction H; intros.
+    + constructor.
+      generalize dependent k.
+      induction r; intros.
+      * destruct k; auto.
+      * simpl in H1.
+        destruct k; try lia.
+        simpl; apply IHr.
+        lia.
+    + constructor.
+      apply IHconverges.
+      simpl; lia.
+Qed.
+
+Lemma head_evaluation_implies_big:
+  forall c n,
+  comp rt(head) converges c n ->
+  big (c, []).
+Proof.
+  intros c1 n (c2, ?, ?).
+  apply clos_rt_rt1n_iff in H.
+  induction H.
+  - apply convergent_term_is_trivially_final with n.
+    assumption.
+  - eapply big_is_preserved_backwards_by_head.
+    + exact H.
+    + auto.
+Qed.
+
+Lemma big_implies_head_evaluation:
+  forall c,
+  big (c, []) ->
+  exists n,
+  comp rt(head) converges c n.
+Proof.
+  admit.
+Admitted.
+
+(*
+
+(******************************************************************************)
+(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(******************************************************************************)
+
+Require Import Lia.
+Require Import Arith.
+Require Import Equality.
+Require Import Local.Prelude.
+Require Import Local.Syntax.
+Require Import Local.AbstractRewriting.
+Require Import Local.Context.
+Require Import Local.Reduction.
+Require Import Local.Observational.
+
 Inductive value: Set :=
   (* We don't really need this in the named setting, but it's surely useful in
      the de Bruijn setting! With this we can propagate that a variable has been
@@ -977,3 +1278,5 @@ Proof.
   compute.
   reflexivity.
 Qed.
+
+*)
