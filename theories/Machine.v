@@ -130,9 +130,12 @@ Definition smol_eval (c1: configuration): Prop :=
   exists2 c2,
   rt(smol) c1 c2 & configuration_final c2.
 
+(* A simple inversion regarding small-step evaluation: it may be properly
+   plugged into a static context, given appropriate changes to the heap. *)
+
 Lemma smol_eval_bind_inv:
   forall b1 b2 ts c r,
-  (* We note that the inverse here is also true! *)
+  (* We note that the inverse here is also true! We just don't need that. *)
   (smol_eval (b1, value_cont r ts c :: r) ->
     smol_eval (b2, value_cont r ts c :: r)) ->
   smol_eval (bind b1 ts c, r) -> smol_eval (bind b2 ts c, r).
@@ -224,6 +227,21 @@ Proof.
 Qed.
 *)
 
+Lemma backwards_head_preservation:
+  forall h,
+  static h ->
+  forall xs ts,
+  length xs = length ts ->
+  forall c r,
+  smol_eval
+  (bind
+    (h (apply_parameters xs 0 (lift (S #h) (length ts) c)))
+     ts c, r) ->
+  smol_eval (bind (h (jump #h xs)) ts c, r).
+Proof.
+  admit.
+Admitted.
+
 Lemma big_is_preserved_backwards_by_head:
   forall c1 c2,
   head c1 c2 ->
@@ -239,7 +257,7 @@ Proof.
   dependent destruction H.
   induction H0; simpl.
   (* Case: head_step. *)
-  - admit.
+  - apply backwards_head_preservation; auto.
   (* Case: head_bind_left. *)
   - rename h0 into s; intros.
     eapply smol_eval_bind_inv.
