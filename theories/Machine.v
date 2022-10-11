@@ -109,7 +109,6 @@ Inductive big: configuration -> Prop :=
     big (b, value_cont r ts c :: r) ->
     big (bind b ts c, r).
 
-(*
 Fixpoint context_to_heap h s: heap :=
   match h with
   | context_hole =>
@@ -121,22 +120,49 @@ Fixpoint context_to_heap h s: heap :=
     []
   end.
 
-Lemma rt_smol_static_context:
+Local Notation C2H := context_to_heap.
+
+Lemma context_to_heap_size:
   forall h,
   static h ->
-  forall k xs r,
-  rt(smol) (h (jump k xs), r) (jump k xs, context_to_heap h r).
+  forall r,
+  exists2 s,
+  C2H h r = s ++ r & #h = length s.
 Proof.
-  induction 1; intros.
-  - simpl.
-    apply rt_refl.
-  - simpl.
-    eapply rt_trans.
-    + apply rt_step.
-      constructor.
-    + auto.
+  induction 1; simpl; intros.
+  - exists []; eauto.
+  - edestruct IHstatic as (s, ?, ?).
+    rewrite H0.
+    eexists (s ++ [_]).
+    + rewrite <- app_assoc; simpl.
+      reflexivity.
+    + rewrite app_length; simpl.
+      lia.
 Qed.
-*)
+
+Lemma big_static_context:
+  forall h,
+  static h ->
+  forall c r,
+  (* We'll need it both ways! *)
+  big (c, C2H h r) <-> big (h c, r).
+Proof.
+  split; intros.
+  (* Case: if. *)
+  - generalize dependent r.
+    induction H; simpl; intros.
+    + assumption.
+    + constructor.
+      apply IHstatic.
+      assumption.
+  (* Case: then. *)
+  - generalize dependent r.
+    induction H; simpl; intros.
+    + assumption.
+    + dependent destruction H0.
+      apply IHstatic.
+      assumption.
+Qed.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
    straightforward in the named setting. What we'd like to show in here is that
@@ -158,7 +184,28 @@ Lemma backwards_head_preservation:
   big (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c, r) ->
   big (bind (h (jump #h xs)) ts c, r).
 Proof.
-  admit.
+  intros.
+  (* First we move our command c into the heap. *)
+  dependent destruction H1.
+  constructor.
+  (* Then we proceed to move the enclosing context. *)
+  apply <- big_static_context in H1; auto.
+  apply big_static_context; auto.
+  (* There's only one way to go from here. *)
+  eapply big_jump with (s := r) (ts := ts) (c := c).
+  - (* I don't think we can prove that... we must change a few definitions. *)
+    admit.
+  - admit.
+  - (* We simply have to skip h now! On paper this should be obvious... *)
+    clear H0 H1 xs.
+    edestruct context_to_heap_size as (s, ?, ?); eauto.
+    rewrite H0; clear H0.
+    rewrite H1; clear H1.
+    clear H h.
+    induction s; eauto with cps.
+  - admit.
+  - (* We must now reasong about heap equality... *)
+    admit.
 Admitted.
 
 Lemma big_is_preserved_backwards_by_head:
