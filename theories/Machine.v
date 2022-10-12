@@ -49,6 +49,10 @@ Local Notation U := value_undefined.
 Local Notation "< r ; \ ts : c >" :=
   (value_cont r ts c) (only printing, format "< r ;  \ ts :  c >").
 
+(* A heap is a named list (like an environment) associating names to runtime
+   values. Then, a configuration is a tuple of a command and a heap, which is
+   what the machine semantics reasons about. *)
+
 Definition heap: Set :=
   list value.
 
@@ -62,19 +66,23 @@ Definition configuration: Set :=
    Please note that parameters are written from right to left, but arguments to
    jumps are written from left to write! *)
 
-Definition heap_append (xs: list pseudoterm) (r s: heap): heap :=
-  fold_left (fun acc x => (* As of now, there are no constants or values... *)
-                          match x with
-                          | bound n =>
-                            nth n r U
-                          | _ =>
-                            (* ...so simply ignore those. TODO: fix me? *)
-                            U
-                          end :: acc) xs s.
+Definition heap_get (x: pseudoterm) (r: heap): value :=
+  (* As of now, there are no constants or values... *)
+  match x with
+  | bound n =>
+    nth n r U
+  | _ =>
+    (* ...so simply ignore those. *)
+    U
+  end.
 
-(* A predicate that says that a configuration has reached it's final point, and
-   that it won't reduce any further. This is signaled by a command that jumps to
-   a variable that's not in the heap (i.e., a free variable). *)
+Definition heap_append (xs: list pseudoterm) (r s: heap): heap :=
+  fold_left (fun acc x => heap_get x r :: acc) xs s.
+
+(* A predicate that says that a configuration has successfully reached it's
+   final point, and that it won't reduce any further. This is signaled by a
+   command that jumps to a variable that's not in the heap (i.e., a free
+   variable). *)
 
 Definition configuration_final (c: configuration): Prop :=
   exists k xs r,
@@ -83,7 +91,9 @@ Definition configuration_final (c: configuration): Prop :=
 (* Big-step abstract machine semantics for the CPS-calculus. This was derived
    directly from Kennedy's paper, slightly adapting it to use free variables as
    a signal of termination rather than using a "halt" term. This is meant to be
-   an "implementation-friendly" semantics for the calculus. *)
+   an "implementation-friendly" semantics for the calculus.
+
+   TODO: add the final continuation to the relation! *)
 
 Inductive big: configuration -> Prop :=
   (*
@@ -206,11 +216,23 @@ Qed.
    straightforward in the named setting. What we'd like to show in here is that
    the following rule is admissible:
 
-             H is static      (H[c[xs/ys]] { k<ys> = c }, r) \/ j
-           --------------------------------------------------------
-                       (H[k<xs>] { k<ys> = c }, r) \/ j
+             H is static      (H[c[xs/ys]] { k<ys> = c }, r) \/
+           ------------------------------------------------------
+                       (H[k<xs>] { k<ys> = c }, r) \/
 
-   TODO: properly explain reasoning.
+  ...TODO...
+
+  We now define a new heap s such that:
+
+    s := r, k = \ys.c, H
+
+  And the desired proof is as follow:
+
+                                (c[xs/ys], s) \/
+                           -------------------------
+                             (c, s, ys = s(xs)) \/
+
+  ...TODO...
 *)
 
 Lemma backwards_head_preservation:
@@ -239,7 +261,7 @@ Proof.
     clear H h.
     induction s; eauto with cps.
   - assumption.
-  - (* We must now reasong about heap equality... *)
+  - (* Hmm... *)
     admit.
 Admitted.
 
@@ -264,30 +286,24 @@ Qed.
 
 Lemma convergent_term_is_trivially_final:
   forall c n,
-  converges c n -> big (c, []).
+  converges c n ->
+  forall r,
+  length r <= n -> big (c, r).
 Proof.
-  intros.
-  (* We need a stronger induction hypothesis. *)
-  assert (exists2 r: heap, [] = r & length r <= n) as (r, ?, ?).
-  - exists []; simpl; auto.
-    lia.
-  - rewrite H0; clear H0.
-    generalize dependent r.
-    (* Here we go... *)
-    induction H; intros.
-    (* Case: halt. *)
-    + constructor.
-      generalize dependent k.
-      induction r; intros.
-      * destruct k; auto.
-      * simpl in H1.
-        destruct k; try lia.
-        simpl; apply IHr.
-        lia.
-    (* Case: bind. *)
-    + constructor.
-      apply IHconverges.
-      simpl; lia.
+  induction 1; intros.
+  (* Case: halt. *)
+  - constructor.
+    generalize dependent k.
+    induction r; intros.
+    + destruct k; auto.
+    + simpl in H.
+      destruct k; try lia.
+      simpl; apply IHr.
+      lia.
+  (* Case: bind. *)
+  - constructor.
+    apply IHconverges.
+    simpl; lia.
 Qed.
 
 Lemma head_evaluation_implies_big:
@@ -298,11 +314,10 @@ Proof.
   intros c1 n (c2, ?, ?).
   apply clos_rt_rt1n_iff in H.
   induction H.
-  - apply convergent_term_is_trivially_final with n.
-    assumption.
-  - eapply big_is_preserved_backwards_by_head.
-    + exact H.
-    + auto.
+  (* Case: refl. *)
+  - apply convergent_term_is_trivially_final with n; eauto with arith.
+  (* Case: step. *)
+  - eapply big_is_preserved_backwards_by_head; eauto.
 Qed.
 
 Lemma big_implies_head_evaluation:
