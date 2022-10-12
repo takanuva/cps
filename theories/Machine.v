@@ -12,6 +12,7 @@ Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.Observational.
 
+(*
 Goal
   forall j a (s r: list pseudoterm),
   j >= a ->
@@ -31,6 +32,9 @@ Proof.
   lia.
   lia.
 Qed.
+*)
+
+(* A runtime value, which is either a continuation closure, or undefined. *)
 
 Inductive value: Set :=
   (* We don't really need this in the named setting, but it's surely useful in
@@ -51,15 +55,22 @@ Definition heap: Set :=
 Definition configuration: Set :=
   pseudoterm * heap.
 
-(* Please note that parameters are written from right to left, but arguments to
-   jumps are written from left to write!
+(* This definition is denoted as (s, ys = r(xs)), i.e., we are extending a heap
+   s by naming values ys as what xs mean in the heap r. So, if some x is not
+   defined in r, then accordingly y won't be defined in the resulting heap.
 
-   TODO: in the future we might want to generalize this beyond lists of names,
-   such as in the case we have primitive values as well. *)
+   Please note that parameters are written from right to left, but arguments to
+   jumps are written from left to write! *)
 
-Definition heap_append (ns: list nat) (r s: heap): heap :=
-  (* map (fun n => nth n r U) (rev ns) ++ s *)
-  fold_left (fun acc n => nth n r U :: acc) ns s.
+Definition heap_append (xs: list pseudoterm) (r s: heap): heap :=
+  fold_left (fun acc x => (* As of now, there are no constants or values... *)
+                          match x with
+                          | bound n =>
+                            nth n r U
+                          | _ =>
+                            (* ...so simply ignore those. TODO: fix me? *)
+                            U
+                          end :: acc) xs s.
 
 (* A predicate that says that a configuration has reached it's final point, and
    that it won't reduce any further. This is signaled by a command that jumps to
@@ -91,12 +102,10 @@ Inductive big: configuration -> Prop :=
                    <k<ys>, r> \/ j[ys/xs]
   *)
   | big_jump:
-    forall r s a c k xs ts ns,
-    Forall2 (fun x n => x = bound n) xs ns ->
-    a = length ns ->
+    forall r s c k xs ts,
     item (value_cont s ts c) r k ->
-    a = length ts ->
-    big (c, heap_append ns r s) ->
+    length xs = length ts ->
+    big (c, heap_append xs r s) ->
     big (jump k xs, r)
 
   (*
@@ -108,6 +117,35 @@ Inductive big: configuration -> Prop :=
     forall b ts c r,
     big (b, value_cont r ts c :: r) ->
     big (bind b ts c, r).
+
+(* Quick test! *)
+
+Goal
+  big (ex1, []) (* 3 *).
+Proof.
+  unfold ex1.
+  do 2 apply big_bind.
+  eapply big_jump.
+  - constructor.
+    constructor.
+  - simpl.
+    reflexivity.
+  - simpl.
+    eapply big_jump.
+    + constructor.
+      constructor.
+    + simpl.
+      reflexivity.
+    + simpl.
+      eapply big_jump.
+      * constructor.
+        constructor.
+        constructor.
+      * simpl.
+        reflexivity.
+      * apply big_halt.
+        simpl; reflexivity.
+Qed.
 
 Fixpoint context_to_heap h s: heap :=
   match h with
@@ -193,9 +231,6 @@ Proof.
   apply big_static_context; auto.
   (* There's only one way to go from here. *)
   eapply big_jump with (s := r) (ts := ts) (c := c).
-  - (* I don't think we can prove that... we must change a few definitions. *)
-    admit.
-  - admit.
   - (* We simply have to skip h now! On paper this should be obvious... *)
     clear H0 H1 xs.
     edestruct context_to_heap_size as (s, ?, ?); eauto.
@@ -203,7 +238,7 @@ Proof.
     rewrite H1; clear H1.
     clear H h.
     induction s; eauto with cps.
-  - admit.
+  - assumption.
   - (* We must now reasong about heap equality... *)
     admit.
 Admitted.
