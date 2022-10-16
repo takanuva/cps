@@ -34,20 +34,25 @@ Proof.
 Qed.
 *)
 
-(* A runtime value, which is either a continuation closure, or undefined. *)
+(* A runtime value, which is either a continuation closure, a suspended
+   computation, or undefined. *)
 
 Inductive value: Set :=
   (* We don't really need this in the named setting, but it's surely useful in
      the de Bruijn setting! With this we can propagate that a variable has been
      substituted by a free variable. *)
   | value_undefined
+  (* We have higher-order terms in this formalization, so we may have suspended
+     computations; these, however, will never appear in pseudoterms which are
+     proper terms. *)
+  | value_suspend (p: list value) (c: pseudoterm)
   (* Continuations in memory. *)
-  | value_cont (p: list value) (ts: list pseudoterm) (c: pseudoterm).
+  | value_closure (p: list value) (ts: list pseudoterm) (c: pseudoterm).
 
 Local Notation U := value_undefined.
 
 Local Notation "< r ; \ ts : c >" :=
-  (value_cont r ts c) (only printing, format "< r ;  \ ts :  c >").
+  (value_closure r ts c) (only printing, format "< r ;  \ ts :  c >").
 
 (* A heap is a named list (like an environment) associating names to runtime
    values. Then, a configuration is a tuple of a command and a heap, which is
@@ -67,10 +72,16 @@ Definition configuration: Set :=
    jumps are written from left to write! *)
 
 Definition heap_get (x: pseudoterm) (r: heap): value :=
-  (* As of now, there are no constants or values... *)
+  (* As of now, there are no constants or values... however, our structure
+     allows for higher-order terms, and, if this is the case, we should thunk
+     our computations with this heap for later use. TODO: add constants. *)
   match x with
   | bound n =>
     nth n r U
+  | jump _ _ =>
+    value_suspend r x
+  | bind _ _ _ =>
+    value_suspend r x
   | _ =>
     (* ...so simply ignore those. *)
     U
@@ -113,7 +124,7 @@ Inductive big: configuration -> Prop :=
   *)
   | big_jump:
     forall r s c k xs ts,
-    item (value_cont s ts c) r k ->
+    item (value_closure s ts c) r k ->
     length xs = length ts ->
     big (c, heap_append xs r s) ->
     big (jump k xs, r)
@@ -125,8 +136,19 @@ Inductive big: configuration -> Prop :=
   *)
   | big_bind:
     forall b ts c r,
-    big (b, value_cont r ts c :: r) ->
-    big (bind b ts c, r).
+    big (b, value_closure r ts c :: r) ->
+    big (bind b ts c, r)
+
+  (*
+    TODO: how to properly describe this hacky rule? This should only be needed
+    in case we're working with higher-order terms. This rule should, however,
+    fix the dissonance between proper terms and higher-order pseudoterms.
+  *)
+  | big_high:
+    forall r s c k,
+    item (value_suspend s c) r k ->
+    big (c, s) ->
+    big (bound k, r).
 
 (* Quick test! *)
 
@@ -162,7 +184,7 @@ Fixpoint context_to_heap h s: heap :=
   | context_hole =>
     s
   | context_left r ts c =>
-    context_to_heap r (value_cont s ts c :: s)
+    context_to_heap r (value_closure s ts c :: s)
   | context_right b ts r =>
     (* We don't really care about this one. *)
     []
@@ -255,14 +277,16 @@ Proof.
 Qed.
 
 Goal
-  ~big (ohno, []).
+  big (ohno, []).
 Proof.
-  intro.
-  dependent destruction H.
-  dependent destruction H.
-  dependent destruction H.
-  simpl in H1.
-  inversion H1.
+  constructor.
+  eapply big_jump.
+  constructor.
+  reflexivity.
+  eapply big_high.
+  constructor.
+  apply big_halt.
+  reflexivity.
 Qed.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
