@@ -212,6 +212,59 @@ Proof.
       assumption.
 Qed.
 
+(* -------------------------------------------------------------------------- *)
+
+Definition eval a n: Prop :=
+  comp rt(head) converges a n.
+
+(* Oh no, oh no, oh no no no no no...
+
+   This is clearly not a first-order term, but it's valid in our higher-order
+   formulation...
+
+   j@0<k@1<>>
+   { j<x> =
+     x@0 }
+
+   And I expect that eval will reach a normal form, halting at k...
+
+*)
+
+Example ohno: pseudoterm :=
+  bind
+    (jump 0 [jump 1 []])
+    [base]
+    0.
+
+Goal
+  eval ohno 0.
+Proof.
+  eexists.
+  - constructor.
+    unfold ohno.
+    replace (bind (jump 0 [jump 1 []]) [base] 0) with
+      (context_hole (bind (context_hole (jump 0 [jump 1 []])) [base] 0)); auto.
+    constructor.
+    + constructor.
+    + constructor.
+    + reflexivity.
+  - simpl.
+    compute.
+    constructor.
+    constructor.
+Qed.
+
+Goal
+  ~big (ohno, []).
+Proof.
+  intro.
+  dependent destruction H.
+  dependent destruction H.
+  dependent destruction H.
+  simpl in H1.
+  inversion H1.
+Qed.
+
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
    straightforward in the named setting. What we'd like to show in here is that
    the following rule is admissible:
@@ -308,7 +361,7 @@ Qed.
 
 Lemma head_evaluation_implies_big:
   forall c n,
-  comp rt(head) converges c n ->
+  eval c n ->
   big (c, []).
 Proof.
   intros c1 n (c2, ?, ?).
@@ -324,7 +377,7 @@ Lemma big_implies_head_evaluation:
   forall c,
   big (c, []) ->
   exists n,
-  comp rt(head) converges c n.
+  eval c n.
 Proof.
   admit.
 Admitted.
