@@ -289,6 +289,57 @@ Proof.
   reflexivity.
 Qed.
 
+(* -------------------------------------------------------------------------- *)
+
+Inductive big_height: configuration -> nat -> Prop :=
+  | big_height_halt:
+    forall k xs r,
+    nth k r U = U ->
+    big_height (jump k xs, r) 0
+  | big_height_jump:
+    forall r s c k xs ts h,
+    item (value_closure s ts c) r k ->
+    length xs = length ts ->
+    big_height (c, heap_append xs r s) h ->
+    big_height (jump k xs, r) (S h)
+  | big_height_bind:
+    forall b ts c r h,
+    big_height (b, value_closure r ts c :: r) h ->
+    big_height (bind b ts c, r) h
+  | big_height_high:
+    forall r s c k h,
+    item (value_suspend s c) r k ->
+    big_height (c, s) h ->
+    big_height (bound k, r) h.
+
+Lemma big_has_tree_height:
+  forall c r,
+  big (c, r) ->
+  exists h,
+  big_height (c, r) h.
+Proof.
+  intros.
+  remember (c, r) as x.
+  generalize dependent r.
+  generalize dependent c.
+  induction H; intros.
+  - dependent destruction Heqx.
+    exists 0.
+    eapply big_height_halt; eauto.
+  - dependent destruction Heqx.
+    edestruct IHbig as (h, ?); eauto.
+    exists (S h).
+    eapply big_height_jump; eauto.
+  - dependent destruction Heqx.
+    edestruct IHbig as (h, ?); eauto.
+    exists h.
+    eapply big_height_bind; eauto.
+  - dependent destruction Heqx.
+    edestruct IHbig as (h, ?); eauto.
+    exists h.
+    eapply big_height_high; eauto.
+Qed.
+
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
    straightforward in the named setting. What we'd like to show in here is that
    the following rule is admissible:
@@ -307,7 +358,9 @@ Qed.
 
                                 (c[xs/ys], s) \/
                            -------------------------
-                             (c, s, ys = s(xs)) \/
+                             (c, r, ys = s(xs)) \/
+
+  Of course, c can't refer to k neither the variables in the domain of H.
 
   ...TODO...
 *)
@@ -339,6 +392,7 @@ Proof.
     induction s; eauto with cps.
   - assumption.
   - (* Hmm... *)
+    remember (C2H h (value_closure r ts c :: r)) as s.
     admit.
 Admitted.
 
