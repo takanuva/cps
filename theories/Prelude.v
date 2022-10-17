@@ -105,3 +105,12 @@ Proof.
     + inversion H; auto.
     + inversion H; eauto.
 Qed.
+
+Lemma nth_item:
+  forall {T} x xs y k,
+  @item T x xs k -> nth k xs y = x.
+Proof.
+  induction 1; simpl.
+  - reflexivity.
+  - assumption.
+Qed.
