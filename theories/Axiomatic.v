@@ -541,6 +541,16 @@ Qed.
 
 Global Hint Resolve sema_right_cycle: cps.
 
+Goal
+  forall m a k,
+  not_free (k + a) m ->
+  remove_binding (k + a) m =
+    remove_binding k (right_cycle a k m).
+Proof.
+  (* This theorem is true, we'll need it in the following. *)
+  admit.
+Admitted.
+
 Lemma sema_float_left:
   FLOAT_LEFT sema.
 Proof.
