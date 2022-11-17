@@ -55,21 +55,20 @@ Local Notation "< r ; \ ts : c >" :=
   (value_closure r ts c) (only printing, format "< r ;  \ ts :  c >").
 
 (* A heap is a named list (like an environment) associating names to runtime
-   values. Then, a configuration is a tuple of a command and a heap, which is
-   what the machine semantics reasons about. *)
+   values. It is called an environment by both Appel and Kennedy. *)
 
 Definition heap: Set :=
   list value.
 
+(* A configuration is just a tuple of a command and a heap, which is what the
+   machine semantics reasons about. *)
+
 Definition configuration: Set :=
   pseudoterm * heap.
 
-(* This definition is denoted as (s, ys = r(xs)), i.e., we are extending a heap
-   s by naming values ys as what xs mean in the heap r. So, if some x is not
-   defined in r, then accordingly y won't be defined in the resulting heap.
-
-   Please note that parameters are written from right to left, but arguments to
-   jumps are written from left to write! *)
+(* Given a heap s, we may write s(x) to get the value of x in it. Ideally, x
+   should just be a de Bruijn index, which would have an obvious meaning, but
+   I've messed things up. *)
 
 Definition heap_get (x: pseudoterm) (r: heap): value :=
   (* As of now, there are no constants or values... however, our structure
@@ -87,6 +86,13 @@ Definition heap_get (x: pseudoterm) (r: heap): value :=
     U
   end.
 
+(* This definition is denoted as (s, ys = r(xs)), i.e., we are extending a heap
+   s by naming values ys as what xs mean in the heap r. So, if some x is not
+   defined in r, then accordingly y won't be defined in the resulting heap.
+
+   Please note that parameters are written from right to left, but arguments to
+   jumps are written from left to write! *)
+
 Definition heap_append (xs: list pseudoterm) (r s: heap): heap :=
   fold_left (fun acc x => heap_get x r :: acc) xs s.
 
@@ -100,11 +106,11 @@ Definition configuration_final (c: configuration): Prop :=
   c = (jump (bound k) xs, r) /\ nth k r U = U.
 
 (* Big-step abstract machine semantics for the CPS-calculus. This was derived
-   directly from Kennedy's paper, slightly adapting it to use free variables as
-   a signal of termination rather than using a "halt" term. This is meant to be
-   an "implementation-friendly" semantics for the calculus.
-
-   TODO: add the final continuation to the relation! *)
+   directly from Kennedy's paper, slightly adapting it to use any free variable
+   as a signal of termination rather than using a distinguished "halt", and then
+   keeping track of it (so it's a function, not a predicate). Something really
+   similar is also implemented in Appel's book (see Chapter 3). This is meant to
+   be an "implementation-friendly" semantics. *)
 
 Inductive big: configuration -> Prop :=
   (*
@@ -236,6 +242,8 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+(* TODO: move this definition somewhere else. *)
+
 Definition eval a n: Prop :=
   comp rt(head) converges a n.
 
@@ -291,32 +299,32 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive big_height: configuration -> nat -> Prop :=
-  | big_height_halt:
+Inductive big_at_time: configuration -> nat -> Prop :=
+  | big_at_time_halt:
     forall k xs r,
     nth k r U = U ->
-    big_height (jump k xs, r) 0
-  | big_height_jump:
-    forall r s c k xs ts h,
+    big_at_time (jump k xs, r) 0
+  | big_at_time_jump:
+    forall r s c k xs ts t,
     item (value_closure s ts c) r k ->
     length xs = length ts ->
-    big_height (c, heap_append xs r s) h ->
-    big_height (jump k xs, r) (S h)
-  | big_height_bind:
-    forall b ts c r h,
-    big_height (b, value_closure r ts c :: r) h ->
-    big_height (bind b ts c, r) h
-  | big_height_high:
-    forall r s c k h,
+    big_at_time (c, heap_append xs r s) t ->
+    big_at_time (jump k xs, r) (S t)
+  | big_at_time_bind:
+    forall b ts c r t,
+    big_at_time (b, value_closure r ts c :: r) t ->
+    big_at_time (bind b ts c, r) (S t)
+  | big_at_time_high:
+    forall r s c k t,
     item (value_suspend s c) r k ->
-    big_height (c, s) h ->
-    big_height (bound k, r) h.
+    big_at_time (c, s) t ->
+    big_at_time (bound k, r) (S t).
 
-Lemma big_has_tree_height:
+Lemma big_has_time:
   forall c r,
   big (c, r) ->
-  exists h,
-  big_height (c, r) h.
+  exists t,
+  big_at_time (c, r) t.
 Proof.
   intros.
   remember (c, r) as x.
@@ -325,20 +333,155 @@ Proof.
   induction H; intros.
   - dependent destruction Heqx.
     exists 0.
-    eapply big_height_halt; eauto.
+    eapply big_at_time_halt; eauto.
   - dependent destruction Heqx.
-    edestruct IHbig as (h, ?); eauto.
-    exists (S h).
-    eapply big_height_jump; eauto.
+    edestruct IHbig as (t, ?); eauto.
+    exists (S t).
+    eapply big_at_time_jump; eauto.
   - dependent destruction Heqx.
-    edestruct IHbig as (h, ?); eauto.
-    exists h.
-    eapply big_height_bind; eauto.
+    edestruct IHbig as (t, ?); eauto.
+    exists (S t).
+    eapply big_at_time_bind; eauto.
   - dependent destruction Heqx.
-    edestruct IHbig as (h, ?); eauto.
-    exists h.
-    eapply big_height_high; eauto.
+    edestruct IHbig as (t, ?); eauto.
+    exists (S t).
+    eapply big_at_time_high; eauto.
 Qed.
+
+Definition corresponding_value (f: nat -> nat -> pseudoterm) (r s: heap) k n :=
+  match heap_get (f k n) r with
+  | value_closure p ts b =>
+    exists q us c,
+    heap_get n s = value_closure q us c /\ length ts = length us /\
+      True
+  | U =>
+    heap_get n s = U
+  | _ =>
+    False
+  end.
+
+Definition corresponding (f: nat -> nat -> pseudoterm) (r s: heap) :=
+  forall (k n: nat),
+  corresponding_value f r s k n.
+
+Definition corresponding_offset f: nat -> nat -> pseudoterm :=
+  fun k n =>
+    match n with
+    | 0 => 0
+    | S m => lift 1 0 (f k m)
+    end.
+
+Goal
+  forall f r rs s ss,
+  corresponding (corresponding_offset f) (r :: rs) (s :: ss) ->
+  corresponding f rs ss.
+Proof.
+  intros f r rs s ss ? k n.
+  specialize (H k (S n)).
+  unfold corresponding_value in H |- *; simpl in H |- *.
+  remember (f k n) as x.
+  destruct x; dependent destruction Heqx; auto.
+Qed.
+
+Lemma corresponding_cons:
+  forall f rs ss,
+  corresponding f rs ss ->
+  forall r s,
+  (forall k,
+    corresponding_value (corresponding_offset f) (r :: rs) (s :: ss) k 0) ->
+  corresponding (corresponding_offset f) (r :: rs) (s :: ss).
+Proof.
+  intros.
+  intros j n.
+  destruct n.
+  - apply H0.
+  - clear H0.
+    unfold corresponding_value; simpl.
+    remember (f j n) as x.
+    destruct x; dependent destruction Heqx; simpl.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + rename n0 into m.
+      specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+    + specialize (H j n).
+      unfold corresponding_value in H.
+      rewrite <- x in H; simpl in H.
+      assumption.
+Qed.
+
+Goal
+  forall f r s,
+  corresponding f r s ->
+  forall c k,
+  big (traverse f k c, r) -> big (c, s).
+Proof.
+  intros.
+  (* This proof will follow by lexicographic induction on <t, c>, where t is the
+     height of the proof tree and c is the term. I wish it would be easier to
+     make such induction in Coq. *)
+  apply big_has_time in H0.
+  destruct H0 as (t, ?).
+  generalize dependent s.
+  generalize dependent r.
+  generalize dependent k.
+  generalize dependent f.
+  generalize dependent c.
+  induction t using lt_wf_ind.
+  (* No need for deep induction. *)
+  induction c; intros.
+  (* Case: type. *)
+  - inversion H0.
+  (* Case: prop. *)
+  - inversion H0.
+  (* Case: base. *)
+  - inversion H0.
+  (* Case: void. *)
+  - inversion H0.
+  (* Case: bound. *)
+  - simpl in H0.
+    admit.
+  (* Case: negation. *)
+  - inversion H0.
+  (* Case: jump. *)
+  - admit.
+  (* Case: bind. *)
+  - simpl in H0.
+    dependent destruction H0.
+    apply big_bind.
+    eapply H with (m := t).
+    + lia.
+    + (* Notice H0, traverse f can't possibly change variables below S k, that's
+         the point, but we have nothing explicitly state that. Oh no... *)
+      admit.
+    + (* Extend H1, then use it with IHc2 to show correspondence to the lastest
+         bound closure. *)
+      admit.
+Admitted.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
    straightforward in the named setting. What we'd like to show in here is that
