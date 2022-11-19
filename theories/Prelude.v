@@ -94,6 +94,24 @@ Proof.
   induction 1; simpl; auto with arith.
 Qed.
 
+Lemma item_exists:
+  forall {T} xs k,
+  k < length xs ->
+  exists x,
+  @item T x xs k.
+Proof.
+  induction xs; intros.
+  - inversion H.
+  - destruct k.
+    + exists a.
+      constructor.
+    + destruct IHxs with k.
+      * simpl in H; lia.
+      * exists x.
+        constructor.
+        assumption.
+Qed.
+
 Lemma item_repeat:
   forall {T} x y k p,
   @item T x (repeat y k) p ->
@@ -113,4 +131,19 @@ Proof.
   induction 1; simpl.
   - reflexivity.
   - assumption.
+Qed.
+
+Lemma item_nth:
+  forall {T} x xs y k,
+  nth k xs y = x ->
+  x <> y ->
+  @item T x xs k.
+Proof.
+  induction xs; intros.
+  - destruct k; simpl in H; congruence.
+  - destruct k; simpl in H.
+    + rewrite H.
+      constructor.
+    + constructor.
+      apply IHxs with y; auto.
 Qed.
