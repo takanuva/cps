@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Reduction.
@@ -299,6 +300,147 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Class proper (f: nat -> pseudoterm -> pseudoterm): Prop := {
+  proper_respects_structure:
+    forall x k,
+    f k x = traverse f k x;
+  proper_preserves_bound:
+    forall k n,
+    n < k -> f k n = n;
+  proper_avoids_capture:
+    forall k n,
+    f (S k) (S n) = lift 1 0 (f k n)
+}.
+
+Instance lift_proper: forall i, proper (lift i).
+Proof.
+  constructor; intros.
+  - reflexivity.
+  - rewrite lift_bound_lt; try lia.
+    reflexivity.
+  - destruct (le_gt_dec k n).
+    + rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_lt; try lia.
+      rewrite lift_bound_ge; try lia.
+      reflexivity.
+Qed.
+
+Instance subst_proper: forall x, proper (subst x).
+Proof.
+  constructor; intros.
+  - reflexivity.
+  - rewrite subst_bound_lt; try lia.
+    reflexivity.
+  - destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; try lia.
+      rewrite subst_bound_gt; try lia.
+      rewrite lift_bound_ge; try lia.
+      f_equal; lia.
+    + rewrite subst_bound_eq; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_lift_simplification; try lia.
+      reflexivity.
+    + rewrite subst_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      rewrite lift_bound_ge; try lia.
+      reflexivity.
+Qed.
+
+Instance apply_parameters_proper: forall xs, proper (apply_parameters xs).
+Proof.
+  constructor; intros.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; simpl; intros.
+    + induction xs; simpl; auto.
+    + induction xs; simpl; auto.
+    + induction xs; simpl; auto.
+    + induction xs; simpl; auto.
+    + reflexivity.
+    + rewrite apply_parameters_distributes_over_negation.
+      f_equal.
+      list induction over H.
+      do 2 rewrite traverse_list_length.
+      apply H.
+    + rewrite apply_parameters_distributes_over_jump.
+      f_equal.
+      * apply IHx.
+      * list induction over H.
+    + rewrite apply_parameters_distributes_over_bind.
+      f_equal.
+      * apply IHx1.
+      * list induction over H.
+        do 2 rewrite traverse_list_length.
+        apply H.
+      * apply IHx2.
+  - rewrite apply_parameters_bound_lt; try lia.
+    reflexivity.
+  - destruct (le_gt_dec k n).
+    + destruct (le_gt_dec (k + length xs) n).
+      * rewrite apply_parameters_bound_gt; try lia.
+        rewrite apply_parameters_bound_gt; try lia.
+        rewrite lift_bound_ge; try lia.
+        f_equal; lia.
+      * assert (exists x, item x (rev xs) (n - k)) as (x, ?).
+        apply item_exists.
+        rewrite rev_length.
+        lia.
+        replace (S n) with (S k + (S n - S k)); try lia.
+        rewrite apply_parameters_bound_in with (x := x); try lia.
+        replace n with (k + (n - k)); try lia.
+        rewrite apply_parameters_bound_in with (x := x); try lia.
+        rewrite lift_lift_simplification; try lia.
+        reflexivity.
+        assumption.
+        assumption.
+    + rewrite apply_parameters_bound_lt; try lia.
+      rewrite apply_parameters_bound_lt; try lia.
+      rewrite lift_bound_ge; try lia.
+      reflexivity.
+Qed.
+
+Instance id_proper: proper (fun k => id).
+Proof.
+  unfold id.
+  constructor; intros.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; simpl; intros.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + f_equal.
+      list induction over H.
+    + f_equal; auto.
+      list induction over H.
+    + f_equal; auto.
+      list induction over H.
+  - reflexivity.
+  - rewrite lift_bound_ge; try lia.
+    reflexivity.
+Qed.
+
+Goal
+  forall f,
+  `{proper f} ->
+  forall p k n,
+  f (p + k) (p + n) = lift p 0 (f k n).
+Proof.
+  induction p; simpl; intros.
+  - rewrite lift_zero_e_equals_e.
+    reflexivity.
+  - rewrite proper_avoids_capture.
+    rewrite IHp.
+    rewrite lift_lift_simplification; try lia.
+    reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Inductive big_at_time: configuration -> nat -> Prop :=
   | big_at_time_halt:
     forall k xs r,
@@ -348,112 +490,92 @@ Proof.
     eapply big_at_time_high; eauto.
 Qed.
 
-Definition corresponding_value (f: nat -> nat -> pseudoterm) (r s: heap) k n :=
-  match heap_get (f k n) r with
-  | value_closure p ts b =>
-    exists q us c,
-    heap_get n s = value_closure q us c /\ length ts = length us /\
-      True
-  | U =>
-    heap_get n s = U
-  | _ =>
-    False
-  end.
+Inductive corresponding_value t: relation value :=
+  | corresponding_value_closure:
+    forall p ts c q us b,
+    length ts = length us ->
+    (forall m r s xs ys,
+       m < t ->
+       big_at_time (c, heap_append xs r p) m ->
+       length xs = length ys ->
+       length xs = length ts ->
+       big_at_time (b, heap_append ys s q) m) ->
+    corresponding_value t (value_closure p ts c) (value_closure q us b)
+  | corresponding_value_undefined:
+    corresponding_value t U U.
 
-Definition corresponding (f: nat -> nat -> pseudoterm) (r s: heap) :=
-  forall (k n: nat),
-  corresponding_value f r s k n.
+Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
+  (forall n: nat,
+  corresponding_value t (heap_get (f k n) r) (heap_get n s)).
 
-Definition corresponding_offset f: nat -> nat -> pseudoterm :=
-  fun k n =>
-    match n with
-    | 0 => 0
-    | S m => lift 1 0 (f k m)
-    end.
-
-Goal
-  forall f r rs s ss,
-  corresponding (corresponding_offset f) (r :: rs) (s :: ss) ->
-  corresponding f rs ss.
+Lemma corresponding_extension:
+  forall f r s k t,
+  corresponding f r s k t ->
+  forall x y,
+  corresponding_value t (heap_get (f (S k) 0) (x :: r)) (heap_get 0 (y :: s)) ->
+  corresponding f (x :: r) (y :: s) (S k) t.
 Proof.
-  intros f r rs s ss ? k n.
-  specialize (H k (S n)).
-  unfold corresponding_value in H |- *; simpl in H |- *.
-  remember (f k n) as x.
-  destruct x; dependent destruction Heqx; auto.
-Qed.
-
-Lemma corresponding_cons:
-  forall f rs ss,
-  corresponding f rs ss ->
-  forall r s,
-  (forall k,
-    corresponding_value (corresponding_offset f) (r :: rs) (s :: ss) k 0) ->
-  corresponding (corresponding_offset f) (r :: rs) (s :: ss).
-Proof.
-  intros.
-  intros j n.
+  intros; intro n.
   destruct n.
-  - apply H0.
+  - assumption.
   - clear H0.
-    unfold corresponding_value; simpl.
-    remember (f j n) as x.
-    destruct x; dependent destruction Heqx; simpl.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + rename n0 into m.
-      specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
-    + specialize (H j n).
-      unfold corresponding_value in H.
-      rewrite <- x in H; simpl in H.
-      assumption.
+    specialize (H n).
+    replace (f (S k) (S n)) with (lift 1 0 (f k n)).
+    + dependent destruction H.
+      * destruct (f k n); try discriminate.
+        simpl in x0, x |- *.
+        rewrite <- x.
+        rewrite <- x0.
+        constructor; auto.
+      * simpl in x |- *.
+        rewrite <- x.
+        destruct (f k n);
+          try discriminate;
+          try constructor.
+        simpl in x0 |- *.
+        rewrite <- x0.
+        constructor.
+    + admit.
+Admitted.
+
+Lemma corresponding_decrease:
+  forall f r s k t,
+  corresponding f r s k t ->
+  forall m,
+  m < t ->
+  corresponding f r s k m.
+Proof.
+  intros; intro n.
+  specialize (H n).
+  dependent destruction H.
+  - rewrite <- x.
+    rewrite <- x0.
+    constructor; intros.
+    + assumption.
+    + eapply H0.
+      * lia.
+      * exact H3.
+      * exact H4.
+      * exact H5.
+  - rewrite <- x.
+    rewrite <- x0.
+    constructor.
 Qed.
 
 Goal
-  forall f r s,
-  corresponding f r s ->
-  forall c k,
-  big (traverse f k c, r) -> big (c, s).
+  forall f r s k t,
+  corresponding f r s k t ->
+  forall c,
+  big_at_time (traverse f k c, r) t ->
+  big_at_time (c, s) t.
 Proof.
   intros.
-  (* This proof will follow by lexicographic induction on <t, c>, where t is the
-     height of the proof tree and c is the term. I wish it would be easier to
-     make such induction in Coq. *)
-  apply big_has_time in H0.
-  destruct H0 as (t, ?).
   generalize dependent s.
   generalize dependent r.
   generalize dependent k.
-  generalize dependent f.
   generalize dependent c.
   induction t using lt_wf_ind.
-  (* No need for deep induction. *)
-  induction c; intros.
+  destruct c; intros.
   (* Case: type. *)
   - inversion H0.
   (* Case: prop. *)
@@ -464,23 +586,88 @@ Proof.
   - inversion H0.
   (* Case: bound. *)
   - simpl in H0.
+    (* Lets think about this later. *)
     admit.
   (* Case: negation. *)
   - inversion H0.
   (* Case: jump. *)
-  - admit.
+  - simpl in H0.
+    dependent destruction H0.
+    + destruct c; try discriminate.
+      rename k0 into j.
+      apply big_at_time_halt.
+      specialize (H1 n); simpl in H1.
+      simpl in x; rewrite <- x in H1.
+      simpl in H1; rewrite H0 in H1.
+      dependent destruction H1.
+      congruence.
+    + destruct c; try discriminate.
+      rename k0 into j, c0 into c, s into r', s0 into s.
+      (* ... *)
+      simpl in x.
+      assert (corresponding_value (S t) (heap_get (f k n) r) (heap_get n s));
+        auto.
+      apply nth_item with (y := U) in H0.
+      (*
+        Since we have...
+
+          <f(n<x>), r> @ 1+t
+
+        By inversion, there are r', y and c such that...
+
+          r(f(n)) = <r', \y.c>
+
+        And...
+
+          <c, r', y = r(f(x))> @ t
+
+        We also know that...
+
+          r corresponds to s through f
+
+        We want to show that...
+
+          <n<x>, s> @ 1+t
+
+        So we need to show that there are s' and b such that...
+
+          s(n) = <s', \y.b>
+
+        And then...
+
+          <b, s', y = s(x)> @ t
+
+      *)
+      rewrite <- x in H4; simpl in H4.
+      rewrite H0 in H4.
+      dependent destruction H4.
+      rename q into s'.
+      eapply big_at_time_jump.
+      * eapply item_nth; eauto.
+        congruence.
+      * rewrite map_length in H1.
+        congruence.
+      * eapply H5; eauto.
+        rewrite map_length.
+        reflexivity.
   (* Case: bind. *)
   - simpl in H0.
     dependent destruction H0.
-    apply big_bind.
-    eapply H with (m := t).
-    + lia.
-    + (* Notice H0, traverse f can't possibly change variables below S k, that's
-         the point, but we have nothing explicitly state that. Oh no... *)
-      admit.
-    + (* Extend H1, then use it with IHc2 to show correspondence to the lastest
-         bound closure. *)
-      admit.
+    apply big_at_time_bind.
+    eapply H; eauto.
+    apply corresponding_decrease with (m := t) in H1; auto.
+    apply corresponding_extension; auto.
+    replace (f (S k) 0) with (bound 0); simpl.
+    constructor; intros.
+    + rewrite traverse_list_length.
+      reflexivity.
+    + rename r0 into r', s0 into s'.
+      eapply H.
+      * lia.
+      * exact H3.
+      * rewrite plus_comm.
+        admit.
+    + admit.
 Admitted.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
