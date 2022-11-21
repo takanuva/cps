@@ -510,33 +510,49 @@ Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
 
 Lemma corresponding_extension:
   forall f r s k t,
+  forall P: `{proper f},
   corresponding f r s k t ->
   forall x y,
-  corresponding_value t (heap_get (f (S k) 0) (x :: r)) (heap_get 0 (y :: s)) ->
+  corresponding_value t x y ->
   corresponding f (x :: r) (y :: s) (S k) t.
 Proof.
   intros; intro n.
   destruct n.
-  - assumption.
+  - rewrite proper_preserves_bound; try lia.
+    simpl; assumption.
   - clear H0.
     specialize (H n).
-    replace (f (S k) (S n)) with (lift 1 0 (f k n)).
-    + dependent destruction H.
-      * destruct (f k n); try discriminate.
-        simpl in x0, x |- *.
-        rewrite <- x.
-        rewrite <- x0.
-        constructor; auto.
-      * simpl in x |- *.
-        rewrite <- x.
-        destruct (f k n);
-          try discriminate;
-          try constructor.
-        simpl in x0 |- *.
-        rewrite <- x0.
-        constructor.
-    + admit.
-Admitted.
+    rewrite proper_avoids_capture.
+    dependent destruction H.
+    + destruct (f k n); try discriminate.
+      simpl in x0, x |- *.
+      rewrite <- x.
+      rewrite <- x0.
+      constructor; auto.
+    + simpl in x |- *.
+      rewrite <- x.
+      destruct (f k n);
+        try discriminate;
+        try constructor.
+      simpl in x0 |- *.
+      rewrite <- x0.
+      constructor.
+Qed.
+
+Lemma corresponding_value_decrease:
+  forall t v u,
+  corresponding_value t v u ->
+  forall m,
+  m < t ->
+  corresponding_value m v u.
+Proof.
+  destruct 1; intros.
+  - constructor; intros.
+    + assumption.
+    + eapply H0; eauto.
+      lia.
+  - constructor.
+Qed.
 
 Lemma corresponding_decrease:
   forall f r s k t,
@@ -546,24 +562,12 @@ Lemma corresponding_decrease:
   corresponding f r s k m.
 Proof.
   intros; intro n.
-  specialize (H n).
-  dependent destruction H.
-  - rewrite <- x.
-    rewrite <- x0.
-    constructor; intros.
-    + assumption.
-    + eapply H0.
-      * lia.
-      * exact H3.
-      * exact H4.
-      * exact H5.
-  - rewrite <- x.
-    rewrite <- x0.
-    constructor.
+  apply corresponding_value_decrease with t; auto.
 Qed.
 
 Goal
   forall f r s k t,
+  forall P: `{proper f},
   corresponding f r s k t ->
   forall c,
   big_at_time (traverse f k c, r) t ->
@@ -657,17 +661,17 @@ Proof.
     eapply H; eauto.
     apply corresponding_decrease with (m := t) in H1; auto.
     apply corresponding_extension; auto.
-    replace (f (S k) 0) with (bound 0); simpl.
     constructor; intros.
     + rewrite traverse_list_length.
       reflexivity.
-    + rename r0 into r', s0 into s'.
+    + rewrite traverse_list_length in H5.
+      rename r0 into r', s0 into s'.
       eapply H.
       * lia.
       * exact H3.
       * rewrite plus_comm.
+        apply corresponding_decrease with (m := m) in H1; auto.
         admit.
-    + admit.
 Admitted.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
