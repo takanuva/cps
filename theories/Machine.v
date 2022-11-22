@@ -5,6 +5,7 @@
 Require Import Lia.
 Require Import Arith.
 Require Import Equality.
+Require Import FunctionalExtensionality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
@@ -490,19 +491,98 @@ Proof.
     eapply big_at_time_high; eauto.
 Qed.
 
-Inductive corresponding_value t: relation value :=
+(*
+Inductive corresponding_value: nat -> relation value :=
   | corresponding_value_closure:
-    forall p ts c q us b,
+    forall t p ts c q us b,
     length ts = length us ->
     (forall m r s xs ys,
        m < t ->
        big_at_time (c, heap_append xs r p) m ->
-       length xs = length ys ->
        length xs = length ts ->
        big_at_time (b, heap_append ys s q) m) ->
     corresponding_value t (value_closure p ts c) (value_closure q us b)
   | corresponding_value_undefined:
+    forall t,
     corresponding_value t U U.
+*)
+
+Definition F t f v1 v2 :=
+  match v1, v2 with
+  | value_closure p ts c, value_closure q us b =>
+    length ts = length us /\
+      forall m r s xs ys,
+      forall H: m < t,
+      big_at_time (c, heap_append xs r p) m ->
+      length xs = length ts ->
+      Forall2 (fun x y =>
+                f m H (heap_get x r) (heap_get y s)) xs ys ->
+      big_at_time (b, heap_append ys s q) m
+  | U, U =>
+    True
+  | _, _ =>
+    False
+  end.
+
+Definition corresponding_value :=
+  Fix lt_wf _ F.
+
+Lemma corresponding_value_unfold:
+  forall t v1 v2,
+  corresponding_value t v1 v2 =
+    F t (fun m H => corresponding_value m) v1 v2.
+Proof.
+  intros.
+  unfold corresponding_value.
+  rewrite Fix_eq; intros.
+  - fold corresponding_value.
+    reflexivity.
+  - clear t v1 v2.
+    (* Since F x f and F x g are relations that are not defined directly by t,
+       we unfortunately have to prove this by using function extensionality. *)
+    unfold F; simpl.
+    apply functional_extensionality; intro v1.
+    apply functional_extensionality; intro v2.
+    destruct v1; destruct v2; auto.
+    f_equal.
+    apply forall_extensionalityP; intros m.
+    apply forall_extensionalityP; intros r.
+    apply forall_extensionalityP; intros s.
+    apply forall_extensionalityP; intros xs.
+    apply forall_extensionalityP; intros ys.
+    apply forall_extensionalityP; intros ?H.
+    rewrite H.
+    reflexivity.
+Qed.
+
+Lemma corresponding_value_ind:
+  forall (t : nat) (P : value -> value -> Prop),
+  (forall (p : heap) (ts : list pseudoterm)
+     (c : pseudoterm) (q : heap) (us : list pseudoterm)
+     (b : pseudoterm),
+   length ts = length us ->
+   (forall (m : nat) (r s : heap)
+      (xs ys : list pseudoterm),
+    m < t ->
+    big_at_time (c, heap_append xs r p) m ->
+    length xs = length ts ->
+    Forall2 (fun x y =>
+      corresponding_value m (heap_get x r) (heap_get y s)) xs ys ->
+    big_at_time (b, heap_append ys s q) m) ->
+   P (value_closure p ts c) (value_closure q us b)) ->
+  P U U ->
+  forall x y : value,
+  corresponding_value t x y -> P x y.
+Proof.
+  intros.
+  destruct x; destruct y; try contradiction.
+  - assumption.
+  - rewrite corresponding_value_unfold in H1; simpl in H1.
+    destruct H1.
+    apply H; intros.
+    + assumption.
+    + apply H2 with r xs; auto.
+Qed.
 
 Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
   (forall n: nat,
@@ -523,12 +603,13 @@ Proof.
   - clear H0.
     specialize (H n).
     rewrite proper_avoids_capture.
-    dependent destruction H.
+    dependent destruction H using corresponding_value_ind.
     + destruct (f k n); try discriminate.
       simpl in x0, x |- *.
       rewrite <- x.
       rewrite <- x0.
-      constructor; auto.
+      rewrite corresponding_value_unfold; simpl.
+      split; eauto.
     + simpl in x |- *.
       rewrite <- x.
       destruct (f k n);
@@ -546,11 +627,16 @@ Lemma corresponding_value_decrease:
   m < t ->
   corresponding_value m v u.
 Proof.
-  destruct 1; intros.
-  - constructor; intros.
+  intros until 1.
+  dependent destruction H using corresponding_value_ind; intros.
+  - rewrite corresponding_value_unfold; simpl.
+    split; intros.
     + assumption.
-    + eapply H0; eauto.
-      lia.
+    + eapply H0.
+      * lia.
+      * eassumption.
+      * assumption.
+      * assumption.
   - constructor.
 Qed.
 
@@ -603,7 +689,7 @@ Proof.
       specialize (H1 n); simpl in H1.
       simpl in x; rewrite <- x in H1.
       simpl in H1; rewrite H0 in H1.
-      dependent destruction H1.
+      dependent destruction H1 using corresponding_value_ind.
       congruence.
     + destruct c; try discriminate.
       rename k0 into j, c0 into c, s into r', s0 into s.
@@ -644,7 +730,7 @@ Proof.
       *)
       rewrite <- x in H4; simpl in H4.
       rewrite H0 in H4.
-      dependent destruction H4.
+      dependent destruction H4 using corresponding_value_ind.
       rename q into s'.
       eapply big_at_time_jump.
       * eapply item_nth; eauto.
@@ -652,8 +738,7 @@ Proof.
       * rewrite map_length in H1.
         congruence.
       * eapply H5; eauto.
-        rewrite map_length.
-        reflexivity.
+        admit.
   (* Case: bind. *)
   - simpl in H0.
     dependent destruction H0.
@@ -661,10 +746,11 @@ Proof.
     eapply H; eauto.
     apply corresponding_decrease with (m := t) in H1; auto.
     apply corresponding_extension; auto.
-    constructor; intros.
+    rewrite corresponding_value_unfold; simpl.
+    split; intros.
     + rewrite traverse_list_length.
       reflexivity.
-    + rewrite traverse_list_length in H5.
+    + rewrite traverse_list_length in H4.
       rename r0 into r', s0 into s'.
       eapply H.
       * lia.
