@@ -147,3 +147,43 @@ Proof.
     + constructor.
       apply IHxs with y; auto.
 Qed.
+
+Section SetoidFix.
+
+  (* The code in this section is taken and adapted from coq-ext-lib. *)
+
+  Variable A: Type.
+  Variable R: A -> A -> Prop.
+  Variable Rwf: well_founded R.
+  Variable P: A -> Type.
+  Variable F: forall x, (forall y, R y x -> P y) -> P x.
+  Variable r: forall x, P x -> P x -> Prop.
+
+  Hypothesis Hstep:
+    forall x f g,
+    (forall y p, r y (f y p) (g y p)) ->
+    r x (@F x f) (@F x g).
+
+  Lemma Fix_F_equiv_inv:
+    forall x r' s',
+    r x (Fix_F _ F r') (Fix_F _ F s').
+  Proof.
+    intros.
+    induction (Rwf x).
+    rewrite <- (Fix_F_eq _ F r').
+    rewrite <- (Fix_F_eq _ F s').
+    apply Hstep; auto.
+  Qed.
+
+  Theorem Fix_equiv:
+    forall x,
+    r x (Fix Rwf P F x) (@F x (fun y _ => Fix Rwf P F y)).
+  Proof.
+    intros.
+    unfold Fix.
+    rewrite <- Fix_F_eq.
+    apply Hstep; intros.
+    apply Fix_F_equiv_inv.
+  Qed.
+
+End SetoidFix.
