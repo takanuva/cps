@@ -5,7 +5,6 @@
 Require Import Lia.
 Require Import Arith.
 Require Import Equality.
-Require Import FunctionalExtensionality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
@@ -507,77 +506,83 @@ Inductive corresponding_value: nat -> relation value :=
     corresponding_value t U U.
 *)
 
-Definition F t f v1 v2 :=
-  match v1, v2 with
-  | value_closure p ts c, value_closure q us b =>
-    length ts = length us /\
-      forall m r s xs ys,
-      forall H: m < t,
-      big_at_time (c, heap_append xs r p) m ->
-      length xs = length ts ->
-      Forall2 (fun x y =>
-                f m H (heap_get x r) (heap_get y s)) xs ys ->
-      big_at_time (b, heap_append ys s q) m
-  | U, U =>
-    True
-  | _, _ =>
-    False
-  end.
+Definition corresponding_valueF :=
+  fun p (f: forall m, fst (fst m) < fst (fst p) -> Prop) =>
+    let t := fst (fst p) in
+    let v1 := snd (fst p) in
+    let v2 := snd p in
+    match v1, v2 with
+    | value_closure p ts c, value_closure q us b =>
+      length ts = length us /\
+        forall m r s xs ys,
+        forall H: m < t,
+        big_at_time (c, heap_append xs r p) m ->
+        length xs = length ts ->
+        Forall2 (fun x y =>
+                  f (m, heap_get x r, heap_get y s) H) xs ys ->
+        big_at_time (b, heap_append ys s q) m
+    | U, U =>
+      True
+    | _, _ =>
+      False
+    end.
 
-Definition corresponding_value :=
-  Fix lt_wf _ F.
+Definition corresponding_valueP p: Prop :=
+  let wf := well_founded_ltof _ (fun p => fst (fst p)) in
+  Fix wf _ corresponding_valueF p.
 
-Lemma corresponding_value_unfold:
+Definition corresponding_value t: relation value :=
+  fun x y =>
+    corresponding_valueP (t, x, y).
+
+Lemma corresponding_value_isorec:
   forall t v1 v2,
-  corresponding_value t v1 v2 =
-    F t (fun m H => corresponding_value m) v1 v2.
+  corresponding_value t v1 v2 <->
+    corresponding_valueF (t, v1, v2) (fun m H => corresponding_valueP m).
 Proof.
   intros.
-  unfold corresponding_value.
-  rewrite Fix_eq; intros.
-  - fold corresponding_value.
-    reflexivity.
-  - clear t v1 v2.
-    (* Since F x f and F x g are relations that are not defined directly by t,
-       we unfortunately have to prove this by using function extensionality. *)
-    unfold F; simpl.
-    apply functional_extensionality; intro v1.
-    apply functional_extensionality; intro v2.
-    destruct v1; destruct v2; auto.
-    f_equal.
-    apply forall_extensionalityP; intros m.
-    apply forall_extensionalityP; intros r.
-    apply forall_extensionalityP; intros s.
-    apply forall_extensionalityP; intros xs.
-    apply forall_extensionalityP; intros ys.
-    apply forall_extensionalityP; intros ?H.
-    rewrite H.
-    reflexivity.
+  apply Fix_equiv with (r := fun _ => iff); intros.
+  clear t v1 v2; destruct x as ((t, v1), v2).
+  split; intros.
+  - destruct v1; destruct v2; try contradiction.
+    + assumption.
+    + destruct H0; split; intros.
+      * assumption.
+      * apply H1 with r xs H2; auto.
+        clear H0 H1 H3 H4.
+        induction H5; constructor; auto.
+        apply H; assumption.
+  - destruct v1; destruct v2; try contradiction.
+    + assumption.
+    + destruct H0; split; intros.
+      * assumption.
+      * apply H1 with r xs H2; auto.
+        clear H0 H1 H3 H4.
+        induction H5; constructor; auto.
+        apply H; assumption.
 Qed.
 
 Lemma corresponding_value_ind:
-  forall (t : nat) (P : value -> value -> Prop),
-  (forall (p : heap) (ts : list pseudoterm)
-     (c : pseudoterm) (q : heap) (us : list pseudoterm)
-     (b : pseudoterm),
-   length ts = length us ->
-   (forall (m : nat) (r s : heap)
-      (xs ys : list pseudoterm),
-    m < t ->
-    big_at_time (c, heap_append xs r p) m ->
-    length xs = length ts ->
-    Forall2 (fun x y =>
-      corresponding_value m (heap_get x r) (heap_get y s)) xs ys ->
-    big_at_time (b, heap_append ys s q) m) ->
-   P (value_closure p ts c) (value_closure q us b)) ->
+  forall t,
+  forall P: value -> value -> Prop,
+  (forall p ts c q us b,
+     length ts = length us ->
+     (forall m r s xs ys,
+        m < t ->
+        big_at_time (c, heap_append xs r p) m ->
+        length xs = length ts ->
+        Forall2 (fun x y =>
+          corresponding_value m (heap_get x r) (heap_get y s)) xs ys ->
+        big_at_time (b, heap_append ys s q) m) ->
+        P (value_closure p ts c) (value_closure q us b)) ->
   P U U ->
-  forall x y : value,
+  forall x y,
   corresponding_value t x y -> P x y.
 Proof.
   intros.
   destruct x; destruct y; try contradiction.
   - assumption.
-  - rewrite corresponding_value_unfold in H1; simpl in H1.
+  - rewrite corresponding_value_isorec in H1; simpl in H1.
     destruct H1.
     apply H; intros.
     + assumption.
@@ -608,7 +613,7 @@ Proof.
       simpl in x0, x |- *.
       rewrite <- x.
       rewrite <- x0.
-      rewrite corresponding_value_unfold; simpl.
+      rewrite corresponding_value_isorec; simpl.
       split; eauto.
     + simpl in x |- *.
       rewrite <- x.
@@ -629,11 +634,11 @@ Lemma corresponding_value_decrease:
 Proof.
   intros until 1.
   dependent destruction H using corresponding_value_ind; intros.
-  - rewrite corresponding_value_unfold; simpl.
+  - rewrite corresponding_value_isorec; simpl.
     split; intros.
     + assumption.
     + eapply H0.
-      * lia.
+      * simpl in H2; lia.
       * eassumption.
       * assumption.
       * assumption.
@@ -746,11 +751,12 @@ Proof.
     eapply H; eauto.
     apply corresponding_decrease with (m := t) in H1; auto.
     apply corresponding_extension; auto.
-    rewrite corresponding_value_unfold; simpl.
+    rewrite corresponding_value_isorec; simpl.
     split; intros.
     + rewrite traverse_list_length.
       reflexivity.
-    + rewrite traverse_list_length in H4.
+    + simpl in H2.
+      rewrite traverse_list_length in H4.
       rename r0 into r', s0 into s'.
       eapply H.
       * lia.
