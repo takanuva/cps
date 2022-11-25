@@ -329,6 +329,8 @@ Proof.
       reflexivity.
 Qed.
 
+Global Hint Resolve lift_proper: cps.
+
 Instance subst_proper: forall x, proper (subst x).
 Proof.
   constructor; intros.
@@ -349,6 +351,8 @@ Proof.
       rewrite lift_bound_ge; try lia.
       reflexivity.
 Qed.
+
+Global Hint Resolve subst_proper: cps.
 
 Instance apply_parameters_proper: forall xs, proper (apply_parameters xs).
 Proof.
@@ -402,8 +406,12 @@ Proof.
       reflexivity.
 Qed.
 
+Global Hint Resolve apply_parameters_proper: cps.
+
 Definition ids (k: nat) (c: pseudoterm): pseudoterm :=
   c.
+
+Global Hint Unfold ids: cps.
 
 Instance ids_proper: proper ids.
 Proof.
@@ -426,6 +434,8 @@ Proof.
   - rewrite lift_bound_ge; try lia.
     reflexivity.
 Qed.
+
+Global Hint Resolve ids_proper: cps.
 
 Goal
   forall f,
@@ -595,10 +605,127 @@ Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
   (forall n: nat,
   corresponding_value t (heap_get (f k n) r) (heap_get n s)).
 
+Lemma heap_get_heap_append_simplification:
+  forall xs n r s,
+  n >= length xs ->
+  heap_get n (heap_append xs r s) = heap_get (n - length xs) s.
+Proof.
+  induction xs; intros.
+  - simpl.
+    replace (n - 0) with n; try lia.
+    reflexivity.
+  - simpl in H.
+    destruct n; try lia.
+    simpl in IHxs |- *.
+    rewrite IHxs; try lia.
+    replace (S n - length xs) with (1 + (n - length xs)); try lia.
+    simpl; reflexivity.
+Qed.
+
+(* TODO: move this lemma somewhere else. *)
+Lemma Forall2_length:
+  forall {A} {B} R xs ys,
+  @Forall2 A B R xs ys -> length xs = length ys.
+Proof.
+  induction 1; simpl; lia.
+Qed.
+
+(* TODO: rename me. *)
+
+Lemma foobar:
+  forall t r s xs ys,
+  Forall2
+    (fun x y => corresponding_valueP (t, heap_get x r, heap_get y s))
+     xs ys ->
+  forall p q n,
+  n < length xs ->
+  corresponding_value t (heap_get n (heap_append xs r p))
+    (heap_get n (heap_append ys s q)).
+Proof.
+  intros until 1.
+  dependent induction H; intros.
+  - inversion H.
+  - simpl in H1.
+    replace (heap_append (x :: l) r p) with
+      (heap_append l r (heap_get x r :: p)); auto.
+    replace (heap_append (y :: l') s q) with
+      (heap_append l' s (heap_get y s :: q)); auto.
+    destruct (Nat.eq_dec n (length l)).
+    + apply Forall2_length in H0.
+      rewrite heap_get_heap_append_simplification; try lia.
+      rewrite heap_get_heap_append_simplification; try lia.
+      replace (n - length l) with 0; try lia.
+      replace (n - length l') with 0; try lia.
+      simpl; exact H.
+    + apply IHForall2.
+      lia.
+Qed.
+
+Lemma corresponding_value_refl_aux:
+  forall t,
+  (forall m c f r s k,
+     `{proper f} ->
+     m <= t ->
+     corresponding f r s k m ->
+     big_at_time (f k c, r) m ->
+     big_at_time (c, s) m) ->
+  reflexive (corresponding_value t).
+Proof.
+  intros t ?H.
+  induction t using lt_wf_ind.
+  (* First, fix this inductive principle... *)
+  assert (forall m, m < t -> reflexive (corresponding_value m)); intros.
+  - apply H0; intros; auto.
+    apply H with f r k; auto.
+    lia.
+  (* There we go. *)
+  - clear H0.
+    intro v; destruct v; simpl.
+    + constructor.
+    + intros m ?H ?H.
+      assumption.
+    + (* The main case is here. *)
+      rewrite corresponding_value_isorec; simpl.
+      split; intros; auto.
+      simpl in H0.
+      replace c with (ids 0 c) in H1; auto.
+      apply H with ids (heap_append xs r p) (length xs + 0);
+        eauto with arith cps.
+      intro n; unfold ids.
+      destruct (le_gt_dec (length xs) n).
+      * apply Forall2_length in H4.
+        rewrite heap_get_heap_append_simplification; try lia.
+        rewrite heap_get_heap_append_simplification; try lia.
+        rewrite H4; apply H1.
+        assumption.
+      * apply foobar; auto.
+Qed.
+
+Lemma corresponding_lift:
+  forall x r t,
+  (forall m c f r s k,
+     `{proper f} ->
+     m <= t ->
+     corresponding f r s k m ->
+     big_at_time (f k c, r) m ->
+     big_at_time (c, s) m) ->
+  corresponding (lift 1) (x :: r) r 0 t.
+Proof.
+  intros; intro n.
+  rewrite lift_bound_ge; try lia.
+  apply corresponding_value_refl_aux; auto.
+Qed.
+
 Lemma corresponding_extension:
   forall f r s k t,
   forall P: `{proper f},
   corresponding f r s k t ->
+  (forall m c f' r' s' k',
+     `{proper f'} ->
+     m <= t ->
+     corresponding f' r' s' k' m ->
+     big_at_time (f' k' c, r') m ->
+     big_at_time (c, s') m) ->
   forall x y,
   corresponding_value t x y ->
   corresponding f (x :: r) (y :: s) (S k) t.
@@ -607,7 +734,7 @@ Proof.
   destruct n.
   - rewrite proper_preserves_bound; try lia.
     simpl; assumption.
-  - clear H0.
+  - clear H1.
     specialize (H n).
     rewrite proper_avoids_capture.
     dependent destruction H using corresponding_value_inv.
@@ -629,17 +756,21 @@ Proof.
       * simpl in x, x0 |- *.
         rewrite <- x.
         intros m ?H ?H.
-        simpl in H0.
+        simpl in H1.
         apply H; auto.
         dependent destruction x0.
-        admit.
+        apply H0 with (lift 1) (x1 :: r) 0; auto with cps.
+        apply corresponding_lift; intros.
+        eapply H0; eauto with arith.
       * simpl in x, x0 |- *.
         rewrite <- x.
         intros m ?H ?H.
-        simpl in H0.
+        simpl in H1.
         apply H; auto.
         dependent destruction x0.
-        admit.
+        apply H0 with (lift 1) (x1 :: r) 0; auto with cps.
+        apply corresponding_lift; intros.
+        eapply H0; eauto with arith.
     + simpl in x |- *.
       rewrite <- x.
       destruct (f k n);
@@ -648,7 +779,7 @@ Proof.
       simpl in x0 |- *.
       rewrite <- x0.
       constructor.
-Admitted.
+Qed.
 
 Lemma corresponding_value_decrease:
   forall t v u,
@@ -731,49 +862,36 @@ Proof.
     + assumption.
 Qed.
 
-Lemma heap_get_heap_append_simpl:
-  forall xs n r s,
-  n >= length xs ->
-  heap_get n (heap_append xs r s) = heap_get (n - length xs) s.
-Proof.
-  induction xs; intros.
-  - simpl.
-    replace (n - 0) with n; try lia.
-    reflexivity.
-  - simpl in H.
-    destruct n; try lia.
-    simpl in IHxs |- *.
-    rewrite IHxs; try lia.
-    replace (S n - length xs) with (1 + (n - length xs)); try lia.
-    simpl; reflexivity.
-Qed.
-
 Local Lemma technical2:
-  forall f r s k t,
+  forall f t,
   `{proper f} ->
-  corresponding f r s k t ->
+  (forall m c f' r' s' k',
+     `{proper f'} ->
+     m <= t ->
+     corresponding f' r' s' k' m ->
+     big_at_time (f' k' c, r') m ->
+     big_at_time (c, s') m) ->
   forall r' s' xs ys,
   Forall2
     (fun x y => corresponding_value t (heap_get x r') (heap_get y s'))
     xs ys ->
+  forall r s k,
+  corresponding f r s k t ->
   corresponding f (heap_append xs r' r) (heap_append ys s' s) (length xs + k) t.
 Proof.
-  intros; intro n.
-  destruct (le_gt_dec (length xs) n).
-  - assert (length xs = length ys).
-    + clear n l.
-      induction H1; simpl; auto.
-    + clear H1.
-      rewrite heap_get_heap_append_simpl; try lia.
-      specialize (H0 (n - length xs)).
-      replace (f (length xs + k) n) with
-        (lift (length xs) k (n - length xs)).
-      * admit.
-      * admit.
-  - rewrite proper_preserves_bound; try lia.
+  intros.
+  dependent induction H1; intros.
+  - simpl.
+    assumption.
+  - replace (heap_append (x :: l) r' r) with
+      (heap_append l r' (heap_get x r' :: r)); auto.
+    replace (heap_append (y :: l') s' s) with
+      (heap_append l' s' (heap_get y s' :: s)); auto.
     simpl.
-    admit.
-Admitted.
+    replace (S (length l + k)) with (length l + S k); try lia.
+    apply IHForall2.
+    apply corresponding_extension; auto.
+Qed.
 
 Lemma corresponding_heaps_preserve_semantics:
   forall f r s k t,
@@ -787,6 +905,7 @@ Proof.
   generalize dependent s.
   generalize dependent r.
   generalize dependent k.
+  generalize dependent f.
   generalize dependent c.
   induction t using lt_wf_ind.
   destruct c; intros.
@@ -899,28 +1018,44 @@ Proof.
         apply technical1; eauto with cps.
         intros m d ?H ?H.
         rewrite proper_respects_structure in H7.
-        apply H with k r; eauto with arith cps.
+        apply H with f k r; eauto with arith cps.
   (* Case: bind. *)
   - simpl in H0.
     dependent destruction H0.
     apply big_at_time_bind.
     eapply H; eauto.
-    apply corresponding_decrease with (m := t) in H1; auto.
-    apply corresponding_extension; auto.
-    rewrite corresponding_value_isorec; simpl.
-    split; intros.
-    + rewrite traverse_list_length.
-      reflexivity.
-    + simpl in H2.
-      rewrite traverse_list_length in H4.
-      rename r0 into r', s0 into s'.
-      eapply H.
-      * lia.
-      * exact H3.
-      * rewrite plus_comm.
-        apply corresponding_decrease with (m := m) in H1; auto.
+    apply corresponding_extension; intros.
+    + assumption.
+    + apply corresponding_decrease with (S t); auto.
+    + apply H with f' k' r'; auto with arith.
+      rewrite proper_respects_structure in H5.
+      assumption.
+    + rewrite corresponding_value_isorec; simpl.
+      split; intros.
+      * rewrite traverse_list_length.
+        reflexivity.
+      * simpl in H2.
+        rewrite traverse_list_length in H4.
+        rename r0 into r', s0 into s'.
+        eapply H; eauto.
+        rewrite plus_comm.
         rewrite <- H4.
-        apply technical2; auto.
+        apply technical2; eauto with cps; intros.
+        rewrite proper_respects_structure in H9.
+        eapply H; eauto with arith.
+Qed.
+
+Lemma corresponding_value_refl:
+  forall t,
+  reflexive (corresponding_value t).
+Proof.
+  intros.
+  apply corresponding_value_refl_aux; intros.
+  eapply corresponding_heaps_preserve_semantics.
+  - eassumption.
+  - eassumption.
+  - rewrite proper_respects_structure in H2.
+    assumption.
 Qed.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
