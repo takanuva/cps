@@ -658,6 +658,80 @@ Qed.
 
 Goal
   forall f r s k t,
+  `{proper f} ->
+  corresponding f r s k t ->
+  forall xs,
+  Forall2
+    (fun x y => corresponding_value t (heap_get x r) (heap_get y s))
+    (map (traverse f k) xs) xs.
+Proof.
+  intros.
+  induction xs.
+  - constructor.
+  - constructor.
+    + clear IHxs xs.
+      destruct a.
+      * constructor.
+      * constructor.
+      * constructor.
+      * constructor.
+      * specialize (H0 n); simpl.
+        assumption.
+      * constructor.
+      * rewrite <- proper_respects_structure.
+        admit.
+      * rewrite <- proper_respects_structure.
+        admit.
+    + assumption.
+Admitted.
+
+Lemma heap_get_heap_append_simpl:
+  forall xs n r s,
+  n >= length xs ->
+  heap_get n (heap_append xs r s) = heap_get (n - length xs) s.
+Proof.
+  induction xs; intros.
+  - simpl.
+    replace (n - 0) with n; try lia.
+    reflexivity.
+  - simpl in H.
+    destruct n; try lia.
+    simpl in IHxs |- *.
+    rewrite IHxs; try lia.
+    replace (S n - length xs) with (1 + (n - length xs)); try lia.
+    simpl.
+    reflexivity.
+Qed.
+
+Goal
+  forall f r s k t,
+  `{proper f} ->
+  corresponding f r s k t ->
+  forall r' s' xs ys,
+  Forall2
+    (fun x y => corresponding_value t (heap_get x r') (heap_get y s'))
+    xs ys ->
+  corresponding f (heap_append xs r' r) (heap_append ys s' s) (length xs + k) t.
+Proof.
+  intros; intro n.
+  destruct (le_gt_dec (length xs) n).
+  - assert (length xs = length ys).
+    + clear n l.
+      induction H1; simpl; auto.
+    + clear H1.
+      rewrite heap_get_heap_append_simpl; try lia.
+      specialize (H0 (n - length xs)).
+      replace (f (length xs + k) n) with
+        (lift (length xs) k (n - length xs)).
+      * admit.
+      * admit.
+  - rewrite proper_preserves_bound; try lia.
+    simpl.
+    admit.
+Admitted.
+
+Goal
+  forall f r s k t,
   forall P: `{proper f},
   corresponding f r s k t ->
   forall c,
@@ -681,8 +755,27 @@ Proof.
   - inversion H0.
   (* Case: bound. *)
   - simpl in H0.
-    (* Lets think about this later. *)
-    admit.
+    remember (f k n) as x.
+    destruct x.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + inversion H0.
+    + rename n0 into m.
+      specialize (H1 n).
+      rewrite <- Heqx in H1; simpl in H1.
+      dependent destruction H0.
+      rename s into r', s0 into s.
+      apply nth_item with (y := U) in H0.
+      rewrite H0 in H2.
+      admit.
+    + inversion H0.
+    + specialize (H1 n).
+      rewrite <- Heqx in H1; simpl in H1.
+      admit.
+    + specialize (H1 n).
+      rewrite <- Heqx in H1; simpl in H1.
+      admit.
   (* Case: negation. *)
   - inversion H0.
   (* Case: jump. *)
