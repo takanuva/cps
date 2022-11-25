@@ -402,9 +402,12 @@ Proof.
       reflexivity.
 Qed.
 
-Instance id_proper: proper (fun k => id).
+Definition ids (k: nat) (c: pseudoterm): pseudoterm :=
+  c.
+
+Instance ids_proper: proper ids.
 Proof.
-  unfold id.
+  unfold ids.
   constructor; intros.
   - generalize dependent k.
     induction x using pseudoterm_deepind; simpl; intros.
@@ -460,7 +463,7 @@ Inductive big_at_time: configuration -> nat -> Prop :=
     forall r s c k t,
     item (value_suspend s c) r k ->
     big_at_time (c, s) t ->
-    big_at_time (bound k, r) (S t).
+    big_at_time (bound k, r) t.
 
 Lemma big_has_time:
   forall c r,
@@ -486,25 +489,9 @@ Proof.
     eapply big_at_time_bind; eauto.
   - dependent destruction Heqx.
     edestruct IHbig as (t, ?); eauto.
-    exists (S t).
+    exists t.
     eapply big_at_time_high; eauto.
 Qed.
-
-(*
-Inductive corresponding_value: nat -> relation value :=
-  | corresponding_value_closure:
-    forall t p ts c q us b,
-    length ts = length us ->
-    (forall m r s xs ys,
-       m < t ->
-       big_at_time (c, heap_append xs r p) m ->
-       length xs = length ts ->
-       big_at_time (b, heap_append ys s q) m) ->
-    corresponding_value t (value_closure p ts c) (value_closure q us b)
-  | corresponding_value_undefined:
-    forall t,
-    corresponding_value t U U.
-*)
 
 Definition corresponding_valueF :=
   fun p (f: forall m, fst (fst m) < fst (fst p) -> Prop) =>
@@ -521,6 +508,11 @@ Definition corresponding_valueF :=
         Forall2 (fun x y =>
                   f (m, heap_get x r, heap_get y s) H) xs ys ->
         big_at_time (b, heap_append ys s q) m
+    | value_suspend r b, value_suspend s c =>
+      forall m,
+      m <= t ->
+      big_at_time (b, r) m ->
+      big_at_time (c, s) m
     | U, U =>
       True
     | _, _ =>
@@ -546,6 +538,7 @@ Proof.
   split; intros.
   - destruct v1; destruct v2; try contradiction.
     + assumption.
+    + assumption.
     + destruct H0; split; intros.
       * assumption.
       * apply H1 with r xs H2; auto.
@@ -553,6 +546,7 @@ Proof.
         induction H5; constructor; auto.
         apply H; assumption.
   - destruct v1; destruct v2; try contradiction.
+    + assumption.
     + assumption.
     + destruct H0; split; intros.
       * assumption.
@@ -562,7 +556,7 @@ Proof.
         apply H; assumption.
 Qed.
 
-Lemma corresponding_value_ind:
+Lemma corresponding_value_inv:
   forall t,
   forall P: value -> value -> Prop,
   (forall p ts c q us b,
@@ -575,6 +569,12 @@ Lemma corresponding_value_ind:
           corresponding_value m (heap_get x r) (heap_get y s)) xs ys ->
         big_at_time (b, heap_append ys s q) m) ->
         P (value_closure p ts c) (value_closure q us b)) ->
+  (forall r b s c,
+    (forall m,
+       m <= t ->
+       big_at_time (b, r) m ->
+       big_at_time (c, s) m) ->
+    P (value_suspend r b) (value_suspend s c)) ->
   P U U ->
   forall x y,
   corresponding_value t x y -> P x y.
@@ -582,11 +582,13 @@ Proof.
   intros.
   destruct x; destruct y; try contradiction.
   - assumption.
-  - rewrite corresponding_value_isorec in H1; simpl in H1.
-    destruct H1.
+  - apply H0; intros.
+    apply H2; auto with arith.
+  - rewrite corresponding_value_isorec in H2; simpl in H2.
+    destruct H2.
     apply H; intros.
     + assumption.
-    + apply H2 with r xs; auto.
+    + apply H3 with r xs; auto.
 Qed.
 
 Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
@@ -608,13 +610,36 @@ Proof.
   - clear H0.
     specialize (H n).
     rewrite proper_avoids_capture.
-    dependent destruction H using corresponding_value_ind.
+    dependent destruction H using corresponding_value_inv.
     + destruct (f k n); try discriminate.
       simpl in x0, x |- *.
       rewrite <- x.
       rewrite <- x0.
       rewrite corresponding_value_isorec; simpl.
       split; eauto.
+    + rename r0 into r', s0 into s'.
+      destruct (f k n); try discriminate.
+      * rewrite lift_bound_ge; try lia.
+        simpl in x, x0 |- *.
+        rewrite <- x.
+        rewrite <- x0.
+        intros m ?H ?H.
+        simpl in H0.
+        apply H; auto.
+      * simpl in x, x0 |- *.
+        rewrite <- x.
+        intros m ?H ?H.
+        simpl in H0.
+        apply H; auto.
+        dependent destruction x0.
+        admit.
+      * simpl in x, x0 |- *.
+        rewrite <- x.
+        intros m ?H ?H.
+        simpl in H0.
+        apply H; auto.
+        dependent destruction x0.
+        admit.
     + simpl in x |- *.
       rewrite <- x.
       destruct (f k n);
@@ -623,7 +648,7 @@ Proof.
       simpl in x0 |- *.
       rewrite <- x0.
       constructor.
-Qed.
+Admitted.
 
 Lemma corresponding_value_decrease:
   forall t v u,
@@ -633,7 +658,7 @@ Lemma corresponding_value_decrease:
   corresponding_value m v u.
 Proof.
   intros until 1.
-  dependent destruction H using corresponding_value_ind; intros.
+  dependent destruction H using corresponding_value_inv; intros.
   - rewrite corresponding_value_isorec; simpl.
     split; intros.
     + assumption.
@@ -642,6 +667,9 @@ Proof.
       * eassumption.
       * assumption.
       * assumption.
+  - intros o ?H ?H.
+    simpl in H1.
+    apply H; eauto with arith.
   - constructor.
 Qed.
 
@@ -656,10 +684,16 @@ Proof.
   apply corresponding_value_decrease with t; auto.
 Qed.
 
-Goal
+Local Hint Resolve corresponding_decrease: cps.
+
+Local Lemma technical1:
   forall f r s k t,
   `{proper f} ->
   corresponding f r s k t ->
+  (forall m c,
+     m <= t ->
+     big_at_time (f k c, r) m ->
+     big_at_time (c, s) m) ->
   forall xs,
   Forall2
     (fun x y => corresponding_value t (heap_get x r) (heap_get y s))
@@ -667,23 +701,35 @@ Goal
 Proof.
   intros.
   induction xs.
-  - constructor.
-  - constructor.
+  - simpl.
+    constructor.
+  - simpl.
+    constructor.
     + clear IHxs xs.
       destruct a.
-      * constructor.
-      * constructor.
-      * constructor.
-      * constructor.
+      * simpl; constructor.
+      * simpl; constructor.
+      * simpl; constructor.
+      * simpl; constructor.
       * specialize (H0 n); simpl.
         assumption.
-      * constructor.
+      * simpl; constructor.
       * rewrite <- proper_respects_structure.
-        admit.
+        rewrite proper_respects_structure; simpl.
+        intros m ?H ?H.
+        simpl in H2.
+        apply H1; auto.
+        rewrite proper_respects_structure; simpl.
+        assumption.
       * rewrite <- proper_respects_structure.
-        admit.
+        rewrite proper_respects_structure; simpl.
+        intros m ?H ?H.
+        simpl in H2.
+        apply H1; auto.
+        rewrite proper_respects_structure; simpl.
+        assumption.
     + assumption.
-Admitted.
+Qed.
 
 Lemma heap_get_heap_append_simpl:
   forall xs n r s,
@@ -699,11 +745,10 @@ Proof.
     simpl in IHxs |- *.
     rewrite IHxs; try lia.
     replace (S n - length xs) with (1 + (n - length xs)); try lia.
-    simpl.
-    reflexivity.
+    simpl; reflexivity.
 Qed.
 
-Goal
+Local Lemma technical2:
   forall f r s k t,
   `{proper f} ->
   corresponding f r s k t ->
@@ -730,7 +775,7 @@ Proof.
     admit.
 Admitted.
 
-Goal
+Lemma corresponding_heaps_preserve_semantics:
   forall f r s k t,
   forall P: `{proper f},
   corresponding f r s k t ->
@@ -768,14 +813,29 @@ Proof.
       rename s into r', s0 into s.
       apply nth_item with (y := U) in H0.
       rewrite H0 in H2.
-      admit.
+      dependent destruction H2 using corresponding_value_inv.
+      rename c0 into b, s0 into s'.
+      apply big_at_time_high with s' b.
+      * apply item_nth with U; auto.
+        congruence.
+      * apply H2; auto with arith.
     + inversion H0.
     + specialize (H1 n).
       rewrite <- Heqx in H1; simpl in H1.
-      admit.
+      dependent destruction H1 using corresponding_value_inv.
+      rename s0 into s'.
+      apply big_at_time_high with s' c.
+      * apply item_nth with U; auto.
+        congruence.
+      * apply H1; auto.
     + specialize (H1 n).
       rewrite <- Heqx in H1; simpl in H1.
-      admit.
+      dependent destruction H1 using corresponding_value_inv.
+      rename s0 into s'.
+      apply big_at_time_high with s' c.
+      * apply item_nth with U; auto.
+        congruence.
+      * apply H1; auto.
   (* Case: negation. *)
   - inversion H0.
   (* Case: jump. *)
@@ -787,7 +847,7 @@ Proof.
       specialize (H1 n); simpl in H1.
       simpl in x; rewrite <- x in H1.
       simpl in H1; rewrite H0 in H1.
-      dependent destruction H1 using corresponding_value_ind.
+      dependent destruction H1 using corresponding_value_inv.
       congruence.
     + destruct c; try discriminate.
       rename k0 into j, c0 into c, s into r', s0 into s.
@@ -828,7 +888,7 @@ Proof.
       *)
       rewrite <- x in H4; simpl in H4.
       rewrite H0 in H4.
-      dependent destruction H4 using corresponding_value_ind.
+      dependent destruction H4 using corresponding_value_inv.
       rename q into s'.
       eapply big_at_time_jump.
       * eapply item_nth; eauto.
@@ -836,7 +896,10 @@ Proof.
       * rewrite map_length in H1.
         congruence.
       * eapply H5; eauto.
-        admit.
+        apply technical1; eauto with cps.
+        intros m d ?H ?H.
+        rewrite proper_respects_structure in H7.
+        apply H with k r; eauto with arith cps.
   (* Case: bind. *)
   - simpl in H0.
     dependent destruction H0.
@@ -856,8 +919,9 @@ Proof.
       * exact H3.
       * rewrite plus_comm.
         apply corresponding_decrease with (m := m) in H1; auto.
-        admit.
-Admitted.
+        rewrite <- H4.
+        apply technical2; auto.
+Qed.
 
 (* This lemma may be a bit awkward in the de Bruijn setting, but it should be
    straightforward in the named setting. What we'd like to show in here is that
