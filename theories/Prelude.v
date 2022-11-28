@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -148,9 +148,18 @@ Proof.
       apply IHxs with y; auto.
 Qed.
 
+Lemma Forall2_length:
+  forall {A} {B} R xs ys,
+  @Forall2 A B R xs ys ->
+  length xs = length ys.
+Proof.
+  induction 1; simpl; lia.
+Qed.
+
 Section SetoidFix.
 
-  (* The code in this section is taken and adapted from coq-ext-lib. *)
+  (* The code in this section is taken from coq-ext-lib and slightly adapted;
+     the original is on GitHub: https://github.com/coq-community/coq-ext-lib. *)
 
   Variable A: Type.
   Variable R: A -> A -> Prop.
