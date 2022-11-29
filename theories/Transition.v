@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -20,9 +20,9 @@ Inductive label: Set :=
 
 Inductive transition: label -> relation pseudoterm :=
   | transition_jmp:
-    forall xs ts c,
+    forall k xs ts c,
     length xs = length ts ->
-    transition (label_jmp 0 ts c) (jump 0 xs)
+    transition (label_jmp k ts c) (jump 0 xs)
       (bind
         (apply_parameters xs 0 (lift 1 (length ts) c)) ts c)
   | transition_tau:
@@ -41,21 +41,21 @@ Inductive transition: label -> relation pseudoterm :=
       a
       (bind b (traverse_list (lift 1) 0 ts) (lift 1 (length ts) c)) ->
     transition
-      (label_jmp (S k) ts c)
+      (label_jmp k ts c)
       (bind (switch_bindings 0 a) us d)
       (bind (bind (switch_bindings 0 b) us d) ts c).
 
-Inductive transition_label_jmp_invariant k ts c a b: Prop :=
+Inductive transition_label_jmp_invariant (k: nat) ts c a b: Prop :=
   transition_label_jmp_invariant_ctor
     (h: context)
     (H1: static h)
-    (H2: k = #h)
+    (* H2: k = #h *)
     (xs: list pseudoterm)
     (H3: length xs = length ts)
-    (H4: a = h (jump k xs))
+    (H4: a = h (jump #h xs))
     (H5: b = bind
               (h
-                (apply_parameters xs 0 (lift (S k) (length ts) c)))
+                (apply_parameters xs 0 (lift (S #h) (length ts) c)))
               ts c).
 
 Lemma transition_jmp_preserves_invariant:
@@ -68,57 +68,59 @@ Proof.
   (* Case: transition_jmp. *)
   - apply transition_label_jmp_invariant_ctor with context_hole xs; simpl.
     + constructor.
-    + reflexivity.
     + assumption.
     + reflexivity.
     + reflexivity.
   (* Case: transition_ctx_jmp. *)
-  - clear H; rename k0 into k.
+  - clear H.
     specialize IHtransition with
       k (traverse_list (lift 1) 0 ts) (lift 1 (length ts) c).
     destruct IHtransition; auto.
     dependent destruction H5.
-    rewrite traverse_list_length in H3 |- *.
     (* This has all that we need. *)
     apply transition_label_jmp_invariant_ctor with
       (context_left (context_switch_bindings 0 h) us d)
       (map (switch_bindings #h) xs); simpl.
     + constructor.
       apply static_context_switch_bindings; auto.
-    + rewrite context_switch_bindings_bvars; auto.
-    + rewrite map_length.
+    + rewrite traverse_list_length in H3.
+      rewrite map_length.
       assumption.
     + rewrite context_switch_bindings_is_sound.
       rewrite Nat.add_0_r.
       f_equal; f_equal.
       rewrite switch_bindings_distributes_over_jump.
       f_equal.
-      apply switch_bindings_bound_eq; auto.
+      rewrite switch_bindings_bound_eq; auto.
+      rewrite context_switch_bindings_bvars.
+      reflexivity.
     + f_equal; f_equal.
+      rewrite traverse_list_length.
       rewrite lift_lift_simplification; try lia.
       rewrite context_switch_bindings_is_sound.
       rewrite Nat.add_0_r.
       replace (S #h + 1) with (S (S #h)); try lia.
-      f_equal.
-      clear H1 d us.
+      f_equal; clear H1 d us.
       unfold switch_bindings.
       rewrite lift_distributes_over_apply_parameters.
       rewrite subst_distributes_over_apply_parameters.
       rewrite map_map; f_equal.
       rewrite map_length.
+      rewrite traverse_list_length in H3.
+      rewrite context_switch_bindings_bvars.
       rewrite lift_lift_simplification; try lia.
       rewrite subst_lift_simplification; try lia.
       reflexivity.
 Qed.
 
 Local Lemma transition_ctx_jmp_helper:
-    forall k a b ts c us d e f g h,
-    transition (label_jmp k e f) a (bind b e f) ->
-    e = (traverse_list (lift 1) 0 ts) ->
-    f = (lift 1 (length ts) c) ->
-    g = (switch_bindings 0 a) ->
-    h = (bind (switch_bindings 0 b) us d) ->
-    transition (label_jmp (S k) ts c) (bind g us d) (bind h ts c).
+  forall k a b ts c us d e f g h,
+  transition (label_jmp k e f) a (bind b e f) ->
+  e = (traverse_list (lift 1) 0 ts) ->
+  f = (lift 1 (length ts) c) ->
+  g = (switch_bindings 0 a) ->
+  h = (bind (switch_bindings 0 b) us d) ->
+  transition (label_jmp k ts c) (bind g us d) (bind h ts c).
 Proof.
   intros until 5.
   generalize H; clear H.
@@ -132,17 +134,17 @@ Lemma transition_tau_longjmp:
   forall xs ts c,
   length xs = length ts ->
   transition label_tau (bind (h (jump #h xs)) ts c)
-       (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
+    (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c).
 Proof.
   intros.
   (* We start by applying (TAU) to fix the binding. *)
   apply transition_tau with #h.
   generalize xs ts c H0; clear xs ts c H0.
   (* Our induction has to happen on #h, not h itself! *)
-  assert (exists k, k = #h); eauto.
-  destruct H0 as (k, ?).
+  assert (exists k, k = #h) as (k, ?H); eauto.
+  generalize #h at 1 as n.
   replace #h with k; auto.
-  generalize h, H, H0; clear h H H0.
+  generalize dependent h.
   (* Now we can proceed to prove it. *)
   induction k; intros.
   (* Case: zero. *)
@@ -221,11 +223,10 @@ Proof.
     edestruct transition_jmp_preserves_invariant; eauto.
     rewrite H4.
     rewrite H5.
-    replace k with #h; auto.
     apply (head_longjmp h context_hole); auto with cps.
   (* Case: transition_tau_ctx. *)
   - apply head_bind_left.
-    apply IHtransition; auto.
+    firstorder.
 Qed.
 
 Lemma converges_transition_jmp:
@@ -237,7 +238,7 @@ Proof.
   apply transition_jmp_preserves_invariant in H.
   dependent destruction H.
   dependent destruction H4.
-  clear H3 H5.
+  clear H3 H5 k.
   assert (exists k, k = #h + 0) as (k, ?); eauto.
   replace #h with k; try lia.
   generalize dependent k.
