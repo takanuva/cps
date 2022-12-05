@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Set Implicit Arguments.
+Require Import Arith.
 Require Import Equality.
 Require Export Relations.
 Require Import Local.Prelude.
@@ -58,6 +59,13 @@ Arguments transitive {A}.
 
 Global Hint Unfold transitive: cps.
 
+Arguments equivalence {A}.
+
+Global Hint Resolve equiv_refl: cps.
+Global Hint Resolve equiv_sym: cps.
+Global Hint Resolve equiv_trans: cps.
+Global Hint Constructors equivalence: cps.
+
 Definition diamond {T} (R: relation T): Prop :=
   commut R (transp R).
 
@@ -81,29 +89,194 @@ Section Relations.
     induction 1; eauto with cps.
   Qed.
 
+  Hint Resolve clos_t_clos_rt: cps.
+
   Lemma rt_characterization:
-    same_relation rt(R) (union eq t(R)).
+    same_relation rt(R) r(t(R)).
   Proof.
     unfold same_relation, inclusion; split; intros.
     - induction H.
-      + right; auto with cps.
-      + left; auto.
+      + eauto with cps.
+      + eauto with cps.
       + destruct IHclos_refl_trans1;
-        destruct IHclos_refl_trans2.
-        * destruct H1, H2.
-          left; auto.
-        * destruct H1.
-          right; auto.
-        * destruct H2.
-          right; auto.
-        * right.
-          eauto with cps.
-    - destruct H.
-      + destruct H.
-        auto with cps.
-      + apply clos_t_clos_rt.
-        assumption.
+        destruct IHclos_refl_trans2;
+        eauto with cps.
+    - destruct H; eauto with cps.
   Qed.
+
+  Lemma rt_unequal_implies_t:
+    forall a b,
+    a <> b ->
+    rt(R) a b -> t(R) a b.
+  Proof.
+    intros.
+    apply rt_characterization in H0.
+    destruct H0.
+    - assumption.
+    - exfalso.
+      contradiction.
+  Qed.
+
+  Inductive clos_trans_cnt: nat -> relation T :=
+    | tc_step x y:
+      R x y -> clos_trans_cnt 1 x y
+    | tc_trans x y z n m:
+      clos_trans_cnt n x y ->
+      clos_trans_cnt m y z ->
+      clos_trans_cnt (n + m) x z.
+
+  (*
+  Inductive clos_trans_1n_cnt: nat -> relation T :=
+    | t1nc_step x y:
+      R x y ->
+      clos_trans_1n_cnt 1 x y
+    | t1nc_trans x y z n:
+      R x y ->
+      clos_trans_1n_cnt n y z ->
+      clos_trans_1n_cnt (S n) x z.
+
+  Inductive clos_trans_n1_cnt: nat -> relation T :=
+    | tn1c_step x y:
+      R x y ->
+      clos_trans_n1_cnt 1 x y
+    | tn1c_trans x y z n:
+      R y z ->
+      clos_trans_n1_cnt n x y ->
+      clos_trans_n1_cnt (S n) x z.
+  *)
+
+  Lemma clos_trans_trans_cnt_iff:
+    forall a b,
+    t(R) a b <-> (exists n, clos_trans_cnt n a b).
+  Proof.
+    split; intros.
+    - induction H.
+      + exists 1.
+        constructor; auto.
+      + destruct IHclos_trans1 as (n, ?H).
+        destruct IHclos_trans2 as (m, ?H).
+        exists (n + m).
+        econstructor 2; eauto.
+    - destruct H.
+      induction H.
+      + constructor; auto.
+      + econstructor 2; eauto.
+  Qed.
+
+  (*
+  Lemma clos_t1n_trans_cnt:
+    forall n x y,
+    clos_trans_1n_cnt n x y -> clos_trans_cnt n x y.
+  Proof.
+    induction 1.
+    - constructor; auto.
+    - replace (S n) with (1 + n); auto.
+      econstructor 2.
+      + constructor; eauto.
+      + assumption.
+  Qed.
+
+  Lemma clos_trans_t1n_cnt:
+    forall n x y,
+    clos_trans_cnt n x y -> clos_trans_1n_cnt n x y.
+  Proof.
+    induction 1.
+    - constructor; auto.
+    - clear H H0.
+      generalize dependent m.
+      induction IHclos_trans_cnt1; intros.
+      + econstructor 2; eauto.
+      + replace (S n + m) with (1 + (n + m)); auto.
+        econstructor 2; eauto.
+  Qed.
+
+  Lemma clos_trans_t1n_cnt_iff:
+    forall n x y,
+    clos_trans_cnt n x y <-> clos_trans_1n_cnt n x y.
+  Proof.
+    split.
+    - apply clos_trans_t1n_cnt.
+    - apply clos_t1n_trans_cnt.
+  Qed.
+
+  Lemma clos_tn1_trans_cnt:
+    forall n x y,
+    clos_trans_n1_cnt n x y -> clos_trans_cnt n x y.
+  Proof.
+    induction 1.
+    - constructor; auto.
+    - replace (S n) with (1 + n); auto.
+      replace (1 + n) with (n + 1); auto with arith.
+      econstructor 2.
+      + eassumption.
+      + constructor; auto.
+  Qed.
+
+  Lemma clos_trans_tn1_cnt:
+    forall n x y,
+    clos_trans_cnt n x y -> clos_trans_n1_cnt n x y.
+  Proof.
+    induction 1.
+    - constructor; auto.
+    - clear H H0.
+      generalize dependent n.
+      induction IHclos_trans_cnt2; intros.
+      + rewrite Nat.add_comm.
+        econstructor 2; eauto.
+      + rename n0 into m.
+        replace (m + S n) with (1 + (m + n)); auto with arith.
+        econstructor 2; eauto.
+  Qed.
+
+  Lemma clos_trans_tn1_cnt_iff:
+    forall n x y,
+    clos_trans_cnt n x y <-> clos_trans_n1_cnt n x y.
+  Proof.
+    split.
+    - apply clos_trans_tn1_cnt.
+    - apply clos_tn1_trans_cnt.
+  Qed.
+
+  Goal
+    forall P: nat -> T -> T -> Prop,
+    (forall x y, R x y -> P 1 x y) ->
+    (forall x y z n,
+       R x y -> clos_trans_cnt n y z -> P n y z -> P (S n) x z) ->
+    forall n x y,
+    clos_trans_cnt n x y -> P n x y.
+  Proof.
+    intros.
+    apply clos_trans_t1n_cnt_iff in H1.
+    induction H1.
+    - apply H.
+      assumption.
+    - eapply H0.
+      + eassumption.
+      + apply clos_trans_t1n_cnt_iff in H2.
+        assumption.
+      + assumption.
+  Qed.
+
+  Goal
+    forall P : nat -> T -> T -> Prop,
+    (forall x y, R x y -> P 1 x y) ->
+    (forall x y z n,
+       R y z -> clos_trans_cnt n x y -> P n x y -> P (S n) x z) ->
+    forall n x y,
+    clos_trans_cnt n x y -> P n x y.
+  Proof.
+    intros.
+    apply clos_trans_tn1_cnt_iff in H1.
+    induction H1.
+    - apply H.
+      assumption.
+    - eapply H0.
+      + eassumption.
+      + apply clos_trans_tn1_cnt_iff in H2.
+        assumption.
+      + assumption.
+  Qed.
+  *)
 
 End Relations.
 
@@ -218,6 +391,22 @@ Section Normalization.
       constructor; intros.
       apply H0.
       auto with cps.
+  Qed.
+
+  Lemma SN_subset:
+    forall S,
+    inclusion S R ->
+    forall e,
+    SN R e -> SN S e.
+  Proof.
+    intros.
+    induction H0.
+    constructor; intros.
+    fold (SN R) in H0; fold (SN S).
+    unfold transp in H0, H1, H2.
+    apply H1.
+    apply H.
+    assumption.
   Qed.
 
 End Normalization.
@@ -732,10 +921,24 @@ Section StrongBisimulation.
     exists2 d,
     R l b d & S c d.
 
+  Goal
+    forall S,
+    strong_simulation S <-> (forall l, commut (R l) (transp S)).
+  Proof.
+    split; intros.
+    - intros y x ? z ?.
+      unfold transp in H1 |- *.
+      destruct H with x z y l as (w, ?, ?); auto.
+      exists w; auto.
+    - intros x y ? z l ?.
+      destruct H with l z x y as (w, ?, ?); auto.
+      exists w; auto.
+  Qed.
+
   Definition strong_bisimulation (S: relation T): Prop :=
     strong_simulation S /\ strong_simulation (transp S).
 
-  (* TODO: strong bisimulation preserves SN and reduction length. *)
+  (* TODO: take a look at the definitions below. *)
 
   Variable l: L.
   Variable S: relation T.
@@ -760,4 +963,198 @@ Section StrongBisimulation.
     - firstorder.
   Qed.
 
+  Goal
+    forall x y,
+    S x y ->
+    forall n z,
+    clos_trans_cnt (R l) n x z ->
+    exists2 w,
+    clos_trans_cnt (R l) n y w & S z w.
+  Proof.
+    intros.
+    generalize dependent y.
+    induction H0; intros.
+    - rename y0 into y, y into z.
+      destruct S_is_bisim as ((w, ?, ?), _).
+      + eassumption.
+      + eassumption.
+      + exists w; auto.
+        constructor; auto.
+    - rename y0 into a.
+      edestruct IHclos_trans_cnt1 as (b, ?, ?); eauto.
+      edestruct IHclos_trans_cnt2 as (w, ?, ?); eauto.
+      exists w; auto.
+      econstructor 2; eauto.
+  Qed.
+
+  Goal
+    forall x y,
+    S x y ->
+    SN (R l) x <-> SN (R l) y.
+  Proof.
+    split; intros.
+    - generalize dependent y.
+      induction H0; intros.
+      constructor; intros w ?H.
+      fold (SN (R l)) in H |- *.
+      unfold transp in H, H0, H2.
+      destruct S_is_bisim as (_, (a, ?, ?)).
+      + eassumption.
+      + eassumption.
+      + eapply H0; eauto.
+    - generalize dependent x.
+      induction H0; intros.
+      constructor; intros w ?H.
+      fold (SN (R l)) in H |- *.
+      unfold transp in H, H0, H2.
+      destruct S_is_bisim as ((a, ?, ?), _).
+      + eassumption.
+      + eassumption.
+      + eapply H0; eauto.
+  Qed.
+
 End StrongBisimulation.
+
+Section Modulo.
+
+  Variable T: Type.
+
+  Variable R: relation T.
+  Variable S: relation T.
+
+  Definition modulo: relation T :=
+    fun a d =>
+      exists b c,
+      S a b /\ R b c /\ S c d.
+
+  Hint Unfold modulo: cps.
+
+  Hypothesis S_is_equiv: equivalence S.
+  Hypothesis S_is_bisimulation: strong_bisimulation (fun _: unit => R) S.
+
+  Lemma modulo_bisimulation_postponement:
+    same_relation t(modulo) (comp t(R) S).
+  Proof.
+    destruct S_is_equiv.
+    split; intros x y ?.
+    - apply clos_trans_tn1_iff in H.
+      induction H.
+      + destruct H as (b, (c, (?, (?, ?)))).
+        destruct S_is_bisimulation as (_, (d, ?, ?)).
+        * exact H.
+        * easy.
+        * exact H0.
+        * exists d; eauto with cps.
+      + apply clos_trans_tn1_iff in H0.
+        destruct IHclos_trans_n1 as (a, ?, ?).
+        destruct H as (b, (c, (?, (?, ?)))).
+        destruct S_is_bisimulation as (_, (d, ?, ?)).
+        * apply equiv_trans with y; eauto.
+        * easy.
+        * eassumption.
+        * exists d; eauto with cps.
+    - destruct H as (z, ?, ?).
+      generalize dependent y.
+      apply clos_trans_tn1_iff in H.
+      induction H; intros.
+      + rename y0 into z.
+        apply t_step.
+        exists x, y; eauto.
+      + rename y0 into w.
+        apply clos_trans_tn1_iff in H0.
+        apply t_trans with y.
+        * eauto with cps.
+        * apply t_step.
+          exists y, z; eauto.
+  Qed.
+
+  Lemma modulo_bisimulation_diamond:
+    diamond R -> diamond modulo.
+  Proof.
+    destruct S_is_equiv.
+    intros ? y x ? z ?.
+    unfold transp in H1 |- *.
+    destruct H0 as (a, (b, (?, (?, ?)))).
+    destruct H1 as (c, (d, (?, (?, ?)))).
+    destruct S_is_bisimulation as (_, (e, ?, ?)).
+    - exact H0.
+    - easy.
+    - exact H2.
+    - destruct S_is_bisimulation as (_, (f, ?, ?)).
+      + exact H1.
+      + easy.
+      + exact H4.
+      + destruct H with e x f as (g, ?, ?); eauto.
+        exists g; do 2 eexists; eauto.
+  Qed.
+
+  Lemma modulo_bisimulation_transitive_diamond:
+    diamond t(R) -> diamond t(modulo).
+  Proof.
+    intros ? y x ? z ?.
+    destruct S_is_equiv.
+    apply modulo_bisimulation_postponement in H0.
+    apply modulo_bisimulation_postponement in H1.
+    destruct H0 as (y', ?, ?).
+    destruct H1 as (z', ?, ?).
+    destruct H with y' x z' as (w, ?, ?); auto.
+    exists w.
+    - clear H0 H1 H3 H5.
+      apply clos_trans_t1n_iff in H4.
+      destruct H4.
+      + apply t_step.
+        exists y', y0; eauto.
+      + apply clos_trans_t1n_iff in H4.
+        apply t_trans with y0.
+        * apply t_step.
+          exists y', y0; eauto.
+        * apply modulo_bisimulation_postponement.
+          exists z0; eauto.
+    - clear H0 H1 H2 H4.
+      apply clos_trans_t1n_iff in H5.
+      destruct H5.
+      + apply t_step.
+        exists z', y0; eauto.
+      + apply clos_trans_t1n_iff in H5.
+        apply t_trans with y0.
+        * apply t_step.
+          exists z', y0; eauto.
+        * apply modulo_bisimulation_postponement.
+          exists z0; eauto.
+  Qed.
+
+  Lemma modulo_bisimulation_strong_normalization:
+    forall e,
+    SN R e -> SN modulo e.
+  Proof.
+    intros x ?.
+    destruct S_is_equiv.
+    (* We need to generalize the induction a bit... *)
+    assert (exists2 y, S x y & SN R y) as (y, ?, ?); eauto.
+    apply SN_R_t_R in H1.
+    apply SN_R_t_R.
+    clear H; generalize dependent x.
+    (* There we go, now we can proceed. *)
+    induction H1.
+    clear H; intros x' ?.
+    constructor; intros y' ?.
+    fold (SN t(modulo)).
+    unfold transp in H.
+    assert (t(modulo) x y').
+    - apply clos_trans_t1n_iff in H.
+      destruct H.
+      + apply t_step.
+        destruct H as (a, (b, (?, (?, ?)))).
+        exists a, b; eauto.
+      + apply clos_trans_t1n_iff in H2.
+        apply t_trans with y.
+        * apply t_step.
+          destruct H as (a, (b, (?, (?, ?)))).
+          exists a, b; eauto.
+        * assumption.
+    - apply modulo_bisimulation_postponement in H2.
+      destruct H2 as (y, ?, ?).
+      eapply H0; eauto.
+  Qed.
+
+End Modulo.
