@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -476,31 +476,25 @@ Inductive big_at_time: configuration -> nat -> Prop :=
     big_at_time (bound k, r) t.
 
 Lemma big_has_time:
-  forall c r,
-  big (c, r) ->
-  exists t,
-  big_at_time (c, r) t.
+  forall c,
+  big c <-> exists t, big_at_time c t.
 Proof.
-  intros.
-  remember (c, r) as x.
-  generalize dependent r.
-  generalize dependent c.
-  induction H; intros.
-  - dependent destruction Heqx.
-    exists 0.
-    eapply big_at_time_halt; eauto.
-  - dependent destruction Heqx.
-    edestruct IHbig as (t, ?); eauto.
-    exists (S t).
-    eapply big_at_time_jump; eauto.
-  - dependent destruction Heqx.
-    edestruct IHbig as (t, ?); eauto.
-    exists (S t).
-    eapply big_at_time_bind; eauto.
-  - dependent destruction Heqx.
-    edestruct IHbig as (t, ?); eauto.
-    exists t.
-    eapply big_at_time_high; eauto.
+  split; intros.
+  - induction H.
+    + eexists.
+      apply big_at_time_halt; auto.
+    + destruct IHbig as (t, ?); eexists.
+      eapply big_at_time_jump; eauto.
+    + destruct IHbig as (t, ?); eexists.
+      eapply big_at_time_bind; eauto.
+    + destruct IHbig as (t, ?); eexists.
+      eapply big_at_time_high; eauto.
+  - destruct H as (t, ?).
+    induction H.
+    + apply big_halt; auto.
+    + eapply big_jump; eauto.
+    + eapply big_bind; eauto.
+    + eapply big_high; eauto.
 Qed.
 
 Definition corresponding_valueF :=
@@ -554,7 +548,7 @@ Proof.
       * apply H1 with r xs H2; auto.
         clear H0 H1 H3 H4.
         induction H5; constructor; auto.
-        apply H; assumption.
+        apply H; auto.
   - destruct v1; destruct v2; try contradiction.
     + assumption.
     + assumption.
@@ -563,7 +557,7 @@ Proof.
       * apply H1 with r xs H2; auto.
         clear H0 H1 H3 H4.
         induction H5; constructor; auto.
-        apply H; assumption.
+        apply H; auto.
 Qed.
 
 Lemma corresponding_value_inv:
@@ -620,14 +614,6 @@ Proof.
     rewrite IHxs; try lia.
     replace (S n - length xs) with (1 + (n - length xs)); try lia.
     simpl; reflexivity.
-Qed.
-
-(* TODO: move this lemma somewhere else. *)
-Lemma Forall2_length:
-  forall {A} {B} R xs ys,
-  @Forall2 A B R xs ys -> length xs = length ys.
-Proof.
-  induction 1; simpl; lia.
 Qed.
 
 (* TODO: rename me. *)
@@ -1111,6 +1097,8 @@ Proof.
   - assumption.
   - (* Hmm... *)
     remember (C2H h (value_closure r ts c :: r)) as s.
+    apply big_has_time in H1; destruct H1 as (t, ?H).
+    apply big_has_time; exists t.
     admit.
 Admitted.
 
@@ -1164,10 +1152,16 @@ Proof.
   apply clos_rt_rt1n_iff in H.
   induction H.
   (* Case: refl. *)
-  - apply convergent_term_is_trivially_final with n; eauto with arith.
+  - apply convergent_term_is_trivially_final with n.
+    + assumption.
+    + simpl; lia.
   (* Case: step. *)
-  - eapply big_is_preserved_backwards_by_head; eauto.
+  - apply big_is_preserved_backwards_by_head with y.
+    + assumption.
+    + firstorder.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
 
 Lemma big_implies_head_evaluation:
   forall c,
