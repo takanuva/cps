@@ -38,6 +38,7 @@ A summary of the proof files, in order, and what they cover.
   system for the CPS calculus, and admissibility of the structural rules for it.
 - [Normalization.v](theories/Normalization.v): proof of strong normalization for
   the reduction relation and related stuff.
+- [Structural.v](theories/Structural.v): confluence and strong normalization are preserved by strong bisimilarity, which includes continuation floating, which acts as an structural rule.
 
 # TODO
 
