@@ -160,7 +160,7 @@ Proof.
   intros.
   destruct H as (a, ?, ?).
   destruct H0 as (b, ?, ?).
-  destruct step_is_confluent with a e b as (c, ?, ?); auto.
+  destruct step_is_confluent with e a b as (c, ?, ?); auto.
   assert (converges c n); eauto with cps.
   assert (converges c m); eauto with cps.
   apply convergence_is_unique with c; auto.

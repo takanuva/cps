@@ -31,10 +31,6 @@ Arguments transp {A}.
 
 Global Hint Unfold transp: cps.
 
-Arguments commut {A}.
-
-Global Hint Unfold commut: cps.
-
 Arguments union {A}.
 
 Global Hint Unfold union: cps.
@@ -66,8 +62,18 @@ Global Hint Resolve equiv_sym: cps.
 Global Hint Resolve equiv_trans: cps.
 Global Hint Constructors equivalence: cps.
 
-Definition diamond {T} (R: relation T): Prop :=
-  commut R (transp R).
+Definition commutes {T} (R: relation T) (S: relation T): Prop :=
+  forall x y,
+  R x y ->
+  forall z,
+  S x z ->
+  exists2 w,
+  S y w & R z w.
+
+Global Hint Unfold commutes: cps.
+
+Definition diamond {T} R: Prop :=
+  @commutes T R R.
 
 Global Hint Unfold diamond: cps.
 
@@ -295,11 +301,11 @@ Section Confluency.
     rt(R) x z & rt(R) y z.
 
   Lemma strip_lemma:
-    diamond R -> commut t(R) (transp R).
+    diamond R -> commutes t(R) R.
   Proof.
     induction 2; intros.
     (* Case: step. *)
-    - destruct H with y x z as (w, ?, ?); auto.
+    - destruct H with x y z as (w, ?, ?); auto.
       exists w; auto with cps.
     (* Case: trans. *)
     - rename z0 into w.
@@ -313,7 +319,7 @@ Section Confluency.
   Proof.
     induction 2; intros.
     (* Case: step. *)
-    - destruct strip_lemma with z x y as (w, ?, ?); auto.
+    - destruct strip_lemma with x z y as (w, ?, ?); auto.
       exists w; auto with cps.
     (* Case: trans. *)
     - rename z0 into w.
@@ -336,7 +342,7 @@ Section Confluency.
     (* Case: trans. *)
     - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
       destruct IHclos_refl_sym_trans2 as (v, ?, ?).
-      destruct H with w y v as (u, ?, ?); auto with cps.
+      destruct H with y w v as (u, ?, ?); auto with cps.
       exists u; eauto with cps.
   Qed.
 
@@ -721,10 +727,10 @@ Section BarbedRelations.
         split; intro.
         * apply H1.
           destruct H3.
-          destruct H with x a c as (y, ?, ?); eauto with cps.
+          destruct H with a x c as (y, ?, ?); eauto with cps.
         * apply H1 in H3.
           destruct H3 as (x, ?, ?).
-          destruct H with x a c as (y, ?, ?); eauto with cps.
+          destruct H with a x c as (y, ?, ?); eauto with cps.
           destruct H0 with x y l as (w, ?, ?); eauto.
           exists w; eauto with cps.
       + apply H1.
@@ -923,15 +929,14 @@ Section StrongBisimulation.
 
   Goal
     forall S,
-    strong_simulation S <-> (forall l, commut (R l) (transp S)).
+    strong_simulation S <-> (forall l, commutes (R l) S).
   Proof.
     split; intros.
-    - intros y x ? z ?.
-      unfold transp in H1 |- *.
+    - intros x y ? z ?.
       destruct H with x z y l as (w, ?, ?); auto.
       exists w; auto.
     - intros x y ? z l ?.
-      destruct H with l z x y as (w, ?, ?); auto.
+      destruct H with l x z y as (w, ?, ?); auto.
       exists w; auto.
   Qed.
 
@@ -1072,7 +1077,7 @@ Section Modulo.
     diamond R -> diamond modulo.
   Proof.
     destruct S_is_equiv.
-    intros ? y x ? z ?.
+    intros ? x y ? z ?.
     unfold transp in H1 |- *.
     destruct H0 as (a, (b, (?, (?, ?)))).
     destruct H1 as (c, (d, (?, (?, ?)))).
@@ -1084,20 +1089,20 @@ Section Modulo.
       + exact H1.
       + easy.
       + exact H4.
-      + destruct H with e x f as (g, ?, ?); eauto.
+      + destruct H with x e f as (g, ?, ?); eauto.
         exists g; do 2 eexists; eauto.
   Qed.
 
   Lemma modulo_bisimulation_transitive_diamond:
     diamond t(R) -> diamond t(modulo).
   Proof.
-    intros ? y x ? z ?.
+    intros ? x y ? z ?.
     destruct S_is_equiv.
     apply modulo_bisimulation_postponement in H0.
     apply modulo_bisimulation_postponement in H1.
     destruct H0 as (y', ?, ?).
     destruct H1 as (z', ?, ?).
-    destruct H with y' x z' as (w, ?, ?); auto.
+    destruct H with x y' z' as (w, ?, ?); auto.
     exists w.
     - clear H0 H1 H3 H5.
       apply clos_trans_t1n_iff in H4.

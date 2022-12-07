@@ -479,17 +479,17 @@ Global Hint Resolve star_parallel: cps.
 Lemma parallel_has_diamond:
   diamond parallel.
 Proof.
-  unfold diamond, commut, transp; intros.
+  unfold diamond, commutes; intros.
   destruct H as (r, (x', ?, ?), ?).
   destruct H0 as (p, (y', ?, ?), ?).
-  destruct paving with (mark y) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
+  destruct paving with (mark x) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
   assert (regular [] pr); eauto with cps.
   assert (regular [] rp); eauto with cps.
   assert (regular [] x'); eauto with cps.
   assert (regular [] y'); eauto with cps.
   (* We know the development of w has no marks! *)
   assert (redexes_mark_count_total (redexes_full w) = 0).
-  - apply residuals_full_preserve_no_mark with (redexes_full pr) (mark x).
+  - apply residuals_full_preserve_no_mark with (redexes_full pr) (mark y).
     + auto with cps.
     + apply redexes_mark_count_total_mark_is_zero.
     + rewrite <- H1.
