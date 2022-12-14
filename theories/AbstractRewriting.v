@@ -289,19 +289,11 @@ End Relations.
 Section Confluency.
 
   Variable T: Type.
-  Variable R: relation T.
-
-  Definition confluent: Prop :=
-    diamond rt(R).
-
-  Definition church_rosser: Prop :=
-    forall x y,
-    rst(R) x y ->
-    exists2 z,
-    rt(R) x z & rt(R) y z.
 
   Lemma strip_lemma:
-    diamond R -> commutes t(R) R.
+    forall R: relation T,
+    forall S: relation T,
+    commutes R S -> commutes t(R) S.
   Proof.
     induction 2; intros.
     (* Case: step. *)
@@ -314,19 +306,52 @@ Section Confluency.
       exists u; eauto with cps.
   Qed.
 
-  Lemma transitive_closure_preserves_diamond:
-    diamond R -> diamond t(R).
+  Lemma transitive_closure_preserves_commutation:
+    forall R: relation T,
+    forall S: relation T,
+    commutes R S -> commutes t(R) t(S).
   Proof.
     induction 2; intros.
     (* Case: step. *)
-    - destruct strip_lemma with x z y as (w, ?, ?); auto.
-      exists w; auto with cps.
+    - destruct strip_lemma with S R x z y as (w, ?, ?).
+      + intros a b ? c ?.
+        destruct H with a c b as (d, ?, ?); auto.
+        exists d; auto.
+      + assumption.
+      + assumption.
+      + exists w; auto with cps.
     (* Case: trans. *)
     - rename z0 into w.
       destruct IHclos_trans1 with w as (v, ?, ?); auto.
       destruct IHclos_trans2 with v as (u, ?, ?); auto.
       exists u; eauto with cps.
   Qed.
+
+  Lemma reflexive_closure_preserves_commutation:
+    forall R: relation T,
+    forall S: relation T,
+    commutes R S -> commutes r(R) r(S).
+  Proof.
+    intros R S ? x y ? z ?.
+    destruct H0; destruct H1.
+    - rename y0 into z.
+      destruct H with x y z as (w, ?, ?); auto.
+      exists w; auto with cps.
+    - exists y; auto with cps.
+    - exists y; auto with cps.
+    - exists x; auto with cps.
+  Qed.
+
+  Variable R: relation T.
+
+  Definition confluent: Prop :=
+    diamond rt(R).
+
+  Definition church_rosser: Prop :=
+    forall x y,
+    rst(R) x y ->
+    exists2 z,
+    rt(R) x z & rt(R) y z.
 
   Lemma confluence_implies_church_rosser:
     confluent -> church_rosser.
@@ -347,6 +372,116 @@ Section Confluency.
   Qed.
 
 End Confluency.
+
+Section HindleyRosen.
+
+  Variable T: Type.
+
+  Variable R: relation T.
+  Variable S: relation T.
+
+  Hypothesis R_is_confluent: confluent R.
+  Hypothesis S_is_confluent: confluent S.
+  Hypothesis R_and_S_commute: commutes rt(R) rt(S).
+
+  Local Lemma rt_union_characterization:
+    same_relation rt(union R S) rt(union rt(R) rt(S)).
+  Proof.
+    split; induction 1.
+    - destruct H; auto with cps.
+    - auto with cps.
+    - eauto with cps.
+    - destruct H.
+      + induction H; eauto with cps.
+      + induction H; eauto with cps.
+    - eauto with cps.
+    - eauto with cps.
+  Qed.
+
+  Lemma hindley_rosen:
+    confluent (union R S).
+  Proof.
+    (* The proof follows by diagram chasing. *)
+    assert (diamond (union rt(R) rt(S))).
+    - intros x y ? z ?.
+      destruct H; destruct H0.
+      + destruct R_is_confluent with x y z as (w, ?, ?); auto.
+        exists w; auto with cps.
+      + destruct R_and_S_commute with x y z as (w, ?, ?); auto.
+        exists w; auto with cps.
+      + destruct R_and_S_commute with x z y as (w, ?, ?); auto.
+        exists w; auto with cps.
+      + destruct S_is_confluent with x y z as (w, ?, ?); auto.
+        exists w; auto with cps.
+    - apply transitive_closure_preserves_commutation in H.
+      apply reflexive_closure_preserves_commutation in H.
+      intros x y ? z ?.
+      destruct H with x y z as (w, ?, ?).
+      + apply rt_characterization.
+        apply rt_union_characterization.
+        assumption.
+      + apply rt_characterization.
+        apply rt_union_characterization.
+        assumption.
+      + exists w.
+        * apply rt_union_characterization.
+          apply rt_characterization.
+          assumption.
+        * apply rt_union_characterization.
+          apply rt_characterization.
+          assumption.
+  Qed.
+
+  (* TODO: check if this is the correct name. *)
+
+  (*
+
+  Definition strong_commutation: Prop :=
+    forall x y,
+    R x y ->
+    forall z,
+    S x z ->
+    exists2 w,
+    rt(S) y w & r(R) z w.
+
+  Hypothesis strongly_commutes: strong_commutation.
+
+  Local Lemma strong_strip_lemma:
+    commutes r(R) rt(S).
+  Proof.
+    intros x y ? z ?.
+    generalize dependent y.
+    apply clos_rt_rt1n_iff in H0.
+    induction H0; intros.
+    - destruct H.
+      + exists y; auto with cps.
+      + exists x; auto with cps.
+    - rename y0 into w.
+      destruct H1.
+      + rename y0 into w.
+        destruct strongly_commutes with x w y as (u, ?, ?); auto.
+        destruct IHclos_refl_trans_1n with u as (v, ?, ?); auto.
+        exists v; eauto with cps.
+      + destruct IHclos_refl_trans_1n with y as (w, ?, ?); auto with cps.
+        exists w; eauto with cps.
+  Qed.
+
+  Lemma strong_commutation_implies_commutation:
+    commutes rt(R) rt(S).
+  Proof.
+    intros until 1.
+    apply clos_rt_rt1n_iff in H.
+    induction H; intros.
+    - exists z; auto with cps.
+    - rename z0 into w.
+      destruct strong_strip_lemma with x y w as (u, ?, ?); eauto with cps.
+      destruct IHclos_refl_trans_1n with u as (v, ?, ?); auto.
+      exists v; destruct H3; eauto with cps.
+  Qed.
+
+  *)
+
+End HindleyRosen.
 
 Section Normalization.
 

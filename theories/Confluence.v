@@ -511,7 +511,7 @@ Qed.
 Lemma transitive_parallel_has_diamond:
   diamond t(parallel).
 Proof.
-  apply transitive_closure_preserves_diamond.
+  apply transitive_closure_preserves_commutation.
   exact parallel_has_diamond.
 Qed.
 
