@@ -349,13 +349,14 @@ Qed.
 
 (** ** Tidying reduction. *)
 
-(* TODO: wouldn't it be nice to have a (generalized) contraction in here? *)
+(* TODO: as of now, I conjecture that by adding (ETA) and a generalized (CONTR)
+   reduction in here will make our reduction semantics complete with regard to
+   the original axiomatic semantics. However, these two complicate the theory
+   so lets skip them for now. In the future, we should add those here. *)
 
 Inductive tidy: relation pseudoterm :=
   | tidy_gc:
     GC tidy
-  | tidy_eta:
-    ETA tidy
   | tidy_bind_left:
     LEFT tidy
   | tidy_bind_right:
@@ -390,8 +391,6 @@ Inductive step: relation pseudoterm :=
     CTXJMP step
   | step_gc:
     GC step
-  | step_eta:
-    ETA step
   | step_bind_left:
     LEFT step
   | step_bind_right:
@@ -431,7 +430,6 @@ Proof.
   - induction H.
     + left; auto with cps.
     + right; auto with cps.
-    + right; auto with cps.
     + destruct IHstep; auto with cps.
     + destruct IHstep; auto with cps.
   - destruct H.
@@ -440,7 +438,6 @@ Proof.
       * auto with cps.
       * auto with cps.
     + induction H.
-      * auto with cps.
       * auto with cps.
       * auto with cps.
       * auto with cps.
@@ -1231,7 +1228,6 @@ Proof.
     assumption.
   - apply sema_gc.
     assumption.
-  - apply sema_eta.
   - apply sema_bind_left.
     assumption.
   - apply sema_bind_right.

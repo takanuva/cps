@@ -29,7 +29,7 @@ Inductive inner: relation pseudoterm :=
          ts c)
   | inner_gc:
     GC inner
-  | inner_eta:
+  (*| inner_eta:
     (* It is important that this doesn't change the name in subject position at
        the head of the term. *)
     forall b ts h k xs j,
@@ -41,7 +41,7 @@ Inductive inner: relation pseudoterm :=
       (bind b ts
          (jump (lift (length ts) 0 j)
             (low_sequence (length ts))))
-      (subst j 0 b)
+      (subst j 0 b) *)
   | inner_bind_left:
     LEFT inner
   | inner_bind_right:

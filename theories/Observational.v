@@ -115,9 +115,6 @@ Proof.
   - dependent destruction H0.
     apply converges_is_preserved_by_subst with (p := 0).
     assumption.
-  - dependent destruction H.
-    apply converges_is_preserved_by_subst with (p := 0).
-    assumption.
   - dependent destruction H0.
     constructor; auto.
   - dependent destruction H0.
@@ -330,7 +327,7 @@ Proof.
       eapply IHconverges; eauto.
 Qed.
 
-Local Lemma subst_backwards_preserves_convergence_eta:
+(* Local Lemma subst_backwards_preserves_convergence_eta:
   forall h k xs y,
   static h ->
   forall c j p,
@@ -369,7 +366,7 @@ Proof.
       assumption.
     + reflexivity.
     + assumption.
-Qed.
+Qed. *)
 
 Lemma inner_backwards_preserves_convergence:
   forall a b,
@@ -398,13 +395,6 @@ Proof.
     constructor.
     eapply subst_backwards_preserves_convergence_gc with (p := 0).
     + assumption.
-    + eassumption.
-  - intros.
-    constructor.
-    eapply subst_backwards_preserves_convergence_eta with (p := 0).
-    + eassumption.
-    + eassumption.
-    + eassumption.
     + eassumption.
   - intros.
     dependent destruction H0.
