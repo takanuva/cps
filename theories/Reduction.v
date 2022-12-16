@@ -335,6 +335,18 @@ Proof.
       eexists (context_right b ts x); auto with cps.
 Qed.
 
+Lemma rt_beta_bind_left:
+  LEFT rt(beta).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Lemma rt_beta_bind_right:
+  RIGHT rt(beta).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
 (** ** Tidying reduction. *)
 
 (* TODO: wouldn't it be nice to have a (generalized) contraction in here? *)

@@ -140,6 +140,8 @@ Proof.
     + clear H.
       (* Relexive and transitive cases are trivial. *)
       induction H0; eauto with cps.
+      (* TODO: fix me!
+
       (* Though we usually would argue that a step is either essential or not,
          this is not the case here due to eta reduction: there are cases in
          which a step should be split into a head reduction followed by an inner
@@ -152,9 +154,11 @@ Proof.
       * clear H0 y.
         induction H; eauto with cps.
       * auto with cps.
+      *)
+      admit.
     + apply rt_inner_and_rt_parallel_inner_are_equivalent in H2.
       eauto with cps.
-Qed.
+Admitted.
 
 Corollary star_characterization:
   same_relation star (comp rt(head) rt(inner)).

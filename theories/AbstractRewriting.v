@@ -110,6 +110,18 @@ Section Relations.
     - destruct H; eauto with cps.
   Qed.
 
+  Lemma r_and_t_closures_commute:
+    same_relation r(t(R)) t(r(R)).
+  Proof.
+    split; intros x y ?.
+    - destruct H.
+      + induction H; eauto with cps.
+      + auto with cps.
+    - induction H.
+      + destruct H; auto with cps.
+      + destruct IHclos_trans1; destruct IHclos_trans2; eauto with cps.
+  Qed.
+
   Lemma rt_unequal_implies_t:
     forall a b,
     a <> b ->
@@ -434,8 +446,6 @@ Section HindleyRosen.
 
   (* TODO: check if this is the correct name. *)
 
-  (*
-
   Definition strong_commutation: Prop :=
     forall x y,
     R x y ->
@@ -478,8 +488,6 @@ Section HindleyRosen.
       destruct IHclos_refl_trans_1n with u as (v, ?, ?); auto.
       exists v; destruct H3; eauto with cps.
   Qed.
-
-  *)
 
 End HindleyRosen.
 

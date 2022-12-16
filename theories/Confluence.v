@@ -76,9 +76,9 @@ Qed.
 
 Global Hint Resolve parallel_bind_right: cps.
 
-Lemma parallel_step:
+Lemma parallel_beta:
   forall a b,
-  [a => b] -> parallel a b.
+  beta a b -> parallel a b.
 Proof.
   (* By induction on the step. *)
   unfold parallel; induction 1.
@@ -111,14 +111,8 @@ Proof.
       * rewrite <- H.
         apply regular_single_jump with (g := []).
       * apply regular_mark_term.
-  (* Case: step_gc. *)
-  - (* TODO: as of now, can't be proven. Fix this! *)
-    admit.
-  (* Case: step_eta. *)
-  - (* TODO: as of now, can't be proven. Fix this! *)
-    admit.
   (* Case: step_bind_left. *)
-  - destruct IHstep as (p, (b2', ?, ?), ?).
+  - destruct IHbeta as (p, (b2', ?, ?), ?).
     (* As there's a single mark, on the left, use it. *)
     exists (redexes_bind p ts (mark c)); simpl.
     + (* We know which will be the development. *)
@@ -131,7 +125,7 @@ Proof.
       * eapply regular_tail in H2; eauto.
       * apply regular_mark_term.
   (* Case: step_bind_right. *)
-  - destruct IHstep as (p, (c2', ?, ?), ?).
+  - destruct IHbeta as (p, (c2', ?, ?), ?).
     (* As there's a single mark, on the right, use it. *)
     exists (redexes_bind (mark b) ts p); simpl.
     + (* Same thing as above, but on the right. *)
@@ -144,13 +138,13 @@ Proof.
     + constructor.
       * apply regular_mark_term.
       * eapply regular_tail in H2; eauto.
-Admitted.
+Qed.
 
-Global Hint Resolve parallel_step: cps.
+Global Hint Resolve parallel_beta: cps.
 
-Lemma star_parallel:
+Lemma rt_beta_parallel:
   forall a b,
-  parallel a b -> [a =>* b].
+  parallel a b -> rt(beta) a b.
 Proof.
   intros.
   destruct H as (r, (b', ?, ?), ?).
@@ -216,13 +210,13 @@ Proof.
     dependent destruction H2.
     rewrite app_nil_r in H2_0.
     apply regular_ignore_unused_tail with (g := []) in H2_0.
-    apply star_trans with (bind a1 ts1 b4).
-    + apply star_bind_right.
+    apply rt_trans with (bind a1 ts1 b4).
+    + apply rt_beta_bind_right.
       eapply IHr2; eauto.
     + assert (exists n, redexes_mark_count 0 r1 = n) as (n, ?); eauto.
       destruct n.
       * clear H.
-        apply star_bind_left.
+        apply rt_beta_bind_left.
         (* TODO: refactor me please. *)
         apply regular_ignore_unmarked_tail with (g := []) in H2_; auto.
         eapply IHr1; eauto.
@@ -244,8 +238,9 @@ Proof.
         edestruct residuals_preserve_hole as (t, (e, (?, (?, ?)))); eauto.
         dependent destruction H3.
         dependent destruction H4.
-        eapply star_trans.
-        --- apply star_ctxjmp.
+        eapply rt_trans.
+        --- apply rt_step.
+            apply beta_ctxjmp.
             eapply regular_jump_imply_correct_arity with (g := []);
               simpl; eauto.
             f_equal; apply mark_context_bvars_and_path_are_sound; auto.
@@ -279,7 +274,7 @@ Proof.
                 *** apply regular_mark_term.
 Qed.
 
-Global Hint Resolve star_parallel: cps.
+Global Hint Resolve rt_beta_parallel: cps.
 
 (* ** Confluence *)
 
@@ -322,27 +317,109 @@ Proof.
   exact parallel_has_diamond.
 Qed.
 
-Lemma transitive_parallel_and_star_are_equivalent:
-  same_relation t(parallel) star.
+Lemma transitive_parallel_and_rt_beta_are_equivalent:
+  same_relation t(parallel) rt(beta).
 Proof.
   split; induction 1; eauto with cps.
 Qed.
 
-Theorem step_is_confluent:
-  confluent step.
+Lemma beta_is_confluent:
+  confluent beta.
 Proof.
   compute; intros.
   (* We apply a simple strip lemma here. *)
   destruct transitive_parallel_has_diamond with x y z as (w, ?, ?).
-  - apply transitive_parallel_and_star_are_equivalent.
+  - apply transitive_parallel_and_rt_beta_are_equivalent.
     assumption.
-  - apply transitive_parallel_and_star_are_equivalent.
+  - apply transitive_parallel_and_rt_beta_are_equivalent.
     assumption.
   - exists w.
-    + apply transitive_parallel_and_star_are_equivalent.
+    + apply transitive_parallel_and_rt_beta_are_equivalent.
       assumption.
-    + apply transitive_parallel_and_star_are_equivalent.
+    + apply transitive_parallel_and_rt_beta_are_equivalent.
       assumption.
+Qed.
+
+Lemma tidy_has_weak_diamond:
+  forall x y,
+  tidy x y ->
+  forall z,
+  tidy x z ->
+  exists2 w,
+  r(tidy) y w & r(tidy) z w.
+Proof.
+  induction 1; intros.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
+
+Lemma tidy_is_confluent:
+  confluent tidy.
+Proof.
+  assert (diamond r(tidy)).
+  (* The reflexive closure of tidy has the diamond property. *)
+  - destruct 1; destruct 1; try rename y0 into z.
+    + eapply tidy_has_weak_diamond; eauto.
+    + exists y; auto with cps.
+    + exists y; auto with cps.
+    + exists x; auto with cps.
+  (* The diamond property implies confluence. *)
+  - (* Oh boy... it's the same relation, but we gotta convince Coq. *)
+    apply transitive_closure_preserves_commutation in H.
+    intros x y ? z ?.
+    destruct H with x y z as (w, ?, ?).
+    + apply r_and_t_closures_commute.
+      apply rt_characterization.
+      assumption.
+    + apply r_and_t_closures_commute.
+      apply rt_characterization.
+      assumption.
+    + exists w.
+      * apply rt_characterization.
+        apply r_and_t_closures_commute.
+        assumption.
+      * apply rt_characterization.
+        apply r_and_t_closures_commute.
+        assumption.
+Qed.
+
+Lemma rt_beta_and_rt_tidy_commute:
+  commutes rt(beta) rt(tidy).
+Proof.
+  apply strong_commutation_implies_commutation.
+  intros x y ? z ?.
+  admit.
+Admitted.
+
+Theorem step_is_confluent:
+  confluent step.
+Proof.
+  assert (confluent (union beta tidy)).
+  (* By the Hindley-Rosen lemma, the union of beta and tidy is confluent. *)
+  - apply hindley_rosen.
+    + apply beta_is_confluent.
+    + apply tidy_is_confluent.
+    + apply rt_beta_and_rt_tidy_commute.
+  (* And this union is the same as the one-step reduction, so it's confluent. *)
+  - intros x y ? z ?.
+    assert (same_relation star rt(union beta tidy)).
+    + clear H H0 H1 x y z.
+      split; induction 1.
+      * apply step_characterization in H; auto with cps.
+      * auto with cps.
+      * eauto with cps.
+      * apply step_characterization in H; auto with cps.
+      * auto with cps.
+      * eauto with cps.
+    + apply H2 in H0.
+      apply H2 in H1.
+      destruct H with x y z as (w, ?, ?); auto.
+      exists w.
+      * apply H2.
+        assumption.
+      * apply H2.
+        assumption.
 Qed.
 
 Corollary step_is_church_rosser:
