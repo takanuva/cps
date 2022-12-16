@@ -341,11 +341,15 @@ Proof.
   induction 1; eauto with cps.
 Qed.
 
+Global Hint Resolve rt_beta_bind_left: cps.
+
 Lemma rt_beta_bind_right:
   RIGHT rt(beta).
 Proof.
   induction 1; eauto with cps.
 Qed.
+
+Global Hint Resolve rt_beta_bind_right: cps.
 
 (** ** Tidying reduction. *)
 
@@ -363,6 +367,15 @@ Inductive tidy: relation pseudoterm :=
     RIGHT tidy.
 
 Global Hint Constructors tidy: cps.
+
+Lemma tidy_context:
+  forall a b,
+  tidy a b ->
+  forall h: context,
+  tidy (h a) (h b).
+Proof.
+  induction h; eauto with cps.
+Qed.
 
 Lemma tidy_lift:
   forall a b,
@@ -383,6 +396,25 @@ Proof.
   (* There's a similar proof on [Axiomatic.v]! *)
   admit.
 Admitted.
+
+Lemma tidy_apply_parameters:
+  forall a b,
+  tidy a b ->
+  forall xs k,
+  tidy (apply_parameters xs k a) (apply_parameters xs k b).
+Proof.
+  intros.
+  generalize dependent k.
+  generalize dependent b.
+  generalize dependent a.
+  induction xs; intros.
+  - simpl.
+    assumption.
+  - simpl.
+    apply IHxs.
+    apply tidy_subst.
+    assumption.
+Qed.
 
 Lemma not_free_tidy:
   forall b c,
@@ -467,6 +499,22 @@ Proof.
   - dependent destruction H0; auto with cps.
   - dependent destruction H0; auto with cps.
 Qed.
+
+Lemma rt_tidy_bind_left:
+  LEFT rt(tidy).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_tidy_bind_left: cps.
+
+Lemma rt_tidy_bind_right:
+  RIGHT rt(tidy).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_tidy_bind_right: cps.
 
 (** ** One-step reduction. *)
 

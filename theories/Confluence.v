@@ -431,8 +431,68 @@ Lemma rt_beta_and_rt_tidy_commute:
   commutes rt(beta) rt(tidy).
 Proof.
   apply strong_commutation_implies_commutation.
-  intros x y ? z ?.
-  admit.
+  induction 1; intros.
+  - dependent destruction H0.
+    + (* This can't happen! *)
+      exfalso.
+      assert (exists n, n = 0 + #h) as (n, ?); eauto.
+      replace #h with n in H0; try lia.
+      generalize dependent n.
+      generalize O as o.
+      clear H ts c.
+      induction h; intros.
+      * simpl in H0, H1.
+        dependent destruction H0.
+        dependent destruction H0.
+        lia.
+      * simpl in H0, H1.
+        dependent destruction H0.
+        eapply IHh; eauto.
+        lia.
+      * simpl in H0, H1.
+        dependent destruction H0.
+        eapply IHh; eauto.
+        lia.
+    + (* This might be the worst case. We are performing a jump which resides
+         in a context which has a garbage collection step. It might be the case
+         that the garbage includes or not the jump. *)
+      admit.
+    + (* The garbage collection step happens in the continuation to which a jump
+         is being performed, so this means that we duplicate the garbage redex
+         and must perform it twice. *)
+      rename c into c1.
+      exists (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c2)))
+        ts c2); auto with cps.
+      eapply rt_trans.
+      * apply rt_step.
+        apply tidy_bind_right.
+        eassumption.
+      * apply rt_step.
+        apply tidy_bind_left.
+        apply tidy_context.
+        apply tidy_apply_parameters.
+        apply tidy_lift.
+        assumption.
+  - dependent destruction H0.
+    + admit.
+    + edestruct IHbeta as (b4, ?, ?); eauto.
+      exists (bind b4 ts c).
+      * auto with cps.
+      * destruct H2; auto with cps.
+    + rename c into c1.
+      exists (bind b2 ts c2).
+      * auto with cps.
+      * auto with cps.
+  - dependent destruction H0.
+    + admit.
+    + rename b into b1.
+      exists (bind b2 ts c2).
+      * auto with cps.
+      * auto with cps.
+    + edestruct IHbeta as (c4, ?, ?); eauto.
+      exists (bind b ts c4).
+      * auto with cps.
+      * destruct H2; auto with cps.
 Admitted.
 
 Theorem step_is_confluent:
