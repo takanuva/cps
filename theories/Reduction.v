@@ -289,6 +289,57 @@ Proof.
     assumption.
 Qed.
 
+Lemma not_free_beta:
+  forall b c,
+  beta b c ->
+  forall k,
+  not_free k b -> not_free k c.
+Proof.
+  induction 1; intros.
+  - dependent destruction H0.
+    constructor; auto.
+    (* Tricky, tricky induction! *)
+    rewrite <- H.
+    rewrite <- H in H0_0.
+    clear H H0 ts.
+    replace #h with (#h + 0) in H0_; auto with arith.
+    replace (S n) with (S n + 0) in H0_; auto with arith.
+    replace (S n) with (S n + 0); auto with arith.
+    replace (S #h) with (S #h + 0); auto.
+    generalize dependent H0_.
+    generalize O at 1 2 3 5 as o; simpl.
+    induction h; intros.
+    + simpl in H0_ |- *.
+      (* Well, this is clearly true, but it'll be annoying to prove! *)
+      admit.
+    + simpl in H0_ |- *.
+      dependent destruction H0_.
+      constructor.
+      * replace (S (S (n + o))) with (S (n + S o)); try lia.
+        replace (S (S (#h + o))) with (S (#h + S o)); try lia.
+        apply IHh.
+        replace (S (n + S o)) with (S (S (n + o))); try lia.
+        replace (#h + S o) with (S (#h + o)); try lia.
+        assumption.
+      * assumption.
+      * assumption.
+    + simpl in H0_ |- *.
+      dependent destruction H0_.
+      constructor.
+      * assumption.
+      * assumption.
+      * replace (length ts + S (n + o)) with (S (n + (length ts + o))); try lia.
+        replace (S (#h + length ts + o)) with (S (#h + (length ts + o)));
+          try lia.
+        apply IHh.
+        replace (S (n + (length ts + o))) with (length ts + S (n + o));
+          try lia.
+        replace (#h + (length ts + o)) with (#h + length ts + o); try lia.
+        assumption.
+  - dependent destruction H0; auto with cps.
+  - dependent destruction H0; auto with cps.
+Admitted.
+
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
   context H, and the term H[k<xs>] reduces to a term e, given that k is free in

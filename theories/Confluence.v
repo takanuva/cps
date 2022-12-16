@@ -433,7 +433,8 @@ Proof.
   apply strong_commutation_implies_commutation.
   induction 1; intros.
   - dependent destruction H0.
-    + (* This can't happen! *)
+    + (* This can't happen! A jump can't be performed to a continuation k if
+         k doesn't appear free at all. *)
       exfalso.
       assert (exists n, n = 0 + #h) as (n, ?); eauto.
       replace #h with n in H0; try lia.
@@ -453,9 +454,11 @@ Proof.
         dependent destruction H0.
         eapply IHh; eauto.
         lia.
-    + (* This might be the worst case. We are performing a jump which resides
-         in a context which has a garbage collection step. It might be the case
-         that the garbage includes or not the jump. *)
+    + (* This might be the worst case. So, we're performing a garbage collection
+         step in H[k<xs>]. There are two cases: either k<xs> is part of the
+         removed continuation, or it remains in there after the garbage step; in
+         this case, it's either on its right (unchanged), or in its right, with
+         a scope removed from it. *)
       admit.
     + (* The garbage collection step happens in the continuation to which a jump
          is being performed, so this means that we duplicate the garbage redex
@@ -474,22 +477,38 @@ Proof.
         apply tidy_lift.
         assumption.
   - dependent destruction H0.
-    + admit.
-    + edestruct IHbeta as (b4, ?, ?); eauto.
+    + (* The jump happens on the left, in which a continuation is removed. It is
+         clearly the case that we can still remove it as a jump can't introduce
+         a free variable. *)
+      exists (remove_binding 0 b2).
+      * apply rt_step.
+        constructor.
+        apply not_free_beta with b1; auto.
+      * eauto with cps.
+    + (* Both happen on the left, so follow by induction. *)
+      edestruct IHbeta as (b4, ?, ?); eauto.
       exists (bind b4 ts c).
       * auto with cps.
       * destruct H2; auto with cps.
-    + rename c into c1.
+    + (* The jump happens on the left, and the garbage collection on the right,
+         so this is easy. *)
+      rename c into c1.
       exists (bind b2 ts c2).
       * auto with cps.
       * auto with cps.
   - dependent destruction H0.
-    + admit.
-    + rename b into b1.
+    + (* The step happens in a removed continuation, so we can ignore it. *)
+      exists (remove_binding 0 b).
+      * auto with cps.
+      * auto with cps.
+    + (* The jump happens on the right, and the garbage collection on the left,
+         so this is just like the one above. *)
+      rename b into b1.
       exists (bind b2 ts c2).
       * auto with cps.
       * auto with cps.
-    + edestruct IHbeta as (c4, ?, ?); eauto.
+    + (* Both happen on the right, so follow by induction. *)
+      edestruct IHbeta as (c4, ?, ?); eauto.
       exists (bind b ts c4).
       * auto with cps.
       * destruct H2; auto with cps.
