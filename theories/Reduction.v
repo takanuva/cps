@@ -384,6 +384,90 @@ Proof.
   admit.
 Admitted.
 
+Lemma not_free_tidy:
+  forall b c,
+  tidy b c ->
+  forall k,
+  not_free k b -> not_free k c.
+Proof.
+  induction 1; intros.
+  - (* We have to change our goal a bit to keep track of which variable we're
+       claiming can't appear free. This is trickier in the de Bruijn setting. *)
+    replace k with (k + 0) in H0; auto with arith.
+    replace k with (k + 0); auto with arith.
+    dependent destruction H0.
+    simpl in H0_; clear H0 H0_0 ts c.
+    generalize dependent k; intro.
+    generalize dependent b; intro.
+    generalize O as o; simpl.
+    unfold remove_binding.
+    induction b using pseudoterm_deepind; intros.
+    + constructor.
+    + constructor.
+    + constructor.
+    + constructor.
+    + dependent destruction H.
+      dependent destruction H0_.
+      rename n0 into m.
+      destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_gt; auto.
+        constructor; lia.
+      * exfalso; lia.
+      * rewrite subst_bound_lt; auto.
+        constructor; lia.
+    + rewrite subst_distributes_over_negation.
+      constructor.
+      dependent destruction H0.
+      dependent destruction H0_.
+      induction H; auto with cps.
+      simpl.
+      dependent destruction H0.
+      dependent destruction H3.
+      constructor; auto.
+      rewrite traverse_list_length.
+      replace (length l + (k + n)) with (k + (length l + n)); try lia.
+      apply H; auto.
+      replace (S (k + (length l + n))) with (length l + S (k + n)); try lia.
+      assumption.
+    + rewrite subst_distributes_over_jump.
+      dependent destruction H0.
+      dependent destruction H0_.
+      constructor; auto.
+      clear IHb H0 H0_ b.
+      induction H.
+      * constructor.
+      * simpl.
+        dependent destruction H1.
+        dependent destruction H3.
+        constructor; auto.
+    + rewrite subst_distributes_over_bind.
+      dependent destruction H0.
+      dependent destruction H0_1.
+      constructor.
+      * replace (S (k + n)) with (k + S n); try lia.
+        replace (S (S (k + n))) with (S (k + S n)) in H0_1_1; try lia.
+        apply IHb1; auto.
+      * clear H0_ H0_0 H0_1_1 H0_1_2 IHb1 IHb2 b1 b2.
+        induction H; auto with cps.
+        simpl.
+        dependent destruction H0.
+        dependent destruction H3.
+        constructor; auto.
+        rewrite traverse_list_length.
+        replace (length l + (k + n)) with (k + (length l + n)); try lia.
+        apply H; auto.
+        replace (S (k + (length l + n))) with (length l + S (k + n)); try lia.
+        assumption.
+      * rewrite traverse_list_length.
+        replace (length ts + (k + n)) with (k + (n + length ts)); try lia.
+        replace (length ts + n) with (n + length ts) in H0_0; try lia.
+        replace (length ts + S (k + n)) with (S (k + (n + length ts)))
+          in H0_1_2; try lia.
+        apply IHb2; auto.
+  - dependent destruction H0; auto with cps.
+  - dependent destruction H0; auto with cps.
+Qed.
+
 (** ** One-step reduction. *)
 
 Inductive step: relation pseudoterm :=

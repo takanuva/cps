@@ -349,10 +349,53 @@ Lemma tidy_has_weak_diamond:
   r(tidy) y w & r(tidy) z w.
 Proof.
   induction 1; intros.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+  - dependent destruction H0.
+    + exists (remove_binding 0 b).
+      * auto with cps.
+      * auto with cps.
+    + rename b into b1.
+      exists (remove_binding 0 b2).
+      * apply r_step.
+        apply tidy_subst.
+        assumption.
+      * apply r_step.
+        apply tidy_gc.
+        apply not_free_tidy with b1; auto.
+    + rename c into c1.
+      exists (remove_binding 0 b).
+      * auto with cps.
+      * auto with cps.
+  - dependent destruction H0.
+    + clear IHtidy.
+      exists (remove_binding 0 b2).
+      * apply r_step.
+        apply tidy_gc.
+        apply not_free_tidy with b1; auto.
+      * apply r_step.
+        apply tidy_subst.
+        assumption.
+    + edestruct IHtidy as (b4, ?, ?); eauto.
+      exists (bind b4 ts c).
+      * destruct H1; auto with cps.
+      * destruct H2; auto with cps.
+    + rename c into c1.
+      exists (bind b2 ts c2).
+      * auto with cps.
+      * auto with cps.
+  - dependent destruction H0.
+    + clear IHtidy.
+      exists (remove_binding 0 b).
+      * auto with cps.
+      * auto with cps.
+    + rename b into b1.
+      exists (bind b2 ts c2).
+      * auto with cps.
+      * auto with cps.
+    + edestruct IHtidy as (c4, ?, ?); eauto.
+      exists (bind b ts c4).
+      * destruct H1; auto with cps.
+      * destruct H2; auto with cps.
+Qed.
 
 Lemma tidy_is_confluent:
   confluent tidy.
