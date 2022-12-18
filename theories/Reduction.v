@@ -310,7 +310,8 @@ Proof.
     generalize O at 1 2 3 5 as o; simpl.
     induction h; intros.
     + simpl in H0_ |- *.
-      (* Well, this is clearly true, but it'll be annoying to prove! *)
+      (* Well, this is clearly true, but it'll be annoying to prove!
+         Note there's a similar admitted thing on [Confluence.v]! *)
       admit.
     + simpl in H0_ |- *.
       dependent destruction H0_.

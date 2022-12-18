@@ -427,15 +427,80 @@ Proof.
         assumption.
 Qed.
 
+Inductive tidy_context_case (h: context) k xs b: Prop :=
+  | tidy_context_case_inside:
+    (forall c, tidy (h c) b) ->
+    tidy_context_case h k xs b
+  | tidy_context_case_scope:
+    forall r s us d,
+    h = compose_context r (context_left s us d) ->
+    b = r (remove_binding 0 (s (jump k xs))) ->
+    not_free 0 (s (jump k xs)) ->
+    tidy_context_case h k xs b
+  | tidy_context_case_orthogonal1:
+    forall r s us d e,
+    h = compose_context r (context_left s us d) ->
+    b = (compose_context r (context_left s us e)) (jump k xs) ->
+    tidy d e ->
+    tidy_context_case h k xs b
+  | tidy_context_case_orthogonal2:
+    forall r s us d e,
+    h = compose_context r (context_right d us s) ->
+    b = (compose_context r (context_right e us s)) (jump k xs) ->
+    tidy d e ->
+    tidy_context_case h k xs b.
+
+Lemma tidy_context_case_analysis:
+  forall (h: context) k xs b,
+  tidy (h (jump k xs)) b -> tidy_context_case h k xs b.
+Proof.
+  induction h; simpl; intros.
+  - inversion H.
+  - dependent destruction H; simpl.
+    + apply tidy_context_case_scope with
+        (r := context_hole) (s := h) (us := ts) (d := c); auto.
+    + edestruct IHh; eauto; simpl.
+      * apply tidy_context_case_inside; eauto with cps.
+      * apply tidy_context_case_scope with
+          (r := context_left r ts c) (s := s) (us := us) (d := d); simpl;
+          congruence.
+      * apply tidy_context_case_orthogonal1 with
+          (r := context_left r ts c) (s := s) (us := us) (d := d) (e := e);
+          simpl; congruence.
+      * apply tidy_context_case_orthogonal2 with
+          (r := context_left r ts c) (s := s) (us := us) (d := d) (e := e);
+          simpl; congruence.
+    + apply tidy_context_case_orthogonal1 with
+        (r := context_hole) (s := h) (us := ts) (d := c) (e := c2); auto.
+  - dependent destruction H; simpl.
+    + apply tidy_context_case_inside; eauto with cps.
+    + apply tidy_context_case_orthogonal2 with
+        (r := context_hole) (s := h) (us := ts) (d := b) (e := b2); auto.
+    + edestruct IHh; eauto; simpl.
+      * apply tidy_context_case_inside; eauto with cps.
+      * apply tidy_context_case_scope with
+          (r := context_right b ts r) (s := s) (us := us) (d := d); simpl;
+          congruence.
+      * apply tidy_context_case_orthogonal1 with
+          (r := context_right b ts r) (s := s) (us := us) (d := d) (e := e);
+          simpl; congruence.
+      * apply tidy_context_case_orthogonal2 with
+          (r := context_right b ts r) (s := s) (us := us) (d := d) (e := e);
+          simpl; congruence.
+Qed.
+
 Lemma rt_beta_and_rt_tidy_commute:
   commutes rt(beta) rt(tidy).
 Proof.
+  (* We'll prove a much easier local verification instead. *)
   apply strong_commutation_implies_commutation.
+  (* Now we may follow. *)
   induction 1; intros.
   - dependent destruction H0.
     + (* This can't happen! A jump can't be performed to a continuation k if
          k doesn't appear free at all. *)
       exfalso.
+      (* TODO: we should make a lemma about not_free and contexts. *)
       assert (exists n, n = 0 + #h) as (n, ?); eauto.
       replace #h with n in H0; try lia.
       generalize dependent n.
@@ -457,9 +522,100 @@ Proof.
     + (* This might be the worst case. So, we're performing a garbage collection
          step in H[k<xs>]. There are two cases: either k<xs> is part of the
          removed continuation, or it remains in there after the garbage step; in
-         this case, it's either on its right (unchanged), or in its right, with
-         a scope removed from it. *)
-      admit.
+         the latter, either it had the removed continuation within its scope, or
+         it hadn't. We proceed by case analysis.
+
+        TODO: please, refactor the following code. I'm exhausted...
+      *)
+      rename b2 into b.
+      edestruct tidy_context_case_analysis; eauto.
+      * exists (bind b ts c); auto with cps.
+      * rewrite H1.
+        rewrite H2.
+        rewrite compose_context_is_sound; simpl.
+        eexists.
+        --- apply rt_step.
+            apply tidy_bind_left.
+            apply tidy_context.
+            apply tidy_gc.
+            rewrite compose_context_bvars; simpl.
+            (* Oh boy... there's an admitted similar thing on [Reduction.v]! *)
+            admit.
+        --- (* We gotta demonstrate that we indeed have a (CTXJMP) redex. *)
+            unfold remove_binding.
+            do 2 rewrite context_subst_is_sound.
+            rewrite Nat.add_0_r.
+            rewrite compose_context_bvars; simpl.
+            assert (#h = #(compose_context r (context_left s us d)));
+              try congruence.
+            rewrite compose_context_bvars in H4.
+            simpl in H4.
+            rewrite subst_distributes_over_jump.
+            rewrite subst_bound_gt; try lia.
+            rewrite subst_distributes_over_apply_parameters.
+            rewrite subst_lift_simplification; try lia.
+            rewrite <- H4.
+            do 2 rewrite <- compose_context_is_sound.
+            remember (compose_context r (context_subst 0 0 s)) as t.
+            assert (#t = #r + #s).
+            +++ rewrite Heqt.
+                rewrite compose_context_bvars.
+                rewrite context_subst_bvars.
+                reflexivity.
+            +++ replace (pred #h) with #t; try lia.
+                replace #h with (S #t); try lia.
+                apply r_step.
+                apply beta_ctxjmp.
+                rewrite map_length.
+                assumption.
+      * rewrite H1.
+        eexists (bind (compose_context r (context_left s us e) _) ts c).
+        --- do 2 rewrite compose_context_is_sound; simpl.
+            apply rt_step.
+            apply tidy_bind_left.
+            apply tidy_context.
+            apply tidy_bind_right.
+            assumption.
+        --- rewrite compose_context_bvars; simpl.
+            rewrite H2.
+            remember (compose_context r (context_left s us e)) as t.
+            assert (#h = #t).
+            +++ rewrite H1.
+                rewrite Heqt.
+                do 2 rewrite compose_context_bvars; simpl.
+                reflexivity.
+            +++ rewrite H4.
+                replace (#r + S #s) with #t.
+                *** apply r_step.
+                    apply beta_ctxjmp.
+                    assumption.
+                *** rewrite Heqt.
+                    rewrite compose_context_bvars; simpl.
+                    reflexivity.
+      * rewrite H1.
+        eexists (bind (compose_context r (context_right e us s) _) ts c).
+        --- do 2 rewrite compose_context_is_sound; simpl.
+            apply rt_step.
+            apply tidy_bind_left.
+            apply tidy_context.
+            apply tidy_bind_left.
+            assumption.
+        --- rewrite compose_context_bvars; simpl.
+            rewrite H2.
+            remember (compose_context r (context_right e us s)) as t.
+            assert (#h = #t).
+            +++ rewrite H1.
+                rewrite Heqt.
+                do 2 rewrite compose_context_bvars; simpl.
+                reflexivity.
+            +++ rewrite H4.
+                replace (#r + (#s + length us)) with #t.
+                *** apply r_step.
+                    apply beta_ctxjmp.
+                    assumption.
+                *** rewrite Heqt.
+                    rewrite compose_context_bvars; simpl.
+                    reflexivity.
     + (* The garbage collection step happens in the continuation to which a jump
          is being performed, so this means that we duplicate the garbage redex
          and must perform it twice. *)
