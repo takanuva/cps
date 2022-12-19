@@ -310,9 +310,15 @@ Proof.
     generalize O at 1 2 3 5 as o; simpl.
     induction h; intros.
     + simpl in H0_ |- *.
-      (* Well, this is clearly true, but it'll be annoying to prove!
-         Note there's a similar admitted thing on [Confluence.v]! *)
-      admit.
+      replace (S (n + o)) with (S (n + o) + 0); auto.
+      apply not_free_apply_parameters.
+      * dependent destruction H0_.
+        assumption.
+      * rewrite Nat.add_0_r.
+        replace (S (n + o) + length xs) with (n + (S o) + length xs); try lia.
+        apply not_free_lift.
+        rewrite plus_comm.
+        assumption.
     + simpl in H0_ |- *.
       dependent destruction H0_.
       constructor.
@@ -339,7 +345,7 @@ Proof.
         assumption.
   - dependent destruction H0; auto with cps.
   - dependent destruction H0; auto with cps.
-Admitted.
+Qed.
 
 (*
   This lemma shows that "free jumps" are preserved in redexes. If we have a
@@ -1058,6 +1064,71 @@ Inductive not_free_context: nat -> context -> Prop :=
     not_free_list k ts ->
     not_free_context (k + length ts) c ->
     not_free_context k (context_right b ts c).
+
+Lemma not_free_context_split:
+  forall (h: context) e p,
+  not_free p (h e) ->
+  not_free_context p h /\ not_free (p + #h) e.
+Proof.
+  induction h; simpl; split.
+  - constructor.
+  - rewrite Nat.add_0_r.
+    assumption.
+  - dependent destruction H.
+    edestruct IHh; eauto.
+    constructor.
+    + assumption.
+    + assumption.
+    + rewrite plus_comm.
+      assumption.
+  - dependent destruction H.
+    edestruct IHh; eauto.
+    replace (n + S #h) with (S n + #h); try lia.
+    assumption.
+  - dependent destruction H.
+    edestruct IHh; eauto.
+    constructor.
+    + assumption.
+    + assumption.
+    + rewrite plus_comm.
+      assumption.
+  - dependent destruction H.
+    edestruct IHh; eauto.
+    replace (n + (#h + length ts)) with (length ts + n + #h); try lia.
+    assumption.
+Qed.
+
+Lemma not_free_context_merge:
+  forall (h: context) e p,
+  not_free_context p h ->
+  not_free (p + #h) e ->
+  not_free p (h e).
+Proof.
+  induction h; intros.
+  - simpl in H0 |- *.
+    rewrite Nat.add_0_r in H0.
+    assumption.
+  - dependent destruction H.
+    simpl; constructor.
+    + apply IHh.
+      * assumption.
+      * simpl in H2.
+        replace (S k + #h) with (k + S #h); try lia.
+        assumption.
+    + assumption.
+    + rewrite plus_comm.
+      assumption.
+  - dependent destruction H.
+    simpl; constructor.
+    + assumption.
+    + assumption.
+    + apply IHh.
+      * rewrite plus_comm.
+        assumption.
+      * simpl in H2.
+        replace (length ts + k + #h) with (k + (#h + length ts)); try lia.
+        assumption.
+Qed.
 
 (* TODO: how come I didn't add this lemma at the correct place...? *)
 

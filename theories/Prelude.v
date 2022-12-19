@@ -5,6 +5,7 @@
 Require Import Lia.
 Require Export List.
 Require Import Arith.
+Require Import Equality.
 Import ListNotations.
 
 (** To help proof automation, create a hint database. *)
@@ -146,6 +147,24 @@ Proof.
       constructor.
     + constructor.
       apply IHxs with y; auto.
+Qed.
+
+Lemma item_rev:
+  forall {T} x xs k,
+  @item T x xs k ->
+  @item T x (rev xs) (length xs - S k).
+Proof.
+  induction xs; simpl; intros.
+  - inversion H.
+  - destruct k.
+    * dependent destruction H.
+      replace (length xs - 0) with (0 + length xs); try lia.
+      rewrite <- rev_length.
+      apply item_insert_head.
+      constructor.
+    * dependent destruction H.
+      apply item_insert_tail.
+      apply IHxs; auto.
 Qed.
 
 Lemma Forall2_length:

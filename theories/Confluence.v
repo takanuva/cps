@@ -539,8 +539,14 @@ Proof.
             apply tidy_context.
             apply tidy_gc.
             rewrite compose_context_bvars; simpl.
-            (* Oh boy... there's an admitted similar thing on [Reduction.v]! *)
-            admit.
+            edestruct not_free_context_split; eauto.
+            simpl in H5.
+            dependent destruction H5.
+            apply not_free_context_merge; auto.
+            rewrite plus_comm.
+            apply not_free_apply_parameters; auto.
+            rewrite Nat.add_0_r.
+            apply lifting_more_than_n_makes_not_free_n; lia.
         --- (* We gotta demonstrate that we indeed have a (CTXJMP) redex. *)
             unfold remove_binding.
             do 2 rewrite context_subst_is_sound.
@@ -668,7 +674,7 @@ Proof.
       exists (bind b ts c4).
       * auto with cps.
       * destruct H2; auto with cps.
-Admitted.
+Qed.
 
 Theorem step_is_confluent:
   confluent step.

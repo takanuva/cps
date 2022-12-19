@@ -1777,3 +1777,161 @@ Proof.
     simpl; f_equal.
     apply right_cycle_bound_lt; auto.
 Qed.
+
+Lemma not_free_lift:
+  forall c p k j,
+  not_free (p + j) c ->
+  not_free (p + k + j) (lift k j c).
+Proof.
+  induction c using pseudoterm_deepind; intros.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - destruct (le_gt_dec j n).
+    + rewrite lift_bound_ge; auto.
+      dependent destruction H.
+      constructor; lia.
+    + rewrite lift_bound_lt; auto.
+      constructor; lia.
+  - dependent destruction H0.
+    rewrite lift_distributes_over_negation.
+    constructor.
+    induction H; simpl.
+    + constructor.
+    + dependent destruction H0.
+      constructor; auto.
+      rewrite traverse_list_length.
+      replace (length l + (p + k + j)) with (p + k + (length l + j)); try lia.
+      apply H.
+      replace (p + (length l + j)) with (length l + (p + j)); try lia.
+      assumption.
+  - dependent destruction H0.
+    rewrite lift_distributes_over_jump.
+    constructor; auto.
+    clear IHc H0 c.
+    induction H; simpl.
+    + constructor.
+    + dependent destruction H1.
+      constructor; auto.
+  - dependent destruction H0.
+    rewrite lift_distributes_over_bind.
+    constructor.
+    + replace (S (p + k + j)) with (p + k + S j); try lia.
+      apply IHc1.
+      replace (p + S j) with (S (p + j)); try lia.
+      assumption.
+    + clear IHc1 IHc2 H0_ H0_0 c1 c2.
+      induction H; simpl.
+      * constructor.
+      * dependent destruction H0.
+        constructor; auto.
+        rewrite traverse_list_length.
+        replace (length l + (p + k + j)) with (p + k + (length l + j)); try lia.
+        apply H.
+        replace (p + (length l + j)) with (length l + (p + j)); try lia.
+        assumption.
+    + rewrite traverse_list_length.
+      replace (length ts + (p + k + j)) with (p + k + (j + length ts)); try lia.
+      apply IHc2.
+      replace (p + (j + length ts)) with (length ts + (p + j)); try lia.
+      assumption.
+Qed.
+
+Local Lemma not_free_apply_parameters_bound:
+  forall (n: nat) k p xs,
+  Forall (not_free p) xs ->
+  not_free (p + k + length xs) n ->
+  not_free (p + k) (apply_parameters xs k n).
+Proof.
+  intros.
+  destruct (le_gt_dec k n).
+  - destruct (le_gt_dec (k + length xs) n).
+    + rewrite apply_parameters_bound_gt; try lia.
+      dependent destruction H0.
+      constructor; lia.
+    + replace n with (k + (n - k)); try lia.
+      assert (exists x, item x xs (length xs - S (n - k))) as (x, ?).
+      * apply item_exists.
+        lia.
+      * apply item_rev in H1.
+        replace (length xs - S (length xs - S (n - k))) with (n - k) in H1;
+          try lia.
+        rewrite apply_parameters_bound_in with (x := x); auto; try lia.
+        apply nth_item with (y := void) in H1.
+        apply Forall_rev in H.
+        rewrite <- rev_length in g.
+        replace (p + k) with (p + k + 0); auto.
+        apply not_free_lift.
+        rewrite Nat.add_0_r.
+        rewrite <- H1.
+        apply Forall_nth; auto.
+        lia.
+  - rewrite apply_parameters_bound_lt; auto.
+    constructor; lia.
+Qed.
+
+Lemma not_free_apply_parameters:
+  forall c k p xs,
+  Forall (not_free p) xs ->
+  not_free (p + k + length xs) c ->
+  not_free (p + k) (apply_parameters xs k c).
+Proof.
+  induction c using pseudoterm_deepind; intros.
+  - clear H H0.
+    induction xs; auto with cps.
+  - clear H H0.
+    induction xs; auto with cps.
+  - clear H H0.
+    induction xs; auto with cps.
+  - clear H H0.
+    induction xs; auto with cps.
+  - apply not_free_apply_parameters_bound; auto.
+  - dependent destruction H1.
+    rewrite apply_parameters_distributes_over_negation.
+    constructor.
+    induction H; simpl.
+    + constructor.
+    + rewrite traverse_list_length.
+      dependent destruction H1.
+      constructor; auto.
+      rewrite traverse_list_length.
+      replace (length l + (p + k)) with (p + (length l + k)); try lia.
+      apply H; auto.
+      replace (p + (length l + k) + length xs) with
+        (length l + (p + k + length xs)); try lia.
+      assumption.
+  - dependent destruction H1.
+    rewrite apply_parameters_distributes_over_jump.
+    constructor; auto.
+    clear H1 IHc c.
+    induction H; simpl.
+    + constructor.
+    + dependent destruction H2.
+      constructor; auto.
+  - dependent destruction H1.
+    rewrite apply_parameters_distributes_over_bind.
+    constructor.
+    + replace (S (p + k)) with (p + S k); try lia.
+      apply IHc1; auto.
+      replace (p + S k + length xs) with (S (p + k + length xs)); try lia.
+      assumption.
+    + clear IHc1 IHc2 H1_ H1_0 c1 c2.
+      induction H; simpl.
+      * constructor.
+      * rewrite traverse_list_length.
+        dependent destruction H1.
+        constructor; auto.
+        rewrite traverse_list_length.
+        replace (length l + (p + k)) with (p + (length l + k)); try lia.
+        apply H; auto.
+        replace (p + (length l + k) + length xs) with
+          (length l + (p + k + length xs)); try lia.
+        assumption.
+    + rewrite traverse_list_length.
+      replace (length ts + (p + k)) with (p + (k + length ts)); try lia.
+      apply IHc2; auto.
+      replace (p + (k + length ts) + length xs) with
+        (length ts + (p + k + length xs)); try lia.
+      assumption.
+Qed.
