@@ -14,25 +14,43 @@ Require Import Local.Reduction.
 (* TODO: We take only converges from here; might wanna move it to Syntax. *)
 Require Import Local.Observational.
 
+(* This labelled transition semantics comes from Merro's paper, "On the
+   Observational Theory of the CPS-calculus". We note that a label is either a
+   silent action, tau, or an output action in the form of k<x>M. Merro mentions
+   that the transition system is necessarily higher-order (carrying the M) in
+   order to preserve some properties, but this doesn't seem to be necessary,
+   actually. TODO: remove the M term from the label.
+
+   We note that we give a special purpose for the k de Bruijn index in here, as
+   we are reserving it to be the name of the continuation to jump to. I.e., in
+   an action k<x>M, we're saying a term performs an action which may interact
+   with the discriminating context [] { k<x> = M }. *)
+
 Inductive label: Set :=
   | label_tau
   | label_jmp (k: nat) (ts: list pseudoterm) (b: pseudoterm).
 
 Inductive transition: label -> relation pseudoterm :=
+  (*
+                x \notin FV(a<b>)
+    --------------------------------------- (JMP)
+             a<x>M
+      a<b> ---------> M[b/x] { a<x> = M }
+  *)
   | transition_jmp:
     forall k xs ts c,
     length xs = length ts ->
     transition (label_jmp k ts c) (jump 0 xs)
       (bind
         (apply_parameters xs 0 (lift 1 (length ts) c)) ts c)
-  | transition_tau:
-    forall k a b ts c,
-    transition (label_jmp k ts c) a b ->
-    transition label_tau (bind a ts c) b
-  | transition_ctx_tau:
-    forall a b ts c,
-    transition label_tau a b ->
-    transition label_tau (bind a ts c) (bind b ts c)
+
+  (*
+          a<x>N
+      M ---------> M' { a<x> = N }      a != b      b \notin FV(N)
+    ---------------------------------------------------------------- (CTX-JMP)
+                           a<x>N
+          M { b<y> = O } ---------> M' { b<y> = O } { a<x> = N }
+  *)
   | transition_ctx_jmp:
     forall k a b ts c us d,
     (* This lift was hinted by the "Proof-relevant pi-calculus" paper! *)
@@ -43,7 +61,31 @@ Inductive transition: label -> relation pseudoterm :=
     transition
       (label_jmp k ts c)
       (bind (switch_bindings 0 a) us d)
-      (bind (bind (switch_bindings 0 b) us d) ts c).
+      (bind (bind (switch_bindings 0 b) us d) ts c)
+
+  (*
+                a<x>N
+            M ---------> M'
+    ---------------------------- (TAU)
+                       T
+      M { a<x> = N } -----> M'
+  *)
+  | transition_tau:
+    forall k a b ts c,
+    transition (label_jmp k ts c) a b ->
+    transition label_tau (bind a ts c) b
+
+  (*
+                        T
+                    M -----> M'
+    ----------------------------------------- (CTX-TAU)
+                       T
+      M { a<x> = N } -----> M' { a<x> = N }
+  *)
+  | transition_ctx_tau:
+    forall a b ts c,
+    transition label_tau a b ->
+    transition label_tau (bind a ts c) (bind b ts c).
 
 Inductive transition_label_jmp_invariant (k: nat) ts c a b: Prop :=
   transition_label_jmp_invariant_ctor
