@@ -312,7 +312,7 @@ Class proper (f: nat -> pseudoterm -> pseudoterm): Prop := {
     f (S k) (S n) = lift 1 0 (f k n)
 }.
 
-Instance lift_proper: forall i, proper (lift i).
+Global Instance lift_proper: forall i, proper (lift i).
 Proof.
   constructor; intros.
   - reflexivity.
@@ -331,7 +331,7 @@ Qed.
 
 Global Hint Resolve lift_proper: cps.
 
-Instance subst_proper: forall x, proper (subst x).
+Global Instance subst_proper: forall x, proper (subst x).
 Proof.
   constructor; intros.
   - reflexivity.
@@ -354,7 +354,7 @@ Qed.
 
 Global Hint Resolve subst_proper: cps.
 
-Instance apply_parameters_proper: forall xs, proper (apply_parameters xs).
+Global Instance apply_parameters_proper: forall xs, proper (apply_parameters xs).
 Proof.
   constructor; intros.
   - generalize dependent k.
@@ -413,7 +413,7 @@ Definition ids (k: nat) (c: pseudoterm): pseudoterm :=
 
 Global Hint Unfold ids: cps.
 
-Instance ids_proper: proper ids.
+Global Instance ids_proper: proper ids.
 Proof.
   unfold ids.
   constructor; intros.
@@ -1024,7 +1024,7 @@ Proof.
         rewrite traverse_list_length in H4.
         rename r0 into r', s0 into s'.
         eapply H; eauto.
-        rewrite plus_comm.
+        rewrite Nat.add_comm.
         rewrite <- H4.
         apply technical2; eauto with cps; intros.
         rewrite proper_respects_structure in H9.
@@ -1520,7 +1520,7 @@ Proof.
       constructor.
       reflexivity.
     + rewrite compose_context_bvars; simpl.
-      rewrite plus_comm; simpl; f_equal.
+      rewrite Nat.add_comm; simpl; f_equal.
       apply IHr.
       intro; apply H.
       constructor 2.

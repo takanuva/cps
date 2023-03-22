@@ -340,7 +340,7 @@ Proof.
   induction ts; simpl; intros.
   - rewrite Nat.add_0_r.
     assumption.
-  - rewrite <- plus_Snm_nSm; simpl.
+  - rewrite Nat.add_succ_r; simpl.
     constructor; auto.
 Qed.
 

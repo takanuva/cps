@@ -465,7 +465,7 @@ Section CallByName.
       dependent destruction H5.
       apply barb_bind_left.
       rewrite lambda_context_lift_is_sound in H5_, H6_.
-      rewrite plus_comm in H5_, H6_; simpl in H5_, H6_.
+      rewrite Nat.add_comm in H5_, H6_; simpl in H5_, H6_.
       eapply H with (m := lambda_context_depth (lambda_context_lift 1 0 h)).
       + rewrite lambda_context_lift_depth; auto.
       + reflexivity.

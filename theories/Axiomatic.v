@@ -216,7 +216,7 @@ Qed.
 
 Global Hint Resolve sema_bind_right: cps.
 
-Instance sema_is_a_congruence: Congruence sema.
+Global Instance sema_is_a_congruence: Congruence sema.
 Proof.
   split.
   - split.
@@ -746,7 +746,7 @@ Proof.
     induction H; auto.
     simpl; f_equal; auto.
     do 3 rewrite traverse_list_length.
-    rewrite plus_assoc.
+    rewrite Nat.add_assoc.
     apply H.
   - do 2 rewrite lift_distributes_over_jump.
     rewrite apply_parameters_distributes_over_jump.
@@ -762,7 +762,7 @@ Proof.
       induction H; auto.
       simpl; f_equal; auto.
       do 3 rewrite traverse_list_length.
-      rewrite plus_assoc.
+      rewrite Nat.add_assoc.
       apply H.
     + replace (k + n + length ts) with (k + length ts + n); try lia.
       apply IHc2.

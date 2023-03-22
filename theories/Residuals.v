@@ -337,7 +337,7 @@ Proof.
     + rewrite plus_n_Sm.
       apply IHe1; lia.
     + rewrite traverse_list_length.
-      rewrite <- plus_assoc.
+      rewrite <- Nat.add_assoc.
       apply IHe2; lia.
 Qed.
 
@@ -1099,13 +1099,13 @@ Lemma regular_single_jump:
     (mark_context h (redexes_jump true (length g + #h) xs)).
 Proof.
   induction h; simpl; intros.
-  - rewrite plus_comm.
+  - rewrite Nat.add_comm.
     econstructor; eauto.
     apply item_insert_head.
     constructor.
   - constructor.
     + rewrite app_comm_cons.
-      rewrite <- plus_Snm_nSm.
+      rewrite Nat.add_succ_r.
       apply IHh.
     + apply regular_mark_term.
   - constructor.
@@ -1451,7 +1451,7 @@ Proof.
       apply IHe2; auto.
       rewrite app_length.
       rewrite repeat_length.
-      rewrite plus_comm; lia.
+      rewrite Nat.add_comm; lia.
 Qed.
 
 (*
@@ -1621,7 +1621,7 @@ Proof.
     + admit.
     + replace (redexes_mark_count (k + length ts) c) with (n - o); try lia.
       assert (redexes_mark_count (S k) (h e) = m + o).
-      * rewrite <- plus_Snm_nSm in Heqb, H0.
+      * rewrite <- Nat.add_succ_r in Heqb, H0.
         dependent destruction Heqb.
         eapply IHh; eauto.
       * lia.

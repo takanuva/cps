@@ -248,7 +248,7 @@ Qed.
 
 Global Hint Resolve same_path_trans: cps.
 
-Instance same_path_is_an_equivalence: Equivalence same_path.
+Global Instance same_path_is_an_equivalence: Equivalence same_path.
 Proof.
   split.
   - exact same_path_refl.
@@ -267,7 +267,7 @@ Proof.
 Qed.
 
 Global Hint Resolve same_path_implies_same_bvars: cps.
-Hint Rewrite same_path_implies_same_bvars: cps.
+Global Hint Rewrite same_path_implies_same_bvars: cps.
 
 Lemma same_path_implies_same_depth:
   forall h r,
@@ -277,7 +277,7 @@ Proof.
 Qed.
 
 Global Hint Resolve same_path_implies_same_depth: cps.
-Hint Rewrite same_path_implies_same_depth: cps.
+Global Hint Rewrite same_path_implies_same_depth: cps.
 
 Lemma same_path_same_hole_implies_same_context:
   forall h r,

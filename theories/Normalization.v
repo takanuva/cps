@@ -63,7 +63,7 @@ Proof.
   induction a; simpl; intros.
   - reflexivity.
   - unfold sumup; simpl.
-    rewrite plus_assoc_reverse; f_equal.
+    rewrite <- Nat.add_assoc; f_equal.
     apply IHa.
 Defined.
 
@@ -753,7 +753,7 @@ Proof.
         eapply exchange_preserve_sumup.
         apply exchange_app.
         eassumption.
-        rewrite plus_comm.
+        rewrite Nat.add_comm.
         apply exchange_app.
         apply exchange_sym.
         assumption.

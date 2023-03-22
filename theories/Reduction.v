@@ -317,7 +317,7 @@ Proof.
       * rewrite Nat.add_0_r.
         replace (S (n + o) + length xs) with (n + (S o) + length xs); try lia.
         apply not_free_lift.
-        rewrite plus_comm.
+        rewrite Nat.add_comm.
         assumption.
     + simpl in H0_ |- *.
       dependent destruction H0_.
@@ -929,7 +929,7 @@ Qed.
 
 Global Hint Resolve conv_apply_parameters: cps.
 
-Instance conv_is_a_congruence: Congruence conv.
+Global Instance conv_is_a_congruence: Congruence conv.
 Proof.
   split.
   - split.
@@ -1079,7 +1079,7 @@ Proof.
     constructor.
     + assumption.
     + assumption.
-    + rewrite plus_comm.
+    + rewrite Nat.add_comm.
       assumption.
   - dependent destruction H.
     edestruct IHh; eauto.
@@ -1090,7 +1090,7 @@ Proof.
     constructor.
     + assumption.
     + assumption.
-    + rewrite plus_comm.
+    + rewrite Nat.add_comm.
       assumption.
   - dependent destruction H.
     edestruct IHh; eauto.
@@ -1116,14 +1116,14 @@ Proof.
         replace (S k + #h) with (k + S #h); try lia.
         assumption.
     + assumption.
-    + rewrite plus_comm.
+    + rewrite Nat.add_comm.
       assumption.
   - dependent destruction H.
     simpl; constructor.
     + assumption.
     + assumption.
     + apply IHh.
-      * rewrite plus_comm.
+      * rewrite Nat.add_comm.
         assumption.
       * simpl in H2.
         replace (length ts + k + #h) with (k + (#h + length ts)); try lia.
@@ -1278,7 +1278,7 @@ Proof.
     induction H; simpl; auto.
     do 3 rewrite traverse_list_length.
     f_equal; auto.
-    rewrite plus_assoc.
+    rewrite Nat.add_assoc.
     apply H.
   - do 2 rewrite lift_distributes_over_jump.
     rewrite right_cycle_distributes_over_jump.
@@ -1292,7 +1292,7 @@ Proof.
     + induction H; simpl; auto.
       do 3 rewrite traverse_list_length.
       f_equal; auto.
-      rewrite plus_assoc.
+      rewrite Nat.add_assoc.
       apply H.
     + rewrite traverse_list_length.
       replace (k + i + length ts) with (k + length ts + i); try lia.

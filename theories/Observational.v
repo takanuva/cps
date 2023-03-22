@@ -85,8 +85,8 @@ Proof.
   dependent induction H.
   - rewrite subst_distributes_over_jump.
     rewrite subst_bound_gt; try lia.
-    rewrite plus_comm; simpl.
-    rewrite plus_comm; constructor.
+    rewrite Nat.add_comm; simpl.
+    rewrite Nat.add_comm; constructor.
   - rewrite subst_distributes_over_bind.
     constructor.
     replace (S (p + k)) with (S p + k); try lia.
@@ -337,7 +337,7 @@ Qed.
   converges c (p + S j).
 Proof.
   induction 1; intros.
-  - rewrite plus_comm in H.
+  - rewrite Nat.add_comm in H.
     simpl in H, H0.
     dependent destruction H0.
     rewrite subst_distributes_over_jump in H1.
@@ -514,7 +514,7 @@ Proof.
   admit.
 Admitted.
 
-Instance barb_is_a_congruence: Congruence barb.
+Global Instance barb_is_a_congruence: Congruence barb.
 Proof.
   split.
   - split.

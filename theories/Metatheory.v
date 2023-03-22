@@ -25,7 +25,7 @@ Proof.
   induction n; simpl; auto.
 Qed.
 
-Hint Rewrite sequence_length: cps.
+Global Hint Rewrite sequence_length: cps.
 
 Lemma lift_distributes_over_negation:
   forall i k ts,
@@ -207,7 +207,7 @@ Proof.
         replace (length l0 + (i + l)) with (i + (length l0 + l)); try lia.
         apply H; lia.
     + do 2 rewrite traverse_list_length.
-      rewrite plus_assoc_reverse.
+      rewrite <- Nat.add_assoc.
       apply IHe2; lia.
 Qed.
 
@@ -711,7 +711,7 @@ Proof.
     do 5 rewrite traverse_list_length.
     f_equal; auto.
     replace (length l + S (S k)) with (S (S (length l + k))); try lia.
-    do 2 rewrite plus_assoc.
+    do 2 rewrite Nat.add_assoc.
     apply H.
   (* Case: jump. *)
   - do 2 rewrite lift_distributes_over_jump.
@@ -729,7 +729,7 @@ Proof.
       do 5 rewrite traverse_list_length.
       f_equal; auto.
       replace (length l + S (S k)) with (S (S (length l + k))); try lia.
-      do 2 rewrite plus_assoc.
+      do 2 rewrite Nat.add_assoc.
       apply H.
     + do 3 rewrite traverse_list_length.
       replace (k + 0 + length ts) with (k + length ts + 0); try lia.
@@ -947,7 +947,7 @@ Proof.
     dependent destruction H0.
     simpl; f_equal; auto.
     do 4 rewrite traverse_list_length.
-    do 2 rewrite plus_assoc.
+    do 2 rewrite Nat.add_assoc.
     apply H; auto.
   (* Case: jump. *)
   - rewrite lift_distributes_over_jump.
@@ -972,13 +972,13 @@ Proof.
       inversion_clear H2.
       simpl; f_equal; auto.
       do 4 rewrite traverse_list_length.
-      do 2 rewrite plus_assoc.
+      do 2 rewrite Nat.add_assoc.
       apply H; auto.
     + do 2 rewrite traverse_list_length.
       replace (p + k + length ts) with (p + length ts + k); try lia.
       replace (p + S k + length ts) with (p + length ts + S k); try lia.
       apply IHe2; auto.
-      rewrite plus_comm; auto.
+      rewrite Nat.add_comm; auto.
 Qed.
 
 Lemma remove_closest_binding_and_lift_commute:
@@ -1036,7 +1036,7 @@ Proof.
     dependent destruction H0.
     simpl; f_equal; auto.
     do 4 rewrite traverse_list_length.
-    do 2 rewrite plus_assoc.
+    do 2 rewrite Nat.add_assoc.
     apply H; auto.
   (* Case: jump. *)
   - do 4 rewrite subst_distributes_over_jump.
@@ -1057,13 +1057,13 @@ Proof.
       inversion_clear H2.
       simpl; f_equal; auto.
       do 4 rewrite traverse_list_length.
-      do 2 rewrite plus_assoc.
+      do 2 rewrite Nat.add_assoc.
       apply H; auto.
     + do 2 rewrite traverse_list_length.
       replace (p + k + length ts) with (p + length ts + k); try lia.
       replace (p + S k + length ts) with (p + length ts + S k); try lia.
       apply IHe2; auto.
-      rewrite plus_comm; auto.
+      rewrite Nat.add_comm; auto.
 Qed.
 
 Lemma remove_closest_binding_and_subst_commute:
@@ -1313,7 +1313,7 @@ Proof.
   rewrite sequence_length.
   rewrite subst_bound_eq; auto.
   rewrite lift_bound_ge; auto.
-  rewrite plus_comm.
+  rewrite Nat.add_comm.
   rewrite apply_parameters_bound_gt.
   - rewrite sequence_length.
     f_equal; lia.
@@ -1686,7 +1686,7 @@ Lemma right_cycle_switch_bindings_simplification:
 Proof.
   intros.
   rewrite switch_bindings_behavior.
-  rewrite plus_comm.
+  rewrite Nat.add_comm.
   replace (S i) with (i + 1); try lia.
   apply right_cycle_right_cycle_simplification.
 Qed.
