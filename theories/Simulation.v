@@ -9,6 +9,10 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
+(* TODO: I *think* I only need this one for the administrative redex lemmas, so
+   this can be removed once I add (ETA) to tidying reductions. *)
+Require Import Local.Axiomatic.
+Require Import Local.Reduction.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Observational.
@@ -484,6 +488,76 @@ Section CallByName.
       dependent destruction H5.
       apply barb_bind_right.
       apply barb_bind_right.
+      admit.
+  Admitted.
+
+  (* Ideally, given a lambda term e which is in normal form, and a variable k
+     which is fresh, the CPS translation [e]k should not have administrative
+     redexes which can't be fixed by applying only tyding reductions. *)
+
+  Inductive no_administrative_jumps e: Prop :=
+    | no_administrative_jumps_ctor
+      (b: pseudoterm)
+      (H1: cbn_cps e b)
+      (c: pseudoterm)
+      (* Actually, b should reduce to c through tidying reductions! TODO: fix
+         this, please. *)
+      (H2: [b == c])
+      (H3: normal beta c).
+
+  Lemma lambda_abstraction_normal:
+    forall t e,
+    normal lambda_full (lambda_abstraction t e) ->
+    normal lambda_full e.
+  Proof.
+    intros; do 2 intro.
+    eapply H; clear H.
+    apply lambda_full_abs.
+    eassumption.
+  Qed.
+
+  Goal
+    forall e,
+    normal lambda_full e ->
+    (* We need to be sure that k is free in e! *)
+    no_administrative_jumps (lambda_lift 1 0 e).
+  Proof.
+    induction e; intros.
+    (* Case: [x]k. *)
+    - (* This case is pretty much straightforward. *)
+      econstructor.
+      + simpl.
+        constructor.
+      + apply sema_refl.
+      + inversion 1.
+    (* Case: [\x.e]k. *)
+    - (* This simply follows by induction. *)
+      simpl.
+      apply lambda_abstraction_normal in H.
+      specialize (IHe H); clear H.
+      dependent destruction IHe.
+      econstructor.
+      + constructor.
+        rewrite lambda_lift_lift_permutation; simpl; try lia.
+        apply cbn_cps_lift; try lia.
+        eassumption.
+      + apply sema_bind_right.
+        apply sema_lift.
+        eassumption.
+      + do 2 intro.
+        dependent destruction H.
+        * destruct h; discriminate.
+        * inversion H.
+        * edestruct beta_lift_inversion; eauto.
+          dependent destruction H0.
+          apply beta_unlift in H.
+          eapply H3.
+          eassumption.
+    (* Case: [f e]k. *)
+    - (* This is the most complicated scenario. Here, as f e is normal, we know
+         that both f and e are normal and that f can't be an abstraction. We can
+         then proceed by case analysis. A few tidying steps might be necessary
+         to clean up the jumps! *)
       admit.
   Admitted.
 
