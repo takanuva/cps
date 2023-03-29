@@ -666,6 +666,67 @@ Section ObservationalRelations.
 
 End ObservationalRelations.
 
+(* TODO: move this one. It might be useful, specially for reasoning about extra
+   reductions on the call-by-value calculus. *)
+
+Goal
+  forall T L,
+  forall R S: relation T,
+  forall P: T -> L -> Prop,
+  inclusion R S ->
+  inclusion S (observational_equivalence R P) ->
+  same_relation (observational_equivalence R P) (observational_equivalence S P).
+Proof.
+  intros.
+  assert (inclusion rt(S) (observational_equivalence R P)).
+  - do 3 intro.
+    induction H1.
+    + apply H0.
+      assumption.
+    + apply observational_equivalence_refl.
+    + apply observational_equivalence_trans with y; auto.
+  - clear H0.
+    split; split; intro.
+    + destruct H2 as (x', ?, ?).
+      assert (comp rt(R) P x' l); eauto with cps.
+      apply H1 in H2.
+      apply H2 in H4.
+      apply H0 in H4.
+      destruct H4 as (y', ?, ?).
+      exists y'; auto.
+      clear H0 H2 H5.
+      induction H4; eauto with cps.
+    + destruct H2 as (y', ?, ?).
+      assert (comp rt(R) P y' l); eauto with cps.
+      apply H1 in H2.
+      apply H2 in H4.
+      apply H0 in H4.
+      destruct H4 as (x', ?, ?).
+      exists x'; auto.
+      clear H0 H2 H5.
+      induction H4; eauto with cps.
+    + assert (comp rt(S) P x l).
+      * destruct H2 as (x', ?, ?).
+        exists x'; auto.
+        clear H0 H3.
+        induction H2; eauto with cps.
+      * apply H0 in H3.
+        destruct H3 as (y', ?, ?).
+        apply H1 in H3.
+        apply H3.
+        exists y'; auto with cps.
+    + assert (comp rt(S) P y l).
+      * destruct H2 as (y', ?, ?).
+        exists y'; auto.
+        clear H0 H3.
+        induction H2; eauto with cps.
+      * apply H0 in H3.
+        destruct H3 as (x', ?, ?).
+        apply H1 in H3.
+        apply H3.
+        exists x'; auto with cps.
+Qed.
+
 Section BarbedRelations.
 
   Variable T: Type.
