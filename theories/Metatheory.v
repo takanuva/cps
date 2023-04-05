@@ -25,7 +25,7 @@ Proof.
   induction n; simpl; auto.
 Qed.
 
-Global Hint Rewrite sequence_length: cps.
+Hint Rewrite sequence_length: cps.
 
 Lemma lift_distributes_over_negation:
   forall i k ts,
