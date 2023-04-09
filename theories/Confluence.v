@@ -281,7 +281,7 @@ Global Hint Resolve rt_beta_parallel: cps.
 Lemma parallel_has_diamond:
   diamond parallel.
 Proof.
-  unfold diamond, commutes; intros.
+  unfold diamond, commutes, diagram; intros.
   destruct H as (r, (x', ?, ?), ?).
   destruct H0 as (p, (y', ?, ?), ?).
   destruct paving with (mark x) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.

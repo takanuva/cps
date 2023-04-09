@@ -62,20 +62,36 @@ Global Hint Resolve equiv_sym: cps.
 Global Hint Resolve equiv_trans: cps.
 Global Hint Constructors equivalence: cps.
 
-Definition commutes {T} (R: relation T) (S: relation T): Prop :=
+(* Generalize the idea of a square commutation diagram. *)
+
+Definition diagram {A B C D} (R: A -> B -> Prop)
+                             (S: A -> C -> Prop)
+                             (T: B -> D -> Prop)
+                             (U: C -> D -> Prop): Prop :=
   forall x y,
   R x y ->
   forall z,
   S x z ->
   exists2 w,
-  S y w & R z w.
+  T y w & U z w.
+
+Global Hint Unfold diagram: cps.
+
+(* Relations R and S commute with each other. *)
+
+Definition commutes {T} (R: relation T) (S: relation T): Prop :=
+  diagram R S S R.
 
 Global Hint Unfold commutes: cps.
 
-Definition diamond {T} R: Prop :=
-  @commutes T R R.
+(* Relation R commutes with itself. *)
+
+Definition diamond {T} (R: relation T): Prop :=
+  commutes R R.
 
 Global Hint Unfold diamond: cps.
+
+(* Relation composition. *)
 
 Definition comp {A} {B} {C} R S: A -> C -> Prop :=
   fun a c =>
@@ -300,17 +316,59 @@ End Relations.
 
 Section Confluency.
 
+  Lemma generalized_strip_lemma:
+    forall A: Type,
+    forall B: Type,
+    forall R: A -> B -> Prop,
+    forall S: A -> A -> Prop,
+    forall P: B -> B -> Prop,
+    forall Q: A -> B -> Prop,
+    (* Q is a subset of R. *)
+    (forall x y, Q x y -> R x y) ->
+    diagram R S P Q -> diagram R t(S) t(P) Q.
+  Proof.
+    intros; intros x y ? z ?.
+    generalize dependent y.
+    induction H2.
+    (* Case: step. *)
+    - rename y into z; intros y ?.
+      destruct H0 with x y z as (w, ?, ?); auto.
+      exists w; auto with cps.
+    (* Case: trans. *)
+    - intros w ?.
+      destruct IHclos_trans1 with w as (v, ?, ?); auto.
+      destruct IHclos_trans2 with v as (u, ?, ?); auto.
+      exists u; eauto with cps.
+  Qed.
+
   Variable T: Type.
 
   Lemma strip_lemma:
     forall R: relation T,
     forall S: relation T,
-    commutes R S -> commutes t(R) S.
+    commutes R S -> commutes R t(S).
   Proof.
-    induction 2; intros.
+    intros.
+    apply generalized_strip_lemma; auto with cps.
+  Qed.
+
+  Lemma transitive_closure_preserves_diagram:
+    forall R: relation T,
+    forall S: relation T,
+    forall P: relation T,
+    forall Q: relation T,
+    inclusion t(P) t(S) ->
+    inclusion Q R ->
+    diagram R S P Q -> diagram t(R) t(S) t(P) t(Q).
+  Proof.
+    induction 4; intros.
     (* Case: step. *)
-    - destruct H with x y z as (w, ?, ?); auto.
-      exists w; auto with cps.
+    - edestruct generalized_strip_lemma as (w, ?, ?).
+      + exact H0.
+      + exact H1.
+      + eassumption.
+      + eassumption.
+      + exists w; auto with cps.
     (* Case: trans. *)
     - rename z0 into w.
       destruct IHclos_trans1 with w as (v, ?, ?); auto.
@@ -323,20 +381,27 @@ Section Confluency.
     forall S: relation T,
     commutes R S -> commutes t(R) t(S).
   Proof.
-    induction 2; intros.
-    (* Case: step. *)
-    - destruct strip_lemma with S R x z y as (w, ?, ?).
-      + intros a b ? c ?.
-        destruct H with a c b as (d, ?, ?); auto.
-        exists d; auto.
-      + assumption.
-      + assumption.
-      + exists w; auto with cps.
-    (* Case: trans. *)
-    - rename z0 into w.
-      destruct IHclos_trans1 with w as (v, ?, ?); auto.
-      destruct IHclos_trans2 with v as (u, ?, ?); auto.
-      exists u; eauto with cps.
+    intros.
+    apply transitive_closure_preserves_diagram; auto with cps.
+  Qed.
+
+  Lemma reflexive_closure_preserves_diagram:
+    forall R: relation T,
+    forall S: relation T,
+    forall P: relation T,
+    forall Q: relation T,
+    inclusion S P ->
+    inclusion R Q ->
+    diagram R S P Q -> diagram r(R) r(S) r(P) r(Q).
+  Proof.
+    intros; intros x y ? z ?.
+    destruct H2; destruct H3.
+    - rename y0 into z.
+      destruct H1 with x y z as (w, ?, ?); auto.
+      exists w; auto with cps.
+    - exists y; auto with cps.
+    - exists y; auto with cps.
+    - exists x; auto with cps.
   Qed.
 
   Lemma reflexive_closure_preserves_commutation:
@@ -344,14 +409,8 @@ Section Confluency.
     forall S: relation T,
     commutes R S -> commutes r(R) r(S).
   Proof.
-    intros R S ? x y ? z ?.
-    destruct H0; destruct H1.
-    - rename y0 into z.
-      destruct H with x y z as (w, ?, ?); auto.
-      exists w; auto with cps.
-    - exists y; auto with cps.
-    - exists y; auto with cps.
-    - exists x; auto with cps.
+    intros.
+    apply reflexive_closure_preserves_diagram; auto with cps.
   Qed.
 
   Variable R: relation T.
