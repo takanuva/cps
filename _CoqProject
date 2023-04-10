@@ -18,6 +18,9 @@ theories/Transition.v
 theories/TypeSystem.v
 theories/Normalization.v
 theories/Structural.v
-theories/Simulation.v
+theories/Lambda/Calculus.v
+theories/Lambda/CallByName.v
+theories/Lambda/CallByValue.v
+# theories/Simulation.v
 # Ignore this for now...
 # theories/FullAbstraction.v
