@@ -1283,6 +1283,100 @@ Section StrongBisimulation.
 
 End StrongBisimulation.
 
+Section Postponement.
+
+  Variable T: Type.
+  Variable L: Type.
+
+  Variable R: L -> relation T.
+  Variable S: relation T.
+
+  Definition postpones: Prop :=
+    forall l,
+    diagram (R l) (transp S) rt(transp S) r(R l).
+
+  Hypothesis local_postponement: postpones.
+
+  Local Lemma postponement_diagram:
+    forall l,
+    diagram rt(R l) rt(transp S) rt(transp S) rt(R l).
+  Proof.
+    intros.
+    assert (diagram (R l) t(transp S) rt(transp S) r(R l)).
+    - intros x y ? z ?.
+      apply r_step in H.
+      generalize dependent y.
+      induction H0.
+      + intros z ?.
+        destruct H0.
+        * rename y0 into z.
+          eapply local_postponement; eauto.
+        * exists y; auto with cps.
+      + intros w ?.
+        edestruct IHclos_trans1 as (v, ?, ?); eauto.
+        edestruct IHclos_trans2 as (u, ?, ?); eauto.
+        exists u; eauto with cps.
+    - induction 1.
+      + intros z ?.
+        apply rt_characterization in H1.
+        destruct H1.
+        * rename y0 into z.
+          destruct H with x y z as (w, ?, ?); eauto.
+          exists w; destruct H3; eauto with cps.
+        * exists y; eauto with cps.
+      + intros z ?.
+        exists z; eauto with cps.
+      + intros w ?.
+        destruct IHclos_refl_trans1 with w as (v, ?, ?); auto.
+        destruct IHclos_refl_trans2 with v as (u, ?, ?); auto.
+        exists u; eauto with cps.
+  Qed.
+
+  Lemma postponement:
+    forall l,
+    inclusion (comp rt(S) rt(R l)) (comp rt(R l) rt(S)).
+  Proof.
+    intros l x z (y, ?, ?).
+    destruct postponement_diagram with l y z x as (w, ?, ?).
+    - assumption.
+    - clear H0 z.
+      induction H; eauto with cps.
+    - exists w; auto.
+      clear H H0 H2 x y.
+      induction H1; eauto with cps.
+  Qed.
+
+  (* TODO: this might be useful. I hope I'll remember about this if I come to
+     need it. I gotta be fast, the deadline is approaching. *)
+
+  Goal
+    let X := fun a b => exists l, R l a b in
+    diagram rt(X) rt(transp S) rt(transp S) rt(X).
+  Proof.
+    simpl; induction 1; intros.
+    - destruct H as (l, ?).
+      destruct postponement_diagram with l x y z as (w, ?, ?); eauto with cps.
+      exists w.
+      + assumption.
+      + clear H H0 H1 x y.
+        induction H2; eauto with cps.
+    - exists z; eauto with cps.
+    - rename z0 into w.
+      edestruct IHclos_refl_trans1 as (v, ?, ?); eauto.
+      edestruct IHclos_refl_trans2 as (u, ?, ?); eauto.
+      exists u; eauto with cps.
+  Qed.
+
+  Lemma bisimulation_implies_postponement:
+    strong_bisimulation R S -> postpones.
+  Proof.
+    intros (_, ?) l x y ? z ?.
+    destruct H with x z y l as (w, ?, ?); auto.
+    exists w; auto with cps.
+  Qed.
+
+End Postponement.
+
 Section Modulo.
 
   Variable T: Type.
@@ -1299,6 +1393,8 @@ Section Modulo.
 
   Hypothesis S_is_equiv: equivalence S.
   Hypothesis S_is_bisimulation: strong_bisimulation (fun _: unit => R) S.
+
+  (* TODO: rewrite the following lemmas to use the postponement code above! *)
 
   Lemma modulo_bisimulation_postponement:
     same_relation t(modulo) (comp t(R) S).
