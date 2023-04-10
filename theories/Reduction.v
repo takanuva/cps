@@ -1508,3 +1508,82 @@ Proof.
 Qed.
 
 Global Hint Resolve sema_conv: cps.
+
+(* -------------------------------------------------------------------------- *)
+
+(* It will be much easier if we show we can postpone tidying, which we should
+   actually be able to. TODO: in which file should these results be? Perhaps I
+   should make a file just for results in tidying... oh well, I'll need to clean
+   up everything later anyways. *)
+
+Lemma transp_tidy_bind_left:
+  LEFT (transp tidy).
+Proof.
+  intros b1 b2 ts c ?.
+  apply tidy_bind_left.
+  assumption.
+Qed.
+
+Global Hint Resolve transp_tidy_bind_left: cps.
+
+Lemma transp_tidy_bind_right:
+  RIGHT (transp tidy).
+Proof.
+  intros b1 b2 ts c ?.
+  apply tidy_bind_right.
+  assumption.
+Qed.
+
+Global Hint Resolve transp_tidy_bind_right: cps.
+
+Lemma rt_transp_tidy_bind_left:
+  LEFT rt(transp tidy).
+Proof.
+  induction 1.
+  - apply rt_step.
+    apply transp_tidy_bind_left.
+    assumption.
+  - auto with cps.
+  - eauto with cps.
+Qed.
+
+Global Hint Resolve rt_transp_tidy_bind_left: cps.
+
+Lemma rt_transp_tidy_bind_right:
+  RIGHT rt(transp tidy).
+Proof.
+  induction 1.
+  - apply rt_step.
+    apply transp_tidy_bind_right.
+    assumption.
+  - auto with cps.
+  - eauto with cps.
+Qed.
+
+Global Hint Resolve rt_transp_tidy_bind_right: cps.
+
+Lemma tidying_postponement:
+  inclusion (comp rt(tidy) rt(beta)) (comp rt(beta) rt(tidy)).
+Proof.
+  apply postponement with (R := fun u: unit => beta) (l := tt).
+  intros _ y z ? x ?.
+  unfold transp in H0.
+  generalize dependent z.
+  induction H0; intros.
+  (* Case: gc. *)
+  - admit.
+  (* Case: bind_left. *)
+  - dependent destruction H.
+    + admit.
+    + edestruct IHtidy as (b4, ?, ?); eauto.
+      exists (bind b4 ts c); destruct H2; auto with cps.
+    + rename c into c1.
+      exists (bind b1 ts c2); auto with cps.
+  (* Case: bind_right. *)
+  - dependent destruction H.
+    + admit.
+    + rename b into b1.
+      exists (bind b2 ts c1); auto with cps.
+    + edestruct IHtidy as (c4, ?, ?); eauto.
+      exists (bind b ts c4); destruct H2; auto with cps.
+Admitted.
