@@ -116,7 +116,7 @@ Section Relations.
   Lemma rt_characterization:
     same_relation rt(R) r(t(R)).
   Proof.
-    unfold same_relation, inclusion; split; intros.
+    split; intros x y ?.
     - induction H.
       + eauto with cps.
       + eauto with cps.
@@ -124,6 +124,21 @@ Section Relations.
         destruct IHclos_refl_trans2;
         eauto with cps.
     - destruct H; eauto with cps.
+  Qed.
+
+  Lemma t_characterization:
+    same_relation t(R) (comp R rt(R)).
+  Proof.
+    split; intros x y ?.
+    - apply clos_trans_t1n_iff in H.
+      destruct H.
+      + exists y; auto with cps.
+      + apply clos_trans_t1n_iff in H0.
+        exists y; auto.
+        apply clos_t_clos_rt; auto.
+    - destruct H as (w, ?, ?).
+      apply rt_characterization in H0.
+      destruct H0; eauto with cps.
   Qed.
 
   Lemma r_and_t_closures_commute:
@@ -662,6 +677,59 @@ Section ListNormalization.
   Qed.
 
 End ListNormalization.
+
+Section Newman.
+
+  Variable T: Type.
+
+  Variable R: relation T.
+
+  Definition locally_confluent: Prop :=
+    diagram R R rt(R) rt(R).
+
+  Hypothesis local_confluence: locally_confluent.
+  Hypothesis normalizing: forall x, SN R x.
+
+  Lemma newman:
+    confluent R.
+  Proof.
+    intro x.
+    induction (normalizing x); clear H.
+    intros y ? z ?.
+    apply rt_characterization in H.
+    apply rt_characterization in H1.
+    destruct H; destruct H1.
+    - rename y into w, y0 into v.
+      apply t_characterization in H.
+      apply t_characterization in H1.
+      destruct H as (y, ?, ?).
+      destruct H1 as (z, ?, ?).
+      (*
+        Simple diagram chasing, which proceeds as follows:
+
+          x ------ z ------ v  In here, assuming there are at least one step
+          |        |        |  in each direction, we take the first steps to
+          |        |        |  be y and z, but we want to close the diagram
+          |        |        |  between w and v. We first take u by using the
+          y ------ u        |  local confluence hypothesis, then we find t by
+          |        |        |  using our inductive hypothesis (on the step from
+          |        |        |  x to y), then we proceed to find s again using
+          |        |        |  our inductive hypothesis (but on the step from x
+          w ------ t ------ s  to z this time).
+      *)
+      destruct local_confluence with x y z as (u, ?, ?); auto.
+      edestruct H0 with y u w as (t, ?, ?); eauto.
+      edestruct H0 with z t v as (s, ?, ?); eauto with cps.
+    - exists y; auto with cps.
+      clear H0.
+      induction H; eauto with cps.
+    - exists y; auto with cps.
+      clear H0.
+      induction H; eauto with cps.
+    - exists x; auto with cps.
+  Qed.
+
+End Newman.
 
 Section ObservationalRelations.
 
