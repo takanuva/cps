@@ -345,3 +345,57 @@ Proof.
        to k if f is just a variable. So no administrative redexes at all! *)
     admit.
 Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+(*
+  From Amadio's class notes, we know that head reduction can't directly simulate
+  beta reduction, though it's still computationally adequate. It should be the
+  case that extended reduction will be able to properly simulate beta reduction
+  on both CPS translations. For the call-by-name translation:
+
+    1) [x]    = x<k>
+    2) [\x.M] = k<f> { f<x, k> = [M] }
+    3) [M N]  = [M] { k<f> = f<v, k> { v<k> = [N] } }
+
+  For a lambda term of the form [(\x.a) b], we will have:
+
+    k<f>
+    { f<x, k> =
+        [a] }
+    { k<f> =
+        f<v, k>
+        { v<k> =
+            [b] } }
+
+  We immediately can apply a two linear head redexes:
+
+    [a]
+    { x<k> =
+        [b] }
+
+  Though the exact indution statement may be awkward, as we have to apply these
+  simplifications first and keep building the way, we will proceed by induction
+  now on the number of free occurrences of x in a:
+
+    Base: if we don't have x free in a, we don't have x free in [a]. Thus, we
+    can apply a garbage collection step and get [a] alone, as expected.
+
+    Step: if there's a x in a, then a can be rewritten as C[x]. Then, due to the
+    composability of the translation, we will have:
+
+      D[x<k>]
+      { x<k> =
+        [b] }
+
+    We would want to show that we can mimick a single substitution, thus, we
+    will compare (\x.C[x]) b to (\x.C[b]) b. Thus, we want the above to reduce
+    to:
+
+      D[[b]]
+      { x<k> =
+        [b] }
+
+    Which we can do in one (CTXJMP) step. Qed.
+
+*)
