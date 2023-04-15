@@ -229,4 +229,43 @@ Admitted.
   This is way more problematic. Does Plotkin prove simulation for the full beta
   reduction in here, or just for the call-by-value beta reduction? AAAAAAAAAAA.
 
+  It seems this simply isn't true for the full beta... could we think of a
+  counter example? Anyways, let's consider, thus, that b is a value. We have two
+  cases then. The first one, where b is a variable:
+
+    k<y>
+    { k<x> =
+      D[k<x>] }
+
+  This will simplify in one linear head reduction to:
+
+    D[k<y>]
+
+  Ok, this seems fine. I've replaced one variable by the other. Now, the other
+  case is when b is an abstraction. We should then have:
+
+    k<f>
+    { f<y, k> =
+      [c] }
+    { k<x> =
+      D[k<x>] }
+
+  This will simply reduce to:
+
+    D[k<f>]
+    { f<y, k> =
+      [c] }
+
+  As we'd have the reduction be from [(\x.a) (\y.c)] to [a[\y.c/x]], if for
+  simplicity we assume there's a single x in there, we'd want to have:
+
+    D[k<f> { f<y, k> = [c] }]
+
+  This is just floating! However, the problem is that f can appear free multiple
+  times, so we can't just float this in there. We can duplicate it, of course,
+  if we are not trying to reduce but rather show that the terms are equal. This
+  is enough to show adequacy, but we don't have one-step simulation anymore. We
+  would still have it if we allowed for specialization, just like it's done in
+  linear logic! But we'd like to have contraction instead for the CPS-calculus.
+
 *)
