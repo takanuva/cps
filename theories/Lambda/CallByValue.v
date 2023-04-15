@@ -191,3 +191,42 @@ Admitted.
 (* -------------------------------------------------------------------------- *)
 
 (* Add lemma about administrative redexes in here, similar to [CallByName.v]! *)
+
+(* -------------------------------------------------------------------------- *)
+
+(*
+  Let's try to reason about simulation. The proof should follow in a similar way
+  from the call-by-name one. Recall the call-by-value translation:
+
+    1) [x] = k<x>
+    2) [\x.M] = k<f> { f<x, k> = [M] }
+    3) [M N](k) = [M] { k<f> = [N] { k<v> = f<v, k> } }
+
+  Again, we have a term as [(\x.a) b], which will translate into:
+
+    k<f>
+    { f<x, k> =
+        [a] }
+    { k<f> =
+        [b]
+        { k<v> =
+            f<v, k> } }
+
+  We immediately have two linear jump redexes (only the first at head position):
+
+    [b]
+    { k<x> =
+        [a] }
+
+  This is the opposite of the call-by-name! Of course, I should have expected
+  that. If [a] contains a free occurrence of x and is thus equal to C[x], we
+  will then have:
+
+    [b]
+    { k<x> =
+        D[k<x>] }
+
+  This is way more problematic. Does Plotkin prove simulation for the full beta
+  reduction in here, or just for the call-by-value beta reduction? AAAAAAAAAAA.
+
+*)
