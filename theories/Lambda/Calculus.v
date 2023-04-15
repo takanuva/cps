@@ -7,31 +7,32 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
 
-Inductive lambda_type: Set :=
-  | lambda_base
-  | lambda_arrow (a: lambda_type) (b: lambda_type).
+Inductive type: Set :=
+  | base
+  | arrow (a: type) (b: type).
 
-Inductive lambda_term: Set :=
-  | lambda_bound (n: nat)
-  | lambda_abstraction (t: lambda_type) (b: lambda_term)
-  | lambda_application (f: lambda_term) (x: lambda_term).
+Inductive term: Set :=
+  | bound (n: nat)
+  | abstraction (t: type) (b: term)
+  | application (f: term) (x: term).
 
-Coercion lambda_bound: nat >-> lambda_term.
+Coercion bound: nat >-> term.
 
-Inductive lambda_value: lambda_term -> Prop :=
-  | lambda_value_bound:
+Inductive value: term -> Prop :=
+  | value_bound:
     forall n: nat,
-    lambda_value n
-  | lambda_value_abstraction:
+    value n
+  | value_abstraction:
     forall t b,
-    lambda_value (lambda_abstraction t b).
+    value (abstraction t b).
 
-Global Hint Constructors lambda_value: cps.
+Global Hint Constructors value: cps.
 
-Lemma lambda_value_dec:
+Lemma value_dec:
   forall e,
-  { lambda_value e } + { ~lambda_value e }.
+  { value e } + { ~value e }.
 Proof.
   destruct e.
   - left; auto with cps.
@@ -40,38 +41,38 @@ Proof.
     inversion H.
 Qed.
 
-Fixpoint lambda_lift (i: nat) (k: nat) (e: lambda_term): lambda_term :=
+Fixpoint lift (i: nat) (k: nat) (e: term): term :=
   match e with
-  | lambda_bound n =>
+  | bound n =>
     if le_gt_dec k n then
-      lambda_bound (i + n)
+      bound (i + n)
     else
-      lambda_bound n
-  | lambda_abstraction t b =>
-    lambda_abstraction t (lambda_lift i (S k) b)
-  | lambda_application f x =>
-    lambda_application (lambda_lift i k f) (lambda_lift i k x)
+      bound n
+  | abstraction t b =>
+    abstraction t (lift i (S k) b)
+  | application f x =>
+    application (lift i k f) (lift i k x)
   end.
 
-Fixpoint lambda_subst (p: lambda_term) (k: nat) (q: lambda_term): lambda_term :=
+Fixpoint subst (p: term) (k: nat) (q: term): term :=
   match q with
-  | lambda_bound n =>
+  | bound n =>
     match lt_eq_lt_dec k n with
-    | inleft (left _) => lambda_bound (pred n)
-    | inleft (right _) => lambda_lift k 0 p
-    | inright _ => lambda_bound n
+    | inleft (left _) => bound (pred n)
+    | inleft (right _) => lift k 0 p
+    | inright _ => bound n
     end
-  | lambda_abstraction t b =>
-    lambda_abstraction t (lambda_subst p (S k) b)
-  | lambda_application f x =>
-    lambda_application (lambda_subst p k f) (lambda_subst p k x)
+  | abstraction t b =>
+    abstraction t (subst p (S k) b)
+  | application f x =>
+    application (subst p k f) (subst p k x)
   end.
 
-Lemma lambda_lift_lift_permutation:
+Lemma lift_lift_permutation:
   forall e (i j k l : nat),
   k <= l ->
-  lambda_lift i k (lambda_lift j l e) =
-    lambda_lift j (i + l) (lambda_lift i k e).
+  lift i k (lift j l e) =
+    lift j (i + l) (lift i k e).
 Proof.
   induction e; simpl; intros.
   - destruct (le_gt_dec l n);
@@ -94,19 +95,19 @@ Proof.
     + apply IHe2; auto.
 Qed.
 
-Fixpoint lambda_size (e: lambda_term): nat :=
+Fixpoint size (e: term): nat :=
   match e with
-  | lambda_bound n =>
+  | bound n =>
     1
-  | lambda_abstraction t b =>
-    1 + lambda_size b
-  | lambda_application f x =>
-    1 + lambda_size f + lambda_size x
+  | abstraction t b =>
+    1 + size b
+  | application f x =>
+    1 + size f + size x
   end.
 
-Lemma lambda_size_lift:
+Lemma size_lift:
   forall e i k,
-  lambda_size (lambda_lift i k e) = lambda_size e.
+  size (lift i k e) = size e.
 Proof.
   induction e; simpl; intros.
   - destruct (le_gt_dec k n); auto.
@@ -114,68 +115,68 @@ Proof.
   - auto.
 Qed.
 
-Inductive lambda_context: Set :=
-  | lambda_context_hole
-  | lambda_context_abstraction (t: lambda_type) (b: lambda_context)
-  | lambda_context_application_left (f: lambda_context) (x: lambda_term)
-  | lambda_context_application_right (f: lambda_term) (x: lambda_context).
+Inductive context: Set :=
+  | context_hole
+  | context_abstraction (t: type) (b: context)
+  | context_application_left (f: context) (x: term)
+  | context_application_right (f: term) (x: context).
 
-Fixpoint lambda_apply_context h e :=
+Fixpoint apply_context h e :=
   match h with
-  | lambda_context_hole =>
+  | context_hole =>
     e
-  | lambda_context_abstraction t b =>
-    lambda_abstraction t (lambda_apply_context b e)
-  | lambda_context_application_left f x =>
-    lambda_application (lambda_apply_context f e) x
-  | lambda_context_application_right f x =>
-    lambda_application f (lambda_apply_context x e)
+  | context_abstraction t b =>
+    abstraction t (apply_context b e)
+  | context_application_left f x =>
+    application (apply_context f e) x
+  | context_application_right f x =>
+    application f (apply_context x e)
   end.
 
-Coercion lambda_apply_context: lambda_context >-> Funclass.
+Coercion apply_context: context >-> Funclass.
 
-Fixpoint lambda_context_bvars h: nat :=
+Fixpoint context_bvars h: nat :=
   match h with
-  | lambda_context_hole =>
+  | context_hole =>
     0
-  | lambda_context_abstraction t b =>
-    1 + lambda_context_bvars b
-  | lambda_context_application_left f x =>
-    lambda_context_bvars f
-  | lambda_context_application_right f x =>
-    lambda_context_bvars x
+  | context_abstraction t b =>
+    1 + context_bvars b
+  | context_application_left f x =>
+    context_bvars f
+  | context_application_right f x =>
+    context_bvars x
   end.
 
-Fixpoint lambda_context_depth h: nat :=
+Fixpoint context_depth h: nat :=
   match h with
-  | lambda_context_hole =>
+  | context_hole =>
     0
-  | lambda_context_abstraction t b =>
-    1 + lambda_context_depth b
-  | lambda_context_application_left f x =>
-    1 + lambda_context_depth f
-  | lambda_context_application_right f x =>
-    1 + lambda_context_depth x
+  | context_abstraction t b =>
+    1 + context_depth b
+  | context_application_left f x =>
+    1 + context_depth f
+  | context_application_right f x =>
+    1 + context_depth x
   end.
 
-Fixpoint lambda_context_lift i k h: lambda_context :=
+Fixpoint context_lift i k h: context :=
   match h with
-  | lambda_context_hole =>
-    lambda_context_hole
-  | lambda_context_abstraction t b =>
-    lambda_context_abstraction t (lambda_context_lift i (S k) b)
-  | lambda_context_application_left f x =>
-    lambda_context_application_left
-      (lambda_context_lift i k f) (lambda_lift i k x)
-  | lambda_context_application_right f x =>
-    lambda_context_application_right
-      (lambda_lift i k f) (lambda_context_lift i k x)
+  | context_hole =>
+    context_hole
+  | context_abstraction t b =>
+    context_abstraction t (context_lift i (S k) b)
+  | context_application_left f x =>
+    context_application_left
+      (context_lift i k f) (lift i k x)
+  | context_application_right f x =>
+    context_application_right
+      (lift i k f) (context_lift i k x)
   end.
 
-Lemma lambda_context_lift_is_sound:
-  forall (h: lambda_context) i k e,
-  lambda_lift i k (h e) =
-    lambda_context_lift i k h (lambda_lift i (lambda_context_bvars h + k) e).
+Lemma context_lift_is_sound:
+  forall (h: context) i k e,
+  lift i k (h e) =
+    context_lift i k h (lift i (context_bvars h + k) e).
 Proof.
   induction h; simpl; intros.
   - reflexivity.
@@ -187,9 +188,9 @@ Proof.
     apply IHh.
 Qed.
 
-Lemma lambda_context_lift_depth:
+Lemma context_lift_depth:
   forall h i k,
-  lambda_context_depth (lambda_context_lift i k h) = lambda_context_depth h.
+  context_depth (context_lift i k h) = context_depth h.
 Proof.
   induction h; intros; simpl.
   - reflexivity.
@@ -198,37 +199,81 @@ Proof.
   - rewrite IHh; auto.
 Qed.
 
-Inductive lambda_not_free: nat -> lambda_term -> Prop :=
-  | lambda_not_free_bound:
+Inductive not_free: nat -> term -> Prop :=
+  | not_free_bound:
     forall n m,
-    n <> m -> lambda_not_free n m
-  | lambda_not_free_abstraction:
+    n <> m -> not_free n m
+  | not_free_abstraction:
     forall t b n,
-    lambda_not_free (S n) b ->
-    lambda_not_free n (lambda_abstraction t b)
-  | lambda_not_free_application:
+    not_free (S n) b ->
+    not_free n (abstraction t b)
+  | not_free_application:
     forall f x n,
-    lambda_not_free n f ->
-    lambda_not_free n x ->
-    lambda_not_free n (lambda_application f x).
+    not_free n f ->
+    not_free n x ->
+    not_free n (application f x).
 
 (* Full beta reduction relation. TODO: consider eta? *)
 
-Inductive lambda_full: relation lambda_term :=
-  | lambda_full_beta:
+Inductive full: relation term :=
+  | full_beta:
     forall t b x,
-    lambda_full
-      (lambda_application (lambda_abstraction t b) x)
-      (lambda_subst x 0 b)
-  | lambda_full_abs:
+    full
+      (application (abstraction t b) x)
+      (subst x 0 b)
+  | full_abs:
     forall t b1 b2,
-    lambda_full b1 b2 ->
-    lambda_full (lambda_abstraction t b1) (lambda_abstraction t b2)
-  | lambda_full_app1:
+    full b1 b2 ->
+    full (abstraction t b1) (abstraction t b2)
+  | full_app1:
     forall f1 f2 x,
-    lambda_full f1 f2 ->
-    lambda_full (lambda_application f1 x) (lambda_application f2 x)
-  | lambda_full_app2:
+    full f1 f2 ->
+    full (application f1 x) (application f2 x)
+  | full_app2:
     forall f x1 x2,
-    lambda_full x1 x2 ->
-    lambda_full (lambda_application f x1) (lambda_application f x2).
+    full x1 x2 ->
+    full (application f x1) (application f x2).
+
+Lemma full_normal_dec:
+  forall e,
+  { normal full e } + { ~normal full e }.
+Proof.
+  induction e.
+  - left; inversion 1.
+  - destruct IHe.
+    + left; intros b ?.
+      dependent destruction H.
+      eapply n; eauto.
+    + right; intros ?.
+      eapply n; intros b ?.
+      eapply H.
+      apply full_abs.
+      eassumption.
+  - destruct IHe1.
+    + destruct IHe2.
+      * destruct e1.
+        (* TODO: refactor me, please. *)
+        --- left.
+            intros b ?.
+            dependent destruction H.
+            +++ inversion H.
+            +++ eapply n0; eauto.
+        --- right; intro.
+            eapply H.
+            apply full_beta.
+        --- left.
+            intros b ?.
+            dependent destruction H.
+            +++ eapply n; eauto.
+            +++ eapply n0; eauto.
+      * clear n; rename n0 into n; right.
+        intros ?; eapply n.
+        intros b ?; eapply H.
+        apply full_app2.
+        eassumption.
+    + clear IHe2; right.
+      intros ?; eapply n.
+      intros b ?; eapply H.
+      apply full_app1.
+      eassumption.
+Qed.
