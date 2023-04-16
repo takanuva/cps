@@ -1562,7 +1562,7 @@ Qed.
 
 Global Hint Resolve rt_transp_tidy_bind_right: cps.
 
-Lemma tidying_postponement:
+Theorem tidying_postponement:
   inclusion (comp rt(tidy) rt(beta)) (comp rt(beta) rt(tidy)).
 Proof.
   apply postponement with (R := fun u: unit => beta) (l := tt).
@@ -1571,7 +1571,26 @@ Proof.
   generalize dependent z.
   induction H0; intros.
   (* Case: gc. *)
-  - admit.
+  - dependent destruction H0.
+    + (* This case is simple, it's just a matter of inverting the order of the
+         reductions, by using a single step on each side. Let's just tidy this
+         a bit... *)
+      destruct b; try destruct n; try discriminate.
+      (* TODO: should we make a remove_binding_distributes_over_bind? *)
+      unfold remove_binding in x.
+      rewrite subst_distributes_over_bind in x.
+      dependent destruction x.
+      rename ts1 into ts, ts into us, b1 into b, b2 into c, c into d.
+      (* Hmm... *)
+      assert (b = lift 1 1 (h (jump #h xs))).
+      * rewrite x.
+        (* Yeah, this is the case! Should I have a lemma for this? *)
+        admit.
+      * rewrite H1.
+        rewrite context_lift_is_sound.
+        admit.
+    + admit.
+    + admit.
   (* Case: bind_left. *)
   - dependent destruction H.
     + admit.
