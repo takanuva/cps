@@ -17,58 +17,6 @@ Require Import Local.TypeSystem.
 
 (** ** Normalization. *)
 
-(* TODO: subterm definition should be on [Syntax.v], probably! *)
-
-Inductive subterm: relation pseudoterm :=
-  | subterm_bind_left:
-    forall b ts c,
-    subterm b (bind b ts c)
-  | subterm_bind_right:
-    forall b ts c,
-    subterm c (bind b ts c).
-
-Lemma subterm_implies_context:
-  forall b c,
-  rt(subterm) b c ->
-  exists h: context,
-  c = h b.
-Proof.
-  induction 1.
-  - destruct H.
-    + eexists (context_left context_hole _ _); simpl.
-      reflexivity.
-    + eexists (context_right _ _ context_hole); simpl.
-      reflexivity.
-  - exists context_hole; simpl.
-    reflexivity.
-  - destruct IHclos_refl_trans1 as (h, ?).
-    destruct IHclos_refl_trans2 as (r, ?).
-    exists (compose_context r h).
-    rewrite compose_context_is_sound.
-    rewrite H2, H1.
-    reflexivity.
-Qed.
-
-Lemma SN_subterm:
-  forall b,
-  SN step b ->
-  forall c,
-  rt(subterm) c b -> SN step c.
-Proof.
-  intros.
-  edestruct subterm_implies_context as (h, ?); eauto.
-  apply SN_preimage with h.
-  - clear H H0 H1 b c; intros.
-    induction h; simpl.
-    + assumption.
-    + apply step_bind_left.
-      assumption.
-    + apply step_bind_right.
-      assumption.
-  - destruct H1.
-    assumption.
-Qed.
-
 (* TODO: this is clearly true, but please prove it on the right place. *)
 
 Hypothesis beta_is_dec:

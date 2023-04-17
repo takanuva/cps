@@ -5,6 +5,8 @@
 Require Export List.
 Require Import Arith.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
+
 Export ListNotations.
 
 (** ** Syntax
@@ -256,3 +258,11 @@ Definition free n e: Prop :=
   ~not_free n e.
 
 Global Hint Unfold free: cps.
+
+Inductive subterm: relation pseudoterm :=
+  | subterm_bind_left:
+    forall b ts c,
+    subterm b (bind b ts c)
+  | subterm_bind_right:
+    forall b ts c,
+    subterm c (bind b ts c).
