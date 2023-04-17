@@ -16,6 +16,7 @@ theories/Observational.v
 theories/Machine.v
 theories/Transition.v
 theories/TypeSystem.v
+theories/Conservation.v
 theories/Normalization.v
 theories/Structural.v
 theories/Lambda/Calculus.v

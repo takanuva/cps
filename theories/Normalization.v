@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,66 +14,9 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Axiomatic.
 Require Import Local.Reduction.
 Require Import Local.TypeSystem.
+Require Import Local.Conservation.
 
 (** ** Normalization. *)
-
-(* TODO: this is clearly true, but please prove it on the right place. *)
-
-Hypothesis beta_is_dec:
-  forall b, { exists c, beta b c } + { ~exists c, beta b c }.
-
-Lemma backwards_SN_preservation:
-  forall c,
-  SN beta c ->
-  forall b,
-  beta b c -> SN beta b.
-Proof.
-  (* Yoshida's paper mentions this property, which should indeed be the case as
-     jump reduction is nonerasing, but this is probably more complicated than in
-     Church's proof because it's not enough here because terms interact with
-     their contexts, so I think that reasoning about the inability to remove
-     misbehaving terms might not be enough. Also, I believe the proof would be
-     classical as well. I think we could potentially prove this by a simulation
-     game. The jump that exists in b cannot be erased, so eventually it will
-     have to be done and thus we will conclude by the hypothesis. Gotta think
-     about this for a bit... *)
-  admit.
-Admitted.
-
-Theorem uniform_normalization:
-  forall b,
-  WN beta b <-> SN beta b.
-Proof.
-  split; intros.
-  - destruct H as (c, ?, ?).
-    apply clos_rt_rt1n_iff in H.
-    induction H.
-    + constructor; intros.
-      unfold transp in H.
-      exfalso.
-      apply H0 with y.
-      assumption.
-    + apply backwards_SN_preservation with y; auto.
-  - induction H.
-    clear H; unfold transp in H0.
-    destruct beta_is_dec with x.
-    + destruct e as (y, ?).
-      edestruct H0 as (z, ?, ?); eauto.
-      exists z; eauto with cps.
-    + exists x; auto with cps.
-      intros y ?; eapply n.
-      exists y; auto.
-Qed.
-
-Corollary normalization_characterization:
-  forall b,
-  WN beta b <-> SN step b.
-Proof.
-  (* This should follow by postponing GC. *)
-  admit.
-Admitted.
-
-(* -------------------------------------------------------------------------- *)
 
 Lemma SN_unlift:
   forall i k e,

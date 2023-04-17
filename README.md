@@ -2,6 +2,9 @@
 
 My take on Thielecke's CPS calculus, and variants hereof.
 
+I'm currently running against time to finish everything, and I'm pretty tired,
+but I'll get back in here to improve this documentation.
+
 # Summary of files
 
 A summary of the proof files, in order, and what they cover.
@@ -36,9 +39,13 @@ A summary of the proof files, in order, and what they cover.
   development on their soundness with regards to the other semantics.
 - [TypeSystem.v](theories/TypeSystem.v): definition of a simply-typed type
   system for the CPS calculus, and admissibility of the structural rules for it.
+- [Conservation.v](theories/Conservation.v): proof of conservation (uniform
+  normalization) for jump reduction, and some of its corollaries.
 - [Normalization.v](theories/Normalization.v): proof of strong normalization for
   the reduction relation and related stuff.
-- [Structural.v](theories/Structural.v): confluence and strong normalization are preserved by strong bisimilarity, which includes continuation floating, which acts as an structural rule.
+- [Structural.v](theories/Structural.v): confluence and strong normalization are
+  preserved by strong bisimilarity, which includes continuation floating, which
+  acts as an structural rule.
 
 # TODO
 
