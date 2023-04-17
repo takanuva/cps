@@ -20,3 +20,17 @@ Theorem uniform_normalization:
 Proof.
   admit.
 Admitted.
+
+Corollary conservation:
+  forall a,
+  ~SN beta a ->
+  forall b,
+  beta a b -> ~SN beta b.
+Proof.
+  intros a ? b ? ?.
+  eapply H; clear H.
+  apply uniform_normalization in H1.
+  apply uniform_normalization.
+  destruct H1 as (c, ?, ?).
+  exists c; eauto with cps.
+Qed.
