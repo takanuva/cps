@@ -268,4 +268,10 @@ Admitted.
   would still have it if we allowed for specialization, just like it's done in
   linear logic! But we'd like to have contraction instead for the CPS-calculus.
 
+  Other notions of reduction: though the call-by-name translation can't validate
+  eta (we don't want it to!), the call-by-value translation should validate some
+  extra notions of reduction. The call-by-value eta reduction can be simulated,
+  but it does need the (ETA) rule. It seems that the id-reduction from Moggi's
+  calculus, (\x.x) e, can also be simulated, but it requires floating.
+
 *)

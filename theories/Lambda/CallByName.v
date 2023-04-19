@@ -398,4 +398,14 @@ Admitted.
 
     Which we can do in one (CTXJMP) step. Qed.
 
+  We note that eta reduction is not sound in here, because this translation is
+  tailored for the weak beta reduction used in programming languages. We know
+  that eta is not sound in it, because \x.O x has a weak head normal form while
+  O does not in the empty context (where O is the omega combinator). Similarly,
+  for a variable y, \x.y x and y can be taken apart in the context C = (\y.[]) O
+  if y is free (or similar context if it is bound). The remaining case is that
+  when we have an abstraction, but then a beta step can be applied and eta is
+  not really necessary anymore. We can prove that the translation also doesn't
+  validate eta, same as the source language doesn't.
+
 *)
