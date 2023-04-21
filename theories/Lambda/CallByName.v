@@ -346,6 +346,40 @@ Proof.
     admit.
 Admitted.
 
+Goal
+  forall e c,
+  cbn_cps e c ->
+  forall n,
+  n > 0 ->
+  not_free n e -> CPS.not_free n c.
+Proof.
+  induction 1; intros.
+  - dependent destruction H0.
+    rename n0 into m.
+    constructor.
+    + constructor; lia.
+    + do 2 constructor; lia.
+  - constructor; simpl.
+    + constructor.
+      * constructor; lia.
+      * do 2 constructor; lia.
+    + do 3 constructor.
+    + dependent destruction H1.
+      apply IHcbn_cps; try lia.
+      apply not_free_lift_zero with (k := 1) in H1.
+      assumption.
+  - dependent destruction H2.
+    constructor; simpl.
+    + apply IHcbn_cps1; auto.
+      apply not_free_lift_zero with (k := 1) in H2_.
+      assumption.
+    + do 2 constructor.
+    + repeat (try constructor; try lia).
+      simpl; eapply IHcbn_cps2; auto.
+      apply not_free_lift_zero with (k := 2) in H2_0.
+      assumption.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 (*

@@ -213,6 +213,68 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n x ->
     not_free n (application f x).
 
+
+(* TODO: this is a bi-implication in here. Should we make the same for the
+   CPS-calculus? Also, applying this is a nightmare! *)
+
+Lemma not_free_lift:
+  forall e p k j,
+  not_free (p + j) e <-> not_free (p + k + j) (lift k j e).
+Proof.
+  induction e; split; intros.
+  - simpl.
+    destruct (le_gt_dec j n).
+    + dependent destruction H.
+      constructor; lia.
+    + constructor; lia.
+  - simpl in H.
+    destruct (le_gt_dec j n).
+    + dependent destruction H.
+      constructor; lia.
+    + constructor; lia.
+  - dependent destruction H.
+    simpl; constructor.
+    replace (S (p + k + j)) with (p + k + S j); try lia.
+    apply IHe.
+    replace (p + S j) with (S (p + j)); try lia.
+    assumption.
+  - dependent destruction H.
+    constructor.
+    replace (S (p + j)) with (p + S j); try lia.
+    apply IHe with (k := k).
+    replace (p + k + S j) with (S (p + k + j)); try lia.
+    assumption.
+  - dependent destruction H.
+    simpl; constructor.
+    + apply IHe1.
+      assumption.
+    + apply IHe2.
+      assumption.
+  - dependent destruction H.
+    constructor.
+    + apply IHe1 with k.
+      assumption.
+    + apply IHe2 with k.
+      assumption.
+Qed.
+
+(* TODO: Does the CPS-calculus need something like this? *)
+
+Lemma not_free_lift_zero:
+  forall e p k,
+  not_free p e <-> not_free (k + p) (lift k 0 e).
+Proof.
+  split; intros.
+  - replace (k + p) with (p + k + 0); try lia.
+    apply not_free_lift.
+    rewrite Nat.add_0_r.
+    assumption.
+  - replace p with (p + 0); try lia.
+    apply not_free_lift with (k := k).
+    replace (p + k + 0) with (k + p); try lia.
+    assumption.
+Qed.
+
 (* Full beta reduction relation. TODO: consider eta? *)
 
 Inductive full: relation term :=
