@@ -351,14 +351,18 @@ Goal
   cbn_cps e c ->
   forall n,
   n > 0 ->
-  not_free n e -> CPS.not_free n c.
+  not_free n e <-> CPS.not_free n c.
 Proof.
-  induction 1; intros.
+  induction 1; split; intros.
   - dependent destruction H0.
     rename n0 into m.
     constructor.
     + constructor; lia.
     + do 2 constructor; lia.
+  - dependent destruction H0.
+    dependent destruction H0.
+    rename n0 into m.
+    constructor; lia.
   - constructor; simpl.
     + constructor.
       * constructor; lia.
@@ -368,6 +372,12 @@ Proof.
       apply IHcbn_cps; try lia.
       apply not_free_lift_zero with (k := 1) in H1.
       assumption.
+  - constructor.
+    dependent destruction H1.
+    simpl in H1_0.
+    apply IHcbn_cps in H1_0; auto.
+    apply not_free_lift_zero with (k := 1) in H1_0.
+    assumption.
   - dependent destruction H2.
     constructor; simpl.
     + apply IHcbn_cps1; auto.
@@ -377,6 +387,16 @@ Proof.
     + repeat (try constructor; try lia).
       simpl; eapply IHcbn_cps2; auto.
       apply not_free_lift_zero with (k := 2) in H2_0.
+      assumption.
+  - dependent destruction H2.
+    dependent destruction H2_0.
+    simpl in H2_0_2.
+    constructor.
+    + apply IHcbn_cps1 in H2_; auto.
+      apply not_free_lift_zero with (k := 1) in H2_.
+      assumption.
+    + apply IHcbn_cps2 in H2_0_2; auto.
+      apply not_free_lift_zero with (k := 2) in H2_0_2.
       assumption.
 Qed.
 
