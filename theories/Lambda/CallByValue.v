@@ -89,8 +89,7 @@ Inductive cbv_cps: term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
     (* [x](k) = k<x> *)
     forall n: nat,
-    (* TODO: assume k is fresh! *)
-    cbv_cps n (jump 0 [CPS.bound n])
+    cbv_cps (S n) (jump 0 [CPS.bound (S n)])
   | cbv_cps_abstraction:
     (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
     forall t b b',
@@ -141,10 +140,11 @@ Lemma cbv_cps_lift:
   cbv_cps (lift i k e) (CPS.lift i k c).
 Proof.
   induction 1; simpl; intros.
-  - destruct (le_gt_dec k n).
+  - destruct (le_gt_dec k (S n)).
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
       rewrite lift_bound_ge; try lia.
+      replace (i + S n) with (S (i + n)); try lia.
       constructor.
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
