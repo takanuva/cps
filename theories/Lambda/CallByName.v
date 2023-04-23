@@ -45,6 +45,9 @@ Inductive cbn: relation term :=
     cbn f1 f2 ->
     cbn (application f1 x) (application f2 x)
   | cbn_app2:
+    (* This rule is hardly ever considered, probably because it's only necessary
+       for open terms, but it was used in Plotkin's paper, so we'll add it here
+       as well. *)
     forall (f: nat) x1 x2,
     cbn x1 x2 ->
     cbn (application f x1) (application f x2).
@@ -94,7 +97,7 @@ Inductive cbn_cps: term -> pseudoterm -> Prop :=
   | cbn_cps_bound:
     (* [x](k) = x<k> *)
     forall n: nat,
-    cbn_cps (S n) (jump (S n) [CPS.bound 0])
+    cbn_cps n (jump n [CPS.bound 0])
   | cbn_cps_abstraction:
     (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
     forall t b b',
@@ -145,11 +148,10 @@ Lemma cbn_cps_lift:
   cbn_cps (lift i k e) (CPS.lift i k c).
 Proof.
   induction 1; simpl; intros.
-  - destruct (le_gt_dec k (S n)).
+  - destruct (le_gt_dec k n).
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_ge; try lia.
       rewrite lift_bound_lt; try lia.
-      replace (i + S n) with (S (i + n)); try lia.
       constructor.
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
@@ -270,6 +272,62 @@ Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
+Goal
+  forall e c,
+  cbn_cps e c ->
+  forall n,
+  n > 0 ->
+  not_free n e <-> CPS.not_free n c.
+Proof.
+  induction 1; split; intros.
+  - dependent destruction H0.
+    rename n0 into m.
+    constructor.
+    + constructor; lia.
+    + do 2 constructor; lia.
+  - dependent destruction H0.
+    dependent destruction H0.
+    rename n0 into m.
+    constructor; lia.
+  - constructor; simpl.
+    + constructor.
+      * constructor; lia.
+      * do 2 constructor; lia.
+    + do 3 constructor.
+    + dependent destruction H1.
+      apply IHcbn_cps; try lia.
+      apply not_free_lift_zero with (k := 1) in H1.
+      assumption.
+  - constructor.
+    dependent destruction H1.
+    simpl in H1_0.
+    apply IHcbn_cps in H1_0; auto.
+    apply not_free_lift_zero with (k := 1) in H1_0.
+    assumption.
+  - dependent destruction H2.
+    constructor; simpl.
+    + apply IHcbn_cps1; auto.
+      apply not_free_lift_zero with (k := 1) in H2_.
+      assumption.
+    + do 2 constructor.
+    + repeat (try constructor; try lia).
+      simpl; eapply IHcbn_cps2; auto.
+      apply not_free_lift_zero with (k := 2) in H2_0.
+      assumption.
+  - dependent destruction H2.
+    dependent destruction H2_0.
+    simpl in H2_0_2.
+    constructor.
+    + apply IHcbn_cps1 in H2_; auto.
+      apply not_free_lift_zero with (k := 1) in H2_.
+      assumption.
+    + apply IHcbn_cps2 in H2_0_2; auto.
+      apply not_free_lift_zero with (k := 2) in H2_0_2.
+      assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 (* Ideally, given a lambda term e which is in normal form, and a variable k
    which is fresh, the CPS translation [e]k should not have administrative
    redexes which can't be fixed by applying only tyding reductions. *)
@@ -346,60 +404,6 @@ Proof.
     admit.
 Admitted.
 
-Goal
-  forall e c,
-  cbn_cps e c ->
-  forall n,
-  n > 0 ->
-  not_free n e <-> CPS.not_free n c.
-Proof.
-  induction 1; split; intros.
-  - dependent destruction H0.
-    rename n0 into m.
-    constructor.
-    + constructor; lia.
-    + do 2 constructor; lia.
-  - dependent destruction H0.
-    dependent destruction H0.
-    rename n0 into m.
-    constructor; lia.
-  - constructor; simpl.
-    + constructor.
-      * constructor; lia.
-      * do 2 constructor; lia.
-    + do 3 constructor.
-    + dependent destruction H1.
-      apply IHcbn_cps; try lia.
-      apply not_free_lift_zero with (k := 1) in H1.
-      assumption.
-  - constructor.
-    dependent destruction H1.
-    simpl in H1_0.
-    apply IHcbn_cps in H1_0; auto.
-    apply not_free_lift_zero with (k := 1) in H1_0.
-    assumption.
-  - dependent destruction H2.
-    constructor; simpl.
-    + apply IHcbn_cps1; auto.
-      apply not_free_lift_zero with (k := 1) in H2_.
-      assumption.
-    + do 2 constructor.
-    + repeat (try constructor; try lia).
-      simpl; eapply IHcbn_cps2; auto.
-      apply not_free_lift_zero with (k := 2) in H2_0.
-      assumption.
-  - dependent destruction H2.
-    dependent destruction H2_0.
-    simpl in H2_0_2.
-    constructor.
-    + apply IHcbn_cps1 in H2_; auto.
-      apply not_free_lift_zero with (k := 1) in H2_.
-      assumption.
-    + apply IHcbn_cps2 in H2_0_2; auto.
-      apply not_free_lift_zero with (k := 2) in H2_0_2.
-      assumption.
-Qed.
-
 (* -------------------------------------------------------------------------- *)
 
 (*
@@ -428,7 +432,7 @@ Qed.
     { x<k> =
         [b] }
 
-  Though the exact indution statement may be awkward, as we have to apply these
+  Though the exact induction statement may be awkward, as we have to apply these
   simplifications first and keep building the way, we will proceed by induction
   now on the number of free occurrences of x in a:
 
