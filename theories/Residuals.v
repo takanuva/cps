@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -22,7 +22,6 @@ Inductive redexes: Set :=
   | redexes_bound (n: nat)
   | redexes_negation (ts: list pseudoterm)
   | redexes_jump (r: bool) (f: pseudoterm) (xs: list pseudoterm)
-  | redexes_placeholder (f: pseudoterm) (xs: list pseudoterm)
   | redexes_bind (b: redexes) (ts: list pseudoterm) (c: redexes).
 
 Fixpoint mark (e: pseudoterm): redexes :=
@@ -61,8 +60,6 @@ Fixpoint unmark (e: redexes): pseudoterm :=
     negation ts
   | redexes_jump r f xs =>
     jump f xs
-  | redexes_placeholder f xs =>
-    jump f xs
   | redexes_bind b ts c =>
     bind (unmark b) ts (unmark c)
   end.
@@ -79,8 +76,6 @@ Fixpoint redexes_lift i k e: redexes :=
   match e with
   | redexes_jump r f xs =>
     redexes_jump r (lift i k f) (map (lift i k) xs)
-  | redexes_placeholder f xs =>
-    redexes_placeholder (lift i k f) (map (lift i k) xs)
   | redexes_bind b ts c =>
     redexes_bind
       (redexes_lift i (S k) b)
@@ -94,8 +89,6 @@ Fixpoint redexes_subst y k e: redexes :=
   match e with
   | redexes_jump r f xs =>
     redexes_jump r (subst y k f) (map (subst y k) xs)
-  | redexes_placeholder f xs =>
-    redexes_placeholder (subst y k f) (map (subst y k) xs)
   | redexes_bind b ts c =>
     redexes_bind
       (redexes_subst y (S k) b)
@@ -111,309 +104,47 @@ Fixpoint redexes_apply_parameters ys k e: redexes :=
   | y :: ys => redexes_apply_parameters ys k (redexes_subst y (k + length ys) e)
   end.
 
-Fixpoint redexes_flow y a k e: redexes :=
-  match e with
-  | redexes_placeholder (bound n) xs =>
-    if Nat.eq_dec n k then
-      if Nat.eq_dec a (length xs) then
-        redexes_apply_parameters xs 0
-          (redexes_lift (S n) (length xs) y)
-      else
-        e
-    else
-      e
-  | redexes_bind b ts c =>
-    redexes_bind
-      (redexes_flow y a (S k) b)
-      ts
-      (redexes_flow y a (k + length ts) c)
-  | _ =>
-    e
-  end.
-
-Fixpoint redexes_full e: redexes :=
-  match e with
-  | redexes_bind b ts c =>
-    redexes_bind
-      (redexes_flow (redexes_full c) (length ts) 0
-        (redexes_full b)) ts (redexes_full c)
-  | _ =>
-    e
-  end.
-
-(* -------------------------------------------------------------------------- *)
-
-(*
-Lemma redexes_lift_lift_permutation:
-  forall e i j k l,
-  k <= l ->
-  redexes_lift i k (redexes_lift j l e) =
-    redexes_lift j (i + l) (redexes_lift i k e).
+Lemma mark_lift_is_sound:
+  forall c i k,
+  mark (lift i k c) = redexes_lift i k (mark c).
 Proof.
-  induction e; simpl; intros.
-  - f_equal.
-    apply lift_lift_permutation; auto.
-  - f_equal.
-    + apply lift_lift_permutation; auto.
-    + induction xs; auto.
-      simpl; f_equal; auto.
-      apply lift_lift_permutation; auto.
-  - f_equal.
-    + apply lift_lift_permutation; auto.
-    + induction xs; auto.
-      simpl; f_equal; auto.
-      apply lift_lift_permutation; auto.
-  - f_equal.
-    + replace (S (i + l)) with (i + S l); try lia.
-      apply IHe1; lia.
-    + clear IHe1 IHe2.
-      induction ts; auto.
-      simpl; f_equal; auto.
-      do 4 rewrite traverse_list_length.
-      rewrite lift_lift_permutation; try lia.
-      f_equal; lia.
-    + do 2 rewrite traverse_list_length.
-      replace (i + l + length ts) with (i + (l + length ts)); try lia.
-      apply IHe2; lia.
-Qed.
-
-Lemma redexes_lift_addition_distributes_over_flow:
-  forall b i k p a c,
-  redexes_lift i (p + S k) (redexes_flow c a p b) =
-    redexes_flow (redexes_lift i (k + a) c) a p (redexes_lift i (p + S k) b).
-Proof.
-  induction b; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - destruct f; try reflexivity.
-    destruct (Nat.eq_dec n p).
-    + rewrite lift_bound_lt; try lia.
-      rewrite map_length.
-      destruct (Nat.eq_dec a (length xs)).
-      * destruct (Nat.eq_dec n p); try lia.
-        rewrite redexes_lift_distributes_over_apply_parameters.
-        f_equal; symmetry.
-        rewrite redexes_lift_lift_permutation; try lia.
-        f_equal; lia.
-      * destruct (Nat.eq_dec n p); try lia.
-        simpl.
-        rewrite lift_bound_lt; try lia.
-        reflexivity.
-    + destruct (le_gt_dec (p + S k) n).
-      * rewrite lift_bound_ge; try lia.
-        destruct (Nat.eq_dec (i + n) p); try lia.
-        simpl.
-        rewrite lift_bound_ge; try lia.
-        reflexivity.
-      * rewrite lift_bound_lt; try lia.
-        destruct (Nat.eq_dec n p); try lia.
-        simpl.
-        rewrite lift_bound_lt; try lia.
-        reflexivity.
-  - f_equal.
-    + replace (S (p + S k)) with (S p + S k); try lia.
-      apply IHb1.
-    + rewrite traverse_list_length.
-      replace (p + S k + length ts) with (p + length ts + S k); try lia.
-      apply IHb2.
-Qed.
-
-Lemma redexes_lift_distributes_over_flow:
-  forall b i k a c,
-  redexes_lift i (S k) (redexes_flow c a 0 b) =
-    redexes_flow (redexes_lift i (k + a) c) a 0 (redexes_lift i (S k) b).
-Proof.
-  intros.
-  apply redexes_lift_addition_distributes_over_flow with (p := 0).
-Qed.
-*)
-
-Lemma redexes_lift_addition_distributes_over_apply_parameters:
-  forall ys i k p e,
-  redexes_lift i (p + k) (redexes_apply_parameters ys p e) =
-    redexes_apply_parameters (map (lift i k) ys) p
-      (redexes_lift i (p + length ys + k) e).
-Proof.
-  induction ys; simpl; intros.
-  - f_equal; lia.
-  - rewrite IHys; f_equal.
-    rewrite map_length.
-    admit.
-Admitted.
-
-Lemma redexes_lift_distributes_over_apply_parameters:
-  forall ys i k e,
-  redexes_lift i k (redexes_apply_parameters ys 0 e) =
-  redexes_apply_parameters (map (lift i k) ys) 0
-    (redexes_lift i (length ys + k) e).
-Proof.
-  intros.
-  apply redexes_lift_addition_distributes_over_apply_parameters with (p := 0).
-Qed.
-
-Lemma redexex_lift_lift_simplification:
-  forall e i j k l,
-  k <= l + j ->
-  l <= k ->
-  redexes_lift i k (redexes_lift j l e) = redexes_lift (i + j) l e.
-Proof.
-  induction e; simpl; intros.
+  induction c; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
-  - destruct (le_gt_dec l n).
-    + rewrite lift_bound_ge; auto.
-      rewrite lift_bound_ge; auto.
-      simpl.
-      rewrite lift_bound_ge; try lia.
-      simpl; f_equal; lia.
-    + rewrite lift_bound_lt; auto.
-      rewrite lift_bound_lt; auto.
-      simpl.
-      rewrite lift_bound_lt; try lia.
-      simpl; auto.
-  - f_equal.
-    induction ts; simpl; auto.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - rewrite lift_distributes_over_bind; simpl.
     f_equal; auto.
-    do 3 rewrite traverse_list_length.
-    apply lift_lift_simplification; lia.
-  - rewrite map_map.
-    rewrite lift_lift_simplification; auto.
-    f_equal; list induction over xs.
-    apply lift_lift_simplification; auto.
-  - rewrite lift_lift_simplification; auto.
-    f_equal; list induction over xs.
-    apply lift_lift_simplification; auto.
-  - f_equal.
-    + apply IHe1; lia.
-    + list induction over ts.
-      do 3 rewrite traverse_list_length.
-      rewrite lift_lift_simplification; try lia.
-      reflexivity.
-    + rewrite traverse_list_length.
-      apply IHe2; lia.
 Qed.
 
-Lemma redexes_flow_and_lift_commute:
-  forall e y a k p i,
-  k <= p ->
-  redexes_flow y a (i + p) (redexes_lift i k e) =
-    redexes_lift i k (redexes_flow y a p e).
+Lemma mark_subst_is_sound:
+  forall c x k,
+  mark (subst x k c) = redexes_subst x k (mark c).
 Proof.
-  induction e; simpl; intros.
+  induction c; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
-  - destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; auto.
-    + rewrite lift_bound_lt; auto.
   - reflexivity.
   - reflexivity.
-  - destruct f; auto.
-    destruct (le_gt_dec k n).
-    + rewrite lift_bound_ge; try lia.
-      rewrite map_length.
-      destruct (Nat.eq_dec a (length xs));
-      destruct (Nat.eq_dec n p);
-      destruct (Nat.eq_dec (i + n) (i + p));
-      simpl; try lia.
-      * rewrite redexes_lift_distributes_over_apply_parameters.
-        rewrite redexex_lift_lift_simplification; try lia.
-        f_equal; f_equal; lia.
-      * rewrite lift_bound_ge; auto.
-      * rewrite lift_bound_ge; auto.
-      * rewrite lift_bound_ge; auto.
-    + rewrite lift_bound_lt; try lia.
-      rewrite map_length.
-      destruct (Nat.eq_dec a (length xs));
-      destruct (Nat.eq_dec n p);
-      destruct (Nat.eq_dec n (i + p));
-      simpl; try lia.
-      * rewrite lift_bound_lt; auto.
-      * rewrite lift_bound_lt; auto.
-  - f_equal.
-    + rewrite plus_n_Sm.
-      apply IHe1; lia.
-    + rewrite traverse_list_length.
-      rewrite <- Nat.add_assoc.
-      apply IHe2; lia.
+  - reflexivity.
+  - rewrite subst_distributes_over_bind; simpl.
+    f_equal; auto.
 Qed.
 
-Lemma redexes_flow_addition_distributes_over_itself:
-  forall b a1 a2 p k c1 c2,
-  redexes_flow c2 a1 (p + S k) (redexes_flow c1 a2 p b) =
-    redexes_flow (redexes_flow c2 a1 (k + a2) c1)
-      a2 p (redexes_flow c2 a1 (p + S k) b).
-Proof.
-  induction b; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - (* Huh, some ugly case analysis... I should have a math simpl tactic! *)
-    destruct f; auto;
-    do 2 (destruct (Nat.eq_dec n p);
-          destruct (Nat.eq_dec n (p + S k));
-          destruct (Nat.eq_dec a1 (length xs));
-          destruct (Nat.eq_dec a2 (length xs));
-          simpl; auto; try lia).
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-  - f_equal.
-    + replace (S (p + S k)) with (S p + S k); try lia.
-      apply IHb1.
-    + replace (p + S k + length ts) with (p + length ts + S k); try lia.
-      apply IHb2.
-Admitted.
-
-Lemma redexes_flow_commute:
-  forall b a1 a2 k c1 c2,
-  redexes_flow c2 a1 (S k) (redexes_flow c1 a2 0 b) =
-    redexes_flow (redexes_flow c2 a1 (k + a2) c1)
-      a2 0 (redexes_flow c2 a1 (S k) b).
-Proof.
-  intros.
-  apply redexes_flow_addition_distributes_over_itself with (p := 0).
-Qed.
-
-Lemma redexes_lift_is_sound:
-  forall e i k,
-  redexes_lift i k (mark e) = mark (lift i k e).
-Proof.
-  induction e; simpl; auto; intros.
-  f_equal.
-  - apply IHe1.
-  - apply IHe2.
-Qed.
-
-Lemma redexes_subst_is_sound:
-  forall e y k,
-  redexes_subst y k (mark e) = mark (subst y k e).
-Proof.
-  induction e; simpl; auto; intros.
-  f_equal.
-  - apply IHe1.
-  - apply IHe2.
-Qed.
-
-Lemma redexes_apply_parameters_is_sound:
-  forall xs k e,
-  redexes_apply_parameters xs k (mark e) = mark (apply_parameters xs k e).
+Lemma mark_apply_parameters_is_sound:
+  forall xs k c,
+  mark (apply_parameters xs k c) = redexes_apply_parameters xs k (mark c).
 Proof.
   induction xs; simpl; intros.
   - reflexivity.
-  - rewrite redexes_subst_is_sound.
-    rewrite IHxs; auto.
+  - rewrite IHxs; f_equal.
+    apply mark_subst_is_sound.
 Qed.
-
-(* -------------------------------------------------------------------------- *)
 
 Inductive compatible: relation redexes :=
   | compatible_type:
@@ -433,9 +164,6 @@ Inductive compatible: relation redexes :=
   | compatible_jump:
     forall r1 r2 f xs,
     compatible (redexes_jump r1 f xs) (redexes_jump r2 f xs)
-  | compatible_placeholder:
-    forall f xs,
-    compatible (redexes_placeholder f xs) (redexes_placeholder f xs)
   | compatible_bind:
     forall b1 b2 ts c1 c2,
     compatible b1 b2 ->
@@ -443,6 +171,21 @@ Inductive compatible: relation redexes :=
     compatible (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
 
 Global Hint Constructors compatible: cps.
+
+Goal
+  forall b c,
+  compatible b c <-> unmark b = unmark c.
+Proof.
+  split; intros.
+  - induction H; simpl; congruence.
+  - generalize dependent c.
+    induction b;
+    intros;
+    destruct c;
+    try discriminate;
+    dependent destruction H;
+    constructor; auto.
+Qed.
 
 Lemma compatible_refl:
   forall e,
@@ -504,93 +247,114 @@ Proof.
     assumption.
 Qed.
 
-Lemma compatible_flow:
-  forall b1 b2 c1 c2 a,
-  compatible c1 c2 ->
-  compatible b1 b2 ->
-  forall k,
-  compatible (redexes_flow c1 a k b1) (redexes_flow c2 a k b2).
-Proof.
-  induction 2; simpl; auto with cps.
-  (* Case: placeholder. *)
-  intros.
-  destruct f; try constructor.
-  destruct (Nat.eq_dec n k); try constructor.
-  destruct (Nat.eq_dec a (length xs)); try constructor.
-  apply compatible_apply_parameters.
-  apply compatible_lift.
-  assumption.
-Qed.
+Definition residuals_env: Set :=
+  list (option (nat * redexes)).
 
-Inductive residuals: redexes -> redexes -> redexes -> Prop :=
+Global Hint Unfold residuals_env: cps.
+
+(* TODO: I might use skip in the machine semantics file as well. *)
+
+Definition skip {T} n xs: list (option T) :=
+  repeat None n ++ xs.
+
+Global Hint Unfold skip: cps.
+
+Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
   | residuals_type:
-    residuals redexes_type redexes_type redexes_type
+    forall g,
+    residuals g redexes_type redexes_type redexes_type
   | residuals_prop:
-    residuals redexes_prop redexes_prop redexes_prop
+    forall g,
+    residuals g redexes_prop redexes_prop redexes_prop
   | residuals_base:
-    residuals redexes_base redexes_base redexes_base
+    forall g,
+    residuals g redexes_base redexes_base redexes_base
   | residuals_void:
-    residuals redexes_void redexes_void redexes_void
+    forall g,
+    residuals g redexes_void redexes_void redexes_void
   | residuals_bound:
-    forall n,
-    residuals (redexes_bound n) (redexes_bound n) (redexes_bound n)
+    forall g n,
+    residuals g (redexes_bound n) (redexes_bound n) (redexes_bound n)
   | residuals_negation:
-    forall ts,
-    residuals (redexes_negation ts) (redexes_negation ts) (redexes_negation ts)
+    forall g ts,
+    residuals g
+      (redexes_negation ts)
+      (redexes_negation ts)
+      (redexes_negation ts)
   | residuals_jump:
-    forall r k xs,
-    residuals
+    forall g r k xs,
+    residuals g
       (redexes_jump r k xs)
       (redexes_jump false k xs)
       (redexes_jump r k xs)
   | residuals_mark:
-    forall r k xs,
-    residuals
-      (redexes_jump r k xs)
-      (redexes_jump true k xs)
-      (redexes_placeholder k xs)
-  | residuals_placeholder:
-    forall k xs,
-    residuals
-      (redexes_placeholder k xs)
-      (redexes_placeholder k xs)
-      (redexes_placeholder k xs)
+    forall g r k xs c,
+    item (Some (length xs, c)) g k ->
+    residuals g
+      (redexes_jump r (bound k) xs)
+      (redexes_jump true (bound k) xs)
+      (redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c))
   | residuals_bind:
-    forall b1 b2 b3 ts c1 c2 c3,
-    residuals b1 b2 b3 ->
-    residuals c1 c2 c3 ->
-    residuals
+    forall g b1 b2 b3 ts c1 c2 c3,
+    residuals (Some (length ts, c3) :: g) b1 b2 b3 ->
+    residuals (skip (length ts) g) c1 c2 c3 ->
+    residuals g
       (redexes_bind b1 ts c1)
       (redexes_bind b2 ts c2)
-      (* We shall postpone replacements in b3 here. *)
       (redexes_bind b3 ts c3).
 
 Global Hint Constructors residuals: cps.
 
-Lemma residuals_is_unique:
-  forall a b c1,
-  residuals a b c1 ->
-  forall c2,
-  residuals a b c2 -> c1 = c2.
+Lemma residuals_term:
+  forall c g,
+  residuals g (mark c) (mark c) (mark c).
 Proof.
-  induction 1; intros.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H; auto.
-  - dependent destruction H1.
-    replace b5 with b3; auto.
-    replace c5 with c3; auto.
+  induction c; eauto with cps.
+Qed.
+
+Lemma residuals_is_unique:
+  forall a g b c1,
+  residuals g a b c1 ->
+  forall c2,
+  residuals g a b c2 -> c1 = c2.
+Proof.
+  induction a; simpl; intros.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    dependent destruction H0.
+    reflexivity.
+  - dependent destruction H.
+    + dependent destruction H0.
+      reflexivity.
+    + dependent destruction H0.
+      eapply item_unique in H; eauto.
+      dependent destruction H.
+      reflexivity.
+  - dependent destruction H.
+    dependent destruction H1.
+    assert (c3 = c4).
+    + eapply IHa2; eauto.
+    + dependent destruction H1.
+      f_equal; eapply IHa1; eauto.
 Qed.
 
 Lemma compatible_residuals:
-  forall a b c,
-  residuals a b c ->
+  forall g a b c,
+  residuals g a b c ->
   compatible a b.
 Proof.
   induction 1; auto with cps.
@@ -598,244 +362,268 @@ Qed.
 
 Global Hint Resolve compatible_residuals: cps.
 
-Lemma residuals_preserve_compatible:
-  forall a1 a2,
-  compatible a1 a2 ->
-  forall b c1,
-  residuals a1 b c1 ->
-  forall c2,
-  residuals a2 b c2 -> compatible c1 c2.
+Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
+  | sanity_nil:
+    sanity nil nil nil
+  | sanity_cons:
+    forall a r rs p ps q qs,
+    sanity rs ps qs ->
+    residuals (skip a qs) r p q ->
+    sanity (Some (a, r) :: rs) (Some (a, p) :: ps) (Some (a, q) :: qs)
+  | sanity_none:
+    forall rs ps qs,
+    sanity rs ps qs ->
+    sanity (None :: rs) (None :: ps) (None :: qs).
+
+Local Hint Constructors sanity: cps.
+
+Lemma sanity_skip:
+  forall a rs ps qs,
+  sanity rs ps qs ->
+  sanity (skip a rs) (skip a ps) (skip a qs).
 Proof.
-  induction 1; intros.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H.
-    + dependent destruction H0.
-      constructor.
-    + dependent destruction H0.
-      constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    constructor.
-  - dependent destruction H1.
-    dependent destruction H2.
-    assert (compatible b4 b6); eauto.
-    assert (compatible c4 c6); eauto.
-    constructor; auto.
+  unfold skip.
+  induction a; simpl; intros.
+  - assumption.
+  - auto with cps.
 Qed.
 
-Global Hint Resolve residuals_preserve_compatible: cps.
+Local Hint Resolve sanity_skip: cps.
 
-Lemma residuals_mark_term:
-  forall e,
-  residuals (mark e) (mark e) (mark e).
+(* -------------------------------------------------------------------------- *)
+
+Fixpoint drop {T} (n: nat) (xs: list T) :=
+  match n, xs with
+  | 0, _ => xs
+  | _, [] => []
+  | S n', _ :: xs' => drop n' xs'
+  end.
+
+(* -------------------------------------------------------------------------- *)
+
+Goal
+  forall k a b g,
+  item (Some (a, b)) g k ->
+  forall c h,
+  item (Some (a, c)) h k ->
+  forall q,
+  sanity g h q ->
+  exists d,
+  residuals (skip a (drop (S k) q)) b c d.
 Proof.
-  induction e; simpl; constructor; auto.
+  induction k; intros.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    simpl; exists q.
+    assumption.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    + eapply IHk; eauto.
+    + eapply IHk; eauto.
 Qed.
-
-Global Hint Resolve residuals_mark_term: cps.
-
-Lemma residuals_lift:
-  forall a b c,
-  residuals a b c ->
-  forall i k,
-  residuals (redexes_lift i k a) (redexes_lift i k b) (redexes_lift i k c).
-Proof.
-  induction 1; simpl; auto with cps.
-Qed.
-
-Global Hint Resolve residuals_lift: cps.
-
-Lemma residuals_subst:
-  forall a b c,
-  residuals a b c ->
-  forall y k,
-  residuals (redexes_subst y k a) (redexes_subst y k b) (redexes_subst y k c).
-Proof.
-  induction 1; simpl; auto with cps.
-Qed.
-
-Global Hint Resolve residuals_subst: cps.
-
-Lemma residuals_apply_parameters:
-  forall ys k a b c,
-  residuals a b c ->
-  residuals (redexes_apply_parameters ys k a) (redexes_apply_parameters ys k b)
-    (redexes_apply_parameters ys k c).
-Proof.
-  induction ys; simpl; auto with cps.
-Qed.
-
-Global Hint Resolve residuals_apply_parameters: cps.
-
-Lemma residuals_compatible:
-  forall b1 b2,
-  compatible b1 b2 ->
-  exists b3,
-  residuals b1 b2 b3.
-Proof.
-  induction 1; simpl; intros.
-  - eexists; constructor.
-  - eexists; constructor.
-  - eexists; constructor.
-  - eexists; constructor.
-  - eexists; constructor.
-  - eexists; constructor.
-  - destruct r2.
-    + eexists; constructor.
-    + eexists; constructor.
-  - eexists; constructor.
-  - destruct IHcompatible1 as (b3, ?); auto.
-    destruct IHcompatible2 as (c3, ?); auto.
-    eexists; constructor; eauto.
-Qed.
-
-Global Hint Resolve residuals_compatible: cps.
 
 Lemma cube:
-  forall a r b,
-  residuals a r b ->
-  forall p c,
-  residuals a p c ->
-  forall rp,
-  residuals r p rp ->
-  forall pr,
-  residuals p r pr ->
-  forall d,
-  residuals b pr d -> residuals c rp d.
+  forall g a r b,
+  residuals g a r b ->
+  forall h p c,
+  residuals h a p c ->
+  forall i rp,
+  residuals i r p rp ->
+  forall j pr,
+  residuals j p r pr ->
+  forall q d,
+  residuals q b pr d ->
+  sanity g j q ->
+  sanity h i q ->
+  residuals q c rp d.
 Proof.
   induction 1; inversion_clear 1; intros.
   (* Case: (type, type). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (prop, prop). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (base, base). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (void, void). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (bound, bound). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (negation, negation). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (jump, jump). *)
   - dependent destruction H.
     dependent destruction H0.
-    assumption.
+    dependent destruction H1.
+    constructor.
   (* Case: (jump, mark). *)
   - dependent destruction H.
-    dependent destruction H0.
     dependent destruction H1.
-    constructor.
+    dependent destruction H2.
+    assert (residuals (skip (length xs) (drop (S k0) g2)) c0 c1 c2) by admit.
+    admit.
   (* Case: (mark, jump). *)
-  - dependent destruction H.
-    dependent destruction H0.
+  - dependent destruction H0.
     dependent destruction H1.
-    constructor.
+    admit.
   (* Case: (mark, mark). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    assumption.
-  (* Case: (placeholder, placeholder). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    assumption.
+  - dependent destruction H0.
+    dependent destruction H2.
+    admit.
   (* Case: (bind, bind). *)
   - dependent destruction H1.
     dependent destruction H4.
     dependent destruction H5.
-    (* Replacements are postponed... *)
-    constructor; eauto.
-Qed.
+    (* A bit of a hard search in here, but straightforward in paper by using our
+       inductive hypotheses! *)
+    eauto 11 with cps.
+Admitted.
+
+Lemma residuals_compatible:
+  forall g a r b,
+  residuals g a r b ->
+  forall p,
+  compatible a p ->
+  exists pr,
+  (* Not the same g, but compatible with it! *)
+  residuals g p r pr.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H0.
+    eauto with cps.
+  - dependent destruction H1.
+    admit.
+Admitted.
+
+Global Hint Resolve residuals_compatible: cps.
 
 Inductive paving_result b c r p: Prop :=
-  paving_result_mk
+  | paving_result_mk
     (pr: redexes)
     (rp: redexes)
     (d: redexes)
-    (H1: residuals p r pr)
-    (H2: residuals r p rp)
-    (H3: residuals b pr d)
-    (H4: residuals c rp d).
+    (H1: residuals [] p r pr)
+    (H2: residuals [] r p rp)
+    (H3: residuals [] b pr d)
+    (H4: residuals [] c rp d).
 
-Lemma paving:
+Theorem paving:
   forall a r b,
-  residuals a r b ->
+  residuals [] a r b ->
   forall p c,
-  residuals a p c ->
+  residuals [] a p c ->
   paving_result b c r p.
 Proof.
   intros.
-  assert (compatible p r).
-  - apply compatible_trans with a.
-    + apply compatible_sym.
-      apply compatible_residuals with c.
-      assumption.
-    + apply compatible_residuals with b.
-      assumption.
-  - assert (exists pr, residuals p r pr) as (pr, ?); eauto with cps.
-    assert (exists rp, residuals r p rp) as (rp, ?); eauto with cps.
-    assert (exists d, residuals b pr d) as (d, ?); eauto with cps.
-    apply paving_result_mk with pr rp d; auto.
-    apply cube with a r b p pr; auto.
-Qed.
+  assert (exists pr, residuals [] p r pr) as (pr, ?); eauto with cps.
+  assert (exists rp, residuals [] r p rp) as (rp, ?); eauto with cps.
+  assert (exists d, residuals [] b pr d) as (d, ?).
+  admit.
+  apply paving_result_mk with pr rp d.
+  - assumption.
+  - assumption.
+  - assumption.
+  - apply cube with [] a r b [] p [] [] pr; auto with cps.
+Admitted.
 
-Lemma redexes_flow_mark_equals_mark:
-  forall e y a k,
-  redexes_flow y a k (mark e) = mark e.
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+
+Fixpoint redexes_count r: nat :=
+  match r with
+  | redexes_jump true f xs =>
+    1
+  | redexes_bind b ts c =>
+    redexes_count b + redexes_count c
+  | _ =>
+    0
+  end.
+
+Lemma redexes_count_mark:
+  forall c,
+  redexes_count (mark c) = 0.
 Proof.
-  induction e; auto; intros.
-  simpl.
-  rewrite IHe1.
-  rewrite IHe2.
-  reflexivity.
+  induction c; simpl; lia.
 Qed.
 
-Lemma redexes_full_mark_equals_mark:
-  forall e,
-  redexes_full (mark e) = mark e.
+Lemma skip_app_assoc:
+  forall {T} a g h,
+  @skip T a (g ++ h) = (@skip T a g) ++ h.
 Proof.
-  induction e; auto; simpl.
-  rewrite IHe1.
-  rewrite IHe2.
-  rewrite redexes_flow_mark_equals_mark.
-  reflexivity.
+  unfold skip.
+  induction a; simpl; intros.
+  - reflexivity.
+  - f_equal; auto.
 Qed.
 
-Global Hint Resolve redexes_full_mark_equals_mark: cps.
+Lemma residuals_tail:
+  forall g b r c,
+  residuals g b r c ->
+  forall h,
+  residuals (g ++ h) b r c.
+Proof.
+  induction 1; simpl; intros.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+    apply item_insert_tail.
+    assumption.
+  - constructor.
+    + apply IHresiduals1.
+    + rewrite skip_app_assoc.
+      apply IHresiduals2.
+Qed.
 
-(* TODO: these definitions should probably be moved up. *)
-
-Definition residuals_full a b c: Prop :=
-  exists2 c',
-  residuals a b c' & redexes_full c' = c.
+(* -------------------------------------------------------------------------- *)
 
 Inductive redexes_context: Set :=
   | redexes_context_hole
@@ -873,17 +661,6 @@ Proof.
   induction h; simpl; congruence.
 Qed.
 
-Lemma residuals_mark_context:
-  forall a b c,
-  residuals a b c ->
-  forall h,
-  residuals (mark_context h a) (mark_context h b) (mark_context h c).
-Proof.
-  induction h; simpl; auto with cps.
-Qed.
-
-Global Hint Resolve residuals_mark_context: cps.
-
 Inductive redexes_same_path: relation redexes_context :=
   | redexes_same_path_hole:
     redexes_same_path redexes_context_hole redexes_context_hole
@@ -904,221 +681,6 @@ Inductive redexes_same_path: relation redexes_context :=
 
 Global Hint Constructors redexes_same_path: cps.
 
-Lemma compatible_context_left_inversion:
-  forall (h: redexes_context) e1 b,
-  compatible (h e1) b ->
-  exists r e2,
-  redexes_same_path h r /\ b = r e2.
-Proof.
-  induction h; simpl; intros.
-  - exists redexes_context_hole; simpl.
-    exists b; auto with cps.
-  - dependent destruction H.
-    destruct IHh with e1 b2 as (r, (e2, (?, ?))); auto.
-    exists (redexes_context_left r ts c2), e2; simpl.
-    dependent destruction H2.
-    firstorder with cps.
-  - dependent destruction H.
-    destruct IHh with e1 c2 as (r, (e2, (?, ?))); auto.
-    exists (redexes_context_right b2 ts r), e2; simpl.
-    dependent destruction H2.
-    firstorder with cps.
-Qed.
-
-Lemma compatible_context_changing_hole:
-  forall h r,
-  redexes_same_path h r ->
-  forall a b,
-  compatible (h a) (r b) ->
-  forall c d,
-  compatible c d -> compatible (h c) (r d).
-Proof.
-  induction 1; simpl; intros.
-  - assumption.
-  - dependent destruction H1.
-    constructor; auto.
-    eapply IHredexes_same_path; eauto.
-  - dependent destruction H1.
-    constructor; auto.
-    eapply IHredexes_same_path; eauto.
-Qed.
-
-Lemma redexes_flow_mark_context_simplification:
-  forall h c a k e,
-  redexes_flow c a k (mark_context h e) =
-    mark_context h (redexes_flow c a (k + #h) e).
-Proof.
-  induction h; simpl; intros.
-  - f_equal; lia.
-  - f_equal.
-    + rewrite IHh; f_equal; f_equal.
-      lia.
-    + apply redexes_flow_mark_equals_mark.
-  - f_equal.
-    + apply redexes_flow_mark_equals_mark.
-    + rewrite IHh; f_equal; f_equal.
-      lia.
-Qed.
-
-Lemma redexes_full_mark_context_simplification:
-  forall h n,
-  n >= #h ->
-  forall xs,
-  redexes_full (mark_context h (redexes_placeholder n xs)) =
-    mark_context h (redexes_placeholder n xs).
-Proof.
-  induction h; simpl; intros.
-  - reflexivity.
-  - f_equal.
-    + rewrite IHh; try lia.
-      rewrite redexes_flow_mark_context_simplification.
-      f_equal; simpl.
-      destruct (Nat.eq_dec n #h); try lia.
-      reflexivity.
-    + apply redexes_full_mark_equals_mark.
-  - f_equal.
-    + rewrite IHh; try lia.
-      rewrite redexes_full_mark_equals_mark.
-      apply redexes_flow_mark_equals_mark.
-    + apply IHh; lia.
-Qed.
-
-Lemma residuals_preserve_hole:
-  forall h r a b,
-  redexes_same_path h r ->
-  forall c,
-  residuals (h a) (r b) c ->
-  exists s e,
-  redexes_same_path h s /\ residuals a b e /\ c = s e.
-Proof.
-  induction 1; simpl; intros.
-  - exists redexes_context_hole; simpl.
-    exists c; firstorder with cps.
-  - dependent destruction H1.
-    destruct IHredexes_same_path with b3 as (s, (e, (?, (?, ?)))); auto.
-    exists (redexes_context_left s ts2 c4), e; simpl.
-    split; [| split ].
-    + auto with cps.
-    + assumption.
-    + congruence.
-  - dependent destruction H1.
-    destruct IHredexes_same_path with c3 as (s, (e, (?, (?, ?)))); auto.
-    exists (redexes_context_right b4 ts2 s), e; simpl.
-    split; [| split ].
-    + auto with cps.
-    + assumption.
-    + congruence.
-Qed.
-
-(* Huh, this is a mess. TODO: Clean up this file please. *)
-
-Definition arities: Set :=
-  list (option nat).
-
-Inductive regular: arities -> redexes -> Prop :=
-  | regular_type:
-    forall g,
-    regular g (redexes_type)
-  | regular_prop:
-    forall g,
-    regular g (redexes_prop)
-  | regular_base:
-    forall g,
-    regular g (redexes_base)
-  | regular_void:
-    forall g,
-    regular g (redexes_void)
-  | regular_bound:
-    forall g n,
-    regular g (redexes_bound n)
-  | regular_negation:
-    forall g ts,
-    regular g (redexes_negation ts)
-  | regular_jump:
-    forall g n xs,
-    regular g (redexes_jump false n xs)
-  | regular_mark:
-    forall g a n xs,
-    item (Some a) g n ->
-    a = length xs ->
-    regular g (redexes_jump true n xs)
-  | regular_placeholder:
-    forall g a n xs,
-    item (Some a) g n ->
-    a = length xs ->
-    regular g (redexes_placeholder n xs)
-  | regular_bind:
-    forall g b ts c,
-    regular (Some (length ts) :: g) b ->
-    regular (repeat None (length ts) ++ g) c ->
-    regular g (redexes_bind b ts c).
-
-Global Hint Constructors regular: cps.
-
-Lemma regular_tail:
-  forall g1 e,
-  regular g1 e ->
-  forall g2,
-  regular (g1 ++ g2) e.
-Proof.
-  induction 1; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - econstructor; eauto.
-    apply item_insert_tail; auto.
-  - econstructor; eauto.
-    apply item_insert_tail; auto.
-  - constructor.
-    + simpl in IHregular1; auto.
-    + rewrite app_assoc; auto.
-Qed.
-
-Lemma regular_mark_term:
-  forall g e,
-  regular g (mark e).
-Proof.
-  intros.
-  replace g with ([] ++ g); auto.
-  apply regular_tail.
-  induction e; simpl; auto with cps.
-  constructor.
-  + eapply regular_tail in IHe1; eauto.
-  + eapply regular_tail in IHe2; eauto.
-Qed.
-
-Global Hint Resolve regular_mark_term: cps.
-
-Lemma regular_single_jump:
-  forall h g xs,
-  regular (g ++ [Some (length xs)])
-    (mark_context h (redexes_jump true (length g + #h) xs)).
-Proof.
-  induction h; simpl; intros.
-  - rewrite Nat.add_comm.
-    econstructor; eauto.
-    apply item_insert_head.
-    constructor.
-  - constructor.
-    + rewrite app_comm_cons.
-      rewrite Nat.add_succ_r.
-      apply IHh.
-    + apply regular_mark_term.
-  - constructor.
-    + apply regular_mark_term.
-    + rewrite app_assoc.
-      replace (length g + (#h + length ts)) with
-        (length (repeat None (length ts) ++ g) + #h).
-      * apply IHh.
-      * rewrite app_length.
-        rewrite repeat_length.
-        lia.
-Qed.
-
 Fixpoint redexes_context_bvars h: nat :=
   match h with
   | redexes_context_hole =>
@@ -1129,715 +691,54 @@ Fixpoint redexes_context_bvars h: nat :=
     redexes_context_bvars c + length ts
   end.
 
-Lemma regular_cant_jump_too_far:
-  forall n h g,
-  n = length g + redexes_context_bvars h ->
-  forall xs,
-  ~regular g (h (redexes_jump true n xs)).
-Proof.
-  induction h; simpl; intros.
-  - intro.
-    dependent destruction H0.
-    assert (n < length g).
-    + eapply item_valid_index.
-      eassumption.
-    + lia.
-  - intro.
-    dependent destruction H0.
-    eapply IHh; eauto; simpl.
-    lia.
-  - intro.
-    dependent destruction H0.
-    eapply IHh; eauto.
-    rewrite app_length.
-    rewrite repeat_length.
-    lia.
-Qed.
-
-Lemma residuals_preserve_regular:
-  forall a b c,
-  residuals a b c ->
-  forall g,
-  regular g a -> regular g b -> regular g c.
-Proof.
-  induction 1; intros.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - dependent destruction H0.
-    econstructor; eauto.
-  - assumption.
-  - dependent destruction H1.
-    dependent destruction H2.
-    constructor; auto.
-Qed.
-
-Global Hint Resolve residuals_preserve_regular: cps.
-
-Lemma redexes_flow_regular_simplification:
-  forall g x,
-  regular g x ->
-  forall c a k,
-  k >= length g ->
-  redexes_flow c a k x = x.
-Proof.
-  induction 1; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - assert (n < length g).
-    + eapply item_valid_index.
-      eassumption.
-    + destruct (Nat.eq_dec n k); try lia.
-      reflexivity.
-  - f_equal.
-    + apply IHregular1; simpl.
-      lia.
-    + apply IHregular2; simpl.
-      rewrite app_length, repeat_length.
-      lia.
-Qed.
-
-Lemma redexes_flow_preserve_regular:
-  forall a g b h,
-  regular (h ++ Some a :: g) b ->
-  forall c,
-  regular (repeat None a ++ g) c ->
-  forall k,
-  k = length h ->
-  regular (h ++ Some a :: g) (redexes_flow c a k b).
-Proof.
-  induction b; simpl; intros.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - destruct f; auto.
-    destruct (Nat.eq_dec n k); auto.
-    destruct (Nat.eq_dec a (length xs)); auto.
-    dependent destruction H.
-    (* Aw crap, this must be true but it'll be annoying to prove. *)
-    admit.
-  - dependent destruction H.
-    constructor.
-    + rewrite app_comm_cons.
-      apply IHb1; simpl; auto.
-    + rewrite app_assoc.
-      apply IHb2.
-      * rewrite <- app_assoc.
-        assumption.
-      * assumption.
-      * rewrite app_length, repeat_length.
-        lia.
-Admitted.
-
-Lemma redexes_full_preserves_regular:
-  forall g x,
-  regular g x ->
-  regular g (redexes_full x).
-Proof.
-  induction 1; simpl.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - econstructor; eauto.
-  - econstructor; eauto.
-  - constructor.
-    + apply redexes_flow_preserve_regular with (h := []); auto.
-    + assumption.
-Qed.
-
-Global Hint Resolve redexes_full_preserves_regular: cps.
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: organize this file. So far, everything above is used to prove that   *)
-(* parallel includes step. Everything below is needed to prove that star      *)
-(* includes parallel. There might be a few unused lemmas I forgot to remove.  *)
-(* -------------------------------------------------------------------------- *)
-
-Fixpoint redexes_mark_count k r: nat :=
-  match r with
-  | redexes_jump true (bound n) _ =>
-    if Nat.eq_dec k n then
-      1
-    else
-      0
-  | redexes_placeholder (bound n) _ =>
-    if Nat.eq_dec k n then
-      1
-    else
-      0
-  | redexes_bind b ts c =>
-    redexes_mark_count (S k) b + redexes_mark_count (k + length ts) c
-  | _ =>
-    0
-  end.
-
-Fixpoint redexes_mark_count_total r: nat :=
-  match r with
-  | redexes_jump true f xs =>
-    1
-  | redexes_placeholder f xs =>
-    1
-  | redexes_bind b ts c =>
-    redexes_mark_count_total b + redexes_mark_count_total c
-  | _ =>
-    0
-  end.
-
-Lemma redexes_structural_mark_ind:
-  forall P: redexes -> Prop,
-  forall f1: (P redexes_type),
-  forall f2: (P redexes_prop),
-  forall f3: (P redexes_base),
-  forall f4: (P redexes_void),
-  forall f5: (forall n, P (redexes_bound n)),
-  forall f6: (forall ts, P (redexes_negation ts)),
-  forall f7: (forall r f xs, P (redexes_jump r f xs)),
-  forall f8: (forall f xs, P (redexes_placeholder f xs)),
-  forall f9: (forall b,
-              P b ->
-              forall ts c,
-              P c ->
-              (forall x,
-               redexes_mark_count_total x <
-                 redexes_mark_count_total (redexes_bind b ts c) ->
-               P x) -> P (redexes_bind b ts c)),
-  forall r, P r.
-Proof.
-  intros.
-  assert (exists n, n >= redexes_mark_count_total r) as (n, ?); eauto.
-  generalize dependent r.
-  induction n using lt_wf_ind.
-  induction r; intros.
-  - apply f1.
-  - apply f2.
-  - apply f3.
-  - apply f4.
-  - apply f5.
-  - apply f6.
-  - apply f7.
-  - apply f8.
-  - simpl in H0.
-    apply f9; intros.
-    + apply IHr1; lia.
-    + apply IHr2; lia.
-    + simpl in H1.
-      apply H with (redexes_mark_count_total x); lia.
-Qed.
-
-Lemma regular_ignore_unused_tail:
-  forall e a g,
-  regular (g ++ repeat None a) e ->
-  regular g e.
-Proof.
-  induction e; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - destruct r.
-    + dependent destruction H.
-      econstructor; eauto.
-      destruct (le_gt_dec (length g) n).
-      * exfalso.
-        apply item_ignore_head in H; auto.
-        apply item_repeat in H.
-        discriminate.
-      * eapply item_ignore_tail; auto.
-        eauto.
-    + constructor.
-  - dependent destruction H.
-    econstructor; eauto.
-    destruct (le_gt_dec (length g) n).
-    + exfalso.
-      apply item_ignore_head in H; auto.
-      apply item_repeat in H.
-      discriminate.
-    + eapply item_ignore_tail; auto.
-      eauto.
-  - dependent destruction H; constructor.
-    + eapply IHe1; eauto.
-    + rewrite app_assoc in H0.
-      eapply IHe2; eauto.
-Qed.
-
-Lemma redexes_flow_ignore_unused_mark:
-  forall e1 k,
-  redexes_mark_count k e1 = 0 ->
-  forall c a e2,
-  redexes_flow c a k e1 = e2 ->
-  e1 = e2.
-Proof.
-  induction e1; simpl; intros.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - destruct f; auto.
-    destruct (Nat.eq_dec k n); try lia.
-    destruct (Nat.eq_dec n k); try lia.
-    assumption.
-  - destruct e2; try discriminate.
-    dependent destruction H0.
-    f_equal.
-    + eapply IHe1_1; eauto.
-      lia.
-    + eapply IHe1_2; eauto.
-      lia.
-Qed.
-
-Lemma regular_ignore_unmarked_tail:
-  forall a e g,
-  regular (g ++ [Some a]) e ->
-  redexes_mark_count (length g) e = 0 ->
-  regular g e.
-Proof.
-  induction e; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - destruct r.
-    + simpl in H0.
-      dependent destruction H.
-      destruct (Nat.eq_dec (length g) n); try lia.
-      econstructor; eauto.
-      assert (n < length (g ++ [Some a])).
-      * eapply item_valid_index; eauto.
-      * rewrite app_length in H1; simpl in H1.
-        eapply item_ignore_tail; try lia.
-        eassumption.
-    + constructor.
-  - simpl in H0.
-    dependent destruction H.
-    destruct (Nat.eq_dec (length g) n); try lia.
-    econstructor; eauto.
-    assert (n < length (g ++ [Some a])).
-    + eapply item_valid_index; eauto.
-    + rewrite app_length in H1; simpl in H1.
-      eapply item_ignore_tail; try lia.
-      eassumption.
-  - simpl in H0.
-    dependent destruction H.
-    constructor.
-    + rewrite app_comm_cons in H.
-      apply IHe1; auto.
-      simpl; lia.
-    + rewrite app_assoc in H0.
-      apply IHe2; auto.
-      rewrite app_length.
-      rewrite repeat_length.
-      rewrite Nat.add_comm; lia.
-Qed.
-
-(*
-Lemma residuals_preserve_no_mark:
-  forall a b c,
-  residuals a b c ->
-  forall k,
-  redexes_mark_count k a = 0 ->
-  redexes_mark_count k b = 0 ->
-  redexes_mark_count k c = 0.
-Proof.
-  induction 1; intros.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - simpl in H1, H2 |- *.
-    replace (redexes_mark_count (S k) b3) with 0; simpl.
-    + apply IHresiduals2; lia.
-    + symmetry.
-      apply IHresiduals1; lia.
-Qed.
-*)
-
-Lemma redexes_mark_leaves_unmarked:
-  forall e k,
-  redexes_mark_count k (mark e) = 0.
-Proof.
-  induction e; simpl; intros; auto.
-  replace (redexes_mark_count (S k) (mark e1)) with 0; simpl.
-  - apply IHe2.
-  - symmetry.
-    apply IHe1.
-Qed.
-
-Lemma regular_doesnt_jump_to_free_vars:
-  forall e g,
-  regular g e ->
-  forall k,
-  k >= length g ->
-  redexes_mark_count k e = 0.
-Proof.
-  induction e; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - destruct r; auto.
-    destruct f; auto.
-    destruct (Nat.eq_dec k n); auto.
-    exfalso.
-    dependent induction H.
-    assert (n < length g).
-    + eapply item_valid_index; eauto.
-    + lia.
-  - destruct f; auto.
-    destruct (Nat.eq_dec k n); auto.
-    exfalso.
-    dependent induction H.
-    assert (n < length g).
-    + eapply item_valid_index; eauto.
-    + lia.
-  - dependent destruction H.
-    replace (redexes_mark_count (S k) e1) with 0; simpl.
-    + eapply IHe2; eauto.
-      rewrite app_length.
-      rewrite repeat_length.
-      lia.
-    + symmetry.
-      eapply IHe1; eauto.
-      simpl; lia.
-Qed.
-
-Lemma residuals_partial_full_application:
-  forall y,
-  regular [] y ->
-  forall x,
-  regular [] x ->
-  forall z,
-  residuals_full x y z ->
-  residuals_full (redexes_full x) (redexes_full y) z.
-Proof.
-  (* Hmm... *)
-  admit.
-Admitted.
-
-Lemma positive_mark_count_implies_context:
-  forall a b c,
-  residuals (mark a) b c ->
-  forall k,
-  redexes_mark_count k b > 0 ->
-  exists h r xs,
-  redexes_same_path (mark_context h) r /\
-    a = h (jump (k + #h) xs) /\
-    b = r (redexes_jump true (k + #h) xs).
-Proof.
-  intros until 1.
-  dependent induction H; simpl; intros.
-  - exfalso; lia.
-  - exfalso; lia.
-  - exfalso; lia.
-  - exfalso; lia.
-  - exfalso; lia.
-  - exfalso; lia.
-  - exfalso; lia.
-  - destruct a; try discriminate.
-    dependent destruction x.
-    destruct a; try lia.
-    destruct (Nat.eq_dec k0 n); try lia.
-    exists context_hole; simpl.
-    rewrite Nat.add_0_r; destruct e.
-    exists redexes_context_hole, xs0; eauto with cps.
-  - exfalso.
-    destruct a; discriminate.
-  - destruct a; try discriminate.
-    dependent destruction x.
-    destruct (Nat.eq_dec (redexes_mark_count (k + length ts0) c2) 0).
-    + clear IHresiduals2.
-      edestruct IHresiduals1 with (k := S k); auto; try lia.
-      destruct H2 as (r, (xs, (?, (?, ?)))).
-      eexists (context_left _ _ _); simpl.
-      eexists; eexists; simpl.
-      split; [ | split ].
-      * constructor; eauto.
-      * f_equal.
-        replace (k + S #x) with (S k + #x); try lia.
-        eassumption.
-      * simpl; f_equal.
-        replace (k + S #x) with (S k + #x); try lia.
-        assumption.
-    + clear IHresiduals1.
-      edestruct IHresiduals2 with (k := k + length ts0); auto; try lia.
-      destruct H2 as (r, (xs, (?, (?, ?)))).
-      eexists (context_right _ _ _); simpl.
-      eexists; eexists; simpl.
-      split; [ | split ].
-      * constructor; eauto.
-      * f_equal.
-        replace (k + (#x + length ts0)) with (k + length ts0 + #x); try lia.
-        eassumption.
-      * simpl; f_equal.
-        replace (k + (#x + length ts0)) with (k + length ts0 + #x); try lia.
-        assumption.
-Qed.
-
-(*
-Lemma redexes_mark_count_replacing_mark:
-  forall (h: redexes_context) k xs n,
-  redexes_mark_count k (h (redexes_jump true
-    (k + redexes_context_bvars h) xs)) = 1 + n ->
-  forall e m,
-  redexes_mark_count (k + redexes_context_bvars h) e = m ->
-  redexes_mark_count k (h e) = m + n.
-Proof.
-  induction h; simpl; intros.
-  - rewrite Nat.add_0_r in H, H0.
-    destruct (Nat.eq_dec k k); lia.
-  - remember (h (redexes_jump true (k + S (redexes_context_bvars h)) xs)) as b.
-    assert (exists o, redexes_mark_count (S k) b = S o) as (o, ?).
-    + admit.
-    + replace (redexes_mark_count (k + length ts) c) with (n - o); try lia.
-      assert (redexes_mark_count (S k) (h e) = m + o).
-      * rewrite <- Nat.add_succ_r in Heqb, H0.
-        dependent destruction Heqb.
-        eapply IHh; eauto.
-      * lia.
-  - remember (h (redexes_jump true
-      (k + (redexes_context_bvars h + length ts)) xs)) as c.
-    assert (exists o, redexes_mark_count (k + length ts) c = S o) as (o, ?).
-    + admit.
-    + replace (redexes_mark_count (S k) b) with (n - o); try lia.
-      assert (redexes_mark_count (k + length ts) (h e) = m + o).
-      * replace (k + (redexes_context_bvars h + length ts)) with
-          (k + length ts + redexes_context_bvars h) in Heqc, H0; try lia.
-        dependent destruction Heqc.
-        eapply IHh; eauto.
-      * lia.
-Admitted.
-
-Lemma redexes_mark_count_total_zero_implies_count_zero:
-  forall e,
-  redexes_mark_count_total e = 0 ->
-  forall k,
-  redexes_mark_count k e = 0.
-Proof.
-  induction e; simpl; intros.
-  - reflexivity.
-  - destruct r; auto.
-    destruct f; auto.
-    discriminate.
-  - destruct f; auto.
-    discriminate.
-  - replace (redexes_mark_count (S k) e1) with 0; simpl.
-    + apply IHe2; lia.
-    + symmetry.
-      apply IHe1; lia.
-Qed.
-*)
-
-Lemma redexes_mark_count_total_lt_context:
-  forall a b,
-  redexes_mark_count_total a < redexes_mark_count_total b ->
-  forall h: redexes_context,
-  redexes_mark_count_total (h a) < redexes_mark_count_total (h b).
-Proof.
-  induction h; simpl; intros.
-  - assumption.
-  - lia.
-  - lia.
-Qed.
-
-Lemma redexes_mark_count_total_mark_is_zero:
-  forall e,
-  redexes_mark_count_total (mark e) = 0.
-Proof.
-  induction e; simpl; lia.
-Qed.
-
-Lemma residuals_replacing_hole:
+Goal
   forall h s,
   redexes_same_path h s ->
-  forall t,
-  redexes_same_path h t ->
-  forall a b c,
-  residuals (h a) (s b) (t c) ->
-  forall x y z,
-  residuals x y z ->
-  residuals (h x) (s y) (t z).
-Proof.
-  induction 1; intros.
-  - dependent destruction H; simpl.
-    assumption.
-  - dependent destruction H1.
-    dependent destruction H3; simpl; constructor.
-    + eapply IHredexes_same_path; eauto.
-    + assumption.
-  - dependent destruction H1.
-    dependent destruction H3; simpl; constructor.
-    + assumption.
-    + eapply IHredexes_same_path; eauto.
-Qed.
+  forall k,
+  k = redexes_context_bvars h ->
+  forall xs ts,
+  length xs = length ts ->
+  forall g r c1 c2 c3,
+  residuals g
+    (redexes_bind (h (redexes_jump r k xs)) ts c1)
+    (redexes_bind (s (redexes_jump true k xs)) ts c2)
+    c3 ->
 
-Lemma regular_jump_imply_correct_arity:
-  forall (h: redexes_context) g a n xs,
-  regular (g ++ [Some a]) (h (redexes_jump true n xs)) ->
-  n = length g + redexes_context_bvars h ->
-  length xs = a.
-Proof.
-  induction h; simpl; intros.
-  - dependent destruction H.
-    dependent destruction H0.
-    apply item_ignore_head in H; try lia.
-    replace (length g + 0 - length g) with 0 in H; try lia.
-    dependent destruction H.
-    reflexivity.
-  - dependent destruction H.
-    rewrite app_comm_cons in H.
-    eapply IHh; eauto; simpl.
-    dependent destruction H1.
-    f_equal; lia.
-  - dependent destruction H.
-    rewrite app_assoc in H0.
-    eapply IHh; eauto; simpl.
-    dependent destruction H1.
-    rewrite app_length.
-    rewrite repeat_length.
-    f_equal; lia.
-Qed.
-
-Lemma mark_context_bvars_and_path_are_sound:
-  forall h s,
-  redexes_same_path (mark_context h) s ->
-  #h = redexes_context_bvars s.
+  residuals g
+    (redexes_bind (h (
+      redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c1)
+    )) ts c1)
+    (redexes_bind (s (
+      redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c2)
+    )) ts c2)
+    c3.
 Proof.
   intros.
-  dependent induction H; simpl.
-  - destruct h; try discriminate; auto.
-  - destruct h; try discriminate; simpl.
-    dependent destruction x; auto.
-  - destruct h; try discriminate; simpl.
-    dependent destruction x; auto.
-Qed.
-
-Lemma regular_preserved_replacing_jump_by_mark:
-  forall (h: redexes_context) g a n xs,
-  regular (g ++ [Some a]) (h (redexes_jump true n xs)) ->
-  n = length g + redexes_context_bvars h ->
-  forall e,
-  regular (g ++ [Some a]) (h (mark e)).
-Proof.
-  induction h; simpl; intros.
-  - apply regular_mark_term.
-  - dependent destruction H.
+  dependent destruction H2.
+  rename c4 into c3.
+  constructor; auto.
+  assert (item (Some (length ts, c3)) (Some (length ts, c3) :: g) 0);
+    auto with cps.
+  remember (Some (length ts, c3) :: g) as i.
+  replace O with (k - redexes_context_bvars h) in H2; try lia.
+  assert (k >= redexes_context_bvars h); try lia.
+  clear Heqi H0.
+  generalize dependent b3.
+  generalize dependent i.
+  induction H; simpl; intros.
+  - dependent destruction H2_.
+    replace (k - 0) with k in H2; try lia.
+    eapply item_unique in H2; eauto.
+    dependent destruction H2.
+    (* Ok, we gotta keep changing g in H2_0 as well as we go. *)
+    admit.
+  - dependent destruction H2_; simpl.
     constructor; auto.
-    rewrite app_comm_cons in H |- *.
-    eapply IHh; eauto.
-    dependent destruction H1; f_equal.
-    simpl; lia.
-  - dependent destruction H.
-    constructor; auto.
-    rewrite app_assoc in H0 |- *.
-    eapply IHh; eauto.
-    dependent destruction H1; f_equal.
-    rewrite app_length.
-    rewrite repeat_length.
-    lia.
-Qed.
-
-(* In fact this could be generalized by any regular [] y, instead of simply
-   having no marks. But I don't think we'll need that. *)
-
-Lemma redexes_flow_preserved_by_single_unmarked_jump:
-  forall h k n,
-  n = k + redexes_context_bvars h ->
-  forall y xs e,
-  redexes_flow (mark y) (length xs) k
-    (redexes_full (h (redexes_placeholder n xs))) = e ->
-  redexes_flow (mark y) (length xs) k
-    (redexes_full (h (mark (apply_parameters xs 0
-      (lift (S n) (length xs) y))))) = e.
-Proof.
-  induction h; simpl; intros.
-  - destruct (Nat.eq_dec n k); try lia.
-    destruct (Nat.eq_dec (length xs) (length xs)); try lia.
-    rewrite redexes_full_mark_equals_mark.
-    rewrite redexes_flow_mark_equals_mark.
-    rewrite <- redexes_apply_parameters_is_sound.
-    rewrite <- redexes_lift_is_sound.
-    assumption.
-  - dependent destruction H0.
-    f_equal.
-    do 2 rewrite redexes_flow_commute.
-    f_equal.
-    apply IHh; auto.
-    lia.
-  - dependent destruction H0.
-    f_equal.
-    + do 2 rewrite redexes_flow_commute.
-      f_equal.
-      apply IHh; auto.
-      lia.
-    + apply IHh; auto.
-      lia.
-Qed.
+    simpl in H3.
+    eapply IHredexes_same_path; auto; try lia.
+    replace (k - redexes_context_bvars h) with
+      (S (k - S (redexes_context_bvars h))); try lia.
+    constructor; assumption.
+Admitted.
 
 (* -------------------------------------------------------------------------- *)
-
-Lemma mark_unmark_is_sound_given_no_marks:
-  forall e,
-  redexes_mark_count_total e = 0 ->
-  e = mark (unmark e).
-Proof.
-  induction e; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - destruct r.
-    + discriminate.
-    + reflexivity.
-  - discriminate.
-  - rewrite <- IHe1; try lia.
-    rewrite <- IHe2; try lia.
-    reflexivity.
-Qed.
-
-Lemma residuals_full_preserve_no_mark:
-  forall b,
-  regular [] b ->
-  forall a,
-  redexes_mark_count_total a = 0 ->
-  forall c,
-  residuals_full a b c ->
-  redexes_mark_count_total c = 0.
-Proof.
-  intros.
-  destruct H1 as (c', ?, ?).
-  (* Hmm, by the structure and number of marks in b? *)
-  admit.
-Admitted.

@@ -16,53 +16,31 @@ Require Import Local.Residuals.
 
 (** ** Parallel reduction *)
 
+(* The parallel reduction relation can perform one or more jumps at once in a
+   single step. Note that this is a bit different from the usual formulation in
+   the lambda calculus because we require at least one jump, so this relation is
+   not reflexive. We do so because this is useful for some of the preservation
+   proofs, as we want the transitive closure of this relation to coincide with
+   the transitive closure of the jump reduction. Then, of course, we can go back
+   to the usual definition by taking its reflexive closure, which we will do for
+   the confluence proof. *)
+
 Definition parallel: relation pseudoterm :=
-  fun a b =>
+  fun b c =>
     exists2 r,
-    residuals_full (mark a) r (mark b) & regular [] r.
-
-Lemma parallel_refl:
-  forall e,
-  parallel e e.
-Proof.
-  intros.
-  exists (mark e).
-  - exists (mark e).
-    + apply residuals_mark_term.
-    + apply redexes_full_mark_equals_mark.
-  - apply regular_mark_term.
-Qed.
-
-Global Hint Resolve parallel_refl: cps.
-
-Lemma parallel_bind:
-  forall b1 b2 ts c1 c2,
-  parallel b1 b2 ->
-  parallel c1 c2 ->
-  parallel (bind b1 ts c1) (bind b2 ts c2).
-Proof.
-  intros.
-  destruct H as (p, (b2', ?, ?), ?).
-  destruct H0 as (r, (c2', ?, ?), ?).
-  exists (redexes_bind p ts r); simpl.
-  - eexists (redexes_bind b2' ts c2'); simpl.
-    + constructor; auto.
-    + rewrite H1, H3; f_equal.
-      apply redexes_flow_mark_equals_mark.
-  - constructor.
-    + apply regular_tail with (g1 := []).
-      assumption.
-    + apply regular_tail with (g1 := []).
-      assumption.
-Qed.
-
-Global Hint Resolve parallel_bind: cps.
+    residuals [] (mark b) r (mark c) & redexes_count r > 0.
 
 Lemma parallel_bind_left:
   LEFT parallel.
 Proof.
   unfold LEFT; intros.
-  apply parallel_bind; auto with cps.
+  destruct H as (r, ?, ?).
+  exists (redexes_bind r ts (mark c)); simpl.
+  - constructor.
+    + apply residuals_tail with (g := []).
+      assumption.
+    + apply residuals_term.
+  - lia.
 Qed.
 
 Global Hint Resolve parallel_bind_left: cps.
@@ -71,272 +49,208 @@ Lemma parallel_bind_right:
   RIGHT parallel.
 Proof.
   unfold RIGHT; intros.
-  apply parallel_bind; auto with cps.
+  destruct H as (r, ?, ?).
+  exists (redexes_bind (mark b) ts r); simpl.
+  - constructor.
+    + apply residuals_term.
+    + apply residuals_tail with (g := []).
+      assumption.
+  - lia.
 Qed.
 
 Global Hint Resolve parallel_bind_right: cps.
+
+(* Jump reduction is a subset of parallel reduction. *)
+
+Lemma t_beta_bind_left:
+  LEFT t(beta).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Lemma t_beta_bind_right:
+  RIGHT t(beta).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+(* TODO: move these few lemmas to [Residuals.v]! *)
+
+Lemma redexes_count_mark_context:
+  forall r h,
+  redexes_count (mark_context h r) = redexes_count r.
+Proof.
+  induction h; simpl.
+  - reflexivity.
+  - rewrite redexes_count_mark; lia.
+  - rewrite redexes_count_mark; lia.
+Qed.
+
+Fixpoint residuals_context_to_env h :=
+  match h with
+  | context_hole =>
+    []
+  | context_left r ts c =>
+    residuals_context_to_env r ++ [Some (length ts, mark c)]
+  | context_right b ts r =>
+    residuals_context_to_env r ++ repeat None (length ts)
+  end.
+
+Lemma residuals_context_to_env_length:
+  forall h,
+  length (residuals_context_to_env h) = #h.
+Proof.
+  induction h; simpl.
+  - reflexivity.
+  - rewrite app_length.
+    rewrite IHh; simpl.
+    lia.
+  - rewrite app_length.
+    rewrite repeat_length.
+    rewrite IHh; simpl.
+    reflexivity.
+Qed.
+
+Lemma residuals_mark_context:
+  forall h g a r b,
+  residuals (residuals_context_to_env h ++ g) a r b ->
+  residuals g (mark_context h a) (mark_context h r) (mark_context h b).
+Proof.
+  induction h; simpl; intros.
+  - assumption.
+  - constructor.
+    + apply IHh.
+      rewrite <- app_assoc in H.
+      assumption.
+    + apply residuals_term.
+  - constructor.
+    + apply residuals_term.
+    + apply IHh.
+      rewrite <- app_assoc in H.
+      assumption.
+Qed.
 
 Lemma parallel_beta:
   forall a b,
   beta a b -> parallel a b.
 Proof.
-  (* By induction on the step. *)
-  unfold parallel; induction 1.
+  (* By induction on the step, as it's compatible. *)
+  induction 1.
   (* Case: step_ctxjmp. *)
-  - simpl.
-    (* The context can't have any jumps in it. *)
-    do 2 rewrite <- mark_context_is_sound; simpl.
-    (* As the hole has a single jump, chose to mark only it. *)
-    exists (redexes_bind (mark_context h (redexes_jump true #h xs))
-      ts (mark c)).
-    + (* The development will have a placeholder on its place. *)
-      exists (redexes_bind (mark_context h (redexes_placeholder #h xs))
-        ts (mark c)).
-      * (* The only mark is sound. *)
-        auto with cps.
-      * (* And it's development results in our reduct. *)
-        simpl.
-        rewrite redexes_full_mark_equals_mark.
-        f_equal.
-        rewrite redexes_full_mark_context_simplification; auto.
-        rewrite redexes_flow_mark_context_simplification.
-        f_equal; simpl.
-        destruct (Nat.eq_dec #h #h); try lia.
-        destruct (Nat.eq_dec (length ts) (length xs)); try lia.
-        rewrite redexes_lift_is_sound.
-        rewrite redexes_apply_parameters_is_sound.
-        rewrite H; reflexivity.
-    + (* Clearly the single jump is also regular. *)
+  - (* As the hole has a single jump, choose to mark only it. *)
+    exists (redexes_bind (mark_context h (redexes_jump true #h xs)) ts
+      (mark c)); simpl.
+    + (* This single jump will be bound to the correct continuation. *)
       constructor.
-      * rewrite <- H.
-        apply regular_single_jump with (g := []).
-      * apply regular_mark_term.
+      * do 2 rewrite <- mark_context_is_sound; simpl.
+        apply residuals_mark_context.
+        rewrite mark_apply_parameters_is_sound.
+        rewrite mark_lift_is_sound.
+        rewrite <- H.
+        constructor.
+        rewrite <- residuals_context_to_env_length.
+        apply item_insert_head with (k := 0).
+        constructor.
+      * apply residuals_term.
+    + (* We explictly stated there is going to be one mark. *)
+      rewrite redexes_count_mark.
+      rewrite redexes_count_mark_context.
+      simpl; lia.
   (* Case: step_bind_left. *)
-  - destruct IHbeta as (p, (b2', ?, ?), ?).
-    (* As there's a single mark, on the left, use it. *)
-    exists (redexes_bind p ts (mark c)); simpl.
-    + (* We know which will be the development. *)
-      exists (redexes_bind b2' ts (mark c)); simpl.
-      * constructor; auto with cps.
-      * rewrite H1.
-        f_equal; auto with cps.
-        rewrite redexes_flow_mark_equals_mark; auto.
-    + constructor.
-      * eapply regular_tail in H2; eauto.
-      * apply regular_mark_term.
+  - apply parallel_bind_left.
+    assumption.
   (* Case: step_bind_right. *)
-  - destruct IHbeta as (p, (c2', ?, ?), ?).
-    (* As there's a single mark, on the right, use it. *)
-    exists (redexes_bind (mark b) ts p); simpl.
-    + (* Same thing as above, but on the right. *)
-      exists (redexes_bind (mark b) ts c2'); simpl.
-      * constructor; auto with cps.
-      * rewrite H1.
-        f_equal; auto with cps.
-        rewrite redexes_full_mark_equals_mark; auto.
-        rewrite redexes_flow_mark_equals_mark; auto.
-    + constructor.
-      * apply regular_mark_term.
-      * eapply regular_tail in H2; eauto.
+  - apply parallel_bind_right.
+    assumption.
 Qed.
 
 Global Hint Resolve parallel_beta: cps.
 
-Lemma rt_beta_parallel:
+Lemma t_beta_parallel:
   forall a b,
-  parallel a b -> rt(beta) a b.
+  parallel a b -> t(beta) a b.
 Proof.
   intros.
-  destruct H as (r, (b', ?, ?), ?).
-  generalize a b b' H H0 H1; clear a b b' H H0 H1.
-  induction r using redexes_structural_mark_ind; intros.
-  (* Case: type. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  (* Case: prop. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  (* Case: base. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  (* Case: void. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    auto with cps.
-  (* Case: bound. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    dependent destruction H0;
-    auto with cps.
-  (* Case: negation. *)
-  - dependent destruction H.
-    destruct a;
-    destruct b;
-    try discriminate;
-    dependent destruction H0;
-    auto with cps.
-  (* Case: jump. *)
-  - dependent destruction H.
-    + destruct a; try discriminate.
-      destruct b; try discriminate.
-      dependent destruction H0.
-      auto with cps.
-    + exfalso.
-      inversion H1.
-      inversion H4.
-  (* Case: placeholder. *)
-  - exfalso.
-    dependent destruction H.
-    destruct a; discriminate.
-  (* Case: bind. *)
-  - dependent destruction H0.
-    destruct a; try discriminate.
-    destruct b; try discriminate.
-    dependent destruction x.
-    dependent destruction H1.
-    dependent destruction H2.
-    rewrite app_nil_r in H2_0.
-    apply regular_ignore_unused_tail with (g := []) in H2_0.
-    apply rt_trans with (bind a1 ts1 b4).
-    + apply rt_beta_bind_right.
-      eapply IHr2; eauto.
-    + assert (exists n, redexes_mark_count 0 r1 = n) as (n, ?); eauto.
-      destruct n.
-      * clear H.
-        apply rt_beta_bind_left.
-        (* TODO: refactor me please. *)
-        apply regular_ignore_unmarked_tail with (g := []) in H2_; auto.
-        eapply IHr1; eauto.
-        eapply redexes_flow_ignore_unused_mark; eauto.
-        eapply regular_doesnt_jump_to_free_vars.
-        --- eapply redexes_full_preserves_regular.
-            eapply residuals_preserve_regular; eauto.
-            apply regular_mark_term.
-        --- simpl; lia.
-      * (* TODO: refactor this mess please! *)
-        edestruct positive_mark_count_implies_context with (k := 0) (b := r1)
-          as (h, (s, (xs, ?))); eauto; try lia.
-        simpl in H1.
-        destruct H1 as (?, (?, ?)).
-        dependent destruction H2.
-        dependent destruction H3.
-        (* ... *)
-        rewrite <- mark_context_is_sound in H0_.
-        edestruct residuals_preserve_hole as (t, (e, (?, (?, ?)))); eauto.
-        dependent destruction H3.
-        dependent destruction H4.
-        eapply rt_trans.
-        --- apply rt_step.
-            apply beta_ctxjmp.
-            eapply regular_jump_imply_correct_arity with (g := []);
-              simpl; eauto.
-            f_equal; apply mark_context_bvars_and_path_are_sound; auto.
-        --- eapply H with (x := redexes_bind (s (mark _)) _ (mark b4)); simpl.
-            +++ rewrite redexes_mark_count_total_mark_is_zero.
-                rewrite Nat.add_0_r.
-                apply Nat.lt_lt_add_r.
-                apply redexes_mark_count_total_lt_context.
-                rewrite redexes_mark_count_total_mark_is_zero.
-                simpl; auto.
-            +++ constructor.
-                *** rewrite <- mark_context_is_sound.
-                    eapply residuals_replacing_hole; eauto.
-                    apply residuals_mark_term.
-                *** apply residuals_mark_term.
-            +++ simpl; f_equal.
-                *** symmetry in x0; destruct x0.
-                    rewrite redexes_full_mark_equals_mark.
-                    apply mark_context_bvars_and_path_are_sound in H1.
-                    apply mark_context_bvars_and_path_are_sound in H2.
-                    apply regular_jump_imply_correct_arity
-                      with (g := []) in H2_; auto.
-                    rewrite <- H2_ in x |- *.
-                    apply redexes_flow_preserved_by_single_unmarked_jump; auto.
-                *** apply redexes_full_mark_equals_mark.
-            +++ constructor.
-                *** eapply regular_preserved_replacing_jump_by_mark
-                      with (g := []); eauto.
-                    simpl; f_equal.
-                    apply mark_context_bvars_and_path_are_sound; auto.
-                *** apply regular_mark_term.
+  destruct H as (r, ?, ?).
+  admit.
+Admitted.
+
+Global Hint Resolve t_beta_parallel: cps.
+
+Lemma t_beta_and_t_parallel_coincide:
+  same_relation t(beta) t(parallel).
+Proof.
+  split; induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve rt_beta_parallel: cps.
+Lemma rt_beta_and_rt_parallel_coincide:
+  same_relation rt(beta) rt(parallel).
+Proof.
+  split.
+  - induction 1; eauto with cps.
+  - induction 1; eauto with cps.
+    (* TODO: there should be a hint for this! *)
+    apply clos_t_clos_rt; auto with cps.
+Qed.
 
 (* ** Confluence *)
 
-Lemma parallel_has_diamond:
-  diamond parallel.
+Lemma parallel_is_joinable:
+  forall x y,
+  parallel x y ->
+  forall z,
+  parallel x z ->
+  exists2 w,
+  r(parallel) y w & r(parallel) z w.
 Proof.
-  unfold diamond, commutes, diagram; intros.
-  destruct H as (r, (x', ?, ?), ?).
-  destruct H0 as (p, (y', ?, ?), ?).
-  destruct paving with (mark x) r x' p y' as (pr, rp, w, ?, ?, ?, ?); auto.
-  assert (regular [] pr); eauto with cps.
-  assert (regular [] rp); eauto with cps.
-  assert (regular [] x'); eauto with cps.
-  assert (regular [] y'); eauto with cps.
-  (* We know the development of w has no marks! *)
-  assert (redexes_mark_count_total (redexes_full w) = 0).
-  - apply residuals_full_preserve_no_mark with (redexes_full pr) (mark y).
-    + auto with cps.
-    + apply redexes_mark_count_total_mark_is_zero.
-    + rewrite <- H1.
-      eapply residuals_partial_full_application; eauto.
-      exists w; auto.
-  - exists (unmark (redexes_full w)).
-    + exists (redexes_full pr); auto with cps.
-      rewrite <- H1.
-      eapply residuals_partial_full_application; eauto.
-      exists w; auto.
-      rewrite <- mark_unmark_is_sound_given_no_marks; auto.
-    + exists (redexes_full rp); auto with cps.
-      rewrite <- H3.
-      eapply residuals_partial_full_application; eauto.
-      exists w; auto.
-      rewrite <- mark_unmark_is_sound_given_no_marks; auto.
-Qed.
+  intros.
+  admit.
+Admitted.
 
-Lemma transitive_parallel_has_diamond:
-  diamond t(parallel).
+Lemma r_parallel_has_diamond:
+  diamond r(parallel).
 Proof.
-  apply transitive_closure_preserves_commutation.
-  exact parallel_has_diamond.
-Qed.
+  admit.
+Admitted.
 
-Lemma transitive_parallel_and_rt_beta_are_equivalent:
-  same_relation t(parallel) rt(beta).
+Lemma parallel_is_confluent:
+  confluent parallel.
 Proof.
-  split; induction 1; eauto with cps.
+  assert (diamond t(r(parallel))).
+  - apply transitive_closure_preserves_diagram; auto with cps.
+    exact r_parallel_has_diamond.
+  - intros x y ? z ?.
+    (* I really should add some automation for this... TODO: review me. *)
+    destruct H with x y z as (w, ?, ?).
+    + apply r_and_t_closures_commute.
+      apply rt_characterization.
+      assumption.
+    + apply r_and_t_closures_commute.
+      apply rt_characterization.
+      assumption.
+    + exists w.
+      * apply rt_characterization.
+        apply r_and_t_closures_commute.
+        assumption.
+      * apply rt_characterization.
+        apply r_and_t_closures_commute.
+        assumption.
 Qed.
 
 Lemma beta_is_confluent:
   confluent beta.
 Proof.
   compute; intros.
-  (* We apply a simple strip lemma here. *)
-  destruct transitive_parallel_has_diamond with x y z as (w, ?, ?).
-  - apply transitive_parallel_and_rt_beta_are_equivalent.
-    assumption.
-  - apply transitive_parallel_and_rt_beta_are_equivalent.
-    assumption.
+  apply rt_beta_and_rt_parallel_coincide in H.
+  apply rt_beta_and_rt_parallel_coincide in H0.
+  (* TODO: might wanna review this after adding some automation. *)
+  destruct parallel_is_confluent with x y z as (w, ?, ?).
+  - assumption.
+  - assumption.
   - exists w.
-    + apply transitive_parallel_and_rt_beta_are_equivalent.
+    + apply rt_beta_and_rt_parallel_coincide.
       assumption.
-    + apply transitive_parallel_and_rt_beta_are_equivalent.
+    + apply rt_beta_and_rt_parallel_coincide.
       assumption.
 Qed.
 
@@ -408,7 +322,8 @@ Proof.
     + exists y; auto with cps.
     + exists x; auto with cps.
   (* The diamond property implies confluence. *)
-  - (* Oh boy... it's the same relation, but we gotta convince Coq. *)
+  - (* Oh boy... it's the same relation, but we gotta convince Coq. TODO: add a
+       proper morphism and review this one! *)
     apply transitive_closure_preserves_commutation in H.
     intros x y ? z ?.
     destruct H with x y z as (w, ?, ?).
@@ -722,6 +637,7 @@ Corollary uniqueness_of_normal_form:
   a = b.
 Proof.
   intros.
+  (* TODO: generalize this proof into [AbstractRewriting.v]. *)
   destruct step_is_church_rosser with a b as (c, ?, ?); auto.
   assert (a = c /\ b = c) as (?, ?).
   - split.

@@ -167,6 +167,19 @@ Proof.
       apply IHxs; auto.
 Qed.
 
+Lemma item_unique:
+  forall {T} x y xs k,
+  @item T x xs k ->
+  @item T y xs k ->
+  x = y.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    reflexivity.
+  - dependent destruction H0.
+    auto.
+Qed.
+
 Lemma Forall2_length:
   forall {A} {B} R xs ys,
   @Forall2 A B R xs ys ->
