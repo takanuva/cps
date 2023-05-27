@@ -80,18 +80,19 @@ Proof.
   (* So, since parallel reduction has the weak diamond property... *)
   destruct parallel_is_joinable with b c d as (e, ?, ?); eauto with cps.
   destruct H6; destruct H7.
-  - (* Redexes r and s were unrelated, so we need to move in both directions. We
-       follow by our first inductive hypothesis. *)
+  (* Case: r and s are unrelated. *)
+  - (* We need to "move" in both directions. We follow by our first inductive
+       hypothesis. *)
     rename y into e.
     apply H0 with e; auto.
-  - (* Redexes r were a subset of s, so c can move to d. So we performed all the
-       missing redexes and a few more. As our hypothesis says that c is SN, we
-       can finish already. *)
-    apply H.
-    assumption.
-  - (* Redexes s were a subset of r, so we are performing some, but not all, of
-       the missing redexes. We proceed by our second inductive hypothesis, as
-       it will now take less steps to develop all the missing redexes. *)
+  (* Case: r is a strict subset of s. *)
+  - (* Here c can move to d. So we performed all the missing redexes and a few
+       more! As our hypothesis says that c is SN, we can finish already. *)
+    apply H; auto.
+  (* Case: s is a strict subset of r. *)
+  - (* Here we are performing some, but not all, of the missing redexes. We
+       proceed by our second inductive hypothesis, as it will now need less work
+       to develop all the missing redexes. *)
     rename y into e.
     destruct H6 as (t, ?, ?).
     apply H1 with (redexes_count t) t; auto.
@@ -101,9 +102,10 @@ Proof.
        but as we'll probably need to reason about development length in order to
        prove finite development (in any order), this also works. *)
     admit.
-  - (* Redexes r and s were the same, so we have reached a point where the terms
-       were joined back, all the missing redexes were contracted, and we proceed
-       with our induction hypothesis alone. *)
+  (* Case: r and s are the same. *)
+  - (* Now we have reached a point where the terms were joined back, all the
+       missing redexes were contracted, and we proceed with our induction
+       hypothesis alone. *)
     constructor.
     exact H.
 Admitted.
