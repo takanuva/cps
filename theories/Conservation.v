@@ -11,6 +11,44 @@ Require Import Local.Reduction.
 Require Import Local.Residuals.
 Require Import Local.Confluence.
 
+(* Anything that is a bisimulation on parallel reduction should preserve jump
+   reduction. *)
+
+(* TODO: move this definition to [Prelude.v]! *)
+
+Notation const T x :=
+  (fun _: T => x).
+
+Definition equi: relation pseudoterm :=
+  (* TODO: we need the definition of strong bisimilarity! *)
+  fun b c =>
+    exists2 S,
+    strong_bisimulation (const unit parallel) S & S b c.
+
+Global Hint Unfold equi: cps.
+
+Goal
+  forall c,
+  SN beta c <-> SN parallel c.
+Proof.
+  (* TODO: rewrite this proof by using a proper morphism! *)
+  split; intros.
+  - apply SN_R_t_R in H.
+    apply SN_R_t_R.
+    induction H; constructor; intros.
+    apply H0.
+    apply t_beta_and_t_parallel_coincide.
+    assumption.
+  - apply SN_R_t_R in H.
+    apply SN_R_t_R.
+    induction H; constructor; intros.
+    apply H0.
+    apply t_beta_and_t_parallel_coincide.
+    assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 (* This property is mentioned in Yoshida's paper for the pi-calculus, using the
    same reduction relation as we are. The proof dates back to Church, who first
    showed it, but she (on lemma B.3) refers to Barendregt's textbook (page 293,
@@ -58,7 +96,7 @@ Proof.
     destruct H6 as (t, ?, ?).
     apply H1 with (redexes_count t) t; auto.
     (* TODO: As stated above, we gotta fix the right number in here. Well, if we
-       had started with a single beta, we could argue that this is indeed true
+       had started with a single jump, we could argue that this is indeed true
        if we kept the invariant that r can only mark jumps to the same variable,
        but as we'll probably need to reason about development length in order to
        prove finite development (in any order), this also works. *)
@@ -85,6 +123,7 @@ Corollary conservation:
 Proof.
   intros a ? b ? ?.
   eapply H; clear H.
+  (* TODO: review this. *)
   apply uniform_normalization in H1.
   apply uniform_normalization.
   destruct H1 as (c, ?, ?).
