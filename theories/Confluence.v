@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -29,6 +29,8 @@ Definition parallel: relation pseudoterm :=
   fun b c =>
     exists2 r,
     residuals [] (mark b) r (mark c) & redexes_count r > 0.
+
+Global Hint Unfold parallel: cps.
 
 Lemma parallel_bind_left:
   LEFT parallel.
