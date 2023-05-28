@@ -18,6 +18,7 @@ Require Import Local.Conservation.
 
 (** ** Normalization. *)
 
+(*
 Lemma SN_unlift:
   forall i k e,
   SN step (lift i k e) -> SN step e.
@@ -53,6 +54,7 @@ Proof.
   intros.
   apply SN_preimage with (fun c => bind b ts c); auto with cps.
 Qed.
+*)
 
 Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
   fold_right Nat.add 0 (map f ts).
