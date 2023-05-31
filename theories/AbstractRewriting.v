@@ -565,6 +565,121 @@ Section HindleyRosen.
 
 End HindleyRosen.
 
+(*
+
+(* TODO: review me, please. This might be a nice way to generalize the proof
+   for tidying reductions! Of course I've already seem variants of the lemma
+   written like this, using an indexed family instead of a single relation. *)
+
+Section Test.
+
+  Variable T: Type.
+  Variable L: Type.
+  Variable X: L -> relation T.
+
+  Hypothesis foo:
+    forall l1 l2,
+    (* We don't really care which order! *)
+    strong_commutation (X l1) (X l2) \/
+      strong_commutation (X l2) (X l1).
+
+  (* TODO: move me, please? *)
+
+  Lemma commutes_sym:
+    forall R S,
+    @commutes T R S -> @commutes T S R.
+  Proof.
+    intros R S ? x y ? z ?.
+    destruct H with x z y as (w, ?, ?); auto.
+    exists w; auto.
+  Qed.
+
+  Lemma bar:
+    forall l1 l2,
+    commutes rt(X l1) rt(X l2).
+  Proof.
+    intros.
+    destruct foo with l1 l2.
+    - apply strong_commutation_implies_commutation.
+      assumption.
+    - apply commutes_sym.
+      apply strong_commutation_implies_commutation.
+      assumption.
+  Qed.
+
+  Goal
+    forall l,
+    confluent (X l).
+  Proof.
+    intros.
+    apply bar.
+  Qed.
+
+  Definition Y: relation T :=
+    fun a b =>
+      exists l, X l a b.
+
+  Definition Z: relation T :=
+    fun a b =>
+      exists l, rt(X l) a b.
+
+  Local Hint Unfold Y: cps.
+  Local Hint Unfold Z: cps.
+
+  Lemma baz:
+    diamond Z.
+  Proof.
+    intros x y (l1, ?) z (l2, ?).
+    destruct bar with l1 l2 x y z as (w, ?, ?); eauto.
+    exists w; eauto with cps.
+  Qed.
+
+  Lemma aaa:
+    same_relation r(t(Z)) rt(Y).
+  Proof.
+    split; intros x y ?.
+    - destruct H.
+      + induction H; eauto with cps.
+        destruct H as (l, ?).
+        induction H; eauto with cps.
+      + auto with cps.
+    - induction H.
+      + destruct H as (l, ?).
+        eauto 6 with cps.
+      + eauto with cps.
+      + destruct IHclos_refl_trans1;
+        destruct IHclos_refl_trans2;
+        eauto with cps.
+  Qed.
+
+  Lemma qux:
+    confluent Y.
+  Proof.
+    assert (diamond r(t(Z))).
+    - destruct 1; destruct 1; eauto with cps.
+      rename y0 into z.
+      edestruct transitive_closure_preserves_diagram as (w, ?, ?).
+      + intros a b ?.
+        exact H1.
+      + intros a b ?.
+        exact H1.
+      + exact baz.
+      + exact H.
+      + exact H0.
+      + eauto with cps.
+    - intros x y ? z ?.
+      destruct H with x y z as (w, ?, ?).
+      + apply aaa; auto.
+      + apply aaa; auto.
+      + exists w.
+        * apply aaa; auto.
+        * apply aaa; auto.
+  Qed.
+
+End Test.
+
+*)
+
 Section Normalization.
 
   Variable T: Type.
