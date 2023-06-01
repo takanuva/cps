@@ -691,6 +691,9 @@ Fixpoint redexes_context_bvars h: nat :=
     redexes_context_bvars c + length ts
   end.
 
+Notation RAP xs k c :=
+  (redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c)).
+
 Goal
   forall h s,
   redexes_same_path h s ->
@@ -703,14 +706,9 @@ Goal
     (redexes_bind (h (redexes_jump r k xs)) ts c1)
     (redexes_bind (s (redexes_jump true k xs)) ts c2)
     c3 ->
-
   residuals g
-    (redexes_bind (h (
-      redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c1)
-    )) ts c1)
-    (redexes_bind (s (
-      redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c2)
-    )) ts c2)
+    (redexes_bind (h (RAP xs k c1)) ts c1)
+    (redexes_bind (s (RAP xs k c2)) ts c2)
     c3.
 Proof.
   intros.
@@ -742,3 +740,60 @@ Proof.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
+
+Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
+  match r with
+  | redexes_jump true (bound k) xs =>
+    match nth k g None with
+    | Some n => 1 + n
+    | None => 0
+    end
+  | redexes_bind b ts c =>
+    let n := redexes_weight (skip (length ts) g) c in
+    redexes_weight (Some n :: g) b + n
+  | _ =>
+    0
+  end.
+
+(* Contracting a redex, any redex, should reduce the count! *)
+
+Goal
+  forall h k xs ts c g,
+  length xs = length ts ->
+  k = redexes_context_bvars h ->
+  redexes_weight g (redexes_bind (h (RAP xs k c)) ts c) <
+    redexes_weight g (redexes_bind (h (redexes_jump true k xs)) ts c).
+Proof.
+  intros; simpl.
+  remember (redexes_weight (skip (length ts) g) c) as n.
+  apply Nat.add_lt_mono_r.
+  rename g into g'.
+  remember (Some n :: g') as g.
+  assert (k >= redexes_context_bvars h) by lia.
+  assert (item (Some n) g (k - redexes_context_bvars h) /\
+          g' = drop (1 + (k - redexes_context_bvars h)) g) as (?, ?).
+  - rewrite <- H0, Heqg.
+    replace (k - k) with 0; try lia.
+    split; auto with cps.
+  - clear H0 Heqg.
+    generalize dependent g.
+    induction h; simpl; intros.
+    + rewrite Nat.sub_0_r in H2, H3.
+      erewrite nth_item; eauto; simpl.
+      assert (g' = drop (S k) g).
+      * destruct g; auto.
+      * clear H1 H2 H3.
+        rewrite H0 in Heqn; clear H0.
+        (* Well, this should be true! Beware of high-order terms, though! *)
+        admit.
+    + apply Nat.add_lt_mono_r.
+      simpl in H1; destruct k; try lia.
+      apply IHh.
+      * lia.
+      * replace (S k - redexes_context_bvars h) with
+          (S (k - redexes_context_bvars h)); try lia.
+        constructor; auto.
+      * (* Ok, fair enough... *)
+        simpl in H2.
+        admit.
+Admitted.
