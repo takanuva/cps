@@ -14,6 +14,7 @@ Require Import Local.Reduction.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Observational.
+Require Import Local.Conservation.
 Require Export Local.Lambda.Calculus.
 
 Include Lambda.Calculus.
