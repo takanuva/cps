@@ -62,6 +62,8 @@ Global Hint Resolve equiv_sym: cps.
 Global Hint Resolve equiv_trans: cps.
 Global Hint Constructors equivalence: cps.
 
+Global Hint Resolve clos_rt_clos_rst: cps.
+
 (* Generalize the idea of a square commutation diagram. *)
 
 Definition diagram {A B C D} (R: A -> B -> Prop)
