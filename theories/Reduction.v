@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -1563,11 +1563,9 @@ Qed.
 Global Hint Resolve rt_transp_tidy_bind_right: cps.
 
 Theorem tidying_postponement:
-  inclusion (comp rt(tidy) rt(beta)) (comp rt(beta) rt(tidy)).
+  postpones beta tidy.
 Proof.
-  apply postponement with (R := fun u: unit => beta) (l := tt).
-  intros _ y z ? x ?.
-  unfold transp in H0.
+  intros y z ? x ?.
   generalize dependent z.
   induction H0; intros.
   (* Case: gc. *)
@@ -1595,7 +1593,8 @@ Proof.
   - dependent destruction H.
     + admit.
     + edestruct IHtidy as (b4, ?, ?); eauto.
-      exists (bind b4 ts c); destruct H2; auto with cps.
+      exists (bind b4 ts c); auto with cps.
+      admit.
     + rename c into c1.
       exists (bind b1 ts c2); auto with cps.
   (* Case: bind_right. *)
@@ -1604,5 +1603,6 @@ Proof.
     + rename b into b1.
       exists (bind b2 ts c1); auto with cps.
     + edestruct IHtidy as (c4, ?, ?); eauto.
-      exists (bind b ts c4); destruct H2; auto with cps.
+      exists (bind b ts c4); auto with cps.
+      admit.
 Admitted.

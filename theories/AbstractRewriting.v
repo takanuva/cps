@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Set Implicit Arguments.
@@ -66,16 +66,27 @@ Global Hint Resolve clos_rt_clos_rst: cps.
 
 (* Generalize the idea of a square commutation diagram. *)
 
-Definition diagram {A B C D} (R: A -> B -> Prop)
-                             (S: A -> C -> Prop)
-                             (T: B -> D -> Prop)
-                             (U: C -> D -> Prop): Prop :=
-  forall x y,
-  R x y ->
-  forall z,
-  S x z ->
-  exists2 w,
-  T y w & U z w.
+Section Diagram.
+
+  Variable A: Type.
+  Variable B: Type.
+  Variable C: Type.
+  Variable D: Type.
+
+  Variable R: A -> B -> Prop.
+  Variable S: A -> C -> Prop.
+  Variable T: B -> D -> Prop.
+  Variable U: C -> D -> Prop.
+
+  Definition diagram: Prop :=
+    forall x y,
+    R x y ->
+    forall z,
+    S x z ->
+    exists2 w,
+    T y w & U z w.
+
+End Diagram.
 
 Global Hint Unfold diagram: cps.
 
@@ -153,6 +164,15 @@ Section Relations.
     - induction H.
       + destruct H; auto with cps.
       + destruct IHclos_trans1; destruct IHclos_trans2; eauto with cps.
+  Qed.
+
+  Lemma clos_rt_transp_permute:
+    forall {T},
+    forall R: relation T,
+    forall x y,
+    transp rt(R) x y <-> rt(transp R) x y.
+  Proof.
+    split; induction 1; eauto with cps.
   Qed.
 
   Lemma rt_unequal_implies_t:
@@ -697,24 +717,6 @@ Section Normalization.
   Definition WN a: Prop :=
     exists2 b, rt(R) a b & normal b.
 
-  Lemma SN_preimage:
-    forall f,
-    (forall a b, R a b -> R (f a) (f b)) ->
-    forall e,
-    SN R (f e) -> SN R e.
-  Proof.
-    intros.
-    (* The dependent induction tactic seems to generalize variables... *)
-    remember (f e) as x.
-    generalize dependent e.
-    induction H0; intros.
-    constructor; intros.
-    eapply H1; eauto.
-    rewrite Heqx.
-    apply H.
-    assumption.
-  Qed.
-
   Lemma SN_R_t_R:
     forall e,
     SN R e <-> SN t(R) e.
@@ -731,6 +733,43 @@ Section Normalization.
       constructor; intros.
       apply H0.
       auto with cps.
+  Qed.
+
+  Lemma SN_ind:
+    forall P: T -> Prop,
+    forall H: (forall x,
+               forall H1: SN R x,
+               forall H2: (forall y, t(R) x y -> P y),
+               P x),
+    forall x,
+    SN R x -> P x.
+  Proof.
+    intros.
+    apply SN_R_t_R in H0.
+    induction H0.
+    apply H.
+    - apply SN_R_t_R.
+      constructor.
+      exact H0.
+    - exact H1.
+  Qed.
+
+  Lemma SN_preimage:
+    forall f,
+    (forall a b, R a b -> R (f a) (f b)) ->
+    forall e,
+    SN R (f e) -> SN R e.
+  Proof.
+    intros.
+    (* The dependent induction tactic seems to generalize variables... *)
+    remember (f e) as x.
+    generalize dependent e.
+    induction H0; intros.
+    constructor; intros.
+    eapply H1; eauto.
+    rewrite Heqx.
+    apply H.
+    assumption.
   Qed.
 
   Lemma SN_subset:
@@ -1471,93 +1510,77 @@ End StrongBisimulation.
 Section Postponement.
 
   Variable T: Type.
-  Variable L: Type.
 
-  Variable R: L -> relation T.
+  Variable R: relation T.
   Variable S: relation T.
 
+  Local Notation U := (union R S).
+
   Definition postpones: Prop :=
-    forall l,
-    diagram (R l) (transp S) rt(transp S) r(R l).
+    diagram R (transp S) rt(transp S) t(R).
 
-  Hypothesis local_postponement: postpones.
+  Hypothesis postponement: postpones.
 
-  Local Lemma postponement_diagram:
-    forall l,
-    diagram rt(R l) rt(transp S) rt(transp S) rt(R l).
+  Local Lemma inclusion1:
+    inclusion t(R) rt(U).
   Proof.
-    intros.
-    assert (diagram (R l) t(transp S) rt(transp S) r(R l)).
-    - intros x y ? z ?.
-      apply r_step in H.
-      generalize dependent y.
-      induction H0.
-      + intros z ?.
-        destruct H0.
-        * rename y0 into z.
-          eapply local_postponement; eauto.
-        * exists y; auto with cps.
-      + intros w ?.
-        edestruct IHclos_trans1 as (v, ?, ?); eauto.
-        edestruct IHclos_trans2 as (u, ?, ?); eauto.
-        exists u; eauto with cps.
-    - induction 1.
-      + intros z ?.
-        apply rt_characterization in H1.
-        destruct H1.
-        * rename y0 into z.
-          destruct H with x y z as (w, ?, ?); eauto.
-          exists w; destruct H3; eauto with cps.
-        * exists y; eauto with cps.
-      + intros z ?.
-        exists z; eauto with cps.
-      + intros w ?.
-        destruct IHclos_refl_trans1 with w as (v, ?, ?); auto.
-        destruct IHclos_refl_trans2 with v as (u, ?, ?); auto.
-        exists u; eauto with cps.
+    induction 1; eauto with cps.
   Qed.
 
-  Lemma postponement:
-    forall l,
-    inclusion (comp rt(S) rt(R l)) (comp rt(R l) rt(S)).
+  Local Hint Resolve inclusion1: cps.
+
+  Local Lemma inclusion2:
+    inclusion rt(S) rt(U).
   Proof.
-    intros l x z (y, ?, ?).
-    destruct postponement_diagram with l y z x as (w, ?, ?).
-    - assumption.
-    - clear H0 z.
-      induction H; eauto with cps.
-    - exists w; auto.
-      clear H H0 H2 x y.
-      induction H1; eauto with cps.
+    induction 1; eauto with cps.
   Qed.
 
-  (* TODO: this might be useful. I hope I'll remember about this if I come to
-     need it. I gotta be fast, the deadline is approaching. *)
+  Local Hint Resolve inclusion2: cps.
+
+  Local Lemma postponement_move:
+    inclusion (comp rt(U) R) (comp t(R) rt(U)).
+  Proof.
+    intros x z (y, ?, ?).
+    generalize dependent z.
+    apply clos_rt_rt1n_iff in H.
+    induction H; intros.
+    - exists z; auto with cps.
+    - clear H0.
+      edestruct IHclos_refl_trans_1n as (w, ?, ?); eauto.
+      clear IHclos_refl_trans_1n H1.
+      destruct H.
+      + exists w; eauto with cps.
+      + assert (comp R rt(U) y w) as (?, ?, ?).
+        * apply clos_trans_t1n_iff in H0.
+          destruct H0; eauto with cps.
+          apply clos_trans_t1n_iff in H1.
+          exists y0; eauto with cps.
+        * edestruct postponement; eauto.
+          apply clos_rt_transp_permute in H4.
+          exists x1; eauto with cps.
+  Qed.
+
+  Hypothesis S_is_SN:
+    forall x, SN S x.
 
   Goal
-    let X := fun a b => exists l, R l a b in
-    diagram rt(X) rt(transp S) rt(transp S) rt(X).
+    forall x,
+    SN R x ->
+    SN U x.
   Proof.
-    simpl; induction 1; intros.
-    - destruct H as (l, ?).
-      destruct postponement_diagram with l x y z as (w, ?, ?); eauto with cps.
-      exists w.
-      + assumption.
-      + clear H H0 H1 x y.
-        induction H2; eauto with cps.
-    - exists z; eauto with cps.
-    - rename z0 into w.
-      edestruct IHclos_refl_trans1 as (v, ?, ?); eauto.
-      edestruct IHclos_refl_trans2 as (u, ?, ?); eauto.
-      exists u; eauto with cps.
-  Qed.
-
-  Lemma bisimulation_implies_postponement:
-    strong_bisimulation R S -> postpones.
-  Proof.
-    intros (_, ?) l x y ? z ?.
-    destruct H with x z y l as (w, ?, ?); auto.
-    exists w; auto with cps.
+    intros.
+    (* Generalize the induction a bit. *)
+    assert (exists2 y, SN R y & rt(U) y x) as (y, ?, ?); eauto with cps.
+    clear H; generalize dependent x.
+    (* There we go. *)
+    induction H0 using SN_ind; intros y ?.
+    induction S_is_SN with y using SN_ind.
+    constructor; fold (SN U).
+    destruct 1.
+    - destruct postponement_move with x y as (z, ?, ?).
+      + exists x0; auto with cps.
+      + eapply H2; eauto with cps.
+    - apply H3; eauto with cps.
   Qed.
 
 End Postponement.
