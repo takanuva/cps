@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -619,3 +619,47 @@ Proof.
   apply sema_conv.
   assumption.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Goal
+  forall b k,
+  converges b k -> normal head b.
+Proof.
+  induction 1.
+  - inversion 1.
+    destruct r; try discriminate.
+  - intros d ?.
+    dependent destruction H0.
+    destruct H1; simpl in x.
+    + dependent destruction x.
+      apply converges_jump_inversion in H.
+      * contradiction.
+      * lia.
+    + rename h0 into r.
+      dependent destruction x.
+      eapply IHconverges.
+      constructor; auto.
+Qed.
+
+Goal
+  forall b c,
+  ~WN head b ->
+  ~WN head c ->
+  observational_equivalence head converges b c.
+Proof.
+  intros b c ? ? k.
+  split; intros.
+  - destruct H1 as (d, ?, ?).
+    exfalso.
+    eapply H.
+    exists d.
+    + assumption.
+    + admit.
+  - destruct H1 as (d, ?, ?).
+    exfalso.
+    eapply H0.
+    exists d.
+    + assumption.
+    + admit.
+Admitted.
