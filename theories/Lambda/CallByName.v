@@ -481,3 +481,37 @@ Fixpoint cbn_type (t: type): pseudoterm :=
 
 Definition cbn_env (g: env): list pseudoterm :=
   map (fun t => CPS.negation [CPS.negation [cbn_type t]]) g.
+
+Fixpoint cbn_type_alt (t: type): pseudoterm :=
+  match t with
+  | base =>
+    negation [CPS.base]
+  | arrow t s =>
+    negation [negation [cbn_type_alt s; negation [cbn_type_alt t]]]
+  end.
+
+Lemma cbn_type_alt_equiv:
+  forall t,
+  cbn_type_alt t = negation [cbn_type t].
+Proof.
+  induction t; simpl.
+  - reflexivity.
+  - rewrite IHt1.
+    rewrite IHt2.
+    reflexivity.
+Qed.
+
+Definition cbn_env_alt (g: env): list pseudoterm :=
+  map (fun t => CPS.negation [cbn_type_alt t]) g.
+
+Goal
+  forall g,
+  cbn_env g = cbn_env_alt g.
+Proof.
+  induction g; simpl.
+  - reflexivity.
+  - f_equal.
+    + rewrite cbn_type_alt_equiv.
+      reflexivity.
+    + assumption.
+Qed.
