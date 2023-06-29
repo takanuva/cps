@@ -279,3 +279,16 @@ Admitted.
   calculus, (\x.x) e, can also be simulated, but it requires floating.
 
 *)
+
+(* -------------------------------------------------------------------------- *)
+
+Fixpoint cbv_type (t: type): pseudoterm :=
+  match t with
+  | base =>
+    CPS.base
+  | arrow t s =>
+    negation [negation [cbv_type s]; cbv_type t]
+  end.
+
+Definition cbv_env (g: env): list pseudoterm :=
+  map (fun t => cbv_type t) g.

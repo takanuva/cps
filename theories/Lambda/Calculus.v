@@ -4,10 +4,13 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import List.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+
+Import ListNotations.
 
 Inductive type: Set :=
   | base
@@ -338,4 +341,42 @@ Proof.
       intros b ?; eapply H.
       apply full_app1.
       eassumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Definition env: Set :=
+  list type.
+
+Inductive typing: env -> term -> type -> Prop :=
+  | typing_bound:
+    forall g n t,
+    item t g n ->
+    typing g n t
+  | typing_abstraction:
+    forall g t b s,
+    typing (t :: g) b s ->
+    typing g (abstraction t b) (arrow t s)
+  | typing_application:
+    forall g t s f x,
+    typing g f (arrow t s) ->
+    typing g x t ->
+    typing g (application f x) s.
+
+Example id :=
+  fix id n t :=
+    match n with
+    | 0 => abstraction t 0
+    | S m => application (id m (arrow t t)) (abstraction t 0)
+    end.
+
+Goal
+  forall n t,
+  typing [] (id n t) (arrow t t).
+Proof.
+  induction n; simpl; intros.
+  - repeat constructor.
+  - econstructor.
+    + apply IHn.
+    + repeat constructor.
 Qed.

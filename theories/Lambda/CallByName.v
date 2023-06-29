@@ -468,3 +468,16 @@ Admitted.
   validate eta, same as the source language doesn't.
 
 *)
+
+(* -------------------------------------------------------------------------- *)
+
+Fixpoint cbn_type (t: type): pseudoterm :=
+  match t with
+  | base =>
+    CPS.base
+  | arrow t s =>
+    negation [negation [cbn_type s]; negation [negation [cbn_type t]]]
+  end.
+
+Definition cbn_env (g: env): list pseudoterm :=
+  map (fun t => CPS.negation [CPS.negation [cbn_type t]]) g.
