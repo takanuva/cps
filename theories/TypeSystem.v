@@ -29,13 +29,13 @@ Inductive typing: env -> relation pseudoterm :=
     typing g (negation ts) prop
   | typing_bound:
     forall g n t,
-    valid_env g ->
     item t g n ->
+    valid_env g ->
     typing g n t
   | typing_jump:
     forall g k xs ts,
     typing g k (negation ts) ->
-    Forall2 (typing g) xs ts ->
+    Forall2 (typing g) (rev xs) ts ->
     typing g (jump k xs) void
   | typing_bind:
     forall g b ts c,
@@ -96,9 +96,9 @@ Lemma typing_deepind:
               P g n t),
   forall f4: (forall g k xs ts,
               typing g k (negation ts) ->
-              Forall2 (typing g) xs ts ->
+              Forall2 (typing g) (rev xs) ts ->
               P g k (negation ts) ->
-              Forall2 (P g) xs ts ->
+              Forall2 (P g) (rev xs) ts ->
               P g (jump k xs) void),
   forall f5: (forall g b ts c,
               typing (negation ts :: g) b void ->
@@ -132,10 +132,10 @@ Lemma typing_bound_cant_be_void:
 Proof.
   intros g n H.
   dependent destruction H.
-  induction H0.
-  - dependent destruction H.
+  induction H.
+  - dependent destruction H0.
     inversion H.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
 Qed.
 
@@ -145,10 +145,10 @@ Lemma typing_bound_cant_be_prop:
 Proof.
   intros g n H.
   dependent destruction H.
-  induction H0.
-  - dependent destruction H.
+  induction H.
+  - dependent destruction H0.
     inversion H.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
 Qed.
 
@@ -255,8 +255,8 @@ Lemma typing_negation_inversion:
 Proof.
   intros until 1.
   dependent destruction H.
-  dependent induction H0; intros.
-  - dependent destruction H.
+  dependent induction H; intros.
+  - dependent destruction H0.
     dependent destruction H.
     induction H; simpl.
     + constructor.
@@ -379,6 +379,8 @@ Proof.
     apply typing_jump with ts.
     + apply IHtyping with x; auto.
     + clear IHtyping H H0.
+      rewrite <- map_rev.
+      generalize dependent (rev xs); intros ys ?.
       induction H1; simpl.
       * constructor.
       * constructor; eauto.
