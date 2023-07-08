@@ -205,15 +205,28 @@ Lemma parallel_is_joinable:
   exists2 w,
   r(parallel) y w & r(parallel) z w.
 Proof.
-  intros.
-  admit.
+  destruct 1 as (r, ?, ?).
+  destruct 1 as (s, ?, ?).
+  edestruct paving.
+  - exact H.
+  - exact H1.
+  - exists (unmark d).
+    + admit.
+    + admit.
 Admitted.
 
 Lemma r_parallel_has_diamond:
   diamond r(parallel).
 Proof.
-  admit.
-Admitted.
+  destruct 1; destruct 1.
+  - rename y0 into z.
+    apply parallel_is_joinable with x.
+    + assumption.
+    + assumption.
+  - exists y; auto with cps.
+  - exists y; auto with cps.
+  - exists x; auto with cps.
+Qed.
 
 Lemma parallel_is_confluent:
   confluent parallel.
