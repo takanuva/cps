@@ -91,11 +91,11 @@ Local Notation VAR n :=
   (jump 0 [CPS.bound (S n)]).
 
 Local Notation ABS b :=
-  (* [\x.M] = k<f> { f<x, k> = [M] } *)
+  (* [\x.e] = k<f> { f<x, k> = [e] } *)
   (bind (jump 1 [CPS.bound 0]) [void; void] b).
 
 Local Notation APP b c :=
-  (* [M N] = [M] { k<f> = [N] { k<a> = f<a, k> } } *)
+  (* [e f] = [e] { k<f> = [f] { k<v> = f<v, k> } } *)
   (bind b [void] (bind c [void] (jump 1 [CPS.bound 0; CPS.bound 2]))).
 
 (* TODO: these lifts could be moved from source to target! *)
