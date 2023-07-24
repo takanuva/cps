@@ -18,12 +18,12 @@ Section Control.
   Axiom A: term.
   Axiom F: type.
 
-  Hypothesis typing_C:
+  Axiom typing_C:
     forall g T,
     (* C: ~~T -> T *)
     typing g C (arrow (arrow (arrow T F) F) T).
 
-  Hypothesis typing_A:
+  Axiom typing_A:
     forall g T,
     (* A: F -> T *)
     typing g A (arrow F T).
@@ -56,10 +56,104 @@ Section CBV.
 
   Require Import Local.Lambda.CallByValue.
 
+  (*
+    Plotkin's CBV CPS translation:
+
+      [x]    = k<x>
+      [\x.e] = k<f> { f<x, k> = [e] }
+      [e f]  = [e] { k<f> = [f] { k<v> = f<v, k> } }
+
+      [X]      = X
+      [A -> B] = ~([A], ~[B])
+      [F]      = ~()
+
+      [x: A |- e: B] = x: [A], k: ~[B] |- [e]
+  *)
+
+  Axiom cbv_type_F:
+    cbv_type F = negation [].
+
+  Definition cbv_A {T}: pseudoterm :=
+    (* [|- A: F -> T] = [k: ~~(~(), ~[T]) |- [A]].
+
+       k<f>
+       { f<x: ~(), k: ~[T]> =
+         x<> }
+    *)
+    bind (jump 1 [Syntax.bound 0]) [negation [T]; negation []] (jump 1 []).
+
+  Axiom cbv_cps_A:
+    forall T,
+    cbv_cps A (@cbv_A T).
+
+  Goal
+    forall T: type,
+    (forall g, TypeSystem.typing g (cbv_type T) prop) ->
+    exists2 U,
+      typing [] A U
+    & TypeSystem.typing [negation [cbv_type U]] (@cbv_A (cbv_type T)) void.
+  Proof.
+    intros.
+    exists (arrow F T).
+    - apply typing_A.
+    - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
+  Qed.
+
 End CBV.
 
 Section CBN.
 
   Require Import Local.Lambda.CallByName.
+
+  (*
+    Plotkin's CBN CPS translation:
+
+      [x]    = x<k>
+      [\x.e] = k<f> { f<x, k> = [e] }
+      [e f]  = [e] { k<f> = f<v, k> { v<k> = [f] } }
+
+      [X]      = ~X
+      [A -> B] = ~~(~[A], [B])
+      [F]      = ~~()
+
+      [x: A |- e: B] = x: ~[A], k: [B] |- [e]
+  *)
+
+  Axiom cbn_type_F:
+    cbn_type F = negation [negation []].
+
+  Definition cbn_A {T}: pseudoterm :=
+    (* [|- A: F -> T] = [k: ~~(~~~(), [T]) |- [A]].
+
+       k<f>
+       { f<x: ~~~(), k: [T]> =
+         x<k>
+         { k<k: ~()> =
+           k<> } }
+    *)
+    bind
+      (jump 1 [Syntax.bound 0])
+      [T; negation [negation [negation []]]]
+      (bind
+        (jump 2 [Syntax.bound 0])
+        [negation []]
+        (jump 0 [])).
+
+  Axiom cbn_cps_A:
+    forall T,
+    cbn_cps A (@cbn_A T).
+
+  Goal
+    forall T: type,
+    (forall g, TypeSystem.typing g (cbn_type T) prop) ->
+    exists2 U,
+      typing [] A U
+    & TypeSystem.typing [cbn_type U] (@cbn_A (cbn_type T)) void.
+  Proof.
+    intros.
+    exists (arrow F T).
+    - apply typing_A.
+    - repeat (simpl; try econstructor; auto; try rewrite cbn_type_F).
+  Qed.
 
 End CBN.
