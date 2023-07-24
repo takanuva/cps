@@ -86,35 +86,33 @@ Qed.
 
 (* TODO: fix typing on the following! *)
 
+Local Notation VAR n :=
+  (* [x] = k<x> *)
+  (jump 0 [CPS.bound (S n)]).
+
+Local Notation ABS b :=
+  (* [\x.M] = k<f> { f<x, k> = [M] } *)
+  (bind (jump 1 [CPS.bound 0]) [void; void] b).
+
+Local Notation APP b c :=
+  (* [M N] = [M] { k<f> = [N] { k<a> = f<a, k> } } *)
+  (bind b [void] (bind c [void] (jump 1 [CPS.bound 0; CPS.bound 2]))).
+
+(* TODO: these lifts could be moved from source to target! *)
+
 Inductive cbv_cps: term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
-    (* [x](k) = k<x> *)
     forall n: nat,
-    cbv_cps n (jump 0 [CPS.bound n])
+    cbv_cps n (VAR n)
   | cbv_cps_abstraction:
-    (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
-    forall t b b',
-    cbv_cps (lift 1 0 b) b' ->
-    cbv_cps
-      (abstraction t b)
-      (bind
-        (jump 1 [CPS.bound 0])
-        [void; void]
-        b')
+    forall t e b,
+    cbv_cps (lift 1 1 e) b ->
+    cbv_cps (abstraction t e) (ABS b)
   | cbv_cps_application:
-    (* [M N](k) = [M](m) { m<f> = [N](n) { n<a> = f<a, k> } } *)
-    forall f x f' x',
-    cbv_cps (lift 1 0 f) f' ->
-    cbv_cps (lift 2 0 x) x' ->
-    cbv_cps
-      (application f x)
-      (bind
-        f'
-        [void]
-        (bind
-          x'
-          [void]
-          (jump 1 [CPS.bound 0; CPS.bound 2]))).
+    forall f x b c,
+    cbv_cps (lift 1 0 f) b ->
+    cbv_cps (lift 2 0 x) c ->
+    cbv_cps (application f x) (APP b c).
 
 Lemma cbv_cps_is_a_function:
   forall e c1,
@@ -137,14 +135,14 @@ Lemma cbv_cps_lift:
   forall e c,
   cbv_cps e c ->
   forall i k,
-  k > 0 ->
-  cbv_cps (lift i k e) (CPS.lift i k c).
+  cbv_cps (lift i k e) (CPS.lift i (S k) c).
 Proof.
   induction 1; simpl; intros.
   - destruct (le_gt_dec k n).
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
       rewrite lift_bound_ge; try lia.
+      replace (i + S n) with (S (i + n)); try lia.
       constructor.
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
@@ -168,7 +166,7 @@ Proof.
     + rewrite lift_lift_permutation; try lia.
       apply IHcbv_cps1; lia.
     + rewrite lift_lift_permutation; try lia.
-      replace (S (k + 1)) with (2 + k); try lia.
+      replace (k + 1) with (1 + k); try lia.
       apply IHcbv_cps2; lia.
 Qed.
 

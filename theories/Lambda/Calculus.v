@@ -98,6 +98,25 @@ Proof.
     + apply IHe2; auto.
 Qed.
 
+Lemma lift_lift_simplification:
+  forall e (i j k l : nat),
+  k <= l + j ->
+  l <= k ->
+  lift i k (lift j l e) =
+  lift (i + j) l e.
+Proof.
+  induction e; simpl; intros.
+  - destruct (le_gt_dec l n); simpl;
+    destruct (le_gt_dec k (j + n)); simpl;
+    destruct (le_gt_dec k n); simpl;
+    f_equal; lia.
+  - f_equal.
+    apply IHe; lia.
+  - f_equal.
+    + apply IHe1; lia.
+    + apply IHe2; lia.
+Qed.
+
 Fixpoint size (e: term): nat :=
   match e with
   | bound n =>
@@ -215,7 +234,6 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n f ->
     not_free n x ->
     not_free n (application f x).
-
 
 (* TODO: this is a bi-implication in here. Should we make the same for the
    CPS-calculus? Also, applying this is a nightmare! *)

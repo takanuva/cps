@@ -94,35 +94,33 @@ Qed.
 
 (* TODO: fix typing on the following! *)
 
+Local Notation VAR n :=
+  (* [x] = x<k> *)
+  (jump (S n) [CPS.bound 0]).
+
+Local Notation ABS b :=
+  (* [\x.e] = k<f> { f<x, k> = [e] } *)
+  (bind (jump 1 [CPS.bound 0]) [void; void] b).
+
+Local Notation APP b c :=
+  (* [e f] = [e] { k<f> = f<v, k> { v<k> = [f] } } *)
+  (bind b [void] (bind (jump 1 [CPS.bound 0; CPS.bound 2]) [void] c)).
+
+(* TODO: these lifts could be moved from source to target! *)
+
 Inductive cbn_cps: term -> pseudoterm -> Prop :=
   | cbn_cps_bound:
-    (* [x](k) = x<k> *)
     forall n: nat,
-    cbn_cps n (jump n [CPS.bound 0])
+    cbn_cps n (VAR n)
   | cbn_cps_abstraction:
-    (* [\x.M](k) = k<f> { f<x, h> = [M](h) } *)
-    forall t b b',
-    cbn_cps (lift 1 0 b) b' ->
-    cbn_cps
-      (abstraction t b)
-      (bind
-        (jump 1 [CPS.bound 0])
-        [void; void]
-        b')
+    forall t e b,
+    cbn_cps (lift 1 1 e) b ->
+    cbn_cps (abstraction t e) (ABS b)
   | cbn_cps_application:
-    (* [M N](k) = [M](m) { m<f> = f<n, k> { n<h> = [N](h) } } *)
-    forall f x f' x',
-    cbn_cps (lift 1 0 f) f' ->
-    cbn_cps (lift 2 0 x) x' ->
-    cbn_cps
-      (application f x)
-      (bind
-        f'
-        [void]
-        (bind
-          (jump 1 [CPS.bound 0; CPS.bound 2])
-          [void]
-          x')).
+    forall f x b c,
+    cbn_cps (lift 1 0 f) b ->
+    cbn_cps (lift 2 0 x) c ->
+    cbn_cps (application f x) (APP b c).
 
 Lemma cbn_cps_is_a_function:
   forall e c1,
@@ -131,7 +129,8 @@ Lemma cbn_cps_is_a_function:
   cbn_cps e c2 -> c1 = c2.
 Proof.
   induction 1; intros.
-  - dependent destruction H; auto.
+  - dependent destruction H.
+    reflexivity.
   - dependent destruction H0.
     f_equal; auto.
   - dependent destruction H1.
@@ -145,14 +144,14 @@ Lemma cbn_cps_lift:
   forall e c,
   cbn_cps e c ->
   forall i k,
-  k > 0 ->
-  cbn_cps (lift i k e) (CPS.lift i k c).
+  cbn_cps (lift i k e) (CPS.lift i (S k) c).
 Proof.
   induction 1; simpl; intros.
   - destruct (le_gt_dec k n).
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_ge; try lia.
       rewrite lift_bound_lt; try lia.
+      replace (i + S n) with (S (i + n)); try lia.
       constructor.
     + rewrite lift_distributes_over_jump; simpl.
       rewrite lift_bound_lt; try lia.
@@ -193,6 +192,7 @@ Lemma cbn_cps_is_compositional:
   cbn_cps (h e2) c4 ->
   [c3 ~~ c4].
 Proof.
+  (* TODO: remove this and start over. *)
   intros until h.
   (* Do some reordering to help with unification... *)
   move H0 after H2.
@@ -219,7 +219,7 @@ Proof.
     dependent destruction H6.
     rewrite context_lift_is_sound in H5.
     rewrite context_lift_is_sound in H6.
-    rewrite Nat.add_0_r in H5, H6.
+    rewrite Nat.add_comm in H5, H6.
     apply barb_bind_right.
     (* We notice that 0 can't be free in e1 or e2, so, if h happens to bind no
        var, so that we have lift 1 0 e1 in H3 (and ... e2 in H4), those
@@ -240,12 +240,14 @@ Proof.
         exact H3.
       * (* Clearly. *)
         admit.
-      * exact H5.
-      * exact H6.
+      * (* From H5. *)
+        admit.
+      * (* From H6. *)
+        admit.
   (* Case: context_abstraction_left. *)
   - dependent destruction H5.
     dependent destruction H6.
-    assert (x' = x'0); eauto with cps.
+    assert (c = c0); eauto with cps.
     dependent destruction H5.
     apply barb_bind_left.
     rewrite context_lift_is_sound in H5_, H6_.
@@ -253,8 +255,7 @@ Proof.
     eapply H with (m := context_depth (context_lift 1 0 h)).
     + rewrite context_lift_depth; auto.
     + reflexivity.
-    + (* We lifted e1 and e2 by 1... can we derive ?c1 and ?c2 in here? *)
-      admit.
+    + admit.
     + admit.
     + admit.
     + admit.
@@ -264,10 +265,6 @@ Proof.
   (* Case: context_abstraction_right. *)
   - dependent destruction H5.
     dependent destruction H6.
-    assert (f' = f'0); eauto with cps.
-    dependent destruction H5.
-    apply barb_bind_right.
-    apply barb_bind_right.
     admit.
 Admitted.
 
@@ -277,17 +274,16 @@ Goal
   forall e c,
   cbn_cps e c ->
   forall n,
-  n > 0 ->
-  not_free n e <-> CPS.not_free n c.
+  not_free n e <-> CPS.not_free (S n) c.
 Proof.
   induction 1; split; intros.
-  - dependent destruction H0.
+  - dependent destruction H.
     rename n0 into m.
     constructor.
     + constructor; lia.
     + do 2 constructor; lia.
-  - dependent destruction H0.
-    dependent destruction H0.
+  - dependent destruction H.
+    dependent destruction H.
     rename n0 into m.
     constructor; lia.
   - constructor; simpl.
@@ -295,43 +291,43 @@ Proof.
       * constructor; lia.
       * do 2 constructor; lia.
     + do 3 constructor.
-    + dependent destruction H1.
+    + dependent destruction H0.
       apply IHcbn_cps; try lia.
-      apply not_free_lift_zero with (k := 1) in H1.
+      replace (S n) with (n + 1) in H0; try lia.
+      apply not_free_lift with (k := 1) in H0.
+      replace (n + 1 + 1) with (2 + n) in H0; try lia.
       assumption.
   - constructor.
-    dependent destruction H1.
-    simpl in H1_0.
-    apply IHcbn_cps in H1_0; auto.
-    apply not_free_lift_zero with (k := 1) in H1_0.
+    dependent destruction H0.
+    simpl in H0_0.
+    apply IHcbn_cps in H0_0; auto.
+    replace (S (S n)) with (n + 1 + 1) in H0_0; try lia.
+    apply not_free_lift in H0_0.
+    replace (n + 1) with (1 + n) in H0_0; try lia.
     assumption.
-  - dependent destruction H2.
+  - dependent destruction H1.
     constructor; simpl.
     + apply IHcbn_cps1; auto.
-      apply not_free_lift_zero with (k := 1) in H2_.
-      assumption.
+      admit.
     + do 2 constructor.
     + repeat (try constructor; try lia).
       simpl; eapply IHcbn_cps2; auto.
-      apply not_free_lift_zero with (k := 2) in H2_0.
-      assumption.
-  - dependent destruction H2.
-    dependent destruction H2_0.
-    simpl in H2_0_2.
+      admit.
+  - dependent destruction H1.
+    dependent destruction H1_0.
+    simpl in H2, H1_0_2.
     constructor.
-    + apply IHcbn_cps1 in H2_; auto.
-      apply not_free_lift_zero with (k := 1) in H2_.
-      assumption.
-    + apply IHcbn_cps2 in H2_0_2; auto.
-      apply not_free_lift_zero with (k := 2) in H2_0_2.
-      assumption.
-Qed.
+    + apply IHcbn_cps1 in H1_; auto.
+      admit.
+    + apply IHcbn_cps2 in H1_0_2; auto.
+      admit.
+Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
-(* Ideally, given a lambda term e which is in normal form, and a variable k
-   which is fresh, the CPS translation [e]k should not have administrative
-   redexes which can't be fixed by applying only tyding reductions. *)
+(* Ideally, given a lambda term e which is in normal form, the CPS translation
+   [e] should not have administrative redexes which can't be fixed by applying
+   only tyding reductions. *)
 
 Inductive no_administrative_jumps e: Prop :=
   | no_administrative_jumps_ctor
@@ -358,26 +354,23 @@ Goal
   forall e,
   normal full e ->
   (* We need to be sure that k is free in e! *)
-  no_administrative_jumps (lift 1 0 e).
+  no_administrative_jumps e.
 Proof.
   induction e; intros.
-  (* Case: [x]k. *)
+  (* Case: [x]. *)
   - (* This case is pretty much straightforward. *)
     econstructor.
-    + simpl.
-      constructor.
+    + constructor.
     + apply sema_refl.
     + inversion 1.
-  (* Case: [\x.e]k. *)
+  (* Case: [\x.e]. *)
   - (* This simply follows by induction. *)
-    simpl.
     apply abstraction_normal in H.
     specialize (IHe H); clear H.
     dependent destruction IHe.
     econstructor.
     + constructor.
-      rewrite lift_lift_permutation; simpl; try lia.
-      apply cbn_cps_lift; try lia.
+      apply cbn_cps_lift.
       eassumption.
     + apply sema_bind_right.
       apply sema_lift.
@@ -389,9 +382,9 @@ Proof.
       * edestruct beta_lift_inversion; eauto.
         dependent destruction H0.
         apply beta_unlift in H.
-        eapply H3.
-        eassumption.
-  (* Case: [f e]k. *)
+        apply H3 with x.
+        assumption.
+  (* Case: [f e]. *)
   - (* We should remember that:
 
          [f e]k = [f]k { k<f> = f<v, k> { v<k> = [e]k } }
@@ -474,35 +467,24 @@ Admitted.
 Fixpoint cbn_type (t: type): pseudoterm :=
   match t with
   | base =>
-    CPS.base
+    negation [CPS.base]
   | arrow t s =>
-    negation [negation [cbn_type s]; negation [negation [cbn_type t]]]
+    negation [negation [cbn_type s; negation [cbn_type t]]]
   end.
 
 Definition cbn_env (g: env): list pseudoterm :=
-  map (fun t => CPS.negation [CPS.negation [cbn_type t]]) g.
+  map (fun t => CPS.negation [cbn_type t]) g.
 
 Fixpoint cbn_type_alt (t: type): pseudoterm :=
   match t with
   | base =>
-    negation [CPS.base]
+    CPS.base
   | arrow t s =>
-    negation [negation [cbn_type_alt s; negation [cbn_type_alt t]]]
+    negation [negation [cbn_type_alt s]; negation [negation [cbn_type_alt t]]]
   end.
 
-Lemma cbn_type_alt_equiv:
-  forall t,
-  cbn_type_alt t = negation [cbn_type t].
-Proof.
-  induction t; simpl.
-  - reflexivity.
-  - rewrite IHt1.
-    rewrite IHt2.
-    reflexivity.
-Qed.
-
 Definition cbn_env_alt (g: env): list pseudoterm :=
-  map (fun t => CPS.negation [cbn_type_alt t]) g.
+  map (fun t => CPS.negation [CPS.negation [cbn_type_alt t]]) g.
 
 Goal
   forall g,
@@ -511,7 +493,10 @@ Proof.
   induction g; simpl.
   - reflexivity.
   - f_equal.
-    + rewrite cbn_type_alt_equiv.
-      reflexivity.
+    + clear IHg g; do 2 f_equal.
+      induction a; simpl.
+      * reflexivity.
+      * rewrite IHa1, IHa2.
+        reflexivity.
     + assumption.
 Qed.
