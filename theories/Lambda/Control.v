@@ -6,9 +6,12 @@
    operators in the CPS translation. Please, move this code to the proper place
    once I'm finished! *)
 
-Require Import Prelude.
+Require Import Equality.
+Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.TypeSystem.
+
+Local Notation N := negation.
 
 Section Control.
 
@@ -71,16 +74,63 @@ Section CBV.
   *)
 
   Axiom cbv_type_F:
-    cbv_type F = negation [].
+    cbv_type F = N [].
+
+  Definition cbv_C {T}: pseudoterm :=
+    (* [|- C: ~~T -> T] = [k: ~~(~(~([T], ~~()), ~~()), ~[T]) |- [C]]
+
+       k<f>
+       { f<x: ~(~([T], ~~()), ~~()), k: ~[T]> =
+         x<p, q>
+         { p<y: [T], j: ~~()> =
+           j<r>
+           { r<> =
+             k<y> } }
+         { q<j: ~()> =
+           j<> } }
+    *)
+    bind
+      (jump 1 [Syntax.bound 0])
+      [N [T]; N [N [N []]; N [N [N []]; T]]]
+      (bind
+        (bind
+          (jump 3 [Syntax.bound 0; Syntax.bound 1])
+          [N [N []]; T]
+          (bind
+            (jump 1 [Syntax.bound 0])
+            []
+            (jump 3 [Syntax.bound 1])))
+        [N []]
+        (jump 0 [])).
+
+  Axiom cbv_cps_C:
+    forall T,
+    cbv_cps C (@cbv_C T).
+
+  Goal
+    forall T: type,
+    (forall g, TypeSystem.typing g (cbv_type T) prop) ->
+    exists2 U,
+      typing [] C U
+    & TypeSystem.typing [N [cbv_type U]] (@cbv_C (cbv_type T)) void.
+  Proof.
+    intros.
+    exists (arrow (arrow (arrow T F) F) T).
+    - apply typing_C.
+    - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
+  Qed.
 
   Definition cbv_A {T}: pseudoterm :=
-    (* [|- A: F -> T] = [k: ~~(~(), ~[T]) |- [A]].
+    (* [|- A: F -> T] = [k: ~~(~(), ~[T]) |- [A]]
 
        k<f>
        { f<x: ~(), k: ~[T]> =
          x<> }
     *)
-    bind (jump 1 [Syntax.bound 0]) [negation [T]; negation []] (jump 1 []).
+    bind
+      (jump 1 [Syntax.bound 0])
+      [N [T]; N []]
+      (jump 1 []).
 
   Axiom cbv_cps_A:
     forall T,
@@ -91,7 +141,7 @@ Section CBV.
     (forall g, TypeSystem.typing g (cbv_type T) prop) ->
     exists2 U,
       typing [] A U
-    & TypeSystem.typing [negation [cbv_type U]] (@cbv_A (cbv_type T)) void.
+    & TypeSystem.typing [N [cbv_type U]] (@cbv_A (cbv_type T)) void.
   Proof.
     intros.
     exists (arrow F T).
@@ -120,10 +170,10 @@ Section CBN.
   *)
 
   Axiom cbn_type_F:
-    cbn_type F = negation [negation []].
+    cbn_type F = N [N []].
 
   Definition cbn_A {T}: pseudoterm :=
-    (* [|- A: F -> T] = [k: ~~(~~~(), [T]) |- [A]].
+    (* [|- A: F -> T] = [k: ~~(~~~(), [T]) |- [A]]
 
        k<f>
        { f<x: ~~~(), k: [T]> =
@@ -133,10 +183,10 @@ Section CBN.
     *)
     bind
       (jump 1 [Syntax.bound 0])
-      [T; negation [negation [negation []]]]
+      [T; N [N [N []]]]
       (bind
         (jump 2 [Syntax.bound 0])
-        [negation []]
+        [N []]
         (jump 0 [])).
 
   Axiom cbn_cps_A:
