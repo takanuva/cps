@@ -68,6 +68,7 @@ Section Control.
     forall T,
     typing
       []
+      (* \x.C (\k.x) *)
       (abstraction F (application C (abstraction (arrow T F) 1)))
       (arrow F T).
   Proof.
@@ -389,6 +390,62 @@ Section CBN.
 
   Axiom cbn_type_F:
     cbn_type F = N [N []].
+
+  Definition cbn_C {T}: pseudoterm :=
+    (* [|- C: ~~T -> T] = [k: ~~(~~~(~~~(~[T], ~~()), ~~()), [T]) |- [C]]
+
+       k<f>
+       { f<x: ~~~(~~~(~[T], ~~()), ~~()), k: [T]> =
+         x<j>
+         { j<i: ~(~~~(~[T], ~~()), ~~())> =
+           i<p, q>
+           { p<l: ~~(~[T], ~~())> =
+             l<n>
+             { n<y: ~[T], o: ~~()> =
+               o<z>
+               { z<> =
+                 y<k> }
+             }
+           }
+           { q<m: ~()> =
+             m<> } } }
+    *)
+    let U := N [N [N [N []]; N [T]]] in
+    (bind
+      (jump 1 [Syntax.bound 0])
+      [T; N [N [N [N [N []]; N [U]]]]]
+      (bind
+        (jump 2 [Syntax.bound 0])
+        [N [N [N []]; N [U]]]
+        (bind
+          (bind
+            (jump 2 [Syntax.bound 0; Syntax.bound 1])
+            [U]
+            (bind
+              (jump 1 [Syntax.bound 0])
+              [N [N []]; N [T]]
+              (bind
+                (jump 1 [Syntax.bound 0])
+                []
+                (jump 1 [Syntax.bound 5]))))
+          [N []]
+          (jump 0 [])))).
+
+  Axiom cbn_cps_C:
+    forall T,
+    cbn_cps C (@cbn_C T).
+
+  Goal
+    forall T: type,
+    (forall g, TypeSystem.typing g (cbn_type T) prop) ->
+    exists2 U,
+    typing [] C U & cbn_typing [] (@cbn_C (cbn_type T)) U.
+  Proof.
+    intros.
+    exists (arrow (arrow (arrow T F) F) T).
+    - apply typing_C.
+    - repeat (simpl; try econstructor; auto; try rewrite cbn_type_F).
+  Qed.
 
   Definition cbn_A {T}: pseudoterm :=
     (* [|- A: F -> T] = [k: ~~(~~~(), [T]) |- [A]]
