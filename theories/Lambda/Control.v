@@ -6,12 +6,44 @@
    operators in the CPS translation. Please, move this code to the proper place
    once I'm finished! *)
 
+Require Import Lia.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Context.
+Require Import Local.Metatheory.
+Require Import Local.Axiomatic.
+Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 
 Local Notation N := negation.
+
+(* TODO: I *really* gotta make a tactics file for automating reduction steps. *)
+
+Fixpoint foobar (b: pseudoterm): context * pseudoterm :=
+  match b with
+  | bind b ts c =>
+      (context_left (fst (foobar b)) ts c, snd (foobar b))
+  | _ =>
+    (context_hole, b)
+  end.
+
+Lemma foobar_sound:
+  forall b,
+  b = (fst (foobar b)) (snd (foobar b)).
+Proof.
+  induction b.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+  simpl.
+  rewrite IHb1 at 1.
+  reflexivity.
+Defined.
 
 Section Control.
 
@@ -30,6 +62,23 @@ Section Control.
     forall g T,
     (* A: F -> T *)
     typing g A (arrow F T).
+
+  Goal
+    (* We can derive A from C! *)
+    forall T,
+    typing
+      []
+      (abstraction F (application C (abstraction (arrow T F) 1)))
+      (arrow F T).
+  Proof.
+    intros.
+    apply typing_abstraction.
+    apply typing_application with (arrow (arrow T F) F).
+    - apply typing_C.
+    - apply typing_abstraction.
+      apply typing_bound.
+      do 2 constructor.
+  Qed.
 
   Definition K T U: term :=
     (* K = \f: (T -> U) -> T.C (\k: T -> F.k (f (\x: T.A (k x)))) *)
@@ -58,6 +107,9 @@ End Control.
 Section CBV.
 
   Require Import Local.Lambda.CallByValue.
+
+  Definition cbv_typing g c t :=
+    TypeSystem.typing (N [cbv_type t] :: cbv_env g) c void.
 
   (*
     Plotkin's CBV CPS translation:
@@ -111,8 +163,7 @@ Section CBV.
     forall T: type,
     (forall g, TypeSystem.typing g (cbv_type T) prop) ->
     exists2 U,
-      typing [] C U
-    & TypeSystem.typing [N [cbv_type U]] (@cbv_C (cbv_type T)) void.
+    typing [] C U & cbv_typing [] (@cbv_C (cbv_type T)) U.
   Proof.
     intros.
     exists (arrow (arrow (arrow T F) F) T).
@@ -140,8 +191,7 @@ Section CBV.
     forall T: type,
     (forall g, TypeSystem.typing g (cbv_type T) prop) ->
     exists2 U,
-      typing [] A U
-    & TypeSystem.typing [N [cbv_type U]] (@cbv_A (cbv_type T)) void.
+    typing [] A U & cbv_typing [] (@cbv_A (cbv_type T)) U.
   Proof.
     intros.
     exists (arrow F T).
@@ -149,11 +199,179 @@ Section CBV.
     - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
   Qed.
 
+  Local Lemma struct_eta_helper:
+    forall b ts k x1 x2,
+    x1 = jump (Syntax.lift (length ts) 0 k) (low_sequence (length ts)) ->
+    x2 = Syntax.subst k 0 b ->
+    struct (bind b ts x1) x2.
+  Proof.
+    intros.
+    rewrite H, H0.
+    apply struct_eta.
+  Qed.
+
+  (* Let's see if Felleisen's abbreviation holds in here... *)
+  Goal
+    (* This should work for *any* T, but... *)
+    let T := F in
+    forall b c,
+    cbv_cps A b ->
+    cbv_cps (abstraction F (application C (abstraction (arrow T F) 1))) c ->
+    [b == c].
+  Proof.
+    intros.
+    assert (b = @cbv_A (cbv_type T)).
+    eapply cbv_cps_is_a_function.
+    eassumption.
+    apply cbv_cps_A.
+    dependent destruction H1.
+    clear H.
+    unfold cbv_A.
+    dependent destruction H0.
+    dependent destruction H0.
+    dependent destruction H0_0.
+    dependent destruction H0_0.
+    assert (b = Syntax.lift 1 1 (Syntax.lift 1 2 (@cbv_C (cbv_type T)))).
+    eapply cbv_cps_is_a_function.
+    eassumption.
+    apply cbv_cps_lift.
+    apply cbv_cps_lift.
+    apply cbv_cps_C.
+    dependent destruction H.
+    clear H0_.
+    unfold cbv_C.
+    unfold T.
+    rewrite cbv_type_F.
+    compute.
+    symmetry.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    apply beta_bind_left.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    apply beta_bind_left.
+    apply beta_bind_left.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_bind_left.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_bind_left.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    (* Typing is degenerate in the equational theory... we can use (ETA) now to
+       fix this! *)
+    etransitivity.
+    transitivity
+      (bind (bind (jump 2 [CPS.bound 0]) [N [N []]; N []]
+        (jump 2 (low_sequence 2))) [void; void]
+          (jump 1 [])).
+    apply sema_sym.
+    apply sema_bind_left.
+    apply sema_struct.
+    compute.
+    apply struct_eta_helper with (k := 0).
+    reflexivity.
+    reflexivity.
+    etransitivity.
+    apply sema_step.
+    apply step_beta.
+    replace ((bind (jump 2 [CPS.bound 0]) [
+        N [N []]; N []]
+        (jump 2 (CPS.low_sequence 2)))) with
+      (context_right (jump 2 [CPS.bound 0]) [
+        N [N []]; N []] Context.context_hole (jump 2 (CPS.low_sequence 2)));
+    auto.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; try lia.
+    compute.
+    reflexivity.
+  Qed.
+
 End CBV.
 
 Section CBN.
 
   Require Import Local.Lambda.CallByName.
+
+  Definition cbn_typing g c t :=
+    TypeSystem.typing (cbn_type t :: cbn_env g) c void.
 
   (*
     Plotkin's CBN CPS translation:
@@ -197,8 +415,7 @@ Section CBN.
     forall T: type,
     (forall g, TypeSystem.typing g (cbn_type T) prop) ->
     exists2 U,
-      typing [] A U
-    & TypeSystem.typing [cbn_type U] (@cbn_A (cbn_type T)) void.
+    typing [] A U & cbn_typing [] (@cbn_A (cbn_type T)) U.
   Proof.
     intros.
     exists (arrow F T).
