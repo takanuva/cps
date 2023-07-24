@@ -23,6 +23,9 @@ theories/Structural.v
 theories/Lambda/Calculus.v
 theories/Lambda/CallByName.v
 theories/Lambda/CallByValue.v
+# The following file is temporary...
+theories/Lambda/Control.v
+# TODO: fix the following...
 # theories/Simulation.v
 # Ignore this for now...
 # theories/FullAbstraction.v
