@@ -9,6 +9,7 @@
 Require Import Lia.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
@@ -479,5 +480,126 @@ Section CBN.
     - apply typing_A.
     - repeat (simpl; try econstructor; auto; try rewrite cbn_type_F).
   Qed.
+
+  (* I hope I've done everything correctly...! *)
+  Goal
+    (* This should work for *any* T, still... *)
+    let T := F in
+    forall b c,
+    cbn_cps A b ->
+    cbn_cps (abstraction F (application C (abstraction (arrow T F) 1))) c ->
+    [b == c].
+  Proof.
+    intros.
+    assert (b = @cbn_A (cbn_type T)).
+    eapply cbn_cps_is_a_function.
+    eassumption.
+    apply cbn_cps_A.
+    dependent destruction H1.
+    clear H.
+    unfold cbn_A.
+    dependent destruction H0.
+    dependent destruction H0.
+    dependent destruction H0_0.
+    dependent destruction H0_0.
+    assert (b = Syntax.lift 1 1 (Syntax.lift 1 2 (@cbn_C (cbn_type T)))).
+    eapply cbn_cps_is_a_function.
+    eassumption.
+    apply cbn_cps_lift.
+    apply cbn_cps_lift.
+    apply cbn_cps_C.
+    dependent destruction H.
+    clear H0_.
+    unfold cbn_C.
+    unfold T.
+    rewrite cbn_type_F.
+    compute.
+    symmetry.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_bind_left.
+    apply sema_step.
+    apply step_tidy.
+    apply tidy_gc.
+    repeat constructor; simpl; lia.
+    compute.
+    (* Yey, typing is degenerate! *)
+    admit.
+  Admitted.
 
 End CBN.
