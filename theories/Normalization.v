@@ -38,10 +38,11 @@ Proof.
   - apply step_subst; auto.
   - assumption.
 Qed.
+*)
 
 Lemma SN_bind_left:
   forall b ts c,
-  SN step (bind b ts c) -> SN step b.
+  SN beta (bind b ts c) -> SN beta b.
 Proof.
   intros.
   apply SN_preimage with (fun b => bind b ts c); auto with cps.
@@ -49,12 +50,11 @@ Qed.
 
 Lemma SN_bind_right:
   forall b ts c,
-  SN step (bind b ts c) -> SN step c.
+  SN beta (bind b ts c) -> SN beta c.
 Proof.
   intros.
   apply SN_preimage with (fun c => bind b ts c); auto with cps.
 Qed.
-*)
 
 Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
   fold_right Nat.add 0 (map f ts).
@@ -196,8 +196,7 @@ Definition ARR ts (U V: candidate): candidate :=
 Definition SUB (V: candidate): candidate :=
   fun b =>
     forall x,
-    (* TODO: See below: perhaps k<x> { k<y> = c } is better! *)
-    V (subst x 0 b).
+    V (bind (jump 0 [lift 1 0 x]) [void] b).
 
 Definition L: env -> candidate :=
   Fix sumup_count_is_well_founded (fun _ => candidate) (fun t f =>
@@ -213,7 +212,7 @@ Definition L: env -> candidate :=
     (* Empty context means we're done! *)
     | [] =>
       fun _ =>
-        SN step
+        SN beta
     (* We don't really care about anything else. *)
     | _ =>
       fun _ _ =>
@@ -486,24 +485,41 @@ Proof.
   admit.
 Admitted.
 
-Goal
-  forall x c,
-  (* Hmm... could this be a better definition? *)
-  [bind (jump 0 [lift 1 0 x]) [void] c == subst x 0 c].
+Lemma L_preservation:
+  forall g,
+  valid_env g ->
+  forall c,
+  (* Here, g generates a context, which is valid as g for any other term. *)
+  (forall (h: context), (forall b, L g b -> SN beta (h b)) -> SN beta (h c)) ->
+  L g c.
 Proof.
-  intros.
-  etransitivity.
-  apply sema_recjmp.
-  reflexivity.
-  simpl.
-  rewrite <- lift_distributes_over_subst.
-  etransitivity.
-  apply sema_gc.
-  apply lifting_more_than_n_makes_not_free_n; lia.
-  unfold remove_binding.
-  rewrite subst_lift_simplification; try lia.
-  rewrite lift_zero_e_equals_e.
-  reflexivity.
+  induction g; intros.
+  - specialize (H0 context_hole); simpl in H0.
+    apply H0; intros.
+    assumption.
+  - dependent destruction H.
+    dependent destruction H.
+    + rewrite L_sub_composition in H1 |- *.
+      unfold SUB in H0 |- *; intros.
+      eapply IHg; intros.
+      * assumption.
+      * replace (bind (jump 0 [lift 1 0 x]) [void] c) with
+          (context_right (jump 0 [lift 1 0 x]) [void] context_hole c); auto.
+        rewrite <- compose_context_is_sound.
+        apply H1; intros.
+        rewrite compose_context_is_sound; simpl.
+        apply H.
+        apply H2.
+    + rewrite L_arr_composition in H1 |- *.
+      unfold ARR in H1 |- *; intros d ?.
+      eapply IHg; intros.
+      * assumption.
+      * replace (bind c ts d) with (context_left context_hole ts d c); auto.
+        rewrite <- compose_context_is_sound.
+        apply H1; intros.
+        rewrite compose_context_is_sound; simpl.
+        apply H3, H4.
+        assumption.
 Qed.
 
 Inductive exchange {T}: nat -> relation (list T) :=
@@ -612,23 +628,14 @@ Proof.
   intros.
   dependent destruction H.
   dependent destruction H.
-  - dependent destruction H.
+  - dependent destruction H0.
     dependent destruction H.
     + constructor.
     + constructor.
-    + exfalso.
-      eapply typing_bound_cant_be_prop.
-      eauto with cps.
   - dependent destruction H0.
     dependent destruction H0.
     + constructor.
     + constructor.
-    + exfalso.
-      eapply typing_bound_cant_be_prop.
-      eauto with cps.
-  - exfalso.
-    eapply typing_bound_cant_be_prop.
-    eauto with cps.
 Qed.
 
 Lemma L_weakening:
@@ -643,23 +650,33 @@ Proof.
   dependent destruction H0.
   - rewrite L_sub_composition.
     unfold SUB; intros.
-    rewrite subst_lift_simplification; try lia.
-    rewrite lift_zero_e_equals_e; auto.
+    apply L_preservation; auto; intros.
+    (* This reduces to (h e), so follows from H and H1. *)
+    admit.
   - rewrite L_arr_composition.
     unfold ARR; intros.
+    apply L_preservation; auto; intros.
+    (* Follows from orthogonality for e and c. *)
     admit.
-  - exfalso.
-    eapply typing_bound_cant_be_prop.
-    eauto with cps.
 Admitted.
+
+Definition PRESERVES {T} (P: T -> Prop): relation T :=
+  fun a b =>
+    P a -> P b.
+
+Definition REFLECTS {T} (P: T -> Prop): relation T :=
+  fun a b =>
+    P b -> P a.
 
 Lemma L_distr:
   forall g,
-  valid_env g -> DISTR (fun a b =>
-    L g b -> L g a).
+  valid_env g -> DISTR (REFLECTS (L g)).
 Proof.
-  unfold DISTR; intros.
+  unfold DISTR, REFLECTS; intros.
   (* This will be a nightmare in the de Bruijn setting. *)
+  apply L_preservation; auto; intros.
+  apply H2 in H1.
+  (* Should follow! *)
   admit.
 Admitted.
 
@@ -679,7 +696,14 @@ Proof.
     destruct foobar_inv with x1 x2 xs; auto.
     + do 2 rewrite L_sub_composition in H1 |- *.
       unfold SUB in H1 |- *; intros x y.
-      admit.
+      apply L_preservation; intros.
+      * dependent destruction H0.
+        dependent destruction H1.
+        assumption.
+      * specialize (H1 y x).
+        apply H2 in H1.
+        (* Follows from H1! *)
+        admit.
     + rewrite L_arr_composition in H1.
       rewrite L_sub_composition in H1 |- *.
       rewrite L_arr_composition.
@@ -706,7 +730,9 @@ Proof.
          If I did math correctly in my head, we're left exactly with a (DISTR)!
       *)
       apply L_distr.
-      * eauto with cps.
+      * dependent destruction H0.
+        dependent destruction H1.
+        assumption.
       * (* Clearly, we have simple types... *)
         admit.
       * rewrite switch_bindings_is_involutive.
@@ -723,22 +749,14 @@ Proof.
     assert (valid_env xs1); eauto with cps.
     dependent destruction Heqk.
     dependent destruction H1.
-    + rewrite L_sub_composition in H2 |- *.
-      unfold SUB in H2 |- *; intros.
-      replace (S k0) with (0 + S k0); auto.
-      rewrite hmmm.
-      apply H with (sumup count g) g.
-      * apply count_sub.
-        reflexivity.
-      * reflexivity.
-      * assumption.
-      * assumption.
-      * apply H2.
+    + rewrite L_sub_composition in H3 |- *.
+      unfold SUB in H3 |- *; intros.
+      admit.
     + rename k0 into p.
       rewrite L_arr_composition in H3 |- *.
       unfold ARR in H3 |- *; intros.
       rewrite <- switch_bindings_is_involutive with (k := p).
-      eapply H with (sumup count g) g.
+      eapply H with (sumup count xs1) xs1.
       * eapply count_ret.
         reflexivity.
       * reflexivity.
@@ -750,7 +768,7 @@ Proof.
         replace (traverse_list switch_bindings p ts) with ts.
         rewrite switch_bindings_is_involutive.
         apply H3.
-        eapply H with (sumup count (ts ++ g)) (ts ++ xs2).
+        eapply H with (sumup count (ts ++ xs1)) (ts ++ xs2).
         apply count_arg.
         reflexivity.
         eapply exchange_preserve_sumup.
@@ -765,9 +783,111 @@ Proof.
         assumption.
         (* We have simple types. *)
         admit.
-    + exfalso.
-      eapply typing_bound_cant_be_prop.
-      eauto with cps.
+Admitted.
+
+Lemma L_contraction:
+  forall t g,
+  valid_env (t :: g) ->
+  forall e,
+  L (t :: t :: g) e -> L (t :: g) (subst 0 0 e).
+Proof.
+  intros.
+  dependent destruction H.
+  dependent destruction H.
+  - rewrite L_sub_composition in H1; unfold SUB in H0; simpl in H0.
+    rewrite L_sub_composition in H1; unfold SUB in H0; simpl in H0.
+    rewrite L_sub_composition; unfold SUB; simpl; intros.
+    (*  k<a> { k<x> = j<b> { j<y> = c } }  --->
+        k<a> { k<x> = c[b/y] } *)
+    admit.
+  - rewrite L_arr_composition; unfold ARR; simpl; intros.
+    admit.
+Admitted.
+
+Record reducible (P: candidate): Prop := {
+  cr1:
+    forall e,
+    P e -> SN beta e;
+  cr3:
+    exists e,
+    P e
+}.
+
+Lemma SN_is_reducible:
+  reducible (SN beta).
+Proof.
+  split; intros.
+  - assumption.
+  - exists (jump 0 []).
+    constructor; inversion 1.
+Qed.
+
+Lemma ARR_is_reducible:
+  forall g ts,
+  reducible (L g) ->
+  reducible (L (ts ++ g)) ->
+  reducible (L (negation ts :: g)).
+Proof.
+  split; intros.
+  - rewrite L_arr_composition in H1.
+    unfold ARR in H1; simpl in H1.
+    assert (exists c, L (ts ++ g) c) as (c, ?).
+    + apply cr3.
+      assumption.
+    + specialize (H1 c H2); clear H2.
+      eapply cr1 in H1.
+      * apply SN_bind_left with ts c.
+        assumption.
+      * eassumption.
+  - rewrite L_arr_composition; unfold ARR; simpl.
+    destruct cr3 with (L g) as (b, ?); auto.
+    exists (lift 1 0 b); intros.
+    apply L_weakening with (t := negation ts) in H1.
+    + rewrite L_arr_composition in H1.
+      unfold ARR in H1; simpl in H1.
+      apply H1.
+      assumption.
+    + admit.
+Admitted.
+
+Lemma SUB_is_reducible:
+  forall g,
+  reducible (L g) ->
+  reducible (L (base :: g)).
+Proof.
+  split; intros.
+  - rewrite L_sub_composition in H0.
+    unfold SUB in H0; simpl in H0.
+    specialize (H0 0).
+    apply cr1 in H0.
+    + eapply SN_bind_right.
+      eassumption.
+    + assumption.
+  - destruct cr3 with (L g) as (b, ?); auto.
+    apply L_weakening with (t := base) in H0.
+    + exists (lift 1 0 b).
+      assumption.
+    + admit.
+Admitted.
+
+Lemma L_is_reducible:
+  forall g,
+  reducible (L g).
+Proof.
+  induction g.
+  - apply SN_is_reducible.
+  - destruct a.
+    + admit.
+    + admit.
+    + apply SUB_is_reducible.
+      assumption.
+    + admit.
+    + admit.
+    + apply ARR_is_reducible.
+      * assumption.
+      * admit.
+    + admit.
+    + admit.
 Admitted.
 
 Lemma fundamental:
@@ -783,13 +903,12 @@ Proof.
   (* Case: jump. *)
   - clear IHe.
     dependent destruction H0.
-    (* Follows from the structural rules on semantic types! But this will be so
-       much painful to prove with de Bruijn indexes... *)
+    apply L_preservation; auto; intros.
     admit.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
-    specialize (IHe1 (negation ts :: g) H0).
-    specialize (IHe2 (ts ++ g) H2).
+    specialize (IHe1 (negation ts :: g) H1).
+    specialize (IHe2 (ts ++ g) H0).
     rewrite L_arr_composition in IHe1.
     apply IHe1.
     assumption.

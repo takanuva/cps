@@ -163,7 +163,7 @@ Section CBV.
 
   Goal
     forall T: type,
-    (forall g, TypeSystem.typing g (cbv_type T) prop) ->
+    simple (cbv_type T) ->
     exists2 U,
     typing [] C U & cbv_typing [] (@cbv_C (cbv_type T)) U.
   Proof.
@@ -191,7 +191,7 @@ Section CBV.
 
   Goal
     forall T: type,
-    (forall g, TypeSystem.typing g (cbv_type T) prop) ->
+    simple (cbv_type T) ->
     exists2 U,
     typing [] A U & cbv_typing [] (@cbv_A (cbv_type T)) U.
   Proof.
@@ -438,7 +438,7 @@ Section CBN.
 
   Goal
     forall T: type,
-    (forall g, TypeSystem.typing g (cbn_type T) prop) ->
+    simple (cbn_type T) ->
     exists2 U,
     typing [] C U & cbn_typing [] (@cbn_C (cbn_type T)) U.
   Proof.
@@ -471,7 +471,7 @@ Section CBN.
 
   Goal
     forall T: type,
-    (forall g, TypeSystem.typing g (cbn_type T) prop) ->
+    simple (cbn_type T) ->
     exists2 U,
     typing [] A U & cbn_typing [] (@cbn_A (cbn_type T)) U.
   Proof.
