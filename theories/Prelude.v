@@ -6,6 +6,7 @@ Require Import Lia.
 Require Export List.
 Require Import Arith.
 Require Import Equality.
+Require Import Relations.
 Import ListNotations.
 
 (** To help proof automation, create a hint database. *)
@@ -188,11 +189,43 @@ Proof.
   induction 1; simpl; lia.
 Qed.
 
-Section Lists.
+(* -------------------------------------------------------------------------- *)
 
+Inductive insert {T}: nat -> T -> relation (list T) :=
+  | insert_head:
+    forall t xs,
+    insert 0 t xs (t :: xs)
+  | insert_tail:
+    forall n t x xs1 xs2,
+    insert n t xs1 xs2 ->
+    insert (S n) t (x :: xs1) (x :: xs2).
 
+Inductive exchange {T}: nat -> relation (list T) :=
+  | exchange_head:
+    forall x1 x2 xs,
+    exchange 0 (x1 :: x2 :: xs) (x2 :: x1 :: xs)
+  | exchange_tail:
+    forall n x xs1 xs2,
+    exchange n xs1 xs2 -> exchange (S n) (x :: xs1) (x :: xs2).
 
-End Lists.
+Lemma exchange_sym:
+  forall {T} n g h,
+  @exchange T n g h -> @exchange T n h g.
+Proof.
+  induction 1; constructor; auto.
+Qed.
+
+Lemma exchange_app:
+  forall {T} n g h i,
+  @exchange T n h i ->
+  @exchange T (length g + n) (g ++ h) (g ++ i).
+Proof.
+  induction g; simpl; intros.
+  - assumption.
+  - constructor; auto.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
 
 Section SetoidFix.
 

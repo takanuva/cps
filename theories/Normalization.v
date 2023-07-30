@@ -522,30 +522,6 @@ Proof.
         assumption.
 Qed.
 
-Inductive exchange {T}: nat -> relation (list T) :=
-  | exchange_head:
-    forall x1 x2 xs,
-    exchange 0 (x1 :: x2 :: xs) (x2 :: x1 :: xs)
-  | exchange_tail:
-    forall k x xs1 xs2,
-    exchange k xs1 xs2 -> exchange (S k) (x :: xs1) (x :: xs2).
-
-Lemma exchange_sym:
-  forall {T} n g h,
-  @exchange T n g h -> @exchange T n h g.
-Proof.
-  induction 1; constructor; auto.
-Qed.
-
-Lemma exchange_app:
-  forall {T} n g h i,
-  @exchange T n h i -> @exchange T (length g + n) (g ++ h) (g ++ i).
-Proof.
-  induction g; simpl; intros.
-  - assumption.
-  - constructor; auto.
-Qed.
-
 Lemma exchange_preserve_sumup:
   forall {T} f n g h,
   @exchange T n g h ->
@@ -752,10 +728,9 @@ Proof.
     + rewrite L_sub_composition in H3 |- *.
       unfold SUB in H3 |- *; intros.
       admit.
-    + rename k0 into p.
-      rewrite L_arr_composition in H3 |- *.
+    + rewrite L_arr_composition in H3 |- *.
       unfold ARR in H3 |- *; intros.
-      rewrite <- switch_bindings_is_involutive with (k := p).
+      rewrite <- switch_bindings_is_involutive with (k := n).
       eapply H with (sumup count xs1) xs1.
       * eapply count_ret.
         reflexivity.
@@ -765,7 +740,7 @@ Proof.
       * rewrite switch_bindings_distributes_over_bind.
         (* It appears we'd need a limiting on the dependent case! Or rather, we
            should simply ignore types here, making L a set of untyped terms. *)
-        replace (traverse_list switch_bindings p ts) with ts.
+        replace (traverse_list switch_bindings n ts) with ts.
         rewrite switch_bindings_is_involutive.
         apply H3.
         eapply H with (sumup count (ts ++ xs1)) (ts ++ xs2).
