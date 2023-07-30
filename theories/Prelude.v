@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -191,14 +191,14 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive insert {T}: nat -> T -> relation (list T) :=
+Inductive insert {T}: T -> nat -> relation (list T) :=
   | insert_head:
     forall t xs,
-    insert 0 t xs (t :: xs)
+    insert t 0 xs (t :: xs)
   | insert_tail:
-    forall n t x xs1 xs2,
-    insert n t xs1 xs2 ->
-    insert (S n) t (x :: xs1) (x :: xs2).
+    forall t n x xs1 xs2,
+    insert t n xs1 xs2 ->
+    insert t (S n) (x :: xs1) (x :: xs2).
 
 Inductive exchange {T}: nat -> relation (list T) :=
   | exchange_head:
@@ -223,6 +223,21 @@ Proof.
   induction g; simpl; intros.
   - assumption.
   - constructor; auto.
+Qed.
+
+Lemma Forall_exchange:
+  forall T P g,
+  @Forall T P g ->
+  forall n h,
+  @exchange T n g h ->
+  @Forall T P h.
+Proof.
+  induction 2; simpl.
+  - dependent destruction H.
+    dependent destruction H0.
+    constructor; auto.
+  - dependent destruction H.
+    constructor; auto.
 Qed.
 
 (* -------------------------------------------------------------------------- *)

@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -8,6 +8,7 @@ Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Context.
 Require Import Local.Metatheory.
 
 (** ** Type system *)
@@ -41,8 +42,8 @@ Inductive typing: env -> relation pseudoterm :=
     typing g (jump k xs) void
   | typing_bind:
     forall g b ts c,
-    typing (ts ++ g) c void ->
     typing (negation ts :: g) b void ->
+    typing (ts ++ g) c void ->
     typing g (bind b ts c) void.
 
 Global Hint Constructors typing: cps.
@@ -70,4 +71,64 @@ Proof.
   intros g n ?.
   apply typing_bound_is_simple in H.
   inversion H.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma typing_lift:
+  forall e g t,
+  typing g e t ->
+  forall x n h,
+  insert x n g h ->
+  typing h (lift 1 n e) t.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - rename n0 into m.
+    admit.
+  - inversion H0.
+  - dependent destruction H0.
+    rewrite lift_distributes_over_jump.
+    econstructor.
+    + apply IHe with g x.
+      * eassumption.
+      * assumption.
+    + clear IHe H0.
+      apply Forall_rev in H.
+      rewrite <- map_rev.
+      generalize dependent ts.
+      induction xs using rev_ind; intros.
+      * simpl in H, H1 |- *.
+        dependent destruction H1.
+        constructor.
+      * rewrite rev_app_distr in H, H1 |- *; simpl in H, H1 |- *.
+        dependent destruction H.
+        dependent destruction H1.
+        constructor; eauto.
+  - dependent destruction H0.
+    rewrite lift_distributes_over_bind.
+    constructor.
+    + apply IHe1 with (negation ts :: g) x.
+      * assumption.
+      * admit.
+    + apply IHe2 with (ts ++ g) x.
+      * assumption.
+      * rewrite Nat.add_comm.
+        admit.
+Admitted.
+
+Theorem weakening:
+  forall e g,
+  typing g e void ->
+  forall t,
+  simple t ->
+  typing (t :: g) (lift 1 0 e) void.
+Proof.
+  intros.
+  apply typing_lift with g t.
+  - apply H.
+  - constructor.
 Qed.
