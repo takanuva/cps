@@ -10,6 +10,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
+Require Import Local.Reduction.
 
 (** ** Type system *)
 
@@ -88,7 +89,12 @@ Proof.
   - inversion H.
   - inversion H.
   - rename n0 into m.
-    admit.
+    dependent destruction H.
+    destruct (le_gt_dec m n).
+    + rewrite lift_bound_ge; try lia.
+      admit.
+    + rewrite lift_bound_lt; try lia.
+      admit.
   - inversion H0.
   - dependent destruction H0.
     rewrite lift_distributes_over_jump.
@@ -121,11 +127,11 @@ Proof.
 Admitted.
 
 Theorem weakening:
-  forall g e,
-  typing g e void ->
+  forall g c,
+  typing g c void ->
   forall t,
   simple t ->
-  typing (t :: g) (lift 1 0 e) void.
+  typing (t :: g) (lift 1 0 c) void.
 Proof.
   intros.
   apply typing_lift1 with g t.
@@ -148,6 +154,7 @@ Proof.
   - inversion H.
   - inversion H.
   - rename n0 into m.
+    dependent destruction H.
     admit.
   - inversion H0.
   - admit.
@@ -155,11 +162,11 @@ Proof.
 Admitted.
 
 Theorem exchange:
-  forall g e,
-  typing g e void ->
+  forall g c,
+  typing g c void ->
   forall n h,
   switch n g h ->
-  typing h (switch_bindings n e) void.
+  typing h (switch_bindings n c) void.
 Proof.
   intros.
   apply typing_switch_bindings with g.
@@ -182,19 +189,49 @@ Proof.
   - inversion H.
   - inversion H.
   - rename n0 into m.
-    admit.
+    dependent destruction H.
+    destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; try lia.
+      admit.
+    + dependent destruction e.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      replace (m + 0) with m; try lia.
+      admit.
+    + rewrite subst_bound_lt; try lia.
+      admit.
   - inversion H0.
   - admit.
   - admit.
 Admitted.
 
 Theorem contraction:
-  forall g e t,
-  typing (t :: t :: g) e void ->
-  typing (t :: g) (subst 0 0 e) void.
+  forall g c t,
+  typing (t :: t :: g) c void ->
+  typing (t :: g) (subst 0 0 c) void.
 Proof.
   intros.
   apply typing_subst0 with (t :: t :: g).
   - assumption.
   - constructor.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma typing_beta:
+  forall b c,
+  beta b c ->
+  forall g,
+  typing g b void ->
+  typing g c void.
+Proof.
+  induction 1; intros.
+  - dependent destruction H0.
+    constructor; auto.
+    (* Hmmm... *)
+    admit.
+  - dependent destruction H0.
+    constructor; auto.
+  - dependent destruction H0.
+    constructor; auto.
+Admitted.
