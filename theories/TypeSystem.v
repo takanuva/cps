@@ -28,7 +28,7 @@ Definition valid_env (g: env): Prop :=
   Forall simple g.
 
 (* We are free to take a simpler definition here since we're only dealing with
-   simple types. Reasoning about dependent types will require extra care! *)
+   simple types. Reasoning about dependent types will require much more care! *)
 
 Inductive typing: env -> relation pseudoterm :=
   | typing_bound:
@@ -73,6 +73,33 @@ Proof.
   apply typing_bound_is_simple in H.
   inversion H.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Section Structural.
+
+  Variable R: env -> pseudoterm -> Prop.
+
+  Definition WEAKENING: Prop :=
+    forall g c,
+    R g c ->
+    forall t,
+    simple t ->
+    R (t :: g) (lift 1 0 c).
+
+  Definition EXCHANGE: Prop :=
+    forall g c,
+    R g c ->
+    forall n h,
+    switch n g h ->
+    R h (switch_bindings n c).
+
+  Definition CONTRACTION: Prop :=
+    forall g c t,
+    R (t :: t :: g) c ->
+    R (t :: g) (subst 0 0 c).
+
+End Structural.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -127,13 +154,9 @@ Proof.
 Admitted.
 
 Theorem weakening:
-  forall g c,
-  typing g c void ->
-  forall t,
-  simple t ->
-  typing (t :: g) (lift 1 0 c) void.
+  WEAKENING (fun g c => typing g c void).
 Proof.
-  intros.
+  intros g c ? t ?.
   apply typing_lift1 with g t.
   - apply H.
   - constructor.
@@ -162,13 +185,9 @@ Proof.
 Admitted.
 
 Theorem exchange:
-  forall g c,
-  typing g c void ->
-  forall n h,
-  switch n g h ->
-  typing h (switch_bindings n c) void.
+  EXCHANGE (fun g c => typing g c void).
 Proof.
-  intros.
+  intros g c ? n h ?.
   apply typing_switch_bindings with g.
   - assumption.
   - assumption.
@@ -206,11 +225,9 @@ Proof.
 Admitted.
 
 Theorem contraction:
-  forall g c t,
-  typing (t :: t :: g) c void ->
-  typing (t :: g) (subst 0 0 c) void.
+  CONTRACTION (fun g c => typing g c void).
 Proof.
-  intros.
+  intros g c t ?.
   apply typing_subst0 with (t :: t :: g).
   - assumption.
   - constructor.
