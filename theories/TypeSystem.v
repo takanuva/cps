@@ -132,3 +132,37 @@ Proof.
   - apply H.
   - constructor.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma typing_switch_bindings:
+  forall e g t,
+  typing g e t ->
+  forall n h,
+  switch n g h ->
+  typing h (switch_bindings n e) t.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - rename n0 into m.
+    admit.
+  - inversion H0.
+  - admit.
+  - admit.
+Admitted.
+
+Theorem exchange:
+  forall e g,
+  typing g e void ->
+  forall n h,
+  switch n g h ->
+  typing h (switch_bindings n e) void.
+Proof.
+  intros.
+  apply typing_switch_bindings with g.
+  - assumption.
+  - assumption.
+Qed.

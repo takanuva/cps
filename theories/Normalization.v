@@ -522,9 +522,9 @@ Proof.
         assumption.
 Qed.
 
-Lemma exchange_preserve_sumup:
+Lemma switch_preserve_sumup:
   forall {T} f n g h,
-  @exchange T n g h ->
+  @switch T n g h ->
   sumup f g = sumup f h.
 Proof.
   induction 1; intros.
@@ -658,7 +658,7 @@ Admitted.
 
 Lemma L_exchange:
   forall g n h,
-  exchange n g h ->
+  switch n g h ->
   valid_env g ->
   forall e,
   L g e -> L h (switch_bindings n e).
@@ -746,12 +746,12 @@ Proof.
         eapply H with (sumup count (ts ++ xs1)) (ts ++ xs2).
         apply count_arg.
         reflexivity.
-        eapply exchange_preserve_sumup.
-        apply exchange_app.
+        eapply switch_preserve_sumup.
+        apply switch_app.
         eassumption.
         rewrite Nat.add_comm.
-        apply exchange_app.
-        apply exchange_sym.
+        apply switch_app.
+        apply switch_sym.
         assumption.
         (* Derive from H1 and H2. *)
         admit.
@@ -882,8 +882,8 @@ Proof.
     admit.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
-    specialize (IHe1 (negation ts :: g) H1).
-    specialize (IHe2 (ts ++ g) H0).
+    specialize (IHe1 (negation ts :: g) H0).
+    specialize (IHe2 (ts ++ g) H1).
     rewrite L_arr_composition in IHe1.
     apply IHe1.
     assumption.

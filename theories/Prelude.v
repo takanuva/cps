@@ -200,36 +200,36 @@ Inductive insert {T}: T -> nat -> relation (list T) :=
     insert t n xs1 xs2 ->
     insert t (S n) (x :: xs1) (x :: xs2).
 
-Inductive exchange {T}: nat -> relation (list T) :=
-  | exchange_head:
+Inductive switch {T}: nat -> relation (list T) :=
+  | switch_head:
     forall x1 x2 xs,
-    exchange 0 (x1 :: x2 :: xs) (x2 :: x1 :: xs)
-  | exchange_tail:
+    switch 0 (x1 :: x2 :: xs) (x2 :: x1 :: xs)
+  | switch_tail:
     forall n x xs1 xs2,
-    exchange n xs1 xs2 -> exchange (S n) (x :: xs1) (x :: xs2).
+    switch n xs1 xs2 -> switch (S n) (x :: xs1) (x :: xs2).
 
-Lemma exchange_sym:
+Lemma switch_sym:
   forall {T} n g h,
-  @exchange T n g h -> @exchange T n h g.
+  @switch T n g h -> @switch T n h g.
 Proof.
   induction 1; constructor; auto.
 Qed.
 
-Lemma exchange_app:
+Lemma switch_app:
   forall {T} n g h i,
-  @exchange T n h i ->
-  @exchange T (length g + n) (g ++ h) (g ++ i).
+  @switch T n h i ->
+  @switch T (length g + n) (g ++ h) (g ++ i).
 Proof.
   induction g; simpl; intros.
   - assumption.
   - constructor; auto.
 Qed.
 
-Lemma Forall_exchange:
+Lemma Forall_switch:
   forall T P g,
   @Forall T P g ->
   forall n h,
-  @exchange T n g h ->
+  @switch T n g h ->
   @Forall T P h.
 Proof.
   induction 2; simpl.
