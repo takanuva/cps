@@ -75,7 +75,7 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Lemma typing_lift:
+Lemma typing_lift1:
   forall e g t,
   typing g e t ->
   forall x n h,
@@ -121,14 +121,14 @@ Proof.
 Admitted.
 
 Theorem weakening:
-  forall e g,
+  forall g e,
   typing g e void ->
   forall t,
   simple t ->
   typing (t :: g) (lift 1 0 e) void.
 Proof.
   intros.
-  apply typing_lift with g t.
+  apply typing_lift1 with g t.
   - apply H.
   - constructor.
 Qed.
@@ -155,7 +155,7 @@ Proof.
 Admitted.
 
 Theorem exchange:
-  forall e g,
+  forall g e,
   typing g e void ->
   forall n h,
   switch n g h ->
@@ -165,4 +165,36 @@ Proof.
   apply typing_switch_bindings with g.
   - assumption.
   - assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma typing_subst0:
+  forall e g t,
+  typing g e t ->
+  forall n h,
+  join n g h ->
+  typing h (subst 0 n e) t.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - rename n0 into m.
+    admit.
+  - inversion H0.
+  - admit.
+  - admit.
+Admitted.
+
+Theorem contraction:
+  forall g e t,
+  typing (t :: t :: g) e void ->
+  typing (t :: g) (subst 0 0 e) void.
+Proof.
+  intros.
+  apply typing_subst0 with (t :: t :: g).
+  - assumption.
+  - constructor.
 Qed.

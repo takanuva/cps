@@ -240,6 +240,30 @@ Proof.
     constructor; auto.
 Qed.
 
+Inductive join {T}: nat -> relation (list T) :=
+  | join_head:
+    forall x xs,
+    join 0 (x :: x :: xs) (x :: xs)
+  | join_tail:
+    forall n x xs1 xs2,
+    join n xs1 xs2 ->
+    join (S n) (x :: xs1) (x :: xs2).
+
+Goal
+  forall T n xs1 xs2,
+  @join T n xs1 xs2 ->
+  exists t,
+  @insert T t n xs2 xs1.
+Proof.
+  induction 1.
+  - exists x.
+    constructor.
+  - destruct IHjoin as (t, ?).
+    exists t.
+    constructor.
+    assumption.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Section SetoidFix.
