@@ -200,6 +200,55 @@ Inductive insert {T}: T -> nat -> relation (list T) :=
     insert t n xs1 xs2 ->
     insert t (S n) (x :: xs1) (x :: xs2).
 
+Lemma insert_app:
+  forall {T} i t n g h,
+  @insert T t n g h ->
+  @insert T t (length i + n) (i ++ g) (i ++ h).
+Proof.
+  induction i; simpl; intros.
+  - assumption.
+  - constructor.
+    apply IHi; auto.
+Qed.
+
+Lemma item_insert_ge:
+  forall {T} t m g h,
+  @insert T t m g h ->
+  forall n u,
+  n >= m ->
+  @item T u g n ->
+  @item T u h (1 + n).
+Proof.
+  induction 1; intros.
+  - constructor.
+    assumption.
+  - constructor.
+    destruct n0; try lia.
+    dependent destruction H1.
+    apply IHinsert; auto with arith.
+Qed.
+
+Lemma item_insert_lt:
+  forall {T} t m g h,
+  @insert T t m g h ->
+  forall n u,
+  n < m ->
+  @item T u g n ->
+  @item T u h n.
+Proof.
+  induction 1; intros.
+  - inversion H.
+  - destruct n0.
+    + dependent destruction H1.
+      constructor.
+    + rename n0 into m.
+      dependent destruction H1.
+      constructor.
+      apply IHinsert; auto with arith.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Inductive switch {T}: nat -> relation (list T) :=
   | switch_head:
     forall x1 x2 xs,
@@ -239,6 +288,8 @@ Proof.
   - dependent destruction H.
     constructor; auto.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
 
 Inductive join {T}: nat -> relation (list T) :=
   | join_head:

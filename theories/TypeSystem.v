@@ -27,6 +27,8 @@ Inductive simple: pseudoterm -> Prop :=
 Definition valid_env (g: env): Prop :=
   Forall simple g.
 
+Global Hint Unfold valid_env: cps.
+
 (* We are free to take a simpler definition here since we're only dealing with
    simple types. Reasoning about dependent types will require much more care! *)
 
@@ -103,11 +105,29 @@ End Structural.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma valid_env_insert:
+  forall u,
+  simple u ->
+  forall n g h,
+  insert u n g h ->
+  valid_env g ->
+  valid_env h.
+Proof.
+  induction 2; simpl; intros.
+  - constructor; auto.
+  - dependent destruction H1.
+    constructor; auto.
+    apply IHinsert; auto.
+Qed.
+
+Local Hint Resolve valid_env_insert: cps.
+
 Lemma typing_lift1:
   forall e g t,
   typing g e t ->
-  forall x n h,
-  insert x n g h ->
+  forall u n h,
+  simple u ->
+  insert u n g h ->
   typing h (lift 1 n e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
@@ -119,16 +139,16 @@ Proof.
     dependent destruction H.
     destruct (le_gt_dec m n).
     + rewrite lift_bound_ge; try lia.
-      admit.
+      constructor; eauto with cps.
+      eapply item_insert_ge; eauto.
     + rewrite lift_bound_lt; try lia.
-      admit.
+      constructor; eauto with cps.
+      eapply item_insert_lt; eauto.
   - inversion H0.
   - dependent destruction H0.
     rewrite lift_distributes_over_jump.
     econstructor.
-    + apply IHe with g x.
-      * eassumption.
-      * assumption.
+    + apply IHe with g u; eauto.
     + clear IHe H0.
       apply Forall_rev in H.
       rewrite <- map_rev.
@@ -144,12 +164,19 @@ Proof.
   - dependent destruction H0.
     rewrite lift_distributes_over_bind.
     constructor.
-    + apply IHe1 with (negation ts :: g) x.
-      * assumption.
-      * admit.
-    + apply IHe2 with (ts ++ g) x.
-      * assumption.
-      * rewrite Nat.add_comm.
+    + apply IHe1 with (negation ts :: g) u; eauto.
+      replace (negation (traverse_list (lift 1) n ts)) with (negation ts).
+      * constructor.
+        assumption.
+      * f_equal.
+        (* Clearly, as we have simple types. *)
+        admit.
+    + apply IHe2 with (ts ++ g) u; eauto.
+      rewrite Nat.add_comm.
+      replace (traverse_list (lift 1) n ts) with ts.
+      * apply insert_app.
+        assumption.
+      * (* Clearly, as we have simple types. *)
         admit.
 Admitted.
 
@@ -159,6 +186,7 @@ Proof.
   intros g c ? t ?.
   apply typing_lift1 with g t.
   - apply H.
+  - assumption.
   - constructor.
 Qed.
 
