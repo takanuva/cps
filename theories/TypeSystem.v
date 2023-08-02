@@ -280,3 +280,30 @@ Proof.
   - dependent destruction H0.
     constructor; auto.
 Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+(* Ohh... I think I made a mistake... *)
+
+Goal
+  exists b c,
+  beta b c /\ typing [negation []] c void /\ ~typing [negation []] b void.
+Proof.
+  (*
+    k: ~() |- j<j> { j<x> = k<> }   --->   k: ~() |- k<> { j<x> = k<> }
+  *)
+  exists (bind (jump 0 [bound 0]) [base] (jump 1 [])).
+  exists (bind (jump 1 []) [base] (jump 1 [])).
+  repeat split.
+  - apply (beta_ctxjmp context_hole).
+    reflexivity.
+  - repeat econstructor.
+  - intros ?.
+    dependent destruction H.
+    dependent destruction H.
+    dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    dependent destruction H0.
+    dependent destruction H1.
+Qed.
