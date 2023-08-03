@@ -24,10 +24,8 @@ Inductive simple: pseudoterm -> Prop :=
     forall ts,
     Forall simple ts -> simple (negation ts).
 
-Definition valid_env (g: env): Prop :=
-  Forall simple g.
-
-Global Hint Unfold valid_env: cps.
+Local Notation valid_env g :=
+  (Forall simple g).
 
 (* We are free to take a simpler definition here since we're only dealing with
    simple types. Reasoning about dependent types will require much more care! *)
@@ -50,6 +48,18 @@ Inductive typing: env -> relation pseudoterm :=
     typing g (bind b ts c) void.
 
 Global Hint Constructors typing: cps.
+
+Lemma valid_env_typing:
+  forall g e t,
+  typing g e t ->
+  valid_env g.
+Proof.
+  induction 1.
+  - assumption.
+  - assumption.
+  - dependent destruction IHtyping1.
+    assumption.
+Qed.
 
 Lemma typing_bound_is_simple:
   forall g n t,
@@ -114,10 +124,9 @@ Lemma valid_env_insert:
   valid_env h.
 Proof.
   induction 2; simpl; intros.
-  - constructor; auto.
+  - firstorder.
   - dependent destruction H1.
-    constructor; auto.
-    apply IHinsert; auto.
+    firstorder.
 Qed.
 
 Local Hint Resolve valid_env_insert: cps.
@@ -169,14 +178,20 @@ Proof.
       * constructor.
         assumption.
       * f_equal.
-        (* Clearly, as we have simple types. *)
+        apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
         admit.
     + apply IHe2 with (ts ++ g) u; eauto.
       rewrite Nat.add_comm.
       replace (traverse_list (lift 1) n ts) with ts.
       * apply insert_app.
         assumption.
-      * (* Clearly, as we have simple types. *)
+      * apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
         admit.
 Admitted.
 
@@ -192,6 +207,22 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma valid_env_switch_bindings:
+  forall n g h,
+  switch n g h ->
+  valid_env g ->
+  valid_env h.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    dependent destruction H0.
+    firstorder.
+  - dependent destruction H0.
+    firstorder.
+Qed.
+
+Local Hint Resolve valid_env_switch_bindings: cps.
+
 Lemma typing_switch_bindings:
   forall e g t,
   typing g e t ->
@@ -206,10 +237,75 @@ Proof.
   - inversion H.
   - rename n0 into m.
     dependent destruction H.
-    admit.
+    (* TODO: there's gotta be a better way... *)
+    assert ((m > n) \/ (m = n) \/ (S m = n) \/ (S m < n))
+      as [ ? | [ ? | [ ? | ? ] ] ] by lia.
+    + unfold switch_bindings.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_lt; try lia.
+      constructor; eauto with cps.
+      admit.
+    + dependent destruction H2.
+      unfold switch_bindings.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite Nat.add_comm; simpl.
+      constructor; eauto with cps.
+      admit.
+    + dependent destruction H2.
+      unfold switch_bindings.
+      rewrite lift_bound_lt; try lia.
+      rewrite subst_bound_gt; try lia.
+      constructor; eauto with cps.
+      simpl.
+      admit.
+    + unfold switch_bindings.
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      constructor; eauto with cps.
+      simpl.
+      admit.
   - inversion H0.
-  - admit.
-  - admit.
+  - dependent destruction H0.
+    rewrite switch_bindings_distributes_over_jump.
+    econstructor.
+    + apply IHe with g; eauto.
+    + clear IHe H0.
+      apply Forall_rev in H.
+      rewrite <- map_rev.
+      generalize dependent ts.
+      induction xs using rev_ind; intros.
+      * simpl in H, H1 |- *.
+        dependent destruction H1.
+        constructor.
+      * rewrite rev_app_distr in H, H1 |- *; simpl in H, H1 |- *.
+        dependent destruction H.
+        dependent destruction H1.
+        constructor; eauto.
+  - dependent destruction H0.
+    rewrite switch_bindings_distributes_over_bind.
+    constructor.
+    + apply IHe1 with (negation ts :: g); eauto.
+      replace (negation (traverse_list switch_bindings n ts)) with (negation ts).
+      * constructor.
+        assumption.
+      * f_equal.
+        apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
+        admit.
+    + apply IHe2 with (ts ++ g); eauto.
+      rewrite Nat.add_comm.
+      replace (traverse_list switch_bindings n ts) with ts.
+      * apply switch_app.
+        assumption.
+      * apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
+        admit.
 Admitted.
 
 Theorem exchange:
