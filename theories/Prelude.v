@@ -315,6 +315,16 @@ Proof.
     assumption.
 Qed.
 
+Lemma join_app:
+  forall {T} n g h i,
+  @join T n h i ->
+  @join T (length g + n) (g ++ h) (g ++ i).
+Proof.
+  induction g; simpl; intros.
+  - assumption.
+  - constructor; auto.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Section SetoidFix.
