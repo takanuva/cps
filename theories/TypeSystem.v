@@ -11,6 +11,8 @@ Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
 Require Import Local.Reduction.
+(* TODO: we only use the convergency predicate from the following. Move it? *)
+Require Import Local.Observational.
 
 (** ** Type system *)
 
@@ -425,6 +427,33 @@ Proof.
   - assumption.
   - constructor.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Theorem progress:
+  forall g b,
+  typing g b void ->
+  (exists k, converges b k) \/ (exists c, head b c).
+Proof.
+  intros.
+  dependent induction H.
+  - exfalso.
+    eapply typing_bound_cant_be_void with g n.
+    constructor; auto.
+  - clear IHtyping.
+    dependent destruction H.
+    left; exists n.
+    constructor.
+  - clear IHtyping2.
+    destruct IHtyping1; auto.
+    + destruct H1 as (k, ?).
+      destruct k.
+      * right.
+        admit.
+      * left; exists k.
+        constructor.
+        assumption.
+Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
