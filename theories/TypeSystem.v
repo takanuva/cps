@@ -88,6 +88,34 @@ Proof.
   inversion H.
 Qed.
 
+Lemma simple_types_ignore_substitution:
+  forall ts,
+  valid_env ts ->
+  forall f n,
+  ts = traverse_list (traverse f) n ts.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - f_equal; auto.
+    rewrite traverse_list_length.
+    clear H0 IHForall.
+    generalize (length l + n); clear l n.
+    induction x using pseudoterm_deepind; intros.
+    + inversion H.
+    + inversion H.
+    + reflexivity.
+    + inversion H.
+    + inversion H.
+    + dependent destruction H.
+      simpl; f_equal.
+      induction H0; simpl.
+      * reflexivity.
+      * dependent destruction H.
+        f_equal; auto.
+    + inversion H.
+    + inversion H.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Section Structural.
@@ -189,8 +217,8 @@ Proof.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
+        apply simple_types_ignore_substitution.
+        assumption.
     + apply IHe2 with (ts ++ g) u; eauto.
       rewrite Nat.add_comm.
       replace (traverse_list (lift 1) n ts) with ts.
@@ -199,9 +227,9 @@ Proof.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
-Admitted.
+        apply simple_types_ignore_substitution.
+        assumption.
+Qed.
 
 Theorem weakening:
   WEAKENING (fun g c => typing g c void).
@@ -405,8 +433,8 @@ Proof.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
+        apply simple_types_ignore_substitution.
+        assumption.
     + apply IHe2 with (ts ++ g); eauto.
       rewrite Nat.add_comm.
       replace (traverse_list (subst 0) n ts) with ts.
@@ -415,8 +443,8 @@ Proof.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
+        apply simple_types_ignore_substitution.
+        assumption.
 Admitted.
 
 Theorem contraction:
