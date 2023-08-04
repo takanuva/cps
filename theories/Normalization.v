@@ -15,6 +15,7 @@ Require Import Local.Axiomatic.
 Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 Require Import Local.Conservation.
+Require Import Local.Structural.
 
 (** ** Normalization. *)
 

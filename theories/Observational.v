@@ -15,6 +15,7 @@ Require Import Local.Axiomatic.
 Require Import Local.Reduction.
 Require Import Local.Confluence.
 Require Import Local.Factorization.
+Require Import Local.Structural.
 
 (** ** Observational theory *)
 

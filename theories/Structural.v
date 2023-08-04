@@ -10,7 +10,7 @@ Require Import Local.Context.
 Require Import Local.Axiomatic.
 Require Import Local.Reduction.
 Require Import Local.Confluence.
-Require Import Local.Normalization.
+Require Import Local.Conservation.
 
 Inductive struct: relation pseudoterm :=
   | struct_float_left:
