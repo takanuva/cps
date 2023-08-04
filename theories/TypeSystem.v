@@ -428,6 +428,92 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma typing_remove_binding:
+  forall e g t,
+  typing g e t ->
+  forall n h,
+  drop n g h ->
+  not_free n e ->
+  typing h (remove_binding n e) t.
+Proof.
+  induction e using pseudoterm_deepind; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - rename n0 into m.
+    dependent destruction H.
+    admit.
+  - inversion H0.
+  - unfold remove_binding.
+    dependent destruction H0.
+    dependent destruction H3.
+    rewrite subst_distributes_over_jump.
+    econstructor.
+    + apply IHe with g; eauto.
+    + clear IHe H0 H3.
+      apply Forall_rev in H, H4.
+      rewrite <- map_rev.
+      generalize dependent ts.
+      induction xs using rev_ind; intros.
+      * simpl in H, H1, H4 |- *.
+        dependent destruction H1.
+        constructor.
+      * rewrite rev_app_distr in H, H1, H4 |- *; simpl in H, H1, H4 |- *.
+        dependent destruction H.
+        dependent destruction H1.
+        dependent destruction H4.
+        constructor; eauto.
+  - unfold remove_binding.
+    dependent destruction H0.
+    rewrite subst_distributes_over_bind.
+    constructor.
+    + apply IHe1 with (negation ts :: g); eauto.
+      replace (negation (traverse_list (subst 0) n ts)) with (negation ts).
+      * constructor.
+        assumption.
+      * f_equal.
+        apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
+        admit.
+      * dependent destruction H2.
+        assumption.
+    + apply IHe2 with (ts ++ g); eauto.
+      rewrite Nat.add_comm.
+      replace (traverse_list (subst 0) n ts) with ts.
+      * apply drop_app.
+        assumption.
+      * apply valid_env_typing in H0_.
+        dependent destruction H0_.
+        dependent destruction H0.
+        (* From H0. *)
+        admit.
+      * dependent destruction H2.
+        rewrite Nat.add_comm.
+        assumption.
+Admitted.
+
+Lemma typing_tidy:
+  forall b c,
+  tidy b c ->
+  forall g,
+  typing g b void ->
+  typing g c void.
+Proof.
+  induction 1; intros.
+  - dependent destruction H0.
+    eapply typing_remove_binding.
+    + eassumption.
+    + constructor.
+    + assumption.
+  - dependent destruction H0.
+    constructor; auto.
+  - dependent destruction H0.
+    constructor; auto.
+Qed.
+
 Lemma typing_beta:
   forall b c,
   beta b c ->
@@ -446,11 +532,26 @@ Proof.
     constructor; auto.
 Admitted.
 
+Theorem subject_reduction:
+  forall b c,
+  step b c ->
+  forall g,
+  typing g b void ->
+  typing g c void.
+Proof.
+  intros.
+  apply step_characterization in H.
+  destruct H.
+  - apply typing_beta with b; auto.
+  - apply typing_tidy with b; auto.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 (* Ohh... I think I made a mistake... *)
 
 Goal
+  (* We do NOT have subject expansion! *)
   exists b c,
   beta b c /\ typing [negation []] c void /\ ~typing [negation []] b void.
 Proof.

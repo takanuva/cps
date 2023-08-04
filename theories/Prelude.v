@@ -327,6 +327,27 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Inductive drop {T}: nat -> relation (list T) :=
+  | drop_head:
+    forall x xs,
+    drop 0 (x :: xs) xs
+  | drop_tail:
+    forall n x xs1 xs2,
+    drop n xs1 xs2 ->
+    drop (S n) (x :: xs1) (x :: xs2).
+
+Lemma drop_app:
+  forall {T} n g h i,
+  @drop T n h i ->
+  @drop T (length g + n) (g ++ h) (g ++ i).
+Proof.
+  induction g; simpl; intros.
+  - assumption.
+  - constructor; auto.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Section SetoidFix.
 
   (* The code in this section is taken from coq-ext-lib and slightly adapted;
