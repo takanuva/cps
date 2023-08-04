@@ -428,6 +428,20 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma valid_env_drop:
+  forall n g h,
+  drop n g h ->
+  valid_env g -> valid_env h.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    assumption.
+  - dependent destruction H0.
+    firstorder.
+Qed.
+
+Local Hint Resolve valid_env_drop: cps.
+
 Lemma typing_remove_binding:
   forall e g t,
   typing g e t ->
@@ -443,7 +457,17 @@ Proof.
   - inversion H.
   - rename n0 into m.
     dependent destruction H.
-    admit.
+    unfold remove_binding.
+    destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; try lia.
+      constructor; eauto with cps.
+      admit.
+    + exfalso.
+      dependent destruction H2.
+      contradiction.
+    + rewrite subst_bound_lt; try lia.
+      constructor; eauto with cps.
+      admit.
   - inversion H0.
   - unfold remove_binding.
     dependent destruction H0.
