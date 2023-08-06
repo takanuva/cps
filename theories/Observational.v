@@ -48,6 +48,31 @@ Proof.
     firstorder.
 Qed.
 
+Lemma converges_inv:
+  forall P: pseudoterm -> nat -> Prop,
+  forall f1: (forall h xs n, static h -> P (h (jump (n + #h) xs)) n),
+  forall e n,
+  converges e n -> P e n.
+Proof.
+  intros.
+  assert (exists2 h, static h & exists xs, e = h (jump (n + #h) xs)).
+  - clear f1.
+    induction H.
+    + exists context_hole; auto with cps.
+      exists xs; rewrite Nat.add_comm; simpl.
+      reflexivity.
+    + destruct IHconverges as (h, ?, (xs, ?)).
+      exists (context_left h ts c); auto with cps.
+      exists xs; rewrite Nat.add_comm; simpl.
+      dependent destruction H1.
+      do 4 f_equal; lia.
+  - destruct H0 as (h, ?, (xs, ?)).
+    dependent destruction H1.
+    apply f1; auto.
+Qed.
+
+(* TODO: rename the following lemma. *)
+
 Lemma converges_context_inversion:
   forall h,
   static h ->

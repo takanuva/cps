@@ -11,7 +11,6 @@ Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
 Require Import Local.Reduction.
-(* TODO: we only use the convergency predicate from the following. Move it? *)
 Require Import Local.Observational.
 
 (** ** Type system *)
@@ -477,6 +476,10 @@ Proof.
     + destruct H1 as (k, ?).
       destruct k.
       * right.
+        dependent destruction H1 using converges_inv; simpl.
+        eexists.
+        apply head_bind_left.
+        (* I really need to fix the definition for head jumps... *)
         admit.
       * left; exists k.
         constructor.
