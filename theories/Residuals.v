@@ -694,49 +694,92 @@ Fixpoint redexes_context_bvars h: nat :=
 Notation RAP xs k c :=
   (redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c)).
 
-Goal
-  forall h s,
-  redexes_same_path h s ->
-  forall k,
-  k = redexes_context_bvars h ->
-  forall xs ts,
-  length xs = length ts ->
-  forall g r c1 c2 c3,
-  residuals g
-    (redexes_bind (h (redexes_jump r k xs)) ts c1)
-    (redexes_bind (s (redexes_jump true k xs)) ts c2)
-    c3 ->
-  residuals g
-    (redexes_bind (h (RAP xs k c1)) ts c1)
-    (redexes_bind (s (RAP xs k c2)) ts c2)
-    c3.
+(* -------------------------------------------------------------------------- *)
+
+Inductive subset: relation redexes :=
+  | subset_type:
+    subset redexes_type redexes_type
+  | subset_prop:
+    subset redexes_prop redexes_prop
+  | subset_base:
+    subset redexes_base redexes_base
+  | subset_void:
+    subset redexes_void redexes_void
+  | subset_bound:
+    forall n,
+    subset (redexes_bound n) (redexes_bound n)
+  | subset_negation:
+    forall xs,
+    subset (redexes_negation xs) (redexes_negation xs)
+  | subset_jump:
+    forall k xs,
+    subset (redexes_jump false k xs) (redexes_jump false k xs)
+  | subset_mark:
+    forall r k xs,
+    subset (redexes_jump r k xs) (redexes_jump true k xs)
+  | subset_bind:
+    forall b1 b2 ts c1 c2,
+    subset b1 b2 ->
+    subset c1 c2 ->
+    subset (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
+
+Lemma partial_development:
+  forall g r s x,
+  residuals g r s x ->
+  forall t,
+  subset t s ->
+  forall h y,
+  residuals h r t y ->
+  forall i z,
+  residuals i s t z ->
+  sanity h i g ->
+  residuals g y z x.
 Proof.
-  intros.
-  dependent destruction H2.
-  rename c4 into c3.
-  constructor; auto.
-  assert (item (Some (length ts, c3)) (Some (length ts, c3) :: g) 0);
-    auto with cps.
-  remember (Some (length ts, c3) :: g) as i.
-  replace O with (k - redexes_context_bvars h) in H2; try lia.
-  assert (k >= redexes_context_bvars h); try lia.
-  clear Heqi H0.
-  generalize dependent b3.
-  generalize dependent i.
-  induction H; simpl; intros.
-  - dependent destruction H2_.
-    replace (k - 0) with k in H2; try lia.
-    eapply item_unique in H2; eauto.
+  induction 1; intros.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1.
+    constructor.
+  - dependent destruction H0.
+    rename r into r1, r0 into r2.
+    dependent destruction H1.
+    + dependent destruction H2.
+      constructor.
+      assumption.
+    + dependent destruction H2.
+      rename g0 into h, g1 into i.
+      rename c into c3, c0 into c1, c1 into c2.
+      admit.
+  - dependent destruction H1.
     dependent destruction H2.
-    (* Ok, we gotta keep changing g in H2_0 as well as we go. *)
-    admit.
-  - dependent destruction H2_; simpl.
-    constructor; auto.
-    simpl in H3.
-    eapply IHredexes_same_path; auto; try lia.
-    replace (k - redexes_context_bvars h) with
-      (S (k - S (redexes_context_bvars h))); try lia.
-    constructor; assumption.
+    dependent destruction H3.
+    rename g0 into h, g1 into i.
+    (* Nice automation in here! *)
+    constructor; eauto with cps.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
