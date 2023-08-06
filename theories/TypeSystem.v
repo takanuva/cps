@@ -457,6 +457,48 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma typing_implies_correct_arity:
+  forall (h: context) ts g xs,
+  typing (negation ts :: g) (h (jump #h xs)) void ->
+  length xs = length ts.
+Proof.
+  (* Of course we have to generalize our induction a bit. *)
+  assert (forall (h: context) n ts g xs,
+    item (negation ts) g n ->
+    typing g (h (jump (n + #h) xs)) void ->
+    length xs = length ts).
+  - induction h; simpl; intros.
+    + rewrite Nat.add_comm in H0; simpl in H0.
+      dependent destruction H0.
+      dependent destruction H0.
+      rename ts0 into us.
+      assert (negation ts = negation us).
+      * eapply item_unique; eauto.
+      * dependent destruction H3; clear H1.
+        apply Forall2_length in H2.
+        rewrite rev_length in H2.
+        assumption.
+    + rename ts0 into us.
+      dependent destruction H0.
+      apply IHh with (S n) (negation ts :: g).
+      * auto with cps.
+      * replace (S n + #h) with (n + S #h); try lia.
+        assumption.
+    + rename ts0 into us.
+      dependent destruction H0.
+      apply IHh with (length ts + n) (ts ++ g).
+      * rewrite Nat.add_comm.
+        apply item_insert_head.
+        assumption.
+      * replace (length ts + n + #h) with (n + (#h + length ts)); try lia.
+        assumption.
+  (* There we go, now we can show it. *)
+  - intros.
+    eapply H with (g := negation ts :: g) (n := 0).
+    + constructor.
+    + eassumption.
+Qed.
+
 Theorem progress:
   forall g b,
   typing g b void ->
@@ -472,19 +514,17 @@ Proof.
     left; exists n.
     constructor.
   - clear IHtyping2.
-    destruct IHtyping1; auto.
-    + destruct H1 as (k, ?).
-      destruct k.
-      * right.
-        dependent destruction H1 using converges_inv; simpl.
-        eexists.
-        apply head_bind_left.
-        (* I really need to fix the definition for head jumps... *)
-        admit.
+    destruct IHtyping1 as [ (k, ?) | (d, ?) ]; auto.
+    + destruct k.
+      * dependent destruction H1 using converges_inv; simpl.
+        right; eexists.
+        apply head_longjmp with (r := context_hole); auto with cps.
+        eapply typing_implies_correct_arity; eauto.
       * left; exists k.
-        constructor.
-        assumption.
-Admitted.
+        constructor; auto.
+    + right; eexists.
+      apply head_bind_left; eauto.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
