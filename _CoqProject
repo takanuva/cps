@@ -23,6 +23,7 @@ theories/Structural.v
 theories/Lambda/Calculus.v
 theories/Lambda/CallByName.v
 theories/Lambda/CallByValue.v
+theories/Lambda/ANF.v
 # The following file is temporary...
 theories/Lambda/Control.v
 # TODO: fix the following...
