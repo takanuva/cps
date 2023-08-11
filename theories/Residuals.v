@@ -10,7 +10,6 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
-Require Import Local.Reduction.
 
 (** ** Residuals *)
 
