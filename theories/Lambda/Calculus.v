@@ -221,6 +221,68 @@ Proof.
   - rewrite IHh; auto.
 Qed.
 
+Lemma context_lift_bvars:
+  forall h i k,
+  context_bvars (context_lift i k h) = context_bvars h.
+Proof.
+  induction h; intros; simpl.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+Qed.
+
+Fixpoint context_subst y k h: context :=
+  match h with
+  | context_hole =>
+    context_hole
+  | context_abstraction t b =>
+    context_abstraction t (context_subst y (S k) b)
+  | context_application_left f x =>
+    context_application_left
+      (context_subst y k f) (subst y k x)
+  | context_application_right f x =>
+    context_application_right
+      (subst y k f) (context_subst y k x)
+  end.
+
+Lemma context_subst_is_sound:
+  forall (h: context) y k e,
+  subst y k (h e) =
+    context_subst y k h (subst y (context_bvars h + k) e).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - f_equal; rewrite plus_n_Sm.
+    apply IHh.
+  - f_equal.
+    apply IHh.
+  - f_equal.
+    apply IHh.
+Qed.
+
+Lemma context_subst_depth:
+  forall h y k,
+  context_depth (context_subst y k h) = context_depth h.
+Proof.
+  induction h; intros; simpl.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+Qed.
+
+Lemma context_subst_bvars:
+  forall h y k,
+  context_bvars (context_subst y k h) = context_bvars h.
+Proof.
+  induction h; intros; simpl.
+  - reflexivity.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+  - rewrite IHh; auto.
+Qed.
+
 Inductive not_free: nat -> term -> Prop :=
   | not_free_bound:
     forall n m,
