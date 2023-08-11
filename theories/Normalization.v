@@ -11,7 +11,7 @@ Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
 Require Import Local.AbstractRewriting.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 Require Import Local.Conservation.

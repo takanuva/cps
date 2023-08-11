@@ -9,7 +9,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
 (* TODO: remove this one. *)
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.

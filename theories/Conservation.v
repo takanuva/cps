@@ -8,7 +8,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Residuals.
 Require Import Local.Confluence.

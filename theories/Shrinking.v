@@ -6,7 +6,7 @@ Require Import Arith.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 
 Set Primitive Projections.

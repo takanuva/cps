@@ -12,7 +12,7 @@ Require Import Local.Metatheory.
 (* TODO: perhaps some definitions should be moved to Syntax. *)
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 
 (** ** Beta (generalized jump) reduction. *)
 

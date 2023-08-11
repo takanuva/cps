@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Relations.
@@ -7,7 +7,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Confluence.
 Require Import Local.Conservation.

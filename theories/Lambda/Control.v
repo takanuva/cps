@@ -13,7 +13,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
-Require Import Local.Axiomatic.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 
@@ -201,15 +201,15 @@ Section CBV.
     - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
   Qed.
 
-  Local Lemma struct_eta_helper:
+  Local Lemma axiom_eta_helper:
     forall b ts k x1 x2,
     x1 = jump (Syntax.lift (length ts) 0 k) (low_sequence (length ts)) ->
     x2 = Syntax.subst k 0 b ->
-    struct (bind b ts x1) x2.
+    axiom (bind b ts x1) x2.
   Proof.
     intros.
     rewrite H, H0.
-    apply struct_eta.
+    apply axiom_eta.
   Qed.
 
   (* Let's see if Felleisen's abbreviation holds in here... *)
@@ -341,9 +341,9 @@ Section CBV.
           (jump 1 [])).
     apply sema_sym.
     apply sema_bind_left.
-    apply sema_struct.
+    apply sema_axiom.
     compute.
-    apply struct_eta_helper with (k := 0).
+    apply axiom_eta_helper with (k := 0).
     reflexivity.
     reflexivity.
     etransitivity.

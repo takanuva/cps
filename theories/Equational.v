@@ -13,7 +13,7 @@ Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 
-(** ** Axiomatic semantics *)
+(** ** Equational Theory *)
 
 Definition RECJMP (R: relation pseudoterm): Prop :=
   forall xs ts c,
@@ -94,32 +94,31 @@ Definition FLOAT_RIGHT (R: relation pseudoterm): Prop :=
           (traverse_list (lift (length ms)) 0 ns)
             (lift (length ms) (length ns) n))).
 
-(* As of now, I'm still unsure whether we'll need a directed, one-step struct
-   relation or just it's congruence version. Just to be sure, we'll define it
-   anyway. Note that we do not add contraction here as it is derivable in the
-   equivalence closure of this relation. *)
+(* This declaration contains the compatible closure of Thielecke's axioms for
+   the CPS-calculus, in a directed fashion. The equational theory is then taken
+   as the equivalence closure for these rules. *)
 
-Inductive struct: relation pseudoterm :=
-  | struct_recjmp:
-    RECJMP struct
-  | struct_distr:
-    DISTR struct
-  | struct_eta:
-    ETA struct
-  | struct_gc:
-    GC struct
-  | struct_bind_left:
-    LEFT struct
-  | struct_bind_right:
-    RIGHT struct.
+Inductive axiom: relation pseudoterm :=
+  | axiom_recjmp:
+    RECJMP axiom
+  | axiom_distr:
+    DISTR axiom
+  | axiom_eta:
+    ETA axiom
+  | axiom_gc:
+    GC axiom
+  | axiom_bind_left:
+    LEFT axiom
+  | axiom_bind_right:
+    RIGHT axiom.
 
-Global Hint Constructors struct: cps.
+Global Hint Constructors axiom: cps.
 
-(* We'll just define the structural congruence, representing the axiomatic
-   semantics, as the smallest equivalence relation closed under the [struct]
-   rules above. *)
+(* The equational theory, which is also called axiomatic semantics by Sangiorgi
+   and Merro, is simply defined as follows as the smallest equivalence over the
+   above rules. *)
 
-Notation sema := rst(struct).
+Notation sema := rst(axiom).
 Notation "[ a == b ]" := (sema a b)
   (at level 0, a, b at level 200): type_scope.
 
@@ -159,14 +158,14 @@ Qed.
 
 Global Hint Resolve sema_trans: cps.
 
-Lemma sema_struct:
+Lemma sema_axiom:
   forall a b,
-  struct a b -> [a == b].
+  axiom a b -> [a == b].
 Proof.
   auto with cps.
 Qed.
 
-Global Hint Resolve sema_struct: cps.
+Global Hint Resolve sema_axiom: cps.
 
 Lemma sema_recjmp:
   RECJMP sema.
@@ -259,20 +258,20 @@ Proof.
   do 3 constructor.
 Qed.
 
-Local Lemma struct_recjmp_helper:
+Local Lemma axiom_recjmp_helper:
   forall xs ts c x1 x2 x3,
   x1 = apply_parameters xs 0 (lift 1 (length xs) c) ->
   x2 = ts ->
   x3 = c ->
   length xs = length ts ->
-  struct (bind (jump 0 xs) ts c) (bind x1 x2 x3).
+  axiom (bind (jump 0 xs) ts c) (bind x1 x2 x3).
 Proof.
   intros.
   rewrite H, H0, H1, H2.
-  apply struct_recjmp; auto.
+  apply axiom_recjmp; auto.
 Qed.
 
-Local Lemma struct_distr_helper:
+Local Lemma axiom_distr_helper:
   forall b ms m ns n x1 x2 x3 x4 x5 x6 x7,
   x1 = switch_bindings 0 b ->
   x2 = lift 1 (length ns) n ->
@@ -282,46 +281,46 @@ Local Lemma struct_distr_helper:
   x6 = traverse_list (lift (length ms)) 0 ns ->
   x7 = traverse_list remove_binding 0 ms ->
   not_free_list 0 ms ->
-  struct (bind (bind b ms m) ns n) (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
+  axiom (bind (bind b ms m) ns n) (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
 Proof.
   intros.
   rewrite H, H0, H1, H2, H3, H4, H5.
-  apply struct_distr; auto.
+  apply axiom_distr; auto.
 Qed.
 
-Local Lemma struct_eta_helper:
+Local Lemma axiom_eta_helper:
   forall b ts k x1 x2,
   x1 = jump (lift (length ts) 0 k) (low_sequence (length ts)) ->
   x2 = subst k 0 b ->
-  struct (bind b ts x1) x2.
+  axiom (bind b ts x1) x2.
 Proof.
   intros.
   rewrite H, H0.
-  apply struct_eta.
+  apply axiom_eta.
 Qed.
 
-Local Lemma struct_gc_helper:
+Local Lemma axiom_gc_helper:
   forall b ts c x1,
   x1 = remove_binding 0 b ->
   not_free 0 b ->
-  struct (bind b ts c) x1.
+  axiom (bind b ts c) x1.
 Proof.
   intros.
   rewrite H.
-  apply struct_gc; auto.
+  apply axiom_gc; auto.
 Qed.
 
-Lemma struct_lift:
+Lemma axiom_lift:
   forall a b,
-  struct a b ->
+  axiom a b ->
   forall i k,
-  struct (lift i k a) (lift i k b).
+  axiom (lift i k a) (lift i k b).
 Proof.
   induction 1; intros.
-  (* Case: struct_recjmp. *)
+  (* Case: axiom_recjmp. *)
   - do 2 rewrite lift_distributes_over_bind.
     rewrite lift_distributes_over_jump.
-    apply struct_recjmp_helper.
+    apply axiom_recjmp_helper.
     + rewrite lift_distributes_over_apply_parameters.
       f_equal.
       rewrite map_length.
@@ -334,9 +333,9 @@ Proof.
     + rewrite map_length.
       rewrite traverse_list_length.
       assumption.
-  (* Case: struct_distr. *)
+  (* Case: axiom_distr. *)
   - do 5 rewrite lift_distributes_over_bind.
-    apply struct_distr_helper.
+    apply axiom_distr_helper.
     + apply lift_and_switch_bindings_commute.
     + symmetry.
       do 2 rewrite traverse_list_length.
@@ -381,11 +380,11 @@ Proof.
       rewrite Nat.add_0_r in H0 |- *.
       apply lifting_over_n_preserves_not_free_n; auto.
       lia.
-  (* Case: struct_eta. *)
+  (* Case: axiom_eta. *)
   - rename k into j, k0 into k.
     rewrite lift_distributes_over_bind.
     rewrite lift_distributes_over_jump.
-    eapply struct_eta_helper.
+    eapply axiom_eta_helper.
     + replace (k + length ts) with (length ts + k); auto with arith.
       rewrite traverse_list_length; f_equal.
       * symmetry.
@@ -393,20 +392,20 @@ Proof.
       * apply lifting_over_n_doesnt_change_low_sequence_n.
         lia.
     + apply lift_distributes_over_subst.
-  (* Case: struct_gc. *)
+  (* Case: axiom_gc. *)
   - rewrite lift_distributes_over_bind.
     rewrite remove_closest_binding_and_lift_commute; auto.
-    apply struct_gc.
+    apply axiom_gc.
     apply lifting_over_n_preserves_not_free_n; auto with arith.
-  (* Case: struct_bind_left. *)
+  (* Case: axiom_bind_left. *)
   - do 2 rewrite lift_distributes_over_bind.
     auto with cps.
-  (* Case: struct_bind_right. *)
+  (* Case: axiom_bind_right. *)
   - do 2 rewrite lift_distributes_over_bind.
     auto with cps.
 Qed.
 
-Global Hint Resolve struct_lift: cps.
+Global Hint Resolve axiom_lift: cps.
 
 Lemma sema_lift:
   forall a b,
@@ -419,17 +418,17 @@ Qed.
 
 Global Hint Resolve sema_lift: cps.
 
-Lemma struct_subst:
+Lemma axiom_subst:
   forall a b,
-  struct a b ->
+  axiom a b ->
   forall c k,
-  struct (subst c k a) (subst c k b).
+  axiom (subst c k a) (subst c k b).
 Proof.
   induction 1; intros.
-  (* Case: struct_recjmp. *)
+  (* Case: axiom_recjmp. *)
   - do 2 rewrite subst_distributes_over_bind.
     rewrite subst_distributes_over_jump.
-    apply struct_recjmp_helper.
+    apply axiom_recjmp_helper.
     + rewrite subst_distributes_over_apply_parameters.
       f_equal.
       rewrite map_length.
@@ -440,9 +439,9 @@ Proof.
     + reflexivity.
     + rewrite map_length; auto.
       rewrite traverse_list_length; auto.
-  (* Case: struct_distr. *)
+  (* Case: axiom_distr. *)
   - do 5 rewrite subst_distributes_over_bind.
-    apply struct_distr_helper.
+    apply axiom_distr_helper.
     + apply subst_and_switch_bindings_commute.
     + do 2 rewrite traverse_list_length.
       rewrite lift_and_subst_commute.
@@ -483,31 +482,31 @@ Proof.
       rewrite Nat.add_0_r in H0 |- *.
       apply substing_over_n_preserves_not_free_n; auto.
       lia.
-  (* Case: struct_eta. *)
+  (* Case: axiom_eta. *)
   - rename k into j, k0 into k.
     rewrite subst_distributes_over_bind.
     rewrite subst_distributes_over_jump.
-    eapply struct_eta_helper.
+    eapply axiom_eta_helper.
     + replace (k + length ts) with (length ts + k); auto with arith.
       rewrite traverse_list_length; f_equal.
       * symmetry.
         apply lift_and_subst_commute; auto with arith.
       * apply substing_over_n_doesnt_change_low_sequence_n; lia.
     + apply subst_distributes_over_itself.
-  (* Case: struct_gc. *)
+  (* Case: axiom_gc. *)
   - rewrite subst_distributes_over_bind.
     rewrite remove_closest_binding_and_subst_commute; auto.
-    apply struct_gc.
+    apply axiom_gc.
     apply substing_over_n_preserves_not_free_n; auto with arith.
-  (* Case: struct_bind_left. *)
+  (* Case: axiom_bind_left. *)
   - do 2 rewrite subst_distributes_over_bind.
     auto with cps.
-  (* Case: struct_bind_right. *)
+  (* Case: axiom_bind_right. *)
   - do 2 rewrite subst_distributes_over_bind.
     auto with cps.
 Qed.
 
-Global Hint Resolve struct_subst: cps.
+Global Hint Resolve axiom_subst: cps.
 
 Lemma sema_subst:
   forall a b,
@@ -558,7 +557,7 @@ Proof.
   eapply sema_trans.
   - apply sema_distr; auto.
   - apply sema_bind_right.
-    apply sema_struct; apply struct_gc_helper.
+    apply sema_axiom; apply axiom_gc_helper.
     + admit.
     + admit.
 Admitted.
