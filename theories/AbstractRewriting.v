@@ -188,6 +188,21 @@ Section Relations.
       contradiction.
   Qed.
 
+  Lemma same_relation_rt:
+    forall S,
+    same_relation R S -> same_relation rt(R) rt(S).
+  Proof.
+    destruct 1.
+    split; induction 1; eauto with cps.
+  Qed.
+
+  Lemma same_relation_sym:
+    forall S,
+    same_relation R S -> same_relation S R.
+  Proof.
+    destruct 1; split; auto.
+  Qed.
+
   Inductive clos_trans_cnt: nat -> relation T :=
     | tc_step x y:
       R x y -> clos_trans_cnt 1 x y
@@ -450,33 +465,47 @@ Section Confluency.
     apply reflexive_closure_preserves_diagram; auto with cps.
   Qed.
 
-  Variable R: relation T.
+  Section Definitions.
 
-  Definition confluent: Prop :=
-    diamond rt(R).
+    Variable R: relation T.
 
-  Definition church_rosser: Prop :=
-    forall x y,
-    rst(R) x y ->
-    exists2 z,
-    rt(R) x z & rt(R) y z.
+    Definition confluent: Prop :=
+      diamond rt(R).
 
-  Lemma confluence_implies_church_rosser:
-    confluent -> church_rosser.
+    Definition church_rosser: Prop :=
+      forall x y,
+      rst(R) x y ->
+      exists2 z,
+      rt(R) x z & rt(R) y z.
+
+    Lemma confluence_implies_church_rosser:
+      confluent -> church_rosser.
+    Proof.
+      induction 2.
+      (* Case: step. *)
+      - exists y; auto with cps.
+      (* Case: refl. *)
+      - exists x; auto with cps.
+      (* Case: sym. *)
+      - destruct IHclos_refl_sym_trans as (z, ?, ?).
+        exists z; auto.
+      (* Case: trans. *)
+      - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
+        destruct IHclos_refl_sym_trans2 as (v, ?, ?).
+        destruct H with y w v as (u, ?, ?); auto with cps.
+        exists u; eauto with cps.
+    Qed.
+
+  End Definitions.
+
+  Lemma confluence_for_same_relation:
+    forall R S,
+    same_relation R S ->
+    confluent R -> confluent S.
   Proof.
-    induction 2.
-    (* Case: step. *)
-    - exists y; auto with cps.
-    (* Case: refl. *)
-    - exists x; auto with cps.
-    (* Case: sym. *)
-    - destruct IHclos_refl_sym_trans as (z, ?, ?).
-      exists z; auto.
-    (* Case: trans. *)
-    - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
-      destruct IHclos_refl_sym_trans2 as (v, ?, ?).
-      destruct H with y w v as (u, ?, ?); auto with cps.
-      exists u; eauto with cps.
+    intros R S ? ? x y ? z ?.
+    edestruct same_relation_rt; eauto.
+    destruct H0 with x y z; eauto with cps.
   Qed.
 
 End Confluency.

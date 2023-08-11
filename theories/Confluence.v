@@ -12,6 +12,7 @@ Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Reduction.
+Require Import Local.Shrinking.
 Require Import Local.Residuals.
 
 (** ** Parallel reduction *)
@@ -272,35 +273,15 @@ Qed.
 Theorem step_is_confluent:
   confluent step.
 Proof.
-  (*
-  assert (confluent (union beta tidy)).
-  (* By the Hindley-Rosen lemma, the union of beta and tidy is confluent. *)
-  - apply hindley_rosen.
+  (* Follows from the properties for shrinking reductions, by the Hindley-Rosen
+     lemma. *)
+  apply confluence_for_same_relation with (union beta smol).
+  - apply same_relation_sym.
+    apply step_characterization.
+  - apply shrinking_preserves_confluence.
+    + apply smol_is_shrinking.
     + apply beta_is_confluent.
-    + apply tidy_is_confluent.
-    + apply rt_beta_and_rt_tidy_commute.
-  (* And this union is the same as the one-step reduction, so it's confluent. *)
-  - intros x y ? z ?.
-    assert (same_relation star rt(union beta tidy)).
-    + clear H H0 H1 x y z.
-      split; induction 1.
-      * apply step_characterization in H; auto with cps.
-      * auto with cps.
-      * eauto with cps.
-      * apply step_characterization in H; auto with cps.
-      * auto with cps.
-      * eauto with cps.
-    + apply H2 in H0.
-      apply H2 in H1.
-      destruct H with x y z as (w, ?, ?); auto.
-      exists w.
-      * apply H2.
-        assumption.
-      * apply H2.
-        assumption.
-  *)
-  admit.
-Admitted.
+Qed.
 
 Corollary step_is_church_rosser:
   church_rosser step.

@@ -21,7 +21,7 @@ Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_confluence:
     confluent R;
   shrinking_commutation:
-    commutes rt(R) rt(beta);
+    commutes rt(beta) rt(R);
   shrinking_postponement:
     exists2 S,
     inclusion beta S /\ inclusion S t(beta) &
@@ -469,3 +469,28 @@ Proof.
       * destruct H2; auto with cps.
 Qed.
 *)
+
+Theorem smol_is_shrinking:
+  shrinking smol.
+Proof.
+  constructor.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
+
+Theorem shrinking_preserves_confluence:
+  forall R,
+  shrinking R ->
+  confluent beta -> confluent (union beta R).
+Proof.
+  intros.
+  apply hindley_rosen.
+  - assumption.
+  - apply shrinking_confluence.
+    assumption.
+  - apply shrinking_commutation.
+    assumption.
+Qed.
