@@ -409,57 +409,56 @@ Qed.
 
 Global Hint Resolve rt_beta_bind_right: cps.
 
-(** ** Tidying reduction. *)
+(** ** Shrinking reduction. *)
 
-(* TODO: as of now, I conjecture that by adding (ETA) and a generalized (CONTR)
-   reduction in here will make our reduction semantics complete with regard to
-   the original axiomatic semantics. However, these two complicate the theory
-   so lets skip them for now. In the future, we should add those here. *)
+(* We will further explore the notion of shrinking reductions elsewhere, but we
+   will define our current reduction relation, which will only use dead code
+   elimination. *)
 
-Inductive tidy: relation pseudoterm :=
-  | tidy_gc:
-    GC tidy
-  | tidy_bind_left:
-    LEFT tidy
-  | tidy_bind_right:
-    RIGHT tidy.
+Inductive smol: relation pseudoterm :=
+  | smol_gc:
+    GC smol
+  | smol_bind_left:
+    LEFT smol
+  | smol_bind_right:
+    RIGHT smol.
 
-Global Hint Constructors tidy: cps.
+Global Hint Constructors smol: cps.
 
-Lemma tidy_context:
+Lemma smol_context:
   forall a b,
-  tidy a b ->
+  smol a b ->
   forall h: context,
-  tidy (h a) (h b).
+  smol (h a) (h b).
 Proof.
   induction h; eauto with cps.
 Qed.
 
-Lemma tidy_lift:
+Lemma smol_lift:
   forall a b,
-  tidy a b ->
+  smol a b ->
   forall i k,
-  tidy (lift i k a) (lift i k b).
+  smol (lift i k a) (lift i k b).
 Proof.
-  (* There's a similar proof on [Axiomatic.v]! *)
+  (* TODO: There's a similar proof on [Axiomatic.v]! *)
   admit.
 Admitted.
 
-Lemma tidy_subst:
+Lemma smol_subst:
   forall a b,
-  tidy a b ->
+  smol a b ->
   forall y k,
-  tidy (subst y k a) (subst y k b).
+  smol (subst y k a) (subst y k b).
 Proof.
-  (* There's a similar proof on [Axiomatic.v]! *)
+  (* TODO: There's a similar proof on [Axiomatic.v]! *)
   admit.
 Admitted.
 
-Lemma tidy_apply_parameters:
+Lemma smol_apply_parameters:
   forall a b,
-  tidy a b ->
+  smol a b ->
   forall xs k,
-  tidy (apply_parameters xs k a) (apply_parameters xs k b).
+  smol (apply_parameters xs k a) (apply_parameters xs k b).
 Proof.
   intros.
   generalize dependent k.
@@ -470,13 +469,13 @@ Proof.
     assumption.
   - simpl.
     apply IHxs.
-    apply tidy_subst.
+    apply smol_subst.
     assumption.
 Qed.
 
-Lemma not_free_tidy:
+Lemma not_free_smol:
   forall b c,
-  tidy b c ->
+  smol b c ->
   forall k,
   not_free k b -> not_free k c.
 Proof.
@@ -558,21 +557,21 @@ Proof.
   - dependent destruction H0; auto with cps.
 Qed.
 
-Lemma rt_tidy_bind_left:
-  LEFT rt(tidy).
+Lemma rt_smol_bind_left:
+  LEFT rt(smol).
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve rt_tidy_bind_left: cps.
+Global Hint Resolve rt_smol_bind_left: cps.
 
-Lemma rt_tidy_bind_right:
-  RIGHT rt(tidy).
+Lemma rt_smol_bind_right:
+  RIGHT rt(smol).
 Proof.
   induction 1; eauto with cps.
 Qed.
 
-Global Hint Resolve rt_tidy_bind_right: cps.
+Global Hint Resolve rt_smol_bind_right: cps.
 
 (** ** One-step reduction. *)
 
@@ -614,7 +613,7 @@ Proof.
 Qed.
 
 Lemma step_characterization:
-  same_relation step (union beta tidy).
+  same_relation step (union beta smol).
 Proof.
   split; do 3 intro.
   - induction H.
@@ -643,15 +642,15 @@ Qed.
 
 Global Hint Resolve step_beta: cps.
 
-Lemma step_tidy:
-  inclusion tidy step.
+Lemma step_smol:
+  inclusion smol step.
 Proof.
   unfold inclusion; intros.
   apply step_characterization; right.
   assumption.
 Qed.
 
-Global Hint Resolve step_tidy: cps.
+Global Hint Resolve step_smol: cps.
 
 Lemma step_recjmp:
   RECJMP step.
@@ -673,7 +672,7 @@ Proof.
   - apply step_characterization; left.
     apply beta_lift; auto.
   - apply step_characterization; right.
-    apply tidy_lift; auto.
+    apply smol_lift; auto.
 Qed.
 
 Global Hint Resolve step_lift: cps.
@@ -690,7 +689,7 @@ Proof.
   - apply step_characterization; left.
     apply beta_subst; auto.
   - apply step_characterization; right.
-    apply tidy_subst; auto.
+    apply smol_subst; auto.
 Qed.
 
 Global Hint Resolve step_subst: cps.
@@ -1508,101 +1507,3 @@ Proof.
 Qed.
 
 Global Hint Resolve sema_conv: cps.
-
-(* -------------------------------------------------------------------------- *)
-
-(* It will be much easier if we show we can postpone tidying, which we should
-   actually be able to. TODO: in which file should these results be? Perhaps I
-   should make a file just for results in tidying... oh well, I'll need to clean
-   up everything later anyways. *)
-
-Lemma transp_tidy_bind_left:
-  LEFT (transp tidy).
-Proof.
-  intros b1 b2 ts c ?.
-  apply tidy_bind_left.
-  assumption.
-Qed.
-
-Global Hint Resolve transp_tidy_bind_left: cps.
-
-Lemma transp_tidy_bind_right:
-  RIGHT (transp tidy).
-Proof.
-  intros b1 b2 ts c ?.
-  apply tidy_bind_right.
-  assumption.
-Qed.
-
-Global Hint Resolve transp_tidy_bind_right: cps.
-
-Lemma rt_transp_tidy_bind_left:
-  LEFT rt(transp tidy).
-Proof.
-  induction 1.
-  - apply rt_step.
-    apply transp_tidy_bind_left.
-    assumption.
-  - auto with cps.
-  - eauto with cps.
-Qed.
-
-Global Hint Resolve rt_transp_tidy_bind_left: cps.
-
-Lemma rt_transp_tidy_bind_right:
-  RIGHT rt(transp tidy).
-Proof.
-  induction 1.
-  - apply rt_step.
-    apply transp_tidy_bind_right.
-    assumption.
-  - auto with cps.
-  - eauto with cps.
-Qed.
-
-Global Hint Resolve rt_transp_tidy_bind_right: cps.
-
-Theorem tidying_postponement:
-  postpones beta tidy.
-Proof.
-  intros y z ? x ?.
-  generalize dependent z.
-  induction H0; intros.
-  (* Case: gc. *)
-  - dependent destruction H0.
-    + (* This case is simple, it's just a matter of inverting the order of the
-         reductions, by using a single step on each side. Let's just tidy this
-         a bit... *)
-      destruct b; try destruct n; try discriminate.
-      (* TODO: should we make a remove_binding_distributes_over_bind? *)
-      unfold remove_binding in x.
-      rewrite subst_distributes_over_bind in x.
-      dependent destruction x.
-      rename ts1 into ts, ts into us, b1 into b, b2 into c, c into d.
-      (* Hmm... *)
-      assert (b = lift 1 1 (h (jump #h xs))).
-      * rewrite x.
-        (* Yeah, this is the case! Should I have a lemma for this? *)
-        admit.
-      * rewrite H1.
-        rewrite context_lift_is_sound.
-        admit.
-    + admit.
-    + admit.
-  (* Case: bind_left. *)
-  - dependent destruction H.
-    + admit.
-    + edestruct IHtidy as (b4, ?, ?); eauto.
-      exists (bind b4 ts c); auto with cps.
-      admit.
-    + rename c into c1.
-      exists (bind b1 ts c2); auto with cps.
-  (* Case: bind_right. *)
-  - dependent destruction H.
-    + admit.
-    + rename b into b1.
-      exists (bind b2 ts c1); auto with cps.
-    + edestruct IHtidy as (c4, ?, ?); eauto.
-      exists (bind b ts c4); auto with cps.
-      admit.
-Admitted.

@@ -257,8 +257,8 @@ Section CBV.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     etransitivity.
     apply sema_bind_right.
@@ -290,24 +290,24 @@ Section CBV.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_bind_left.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_bind_left.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_bind_left.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_bind_left.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     etransitivity.
@@ -321,15 +321,15 @@ Section CBV.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     (* Typing is degenerate in the equational theory... we can use (ETA) now to
@@ -359,8 +359,8 @@ Section CBV.
     reflexivity.
     compute.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; try lia.
     compute.
     reflexivity.
@@ -526,8 +526,8 @@ Section CBN.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     etransitivity.
@@ -541,8 +541,8 @@ Section CBN.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     etransitivity.
@@ -556,8 +556,8 @@ Section CBN.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     etransitivity.
@@ -571,8 +571,8 @@ Section CBN.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     etransitivity.
@@ -586,16 +586,16 @@ Section CBN.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     etransitivity.
     apply sema_bind_right.
     apply sema_bind_left.
     apply sema_step.
-    apply step_tidy.
-    apply tidy_gc.
+    apply step_smol.
+    apply smol_gc.
     repeat constructor; simpl; lia.
     compute.
     (* Yey, typing is degenerate! *)

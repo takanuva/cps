@@ -7,6 +7,7 @@ theories/AbstractRewriting.v
 theories/Context.v
 theories/Axiomatic.v
 theories/Reduction.v
+theories/Shrinking.v
 theories/Residuals.v
 theories/Confluence.v
 theories/Factorization.v

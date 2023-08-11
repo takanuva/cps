@@ -619,9 +619,9 @@ Proof.
         assumption.
 Admitted.
 
-Lemma typing_tidy:
+Lemma typing_smol:
   forall b c,
-  tidy b c ->
+  smol b c ->
   forall g,
   typing g b void ->
   typing g c void.
@@ -667,12 +667,10 @@ Proof.
   apply step_characterization in H.
   destruct H.
   - apply typing_beta with b; auto.
-  - apply typing_tidy with b; auto.
+  - apply typing_smol with b; auto.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
-
-(* Ohh... I think I made a mistake... *)
 
 Goal
   (* We do NOT have subject expansion! *)
@@ -685,7 +683,7 @@ Proof.
   exists (bind (jump 0 [bound 0]) [base] (jump 1 [])).
   exists (bind (jump 1 []) [base] (jump 1 [])).
   repeat split.
-  - apply (beta_ctxjmp context_hole).
+  - apply beta_ctxjmp with (h := context_hole).
     reflexivity.
   - repeat econstructor.
   - intros ?.
