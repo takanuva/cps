@@ -2,11 +2,14 @@
 (*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
 Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
+Require Import Local.Context.
+Require Import Local.Metatheory.
 Require Import Local.Equational.
 Require Import Local.Reduction.
 
@@ -208,72 +211,70 @@ Proof.
       assumption.
 Qed.
 
-(*
-
-Inductive tidy_context_case (h: context) k xs b: Prop :=
-  | tidy_context_case_inside:
-    (forall c, tidy (h c) b) ->
-    tidy_context_case h k xs b
-  | tidy_context_case_scope:
+Inductive smol_context_case (h: context) k xs b: Prop :=
+  | smol_context_case_inside:
+    (forall c, smol (h c) b) ->
+    smol_context_case h k xs b
+  | smol_context_case_scope:
     forall r s us d,
     h = compose_context r (context_left s us d) ->
     b = r (remove_binding 0 (s (jump k xs))) ->
     not_free 0 (s (jump k xs)) ->
-    tidy_context_case h k xs b
-  | tidy_context_case_orthogonal1:
+    smol_context_case h k xs b
+  | smol_context_case_orthogonal1:
     forall r s us d e,
     h = compose_context r (context_left s us d) ->
     b = (compose_context r (context_left s us e)) (jump k xs) ->
-    tidy d e ->
-    tidy_context_case h k xs b
-  | tidy_context_case_orthogonal2:
+    smol d e ->
+    smol_context_case h k xs b
+  | smol_context_case_orthogonal2:
     forall r s us d e,
     h = compose_context r (context_right d us s) ->
     b = (compose_context r (context_right e us s)) (jump k xs) ->
-    tidy d e ->
-    tidy_context_case h k xs b.
+    smol d e ->
+    smol_context_case h k xs b.
 
-Lemma tidy_context_case_analysis:
+Local Lemma smol_context_case_analysis:
   forall (h: context) k xs b,
-  tidy (h (jump k xs)) b -> tidy_context_case h k xs b.
+  smol (h (jump k xs)) b -> smol_context_case h k xs b.
 Proof.
   induction h; simpl; intros.
   - inversion H.
   - dependent destruction H; simpl.
-    + apply tidy_context_case_scope with
+    + apply smol_context_case_scope with
         (r := context_hole) (s := h) (us := ts) (d := c); auto.
     + edestruct IHh; eauto; simpl.
-      * apply tidy_context_case_inside; eauto with cps.
-      * apply tidy_context_case_scope with
+      * apply smol_context_case_inside; eauto with cps.
+      * apply smol_context_case_scope with
           (r := context_left r ts c) (s := s) (us := us) (d := d); simpl;
           congruence.
-      * apply tidy_context_case_orthogonal1 with
+      * apply smol_context_case_orthogonal1 with
           (r := context_left r ts c) (s := s) (us := us) (d := d) (e := e);
           simpl; congruence.
-      * apply tidy_context_case_orthogonal2 with
+      * apply smol_context_case_orthogonal2 with
           (r := context_left r ts c) (s := s) (us := us) (d := d) (e := e);
           simpl; congruence.
-    + apply tidy_context_case_orthogonal1 with
+    + apply smol_context_case_orthogonal1 with
         (r := context_hole) (s := h) (us := ts) (d := c) (e := c2); auto.
   - dependent destruction H; simpl.
-    + apply tidy_context_case_inside; eauto with cps.
-    + apply tidy_context_case_orthogonal2 with
+    + apply smol_context_case_inside; eauto with cps.
+    + apply smol_context_case_orthogonal2 with
         (r := context_hole) (s := h) (us := ts) (d := b) (e := b2); auto.
     + edestruct IHh; eauto; simpl.
-      * apply tidy_context_case_inside; eauto with cps.
-      * apply tidy_context_case_scope with
+      * apply smol_context_case_inside; eauto with cps.
+      * apply smol_context_case_scope with
           (r := context_right b ts r) (s := s) (us := us) (d := d); simpl;
           congruence.
-      * apply tidy_context_case_orthogonal1 with
+      * apply smol_context_case_orthogonal1 with
           (r := context_right b ts r) (s := s) (us := us) (d := d) (e := e);
           simpl; congruence.
-      * apply tidy_context_case_orthogonal2 with
+      * apply smol_context_case_orthogonal2 with
           (r := context_right b ts r) (s := s) (us := us) (d := d) (e := e);
           simpl; congruence.
 Qed.
 
-Lemma rt_beta_and_rt_tidy_commute:
-  commutes rt(beta) rt(tidy).
+Lemma beta_and_smol_commute:
+  commutes rt(beta) rt(smol).
 Proof.
   (* We'll prove a much easier local verification instead. *)
   apply strong_commutation_implies_commutation.
@@ -311,16 +312,16 @@ Proof.
         TODO: please, refactor the following code. I'm exhausted...
       *)
       rename b2 into b.
-      edestruct tidy_context_case_analysis; eauto.
+      edestruct smol_context_case_analysis; eauto.
       * exists (bind b ts c); auto with cps.
       * rewrite H1.
         rewrite H2.
         rewrite compose_context_is_sound; simpl.
         eexists.
         --- apply rt_step.
-            apply tidy_bind_left.
-            apply tidy_context.
-            apply tidy_gc.
+            apply smol_bind_left.
+            apply smol_context.
+            apply smol_gc.
             rewrite compose_context_bvars; simpl.
             edestruct not_free_context_split; eauto.
             simpl in H5.
@@ -361,9 +362,9 @@ Proof.
         eexists (bind (compose_context r (context_left s us e) _) ts c).
         --- do 2 rewrite compose_context_is_sound; simpl.
             apply rt_step.
-            apply tidy_bind_left.
-            apply tidy_context.
-            apply tidy_bind_right.
+            apply smol_bind_left.
+            apply smol_context.
+            apply smol_bind_right.
             assumption.
         --- rewrite compose_context_bvars; simpl.
             rewrite H2.
@@ -385,9 +386,9 @@ Proof.
         eexists (bind (compose_context r (context_right e us s) _) ts c).
         --- do 2 rewrite compose_context_is_sound; simpl.
             apply rt_step.
-            apply tidy_bind_left.
-            apply tidy_context.
-            apply tidy_bind_left.
+            apply smol_bind_left.
+            apply smol_context.
+            apply smol_bind_left.
             assumption.
         --- rewrite compose_context_bvars; simpl.
             rewrite H2.
@@ -413,13 +414,13 @@ Proof.
         ts c2); auto with cps.
       eapply rt_trans.
       * apply rt_step.
-        apply tidy_bind_right.
+        apply smol_bind_right.
         eassumption.
       * apply rt_step.
-        apply tidy_bind_left.
-        apply tidy_context.
-        apply tidy_apply_parameters.
-        apply tidy_lift.
+        apply smol_bind_left.
+        apply smol_context.
+        apply smol_apply_parameters.
+        apply smol_lift.
         assumption.
   - dependent destruction H0.
     + (* The jump happens on the left, in which a continuation is removed. It is
@@ -458,17 +459,16 @@ Proof.
       * auto with cps.
       * destruct H2; auto with cps.
 Qed.
-*)
 
 Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
   constructor.
-  - (* The number of jumps decreases. *)
+  - (* The number of jumps decreases, so it shrinks in size. *)
     admit.
   - admit.
   - apply smol_is_confluent.
-  - admit.
+  - apply beta_and_smol_commute.
   - admit.
 Admitted.
 
