@@ -464,11 +464,22 @@ Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
   constructor.
+  (* Case: decreasing. *)
   - (* The number of jumps decreases, so it shrinks in size. *)
     admit.
-  - admit.
+  (* Case: soundness. *)
+  - induction 1.
+    + apply sema_gc.
+      assumption.
+    + apply sema_bind_left.
+      assumption.
+    + apply sema_bind_right.
+      assumption.
+  (* Case: confluence. *)
   - apply smol_is_confluent.
+  (* Case: commutation. *)
   - apply beta_and_smol_commute.
+  (* Case: postponement. *)
   - admit.
 Admitted.
 
