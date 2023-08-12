@@ -273,14 +273,13 @@ Qed.
 Theorem step_is_confluent:
   confluent step.
 Proof.
-  (* Follows from the properties for shrinking reductions, by the Hindley-Rosen
-     lemma. *)
-  apply confluence_for_same_relation with (union beta smol).
-  - apply same_relation_sym.
-    apply step_characterization.
+  apply diamond_for_same_relation with rt(union beta smol).
   - apply shrinking_preserves_confluence.
     + apply smol_is_shrinking.
     + apply beta_is_confluent.
+  - apply same_relation_rt.
+    apply same_relation_sym.
+    apply step_characterization.
 Qed.
 
 Corollary step_is_church_rosser:

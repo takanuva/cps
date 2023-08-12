@@ -104,6 +104,50 @@ Definition diamond {T} (R: relation T): Prop :=
 
 Global Hint Unfold diamond: cps.
 
+Lemma diagram_for_subset:
+  forall A B C D: Type,
+  forall R1 R2: A -> B -> Prop,
+  forall S1 S2: A -> C -> Prop,
+  forall T1 T2: B -> D -> Prop,
+  forall U1 U2: C -> D -> Prop,
+  diagram R1 S1 T1 U1 ->
+  (forall a b, R2 a b -> R1 a b) ->
+  (forall a c, S2 a c -> S1 a c) ->
+  (forall b d, T1 b d -> T2 b d) ->
+  (forall c d, U1 c d -> U2 c d) ->
+  diagram R2 S2 T2 U2.
+Proof.
+  unfold diagram; intros.
+  destruct H with x y z as (w, ?, ?).
+  - firstorder.
+  - firstorder.
+  - exists w.
+    + firstorder.
+    + firstorder.
+Qed.
+
+Lemma commutation_for_same_relations:
+  forall {T} R1 R2 S1 S2,
+  commutes R1 S1 ->
+  @same_relation T R1 R2 ->
+  @same_relation T S1 S2 ->
+  commutes R2 S2.
+Proof.
+  intros.
+  destruct H0, H1.
+  eapply diagram_for_subset; eauto.
+Qed.
+
+Lemma diamond_for_same_relation:
+  forall {T} R S,
+  diamond R ->
+  @same_relation T R S ->
+  diamond S.
+Proof.
+  destruct 2.
+  eapply commutation_for_same_relations; eauto with cps.
+Qed.
+
 (* Relation composition. *)
 
 Definition comp {A} {B} {C} R S: A -> C -> Prop :=
@@ -465,47 +509,33 @@ Section Confluency.
     apply reflexive_closure_preserves_diagram; auto with cps.
   Qed.
 
-  Section Definitions.
+  Variable R: relation T.
 
-    Variable R: relation T.
+  Definition confluent: Prop :=
+    diamond rt(R).
 
-    Definition confluent: Prop :=
-      diamond rt(R).
+  Definition church_rosser: Prop :=
+    forall x y,
+    rst(R) x y ->
+    exists2 z,
+    rt(R) x z & rt(R) y z.
 
-    Definition church_rosser: Prop :=
-      forall x y,
-      rst(R) x y ->
-      exists2 z,
-      rt(R) x z & rt(R) y z.
-
-    Lemma confluence_implies_church_rosser:
-      confluent -> church_rosser.
-    Proof.
-      induction 2.
-      (* Case: step. *)
-      - exists y; auto with cps.
-      (* Case: refl. *)
-      - exists x; auto with cps.
-      (* Case: sym. *)
-      - destruct IHclos_refl_sym_trans as (z, ?, ?).
-        exists z; auto.
-      (* Case: trans. *)
-      - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
-        destruct IHclos_refl_sym_trans2 as (v, ?, ?).
-        destruct H with y w v as (u, ?, ?); auto with cps.
-        exists u; eauto with cps.
-    Qed.
-
-  End Definitions.
-
-  Lemma confluence_for_same_relation:
-    forall R S,
-    same_relation R S ->
-    confluent R -> confluent S.
+  Lemma confluence_implies_church_rosser:
+    confluent -> church_rosser.
   Proof.
-    intros R S ? ? x y ? z ?.
-    edestruct same_relation_rt; eauto.
-    destruct H0 with x y z; eauto with cps.
+    induction 2.
+    (* Case: step. *)
+    - exists y; auto with cps.
+    (* Case: refl. *)
+    - exists x; auto with cps.
+    (* Case: sym. *)
+    - destruct IHclos_refl_sym_trans as (z, ?, ?).
+      exists z; auto.
+    (* Case: trans. *)
+    - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
+      destruct IHclos_refl_sym_trans2 as (v, ?, ?).
+      destruct H with y w v as (u, ?, ?); auto with cps.
+      exists u; eauto with cps.
   Qed.
 
 End Confluency.

@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Arith.
+Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
@@ -23,6 +24,7 @@ Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_commutation:
     commutes rt(beta) rt(R);
   shrinking_postponement:
+    (* TODO: should we fix this to be the parallel reduction??? *)
     exists2 S,
     inclusion beta S /\ inclusion S t(beta) &
       inclusion (comp R S) (comp S rt(R))
@@ -130,15 +132,13 @@ Admitted.
 
 *)
 
-(*
-
-Lemma tidy_has_weak_diamond:
+Lemma smol_has_weak_diamond:
   forall x y,
-  tidy x y ->
+  smol x y ->
   forall z,
-  tidy x z ->
+  smol x z ->
   exists2 w,
-  r(tidy) y w & r(tidy) z w.
+  r(smol) y w & r(smol) z w.
 Proof.
   induction 1; intros.
   - dependent destruction H0.
@@ -148,25 +148,25 @@ Proof.
     + rename b into b1.
       exists (remove_binding 0 b2).
       * apply r_step.
-        apply tidy_subst.
+        apply smol_subst.
         assumption.
       * apply r_step.
-        apply tidy_gc.
-        apply not_free_tidy with b1; auto.
+        apply smol_gc.
+        apply not_free_smol with b1; auto.
     + rename c into c1.
       exists (remove_binding 0 b).
       * auto with cps.
       * auto with cps.
   - dependent destruction H0.
-    + clear IHtidy.
+    + clear IHsmol.
       exists (remove_binding 0 b2).
       * apply r_step.
-        apply tidy_gc.
-        apply not_free_tidy with b1; auto.
+        apply smol_gc.
+        apply not_free_smol with b1; auto.
       * apply r_step.
-        apply tidy_subst.
+        apply smol_subst.
         assumption.
-    + edestruct IHtidy as (b4, ?, ?); eauto.
+    + edestruct IHsmol as (b4, ?, ?); eauto.
       exists (bind b4 ts c).
       * destruct H1; auto with cps.
       * destruct H2; auto with cps.
@@ -175,7 +175,7 @@ Proof.
       * auto with cps.
       * auto with cps.
   - dependent destruction H0.
-    + clear IHtidy.
+    + clear IHsmol.
       exists (remove_binding 0 b).
       * auto with cps.
       * auto with cps.
@@ -183,42 +183,32 @@ Proof.
       exists (bind b2 ts c2).
       * auto with cps.
       * auto with cps.
-    + edestruct IHtidy as (c4, ?, ?); eauto.
+    + edestruct IHsmol as (c4, ?, ?); eauto.
       exists (bind b ts c4).
       * destruct H1; auto with cps.
       * destruct H2; auto with cps.
 Qed.
 
-Lemma tidy_is_confluent:
-  confluent tidy.
+Lemma smol_is_confluent:
+  confluent smol.
 Proof.
-  assert (diamond r(tidy)).
-  (* The reflexive closure of tidy has the diamond property. *)
-  - destruct 1; destruct 1; try rename y0 into z.
-    + eapply tidy_has_weak_diamond; eauto.
+  apply diamond_for_same_relation with t(r(smol)).
+  - apply transitive_closure_preserves_commutation.
+    destruct 1; destruct 1; try rename y0 into z.
+    + apply smol_has_weak_diamond with x; auto.
     + exists y; auto with cps.
     + exists y; auto with cps.
     + exists x; auto with cps.
-  (* The diamond property implies confluence. *)
-  - (* Oh boy... it's the same relation, but we gotta convince Coq. TODO: add a
-       proper morphism and review this one! *)
-    apply transitive_closure_preserves_commutation in H.
-    intros x y ? z ?.
-    destruct H with x y z as (w, ?, ?).
-    + apply r_and_t_closures_commute.
-      apply rt_characterization.
+  - split; intros x y ?.
+    + apply rt_characterization.
+      apply r_and_t_closures_commute.
       assumption.
     + apply r_and_t_closures_commute.
       apply rt_characterization.
       assumption.
-    + exists w.
-      * apply rt_characterization.
-        apply r_and_t_closures_commute.
-        assumption.
-      * apply rt_characterization.
-        apply r_and_t_closures_commute.
-        assumption.
 Qed.
+
+(*
 
 Inductive tidy_context_case (h: context) k xs b: Prop :=
   | tidy_context_case_inside:
@@ -474,9 +464,10 @@ Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
   constructor.
+  - (* The number of jumps decreases. *)
+    admit.
   - admit.
-  - admit.
-  - admit.
+  - apply smol_is_confluent.
   - admit.
   - admit.
 Admitted.
