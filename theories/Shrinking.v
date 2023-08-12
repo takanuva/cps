@@ -13,8 +13,6 @@ Require Import Local.Metatheory.
 Require Import Local.Equational.
 Require Import Local.Reduction.
 
-Set Primitive Projections.
-
 Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_decrease:
     exists f,
@@ -32,6 +30,18 @@ Record shrinking (R: relation pseudoterm): Prop := {
     inclusion beta S /\ inclusion S t(beta) &
       inclusion (comp R S) (comp S rt(R))
 }.
+
+Lemma smol_is_sound:
+  inclusion smol sema.
+Proof.
+  induction 1.
+  - apply sema_gc.
+    assumption.
+  - apply sema_bind_left.
+    assumption.
+  - apply sema_bind_right.
+    assumption.
+Qed.
 
 (*
 
@@ -468,13 +478,7 @@ Proof.
   - (* The number of jumps decreases, so it shrinks in size. *)
     admit.
   (* Case: soundness. *)
-  - induction 1.
-    + apply sema_gc.
-      assumption.
-    + apply sema_bind_left.
-      assumption.
-    + apply sema_bind_right.
-      assumption.
+  - apply smol_is_sound.
   (* Case: confluence. *)
   - apply smol_is_confluent.
   (* Case: commutation. *)
