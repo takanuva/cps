@@ -62,6 +62,14 @@ Proof.
   - constructor; auto.
 Qed.
 
+Lemma cbn_head:
+  inclusion head cbn.
+Proof.
+  induction 1.
+  - constructor.
+  - constructor; auto.
+Qed.
+
 Lemma cbn_implies_nonvalue:
   forall a b,
   cbn a b -> ~value a.

@@ -423,6 +423,28 @@ Proof.
       eassumption.
 Qed.
 
+Inductive head: relation term :=
+  | head_beta:
+    forall t b x,
+    head
+      (application (abstraction t b) x)
+      (subst x 0 b)
+  | head_app1:
+    forall f1 f2 x,
+    head f1 f2 ->
+    head (application f1 x) (application f2 x).
+
+Lemma full_head:
+  inclusion head full.
+Proof.
+  induction 1; simpl.
+  - constructor.
+  - constructor; auto.
+Qed.
+
+Definition whnf: term -> Prop :=
+  normal head.
+
 (* -------------------------------------------------------------------------- *)
 
 Definition env: Set :=
