@@ -56,108 +56,6 @@ Proof.
     assumption.
 Qed.
 
-(*
-
-(* -------------------------------------------------------------------------- *)
-
-(* It will be much easier if we show we can postpone tidying, which we should
-   actually be able to. TODO: in which file should these results be? Perhaps I
-   should make a file just for results in tidying... oh well, I'll need to clean
-   up everything later anyways. *)
-
-Lemma transp_tidy_bind_left:
-  LEFT (transp tidy).
-Proof.
-  intros b1 b2 ts c ?.
-  apply tidy_bind_left.
-  assumption.
-Qed.
-
-Global Hint Resolve transp_tidy_bind_left: cps.
-
-Lemma transp_tidy_bind_right:
-  RIGHT (transp tidy).
-Proof.
-  intros b1 b2 ts c ?.
-  apply tidy_bind_right.
-  assumption.
-Qed.
-
-Global Hint Resolve transp_tidy_bind_right: cps.
-
-Lemma rt_transp_tidy_bind_left:
-  LEFT rt(transp tidy).
-Proof.
-  induction 1.
-  - apply rt_step.
-    apply transp_tidy_bind_left.
-    assumption.
-  - auto with cps.
-  - eauto with cps.
-Qed.
-
-Global Hint Resolve rt_transp_tidy_bind_left: cps.
-
-Lemma rt_transp_tidy_bind_right:
-  RIGHT rt(transp tidy).
-Proof.
-  induction 1.
-  - apply rt_step.
-    apply transp_tidy_bind_right.
-    assumption.
-  - auto with cps.
-  - eauto with cps.
-Qed.
-
-Global Hint Resolve rt_transp_tidy_bind_right: cps.
-
-Theorem tidying_postponement:
-  postpones beta tidy.
-Proof.
-  intros y z ? x ?.
-  generalize dependent z.
-  induction H0; intros.
-  (* Case: gc. *)
-  - dependent destruction H0.
-    + (* This case is simple, it's just a matter of inverting the order of the
-         reductions, by using a single step on each side. Let's just tidy this
-         a bit... *)
-      destruct b; try destruct n; try discriminate.
-      (* TODO: should we make a remove_binding_distributes_over_bind? *)
-      unfold remove_binding in x.
-      rewrite subst_distributes_over_bind in x.
-      dependent destruction x.
-      rename ts1 into ts, ts into us, b1 into b, b2 into c, c into d.
-      (* Hmm... *)
-      assert (b = lift 1 1 (h (jump #h xs))).
-      * rewrite x.
-        (* Yeah, this is the case! Should I have a lemma for this? *)
-        admit.
-      * rewrite H1.
-        rewrite context_lift_is_sound.
-        admit.
-    + admit.
-    + admit.
-  (* Case: bind_left. *)
-  - dependent destruction H.
-    + admit.
-    + edestruct IHtidy as (b4, ?, ?); eauto.
-      exists (bind b4 ts c); auto with cps.
-      admit.
-    + rename c into c1.
-      exists (bind b1 ts c2); auto with cps.
-  (* Case: bind_right. *)
-  - dependent destruction H.
-    + admit.
-    + rename b into b1.
-      exists (bind b2 ts c1); auto with cps.
-    + edestruct IHtidy as (c4, ?, ?); eauto.
-      exists (bind b ts c4); auto with cps.
-      admit.
-Admitted.
-
-*)
-
 Lemma smol_has_weak_diamond:
   forall x y,
   smol x y ->
@@ -483,15 +381,100 @@ Proof.
       * destruct H2; auto with cps.
 Qed.
 
+(*
+
+(* TODO: some cleanup here would be nice. *)
+
+Lemma transp_smol_bind_left:
+  LEFT (transp smol).
+Proof.
+  intros b1 b2 ts c ?.
+  apply smol_bind_left.
+  assumption.
+Qed.
+
+Global Hint Resolve transp_smol_bind_left: cps.
+
+Lemma transp_smol_bind_right:
+  RIGHT (transp smol).
+Proof.
+  intros b1 b2 ts c ?.
+  apply smol_bind_right.
+  assumption.
+Qed.
+
+Global Hint Resolve transp_smol_bind_right: cps.
+
+Lemma rt_transp_smol_bind_left:
+  LEFT rt(transp smol).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_transp_smol_bind_left: cps.
+
+Lemma rt_transp_smol_bind_right:
+  RIGHT rt(transp smol).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_transp_smol_bind_right: cps.
+
+Theorem smol_postponement:
+  postpones beta smol.
+Proof.
+  intros y z ? x ?.
+  generalize dependent z.
+  induction H0; intros.
+  (* Case: gc. *)
+  - dependent destruction H0.
+    + (* This case is simple, it's just a matter of inverting the order of the
+         reductions, by using a single step on each side. Let's just tidy this
+         a bit... *)
+      destruct b; try destruct n; try discriminate.
+      (* TODO: should we make a remove_binding_distributes_over_bind? *)
+      unfold remove_binding in x.
+      rewrite subst_distributes_over_bind in x.
+      dependent destruction x.
+      rename ts1 into ts, ts into us, b1 into b, b2 into c, c into d.
+      (* Hmm... *)
+      assert (b = lift 1 1 (h (jump #h xs))).
+      * rewrite x.
+        (* Yeah, this is the case! Should I have a lemma for this? *)
+        admit.
+      * rewrite H1.
+        rewrite context_lift_is_sound.
+        admit.
+    + admit.
+    + admit.
+  (* Case: bind_left. *)
+  - dependent destruction H.
+    + admit.
+    + edestruct IHsmol as (b4, ?, ?); eauto.
+      exists (bind b4 ts c); auto with cps.
+      admit.
+    + rename c into c1.
+      exists (bind b1 ts c2); auto with cps.
+  (* Case: bind_right. *)
+  - dependent destruction H.
+    + admit.
+    + rename b into b1.
+      exists (bind b2 ts c1); auto with cps.
+    + edestruct IHsmol as (c4, ?, ?); eauto.
+      exists (bind b ts c4); auto with cps.
+      admit.
+Admitted.
+
+*)
+
 Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
   constructor.
   (* Case: decreasing. *)
-  - (* The number of binds decreases, so it shrinks in size. *)
-    exists size; intros.
+  - exists size.
     apply smol_decreases_in_size.
-    assumption.
   (* Case: soundness. *)
   - apply smol_is_sound.
   (* Case: confluence. *)
