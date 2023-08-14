@@ -485,16 +485,33 @@ Proof.
   - admit.
 Admitted.
 
-Theorem shrinking_preserves_confluence:
-  forall R,
-  shrinking R ->
-  confluent beta -> confluent (union beta R).
-Proof.
-  intros.
-  apply hindley_rosen.
-  - assumption.
-  - apply shrinking_confluence.
-    assumption.
-  - apply shrinking_commutation.
-    assumption.
-Qed.
+Section Properties.
+
+  Variable R: relation pseudoterm.
+
+  Hypothesis shrinks: shrinking R.
+
+  Theorem shrinking_preserves_confluence:
+    confluent beta -> confluent (union beta R).
+  Proof.
+    intros.
+    apply hindley_rosen.
+    - assumption.
+    - apply shrinking_confluence.
+      assumption.
+    - apply shrinking_commutation.
+      assumption.
+  Qed.
+
+  Theorem shrinking_preserves_strong_normalization:
+    forall c,
+    SN beta c <-> SN (union beta R) c.
+  Proof.
+    split; intros.
+    - admit.
+    - induction H using SN_ind.
+      constructor; intros.
+      apply H2; auto with cps.
+  Admitted.
+
+End Properties.
