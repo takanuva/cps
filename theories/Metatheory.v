@@ -1935,3 +1935,32 @@ Proof.
         (length ts + (p + k + length xs)); try lia.
       assumption.
 Qed.
+
+Lemma remove_binding_size:
+  forall b k,
+  not_free k b ->
+  size (remove_binding k b) = size b.
+Proof.
+  induction b; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - unfold remove_binding.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite subst_bound_gt; simpl; lia.
+    + dependent destruction H.
+      contradiction.
+    + rewrite subst_bound_lt; lia.
+  - reflexivity.
+  - reflexivity.
+  - dependent destruction H.
+    unfold remove_binding.
+    rewrite subst_distributes_over_bind; simpl.
+    do 2 f_equal.
+    + apply IHb1.
+      assumption.
+    + apply IHb2.
+      rewrite Nat.add_comm.
+      assumption.
+Qed.

@@ -31,6 +31,19 @@ Record shrinking (R: relation pseudoterm): Prop := {
       inclusion (comp R S) (comp S rt(R))
 }.
 
+Lemma smol_decreases_in_size:
+  forall b c,
+  smol b c ->
+  size b > size c.
+Proof.
+  intros.
+  induction H; simpl.
+  - rewrite remove_binding_size; try lia.
+    assumption.
+  - lia.
+  - lia.
+Qed.
+
 Lemma smol_is_sound:
   inclusion smol sema.
 Proof.
@@ -475,8 +488,10 @@ Theorem smol_is_shrinking:
 Proof.
   constructor.
   (* Case: decreasing. *)
-  - (* The number of jumps decreases, so it shrinks in size. *)
-    admit.
+  - (* The number of binds decreases, so it shrinks in size. *)
+    exists size; intros.
+    apply smol_decreases_in_size.
+    assumption.
   (* Case: soundness. *)
   - apply smol_is_sound.
   (* Case: confluence. *)

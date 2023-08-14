@@ -266,3 +266,11 @@ Inductive subterm: relation pseudoterm :=
   | subterm_bind_right:
     forall b ts c,
     subterm c (bind b ts c).
+
+Fixpoint size (c: pseudoterm): nat :=
+  match c with
+  | bind b ts c =>
+    1 + size b + size c
+  | _ =>
+    0
+  end.
