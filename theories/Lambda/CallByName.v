@@ -62,8 +62,8 @@ Proof.
   - constructor; auto.
 Qed.
 
-Lemma cbn_head:
-  inclusion head cbn.
+Lemma cbn_weak:
+  inclusion weak cbn.
 Proof.
   induction 1.
   - constructor.

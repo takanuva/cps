@@ -27,11 +27,11 @@ Inductive cbv: relation term :=
     cbv
       (application (abstraction t b) x)
       (subst x 0 b)
-  | cbv_appv1:
+  | cbv_app1:
     forall f1 f2 x,
     cbv f1 f2 ->
     cbv (application f1 x) (application f2 x)
-  | cbv_appv2:
+  | cbv_app2:
     forall f x1 x2,
     value f ->
     cbv x1 x2 ->

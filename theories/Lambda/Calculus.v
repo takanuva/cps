@@ -423,27 +423,42 @@ Proof.
       eassumption.
 Qed.
 
-Inductive head: relation term :=
-  | head_beta:
+Inductive weak: relation term :=
+  | weak_beta:
     forall t b x,
-    head
+    weak
       (application (abstraction t b) x)
       (subst x 0 b)
-  | head_app1:
+  | weak_app1:
     forall f1 f2 x,
-    head f1 f2 ->
-    head (application f1 x) (application f2 x).
+    weak f1 f2 ->
+    weak (application f1 x) (application f2 x).
 
-Lemma full_head:
-  inclusion head full.
+Lemma full_weak:
+  inclusion weak full.
 Proof.
   induction 1; simpl.
   - constructor.
   - constructor; auto.
 Qed.
 
+Lemma weak_is_a_function:
+  forall a b1,
+  weak a b1 ->
+  forall b2,
+  weak a b2 -> b1 = b2.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    + reflexivity.
+    + inversion H.
+  - dependent destruction H0.
+    + inversion H.
+    + f_equal; eauto.
+Qed.
+
 Definition whnf: term -> Prop :=
-  normal head.
+  normal weak.
 
 (* -------------------------------------------------------------------------- *)
 
