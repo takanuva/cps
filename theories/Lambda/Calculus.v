@@ -297,6 +297,9 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n x ->
     not_free n (application f x).
 
+Definition closed (e: term): Prop :=
+  forall n, not_free n e.
+
 (* TODO: this is a bi-implication in here. Should we make the same for the
    CPS-calculus? Also, applying this is a nightmare! *)
 

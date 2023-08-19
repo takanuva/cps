@@ -8,7 +8,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
-(* TODO: remove this one. *)
+(* TODO: remove this one? *)
 Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Metatheory.
@@ -17,7 +17,6 @@ Require Import Local.Observational.
 Require Import Local.Conservation.
 Require Export Local.Lambda.Calculus.
 
-Include Lambda.Calculus.
 Module CPS := Local.Syntax.
 
 (* TODO: move this comment somewhere else.
@@ -130,6 +129,8 @@ Inductive cbn_cps: term -> pseudoterm -> Prop :=
     cbn_cps (lift 2 0 x) c ->
     cbn_cps (application f x) (APP b c).
 
+Local Hint Constructors cbn_cps: cps.
+
 Lemma cbn_cps_is_a_function:
   forall e c1,
   cbn_cps e c1 ->
@@ -187,98 +188,39 @@ Proof.
       apply IHcbn_cps2; lia.
 Qed.
 
-Lemma cbn_cps_is_compositional:
-  forall c1 c2,
-  [c1 ~~ c2] ->
-  forall e1 e2,
-  not_free 0 e1 ->
-  not_free 0 e2 ->
-  cbn_cps e1 c1 ->
-  cbn_cps e2 c2 ->
-  forall (h: context) c3 c4,
-  cbn_cps (h e1) c3 ->
-  cbn_cps (h e2) c4 ->
-  [c3 ~~ c4].
+Local Hint Resolve cbn_cps_lift: cps.
+
+Lemma cbn_cps_is_total:
+  forall e,
+  exists c,
+  cbn_cps e c.
 Proof.
-  (* TODO: remove this and start over. *)
-  intros until h.
-  (* Do some reordering to help with unification... *)
-  move H0 after H2.
-  move H1 after H3.
-  generalize dependent e2.
-  generalize dependent e1.
-  generalize dependent c2.
-  generalize dependent c1.
-  (* We'll do induction on the depth of h, not on h itself. *)
-  remember (context_depth h) as k.
-  generalize dependent h.
-  induction k using lt_wf_ind; intros.
-  dependent destruction Heqk.
-  (* There we go. *)
-  destruct h; simpl in H.
-  (* Case: context_hole. *)
-  - assert (c1 = c3); eauto with cps.
-    destruct H7.
-    assert (c2 = c4); eauto with cps.
-    destruct H7.
-    assumption.
-  (* Case: context_abstraction. *)
-  - dependent destruction H5.
-    dependent destruction H6.
-    rewrite context_lift_is_sound in H5.
-    rewrite context_lift_is_sound in H6.
-    rewrite Nat.add_comm in H5, H6.
-    apply barb_bind_right.
-    (* We notice that 0 can't be free in e1 or e2, so, if h happens to bind no
-       var, so that we have lift 1 0 e1 in H3 (and ... e2 in H4), those
-       may be freely replaced with lift 1 1, thus fixing what we need. *)
-    destruct (context_bvars h).
-    + admit.
-    + eapply H with (m := context_depth (context_lift 1 0 h)).
-      * (* Clearly. *)
-        admit.
-      * reflexivity.
-      * apply barb_lift with (k := S n).
-        exact H0.
-      * apply cbn_cps_lift; try lia.
-        exact H2.
-      * (* Clearly. *)
-        admit.
-      * apply cbn_cps_lift; try lia.
-        exact H3.
-      * (* Clearly. *)
-        admit.
-      * (* From H5. *)
-        admit.
-      * (* From H6. *)
-        admit.
-  (* Case: context_abstraction_left. *)
-  - dependent destruction H5.
-    dependent destruction H6.
-    assert (c = c0); eauto with cps.
-    dependent destruction H5.
-    apply barb_bind_left.
-    rewrite context_lift_is_sound in H5_, H6_.
-    rewrite Nat.add_comm in H5_, H6_; simpl in H5_, H6_.
-    eapply H with (m := context_depth (context_lift 1 0 h)).
-    + rewrite context_lift_depth; auto.
-    + reflexivity.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + exact H5_.
-    + exact H6_.
-  (* Case: context_abstraction_right. *)
-  - dependent destruction H5.
-    dependent destruction H6.
-    admit.
-Admitted.
+  induction e.
+  - eauto with cps.
+  - destruct IHe as (c, ?).
+    eauto with cps.
+  - destruct IHe1 as (b, ?).
+    destruct IHe2 as (c, ?).
+    eauto with cps.
+Qed.
 
-(* -------------------------------------------------------------------------- *)
+Local Hint Resolve cbn_cps_is_total: cps.
 
-Goal
+Lemma cbn_cps_lift_inversion:
+  forall i k e b,
+  cbn_cps (lift i k e) b ->
+  exists2 c,
+  cbn_cps e c & b = CPS.lift i (S k) c.
+Proof.
+  intros.
+  assert (exists c, cbn_cps e c) as (c, ?).
+  - eauto with cps.
+  - eauto with cps.
+Qed.
+
+Local Hint Resolve cbn_cps_lift_inversion: cps.
+
+Lemma cbn_cps_not_free:
   forall e c,
   cbn_cps e c ->
   forall n,
@@ -316,103 +258,39 @@ Proof.
   - dependent destruction H1.
     constructor; simpl.
     + apply IHcbn_cps1; auto.
-      admit.
+      replace (S n) with (n + 1 + 0); try lia.
+      apply not_free_lift.
+      rewrite Nat.add_comm.
+      assumption.
     + do 2 constructor.
     + repeat (try constructor; try lia).
       simpl; eapply IHcbn_cps2; auto.
-      admit.
+      replace (S (S n)) with (n + 2 + 0); try lia.
+      apply not_free_lift.
+      rewrite Nat.add_comm.
+      assumption.
   - dependent destruction H1.
     dependent destruction H1_0.
     simpl in H2, H1_0_2.
     constructor.
     + apply IHcbn_cps1 in H1_; auto.
-      admit.
+      replace (S n) with (n + 1 + 0) in H1_; try lia.
+      apply not_free_lift in H1_.
+      rewrite Nat.add_comm in H1_.
+      assumption.
     + apply IHcbn_cps2 in H1_0_2; auto.
-      admit.
-Admitted.
-
-(* -------------------------------------------------------------------------- *)
-
-(* Ideally, given a lambda term e which is in normal form, the CPS translation
-   [e] should not have administrative redexes which can't be fixed by applying
-   only tyding reductions. *)
-
-Inductive no_administrative_jumps e: Prop :=
-  | no_administrative_jumps_ctor
-    (b: pseudoterm)
-    (H1: cbn_cps e b)
-    (c: pseudoterm)
-    (* Actually, b should reduce to c through tidying reductions! TODO: fix
-       this, please. *)
-    (H2: [b == c])
-    (H3: normal beta c).
-
-Lemma abstraction_normal:
-  forall t e,
-  normal full (abstraction t e) ->
-  normal full e.
-Proof.
-  intros; do 2 intro.
-  eapply H; clear H.
-  apply full_abs.
-  eassumption.
+      replace (S (S n)) with (n + 2 + 0) in H1_0_2; try lia.
+      apply not_free_lift in H1_0_2.
+      rewrite Nat.add_comm in H1_0_2.
+      assumption.
 Qed.
-
-Goal
-  forall e,
-  normal full e ->
-  (* We need to be sure that k is free in e! *)
-  no_administrative_jumps e.
-Proof.
-  induction e; intros.
-  (* Case: [x]. *)
-  - (* This case is pretty much straightforward. *)
-    econstructor.
-    + constructor.
-    + apply sema_refl.
-    + inversion 1.
-  (* Case: [\x.e]. *)
-  - (* This simply follows by induction. *)
-    apply abstraction_normal in H.
-    specialize (IHe H); clear H.
-    dependent destruction IHe.
-    econstructor.
-    + constructor.
-      apply cbn_cps_lift.
-      eassumption.
-    + apply sema_bind_right.
-      apply sema_lift.
-      eassumption.
-    + do 2 intro.
-      dependent destruction H.
-      * destruct h; discriminate.
-      * inversion H.
-      * edestruct beta_lift_inversion; eauto.
-        dependent destruction H0.
-        apply beta_unlift in H.
-        apply H3 with x.
-        assumption.
-  (* Case: [f e]. *)
-  - (* We should remember that:
-
-         [f e]k = [f]k { k<f> = f<v, k> { v<k> = [e]k } }
-
-       The only way there can be any jumps in here, since [f]k and [e]k are in
-       jump normal form, is if [f]k has a jump to k anywhere. This will only
-       happen if f is a lambda abstraction, which we know it can't be! We note
-       this is slightly different from the CBV version, in here [f]k will have
-       a jump to k iff f is a value. In the CBN version, we won't have a jump
-       to k if f is just a variable. So no administrative redexes at all! *)
-    admit.
-Admitted.
-
-(* -------------------------------------------------------------------------- *)
 
 (*
   From Amadio's class notes, we know that head reduction can't directly simulate
   beta reduction, though it's still computationally adequate. It should be the
-  case that extended reduction will be able to properly simulate beta reduction
-  on both CPS translations. For the call-by-name translation:
+  case that extended reduction will be able to properly simulate beta reduction.
+
+  For the call-by-name translation:
 
     1) [x]    = x<k>
     2) [\x.M] = k<f> { f<x, k> = [M] }
@@ -469,6 +347,158 @@ Admitted.
   validate eta, same as the source language doesn't.
 
 *)
+
+Lemma cbn_simulates_beta:
+  forall t e x b c,
+  cbn_cps (application (abstraction t e) x) b ->
+  cbn_cps (subst x 0 e) c ->
+  [b =>* c].
+Proof.
+  intros.
+  do 2 dependent destruction H.
+  rewrite lift_lift_simplification in H; auto.
+  apply cbn_cps_lift_inversion in H.
+  destruct H as (b1, ?, ?).
+  apply cbn_cps_lift_inversion in H0.
+  destruct H0 as (b2, ?, ?).
+  subst; simpl.
+  (* As above. TODO: probably should move the comments in here. *)
+  admit.
+Admitted.
+
+Lemma cbn_simulation:
+  forall e f,
+  full e f ->
+  forall b c,
+  cbn_cps e b ->
+  cbn_cps f c ->
+  [b =>* c].
+Proof.
+  induction 1; intros.
+  (* Case: full_beta. *)
+  - eapply cbn_simulates_beta.
+    + eassumption.
+    + assumption.
+  (* Case: full_abs. *)
+  - dependent destruction H0.
+    dependent destruction H1.
+    apply cbn_cps_lift_inversion in H0.
+    destruct H0 as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H1.
+    destruct H1 as (c2, ?, ?).
+    specialize IHfull with c1 c2; subst.
+    apply star_bind_right.
+    apply star_lift.
+    firstorder.
+  (* Case: full_app1. *)
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (c0 = c); eauto 2 with cps.
+    clear H0_0 H1_0; subst.
+    apply cbn_cps_lift_inversion in H0_.
+    destruct H0_ as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_.
+    destruct H1_ as (c2, ?, ?).
+    specialize IHfull with c1 c2; subst.
+    apply star_bind_left.
+    apply star_lift.
+    firstorder.
+  (* Case: full_app2. *)
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (b0 = b); eauto 2 with cps.
+    clear H0_ H1_; subst.
+    apply cbn_cps_lift_inversion in H0_0.
+    destruct H0_0 as (b1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_0.
+    destruct H1_0 as (b2, ?, ?).
+    specialize IHfull with b1 b2; subst.
+    apply star_bind_right.
+    apply star_bind_right.
+    apply star_lift.
+    firstorder.
+Qed.
+
+Definition free (n: nat) (e: term): Prop :=
+  ~not_free n e.
+
+Goal
+  forall e,
+  ~value e ->
+  whnf e ->
+  forall c,
+  cbn_cps e c ->
+  exists2 k,
+  converges c (1 + k) & free k e.
+Proof.
+  induction e; intros.
+  - exfalso.
+    apply H.
+    constructor.
+  - exfalso.
+    apply H.
+    constructor.
+  - destruct e1.
+    + admit.
+    + exfalso.
+      eapply H0.
+      constructor.
+    + clear IHe2.
+      admit.
+Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma cbn_cps_is_compositional:
+  forall b1 b2 e1 e2,
+  cbn_cps e1 b1 ->
+  cbn_cps e2 b2 ->
+  [b1 ~~ b2] ->
+  forall (h: context) c1 c2,
+  cbn_cps (h e1) c1 ->
+  cbn_cps (h e2) c2 ->
+  [c1 ~~ c2].
+Proof.
+  induction h; simpl; intros.
+  - assert (b1 = c1); eauto 2 with cps.
+    assert (b2 = c2); eauto 2 with cps.
+    subst; assumption.
+  - dependent destruction H2.
+    dependent destruction H3.
+    apply cbn_cps_lift_inversion in H2.
+    apply cbn_cps_lift_inversion in H3.
+    destruct H2 as (d1, ?, ?).
+    destruct H3 as (d2, ?, ?).
+    subst.
+    apply barb_bind_right.
+    apply barb_lift.
+    apply IHh; auto.
+  - dependent destruction H2.
+    dependent destruction H3.
+    assert (c0 = c); eauto 2 with cps.
+    subst; clear H2_0 H3_0.
+    apply cbn_cps_lift_inversion in H2_.
+    apply cbn_cps_lift_inversion in H3_.
+    destruct H2_ as (d1, ?, ?).
+    destruct H3_ as (d2, ?, ?).
+    subst.
+    apply barb_bind_left.
+    apply barb_lift.
+    apply IHh; auto.
+  - dependent destruction H2.
+    dependent destruction H3.
+    assert (b0 = b); eauto 2 with cps.
+    subst; clear H2_ H3_.
+    apply cbn_cps_lift_inversion in H2_0.
+    apply cbn_cps_lift_inversion in H3_0.
+    destruct H2_0 as (d1, ?, ?).
+    destruct H3_0 as (d2, ?, ?).
+    subst.
+    apply barb_bind_right.
+    apply barb_bind_right.
+    apply barb_lift.
+    apply IHh; auto.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
