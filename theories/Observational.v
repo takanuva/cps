@@ -102,6 +102,18 @@ Proof.
   - lia.
 Qed.
 
+(* Note here that the converse is not necessarily true: a term in head normal
+   form might unfortunately still be stuck. *)
+
+Lemma convergence_implies_head_normal_form:
+  forall c k,
+  converges c k -> normal head c.
+Proof.
+  intros.
+  (* So obvious on paper, so complicated on here... *)
+  admit.
+Admitted.
+
 Lemma converges_is_preserved_by_subst:
   forall c k p y,
   converges c (p + S k) ->

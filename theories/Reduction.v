@@ -1043,6 +1043,28 @@ Qed.
 
 Global Hint Resolve conv_head: cps.
 
+Lemma head_is_a_function:
+  forall b c1,
+  head b c1 ->
+  forall c2,
+  head b c2 -> c1 = c2.
+Proof.
+  intros.
+  dependent destruction H.
+  dependent destruction H2.
+  rename r0 into r', h0 into h'.
+  (* This is quite annoying... *)
+  admit.
+Admitted.
+
+Lemma head_is_decidable:
+  forall b,
+  { normal head b } + { exists c, head b c }.
+Proof.
+  (* I think I made a mistake when picking the definition for head reduction. *)
+  admit.
+Admitted.
+
 (** ** Soundness of reduction w.r.t. axiomatic semantics *)
 
 (* TODO: move these lemmas to their proper places!!! Shame on me. *)

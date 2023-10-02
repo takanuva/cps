@@ -565,22 +565,29 @@ Qed.
 Notation cps_terminates c :=
   (exists k, weakly_converges c k).
 
-Lemma sn_cps_terminates:
+Lemma cps_terminates_implies_sn_head:
   forall b,
-  cps_terminates b <-> SN head b.
+  cps_terminates b -> SN head b.
 Proof.
-  split; intros.
-  - destruct H as (k, ?).
-    apply weak_convergence_characterization in H.
-    destruct H as (c, ?, ?).
-    (* By induction on H and determinism of head reduction. *)
-    admit.
-  - induction H using SN_ind.
-    (* Easy, as head reduction is deterministic. *)
-    admit.
-Admitted.
+  intros.
+  destruct H as (k, ?).
+  apply weak_convergence_characterization in H.
+  destruct H as (c, ?, ?).
+  apply clos_rt_rt1n_iff in H.
+  induction H.
+  - constructor; intros.
+    exfalso.
+    apply convergence_implies_head_normal_form in H0.
+    firstorder.
+  - constructor; intros w ?.
+    assert (w = y).
+    + eapply head_is_a_function; eauto.
+    + subst.
+      apply IHclos_refl_trans_1n.
+      assumption.
+Qed.
 
-(* TODO: move this as well! *)
+(* --------------------------- *)
 
 Definition cbn_terminates (e: term): Prop :=
   exists2 v,
@@ -641,15 +648,6 @@ Proof.
         exists k, d; eauto with cps.
 Admitted.
 
-(* TODO: move this! *)
-
-Lemma head_is_decidable:
-  forall b,
-  { normal head b } + { exists c, head b c }.
-Proof.
-  admit.
-Admitted.
-
 Lemma foo:
   forall e,
   closed e ->
@@ -704,7 +702,7 @@ Definition adequacy_if:
   cbn_terminates e.
 Proof.
   intros.
-  apply sn_cps_terminates in H1.
+  apply cps_terminates_implies_sn_head in H1.
   assert (exists2 c, [b =>* c] & cbn_cps e c) as (c, ?, ?); eauto with cps.
   clear H0.
   generalize dependent c.
