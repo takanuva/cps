@@ -60,8 +60,8 @@ Proof.
   - constructor; auto.
 Qed.
 
-Lemma cbn_weak:
-  inclusion weak cbn.
+Lemma cbn_whr:
+  inclusion whr cbn.
 Proof.
   induction 1.
   - constructor.
@@ -133,11 +133,11 @@ Proof.
         eassumption.
 Qed.
 
-Lemma cbn_weak_iff:
+Lemma cbn_whr_iff:
   forall e,
   closed e ->
   forall f,
-  cbn e f <-> weak e f.
+  cbn e f <-> whr e f.
 Proof.
   split; induction 1.
   - constructor.
@@ -152,7 +152,7 @@ Proof.
     contradiction.
   - constructor.
   - constructor.
-    apply IHweak.
+    apply IHwhr.
     apply closed_application_left with x.
     assumption.
 Qed.
@@ -551,7 +551,7 @@ Proof.
     + eassumption.
     + intros f ?.
       apply H with f.
-      apply cbn_weak.
+      apply cbn_whr.
       assumption.
     + eassumption.
     + exists (1 + x).

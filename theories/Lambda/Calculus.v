@@ -451,30 +451,30 @@ Proof.
       eassumption.
 Qed.
 
-Inductive weak: relation term :=
-  | weak_beta:
+Inductive whr: relation term :=
+  | whr_beta:
     forall t b x,
-    weak
+    whr
       (application (abstraction t b) x)
       (subst x 0 b)
-  | weak_app1:
+  | whr_app1:
     forall f1 f2 x,
-    weak f1 f2 ->
-    weak (application f1 x) (application f2 x).
+    whr f1 f2 ->
+    whr (application f1 x) (application f2 x).
 
-Lemma full_weak:
-  inclusion weak full.
+Lemma full_whr:
+  inclusion whr full.
 Proof.
   induction 1; simpl.
   - constructor.
   - constructor; auto.
 Qed.
 
-Lemma weak_is_a_function:
+Lemma whr_is_a_function:
   forall a b1,
-  weak a b1 ->
+  whr a b1 ->
   forall b2,
-  weak a b2 -> b1 = b2.
+  whr a b2 -> b1 = b2.
 Proof.
   induction 1; intros.
   - dependent destruction H.
@@ -485,9 +485,9 @@ Proof.
     + f_equal; eauto.
 Qed.
 
-Lemma weak_is_decidable:
+Lemma whr_is_decidable:
   forall e,
-  { normal weak e } + { exists f, weak e f }.
+  { normal whr e } + { exists f, whr e f }.
 Proof.
   induction e; simpl.
   - left.
@@ -514,7 +514,7 @@ Proof.
 Qed.
 
 Definition whnf: term -> Prop :=
-  normal weak.
+  normal whr.
 
 Lemma whnf_application_left:
   forall f x,
