@@ -157,6 +157,42 @@ Proof.
     assumption.
 Qed.
 
+Lemma closed_normal_cbn_implies_value:
+  forall e,
+  closed e ->
+  normal cbn e ->
+  value e.
+Proof.
+  intros.
+  destruct value_dec with e.
+  - assumption.
+  - exfalso.
+    induction e.
+    + apply n.
+      constructor.
+    + apply n.
+      constructor.
+    + clear IHe2 n.
+      destruct e1.
+      * specialize (H n).
+        dependent destruction H.
+        dependent destruction H.
+        contradiction.
+      * eapply H0.
+        constructor.
+      * apply IHe1.
+        (* TODO: refactor me, please... *)
+        intro.
+        specialize (H n).
+        dependent destruction H.
+        assumption.
+        intros x ?.
+        eapply H0.
+        constructor.
+        eassumption.
+        inversion 1.
+Qed.
+
 (* TODO: fix typing on the following! *)
 
 Local Notation VAR n :=
@@ -648,51 +684,6 @@ Proof.
         exists k, d; eauto with cps.
 Admitted.
 
-Lemma foo:
-  forall e,
-  closed e ->
-  forall b,
-  cbn_cps e b ->
-  (exists f, cbn e f) <-> (exists c, head b c).
-Proof.
-  induction e; split; intros.
-  - exfalso.
-    specialize (H n).
-    dependent destruction H.
-    firstorder.
-  - exfalso.
-    specialize (H n).
-    dependent destruction H.
-    firstorder.
-  - exfalso.
-    destruct H1.
-    inversion H1.
-  - exfalso.
-    dependent destruction H0.
-    destruct H1 as (c, ?).
-    dependent destruction H1.
-    destruct H1; destruct H2; simpl in x.
-    + discriminate.
-    + destruct H2; discriminate.
-    + discriminate.
-    + destruct H2; discriminate.
-  - destruct e1.
-    + exfalso.
-      specialize (H n).
-      dependent destruction H.
-      dependent destruction H.
-      firstorder.
-    + dependent destruction H0.
-      (* By IHe1. *)
-      admit.
-    + (* By IHe1 as well. *)
-      dependent destruction H0.
-      admit.
-  - admit.
-Admitted.
-
-Require Import Local.Factorization.
-
 Definition adequacy_if:
   forall e,
   closed e ->
@@ -702,16 +693,21 @@ Definition adequacy_if:
   cbn_terminates e.
 Proof.
   intros.
-  apply cps_terminates_implies_sn_head in H1.
+  (* We need to generalize this bit. The proof works as we keep postponing
+     inessential work while each essential steps necessarily corresponds to a
+     reduction in the source. *)
   assert (exists2 c, [b =>* c] & cbn_cps e c) as (c, ?, ?); eauto with cps.
   clear H0.
   generalize dependent c.
   generalize dependent e.
+  (* We proceed by induction on the reduction length. *)
+  apply cps_terminates_implies_sn_head in H1.
   induction H1 using SN_ind; intros.
+  (* Now by cases on whether we have a redex or not. *)
   destruct cbn_is_decidable with e as [ ? | (f, ?) ].
+  (* Case: we are done. *)
   - exists e; eauto with cps.
-    (* From H and n. *)
-    admit.
+    apply closed_normal_cbn_implies_value; auto.
   - rename x into b.
     assert (exists d, cbn_cps f d) as (d, ?); auto with cps.
     assert [c =>* d].

@@ -33,6 +33,8 @@ Inductive value: term -> Prop :=
 
 Global Hint Constructors value: cps.
 
+(* TODO: I have to fix a naming convention, either "_dec" or "_is_decidable". *)
+
 Lemma value_dec:
   forall e,
   { value e } + { ~value e }.
