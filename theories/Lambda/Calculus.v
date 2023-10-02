@@ -488,6 +488,16 @@ Qed.
 Definition whnf: term -> Prop :=
   normal weak.
 
+Lemma whnf_application_left:
+  forall f x,
+  whnf (application f x) ->
+  whnf f.
+Proof.
+  intros f1 x ? f2 ?.
+  eapply H; constructor.
+  eassumption.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Definition env: Set :=

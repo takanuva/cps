@@ -8,6 +8,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
+Require Import Local.Metatheory.
 (* TODO: remove this one? *)
 Require Import Local.Equational.
 Require Import Local.Reduction.
@@ -460,13 +461,37 @@ Proof.
     apply H.
     constructor.
   - destruct e1.
-    + admit.
+    + exists n.
+      * dependent destruction H1.
+        dependent destruction H1_.
+        do 2 constructor.
+      * intro.
+        dependent destruction H2.
+        dependent destruction H2_.
+        contradiction.
     + exfalso.
       eapply H0.
       constructor.
     + clear IHe2.
-      admit.
-Admitted.
+      dependent destruction H1.
+      edestruct cbn_cps_lift_inversion with (b := b); eauto.
+      subst; rename x into b.
+      edestruct IHe1.
+      * inversion 1.
+      * eapply whnf_application_left.
+        eassumption.
+      * eassumption.
+      * (* TODO: please refactor me. *)
+        rename x into k; exists k.
+        constructor.
+        eapply converges_lift.
+        eassumption.
+        rewrite lift_bound_ge; try lia.
+        constructor; lia.
+        intro; apply H3.
+        dependent destruction H4.
+        assumption.
+Qed.
 
 Lemma termination:
   forall e,
