@@ -485,6 +485,34 @@ Proof.
     + f_equal; eauto.
 Qed.
 
+Lemma weak_is_decidable:
+  forall e,
+  { normal weak e } + { exists f, weak e f }.
+Proof.
+  induction e; simpl.
+  - left.
+    inversion 1.
+  - left.
+    inversion 1.
+  - clear IHe2.
+    destruct e1.
+    + clear IHe1.
+      left.
+      inversion_clear 1.
+      inversion H0.
+    + right; eexists.
+      constructor.
+    + destruct IHe1.
+      * left; intros x ?.
+        dependent destruction H.
+        firstorder.
+      * right.
+        destruct e as (x, ?).
+        eexists.
+        constructor.
+        eassumption.
+Qed.
+
 Definition whnf: term -> Prop :=
   normal weak.
 

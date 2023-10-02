@@ -6,14 +6,12 @@ Require Import Lia.
 Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
-(* TODO: remove this one? *)
-Require Import Local.Equational.
 Require Import Local.Reduction.
-Require Import Local.Metatheory.
-Require Import Local.AbstractRewriting.
+Require Import Local.Factorization.
 Require Import Local.Observational.
 Require Import Local.Conservation.
 Require Export Local.Lambda.Calculus.
@@ -98,6 +96,41 @@ Proof.
     + exfalso.
       inversion H0.
     + f_equal; auto.
+Qed.
+
+Lemma cbn_is_decidable:
+  forall e,
+  { normal cbn e } + { exists f, cbn e f }.
+Proof.
+  induction e; simpl.
+  - left.
+    inversion 1.
+  - left.
+    inversion 1.
+  - destruct e1.
+    + clear IHe1.
+      destruct IHe2.
+      * left.
+        inversion_clear 1.
+        (* TODO: refactor me... *)
+        inversion H0.
+        firstorder.
+      * right.
+        destruct e as (x, ?).
+        eexists.
+        constructor 3.
+        eassumption.
+    + right; eexists.
+      constructor.
+    + destruct IHe1.
+      * left; intros x ?.
+        dependent destruction H.
+        firstorder.
+      * right.
+        destruct e as (x, ?).
+        eexists.
+        constructor.
+        eassumption.
 Qed.
 
 Lemma cbn_weak_iff:
@@ -505,10 +538,12 @@ Proof.
   destruct value_dec with e.
   (* Case: e is a value. *)
   - destruct v.
-    + dependent destruction H0.
+    + (* If this is a free variable, we converge to it. *)
+      dependent destruction H0.
       exists (S n).
       constructor.
-    + dependent destruction H0.
+    + (* If this is an abstraction, we converge to the fresh k. *)
+      dependent destruction H0.
       eexists 0.
       do 2 constructor.
   (* Case: e is not a value. *)
@@ -534,18 +569,18 @@ Lemma sn_cps_terminates:
   forall b,
   cps_terminates b <-> SN head b.
 Proof.
-  (* Gotta fix the definitions a bit, but this is clearly true. *)
-  admit.
+  split; intros.
+  - destruct H as (k, ?).
+    apply weak_convergence_characterization in H.
+    destruct H as (c, ?, ?).
+    (* By induction on H and determinism of head reduction. *)
+    admit.
+  - induction H using SN_ind.
+    (* Easy, as head reduction is deterministic. *)
+    admit.
 Admitted.
 
 (* TODO: move this as well! *)
-
-Lemma cbn_is_decidable:
-  forall e,
-  { normal cbn e } + { exists f, cbn e f }.
-Proof.
-  admit.
-Admitted.
 
 Definition cbn_terminates (e: term): Prop :=
   exists2 v,
