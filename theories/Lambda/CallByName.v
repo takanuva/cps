@@ -99,6 +99,16 @@ Proof.
     + f_equal; auto.
 Qed.
 
+Lemma cbn_weak_iff:
+  forall e,
+  closed e ->
+  forall f,
+  cbn e f <-> weak e f.
+Proof.
+  split; induction 1.
+  - constructor.
+  - constructor.
+
 (* TODO: fix typing on the following! *)
 
 Local Notation VAR n :=
@@ -419,10 +429,7 @@ Proof.
     firstorder.
 Qed.
 
-Definition free (n: nat) (e: term): Prop :=
-  ~not_free n e.
-
-Goal
+Lemma termination_nonvalue:
   forall e,
   ~value e ->
   whnf e ->
@@ -446,6 +453,222 @@ Proof.
     + clear IHe2.
       admit.
 Admitted.
+
+Lemma termination:
+  forall e,
+  normal cbn e ->
+  forall c,
+  cbn_cps e c ->
+  exists k,
+  converges c k.
+Proof.
+  intros.
+  destruct value_dec with e.
+  (* Case: e is a value. *)
+  - destruct v.
+    + dependent destruction H0.
+      exists (S n).
+      constructor.
+    + dependent destruction H0.
+      eexists 0.
+      do 2 constructor.
+  (* Case: e is not a value. *)
+  - edestruct termination_nonvalue.
+    + eassumption.
+    + intros f ?.
+      apply H with f.
+      apply cbn_weak.
+      assumption.
+    + eassumption.
+    + exists (1 + x).
+      assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+(* TODO: move this! *)
+
+Notation cps_terminates c :=
+  (exists k, weakly_converges c k).
+
+Lemma sn_cps_terminates:
+  forall b,
+  cps_terminates b <-> SN head b.
+Proof.
+  (* Gotta fix the definitions a bit, but this is clearly true. *)
+  admit.
+Admitted.
+
+(* TODO: move this as well! *)
+
+Lemma cbn_is_decidable:
+  forall e,
+  { normal cbn e } + { exists f, cbn e f }.
+Proof.
+  admit.
+Admitted.
+
+Definition cbn_terminates (e: term): Prop :=
+  exists2 v,
+  value v & rt(cbn) e v.
+
+Lemma sn_cbn_terminates:
+  forall e,
+  cbn_terminates e -> SN cbn e.
+Proof.
+  intros.
+  destruct H as (v, ?, ?).
+  apply clos_rt_rt1n in H0.
+  induction H0.
+  - rename x into e.
+    constructor; intros f ?.
+    exfalso.
+    eapply cbn_implies_nonvalue with e f; auto.
+  - clear H1.
+    constructor; intros w ?.
+    assert (y = w).
+    + apply cbn_is_a_function with x; auto.
+    + subst; firstorder.
+Qed.
+
+Definition adequacy_only_if:
+  forall e,
+  closed e ->
+  forall c,
+  cbn_cps e c ->
+  cbn_terminates e ->
+  cps_terminates c.
+Proof.
+  intros.
+  generalize dependent c.
+  apply sn_cbn_terminates in H1.
+  induction H1 using SN_ind.
+  destruct cbn_is_decidable with x; intros.
+  - rename x into e; clear H1 H2.
+    destruct termination with e c as (k, ?).
+    + assumption.
+    + assumption.
+    + exists k, c; auto with cps.
+  - rename c into b.
+    destruct e as (y, ?).
+    assert (exists c, cbn_cps y c) as (c, ?); eauto with cps.
+    assert [b =>* c].
+    + apply cbn_simulation with x y; auto.
+      apply full_cbn; auto.
+    + destruct H2 with y c as (k, ?).
+      * apply t_step.
+        assumption.
+      * (* Reduction can't introduce free variables! *)
+        admit.
+      * assumption.
+      * (* Hmm... I'll need to use of soundness for reduction and equational
+           theory in here once I fix the definition for weak convergence! *)
+        destruct H6 as (d, ?, ?).
+        exists k, d; eauto with cps.
+Admitted.
+
+(* TODO: move this! *)
+
+Lemma head_is_decidable:
+  forall b,
+  { normal head b } + { exists c, head b c }.
+Proof.
+  admit.
+Admitted.
+
+Lemma foo:
+  forall e,
+  closed e ->
+  forall b,
+  cbn_cps e b ->
+  (exists f, cbn e f) <-> (exists c, head b c).
+Proof.
+  induction e; split; intros.
+  - exfalso.
+    specialize (H n).
+    dependent destruction H.
+    firstorder.
+  - exfalso.
+    specialize (H n).
+    dependent destruction H.
+    firstorder.
+  - exfalso.
+    destruct H1.
+    inversion H1.
+  - exfalso.
+    dependent destruction H0.
+    destruct H1 as (c, ?).
+    dependent destruction H1.
+    destruct H1; destruct H2; simpl in x.
+    + discriminate.
+    + destruct H2; discriminate.
+    + discriminate.
+    + destruct H2; discriminate.
+  - destruct e1.
+    + exfalso.
+      specialize (H n).
+      dependent destruction H.
+      dependent destruction H.
+      firstorder.
+    + dependent destruction H0.
+      (* By IHe1. *)
+      admit.
+    + (* By IHe1 as well. *)
+      dependent destruction H0.
+      admit.
+  - admit.
+Admitted.
+
+Require Import Local.Factorization.
+
+Definition adequacy_if:
+  forall e,
+  closed e ->
+  forall b,
+  cbn_cps e b ->
+  cps_terminates b ->
+  cbn_terminates e.
+Proof.
+  intros.
+  apply sn_cps_terminates in H1.
+  assert (exists2 c, [b =>* c] & cbn_cps e c) as (c, ?, ?); eauto with cps.
+  clear H0.
+  generalize dependent c.
+  generalize dependent e.
+  induction H1 using SN_ind; intros.
+  destruct cbn_is_decidable with e as [ ? | (f, ?) ].
+  - exists e; eauto with cps.
+    (* From H and n. *)
+    admit.
+  - rename x into b.
+    assert (exists d, cbn_cps f d) as (d, ?); auto with cps.
+    assert [c =>* d].
+    + apply cbn_simulation with e f; auto.
+      apply full_cbn; auto.
+    + assert (comp t(head) star b d) as (x, ?, ?).
+      * admit.
+      * destruct H2 with x f d.
+        auto with cps.
+        admit.
+        assumption.
+        assumption.
+        rename x0 into g.
+        exists g.
+        admit.
+        eauto with cps.
+Admitted.
+
+Theorem adequacy:
+  forall e,
+  closed e ->
+  forall c,
+  cbn_cps e c ->
+  cbn_terminates e <-> cps_terminates c.
+Proof.
+  split; intros.
+  - apply adequacy_only_if with e; auto.
+  - apply adequacy_if with c; auto.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 

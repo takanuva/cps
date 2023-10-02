@@ -297,8 +297,19 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n x ->
     not_free n (application f x).
 
+Definition free (n: nat) (e: term): Prop :=
+  ~not_free n e.
+
 Definition closed (e: term): Prop :=
   forall n, not_free n e.
+
+Lemma closed_application_left:
+  forall f x,
+  closed (application f x) ->
+  closed f.
+Proof.
+  intros f x ? n.
+
 
 (* TODO: this is a bi-implication in here. Should we make the same for the
    CPS-calculus? Also, applying this is a nightmare! *)
