@@ -1244,7 +1244,7 @@ Section BarbedRelations.
     eapply barbed_bisimilarity_trans; eauto.
   Qed.
 
-  Goal
+  Lemma barbed_bisimilarity_implies_observational_equivalence:
     inclusion barbed_bisimilarity (observational_equivalence R P).
   Proof.
     intros x y ?H l; split; intros.
@@ -1261,7 +1261,7 @@ Section BarbedRelations.
       exists v; eauto with cps.
   Qed.
 
-  Goal
+  Lemma observational_equivalence_is_a_barbed_bisimulation:
     confluent R ->
     barb_preserving rt(R) ->
     barbed_bisimulation (observational_equivalence R P).

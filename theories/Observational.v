@@ -648,6 +648,8 @@ Proof.
   admit.
 Admitted.
 
+Global Hint Resolve barb_sema: cps.
+
 Corollary barb_conv:
   forall a b,
   [a <=> b] -> [a ~~ b].
@@ -658,7 +660,34 @@ Proof.
   assumption.
 Qed.
 
+Global Hint Resolve barb_conv: cps.
+
+(* TODO: please, properly show that barbed congruence and the observational
+   congruence coincide, as shown by Merro. *)
+
+Lemma barb_weak_convergence:
+  forall b c,
+  [b ~~ c] ->
+  forall k,
+  weakly_converges b k <-> weakly_converges c k.
+Proof.
+  intros.
+  edestruct barbed_bisimilarity_implies_observational_equivalence with (l := k).
+  - specialize (H context_hole).
+    eassumption.
+  - simpl in H0, H1.
+    split; intros.
+    + apply weak_convergence_characterization in H2.
+      destruct H0; auto.
+      exists x; auto with cps.
+    + apply weak_convergence_characterization in H2.
+      destruct H1; auto.
+      exists x; auto with cps.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
+
+(* TODO: I've proved this again somewhere else, crap. *)
 
 Goal
   forall b k,

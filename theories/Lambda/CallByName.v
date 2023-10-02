@@ -623,6 +623,26 @@ Proof.
       assumption.
 Qed.
 
+Lemma cps_terminates_barb:
+  forall b,
+  cps_terminates b ->
+  forall c,
+  [b ~~ c] ->
+  cps_terminates c.
+Proof.
+  intros.
+  destruct H as (k, (b', ?, ?)).
+  assert [b' ~~ c].
+  - eapply barb_trans.
+    + apply barb_sym.
+      apply barb_conv.
+      apply conv_star.
+      eassumption.
+    + assumption.
+  - destruct barb_weak_convergence with b' c k; auto.
+    destruct H3; eauto with cps.
+Qed.
+
 (* --------------------------- *)
 
 Definition cbn_terminates (e: term): Prop :=
@@ -648,7 +668,7 @@ Proof.
     + subst; firstorder.
 Qed.
 
-Definition adequacy_only_if:
+Lemma adequacy_only_if:
   forall e,
   closed e ->
   forall c,
@@ -678,13 +698,11 @@ Proof.
       * (* Reduction can't introduce free variables! *)
         admit.
       * assumption.
-      * (* Hmm... I'll need to use of soundness for reduction and equational
-           theory in here once I fix the definition for weak convergence! *)
-        destruct H6 as (d, ?, ?).
+      * destruct H6 as (d, ?, ?).
         exists k, d; eauto with cps.
 Admitted.
 
-Definition adequacy_if:
+Lemma adequacy_if:
   forall e,
   closed e ->
   forall b,
@@ -693,37 +711,7 @@ Definition adequacy_if:
   cbn_terminates e.
 Proof.
   intros.
-  (* We need to generalize this bit. The proof works as we keep postponing
-     inessential work while each essential steps necessarily corresponds to a
-     reduction in the source. *)
-  assert (exists2 c, [b =>* c] & cbn_cps e c) as (c, ?, ?); eauto with cps.
-  clear H0.
-  generalize dependent c.
-  generalize dependent e.
-  (* We proceed by induction on the reduction length. *)
-  apply cps_terminates_implies_sn_head in H1.
-  induction H1 using SN_ind; intros.
-  (* Now by cases on whether we have a redex or not. *)
-  destruct cbn_is_decidable with e as [ ? | (f, ?) ].
-  (* Case: we are done. *)
-  - exists e; eauto with cps.
-    apply closed_normal_cbn_implies_value; auto.
-  - rename x into b.
-    assert (exists d, cbn_cps f d) as (d, ?); auto with cps.
-    assert [c =>* d].
-    + apply cbn_simulation with e f; auto.
-      apply full_cbn; auto.
-    + assert (comp t(head) star b d) as (x, ?, ?).
-      * admit.
-      * destruct H2 with x f d.
-        auto with cps.
-        admit.
-        assumption.
-        assumption.
-        rename x0 into g.
-        exists g.
-        admit.
-        eauto with cps.
+  admit.
 Admitted.
 
 Theorem adequacy:
@@ -789,6 +777,44 @@ Proof.
     apply barb_bind_right.
     apply barb_lift.
     apply IHh; auto.
+Qed.
+
+Local Hint Resolve cbn_cps_is_compositional: cps.
+
+Definition cbn_equivalent e f: Prop :=
+  forall h: context,
+  closed (h e) ->
+  closed (h f) ->
+  cbn_terminates (h e) <-> cbn_terminates (h f).
+
+Corollary denotational_soundness:
+  forall e b,
+  cbn_cps e b ->
+  forall f c,
+  cbn_cps f c ->
+  [b ~~ c] -> cbn_equivalent e f.
+Proof.
+  split; intros.
+  - assert (exists b', cbn_cps (h e) b') as (b', ?); auto with cps.
+    assert (exists c', cbn_cps (h f) c') as (c', ?); auto with cps.
+    apply adequacy with c'.
+    + assumption.
+    + assumption.
+    + apply adequacy with (h e) b' in H4.
+      * assert [b' ~~ c']; eauto 2 with cps.
+        apply cps_terminates_barb with b'; auto.
+      * assumption.
+      * assumption.
+  - assert (exists b', cbn_cps (h e) b') as (b', ?); auto with cps.
+    assert (exists c', cbn_cps (h f) c') as (c', ?); auto with cps.
+    apply adequacy with b'.
+    + assumption.
+    + assumption.
+    + apply adequacy with (h f) c' in H4.
+      * assert [b' ~~ c']; eauto 2 with cps.
+        apply cps_terminates_barb with c'; auto with cps.
+      * assumption.
+      * assumption.
 Qed.
 
 (* -------------------------------------------------------------------------- *)

@@ -1026,6 +1026,15 @@ Qed.
 
 Global Hint Resolve star_head: cps.
 
+Lemma star_rt_head:
+  forall a b,
+  rt(head) a b -> [a =>* b].
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve star_rt_head: cps.
+
 Lemma conv_longjmp:
   LONGJMP conv.
 Proof.
