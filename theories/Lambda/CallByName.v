@@ -108,6 +108,20 @@ Proof.
   split; induction 1.
   - constructor.
   - constructor.
+    apply IHcbn.
+    apply closed_application_left with x.
+    assumption.
+  - exfalso.
+    specialize (H f).
+    dependent destruction H.
+    dependent destruction H.
+    contradiction.
+  - constructor.
+  - constructor.
+    apply IHweak.
+    apply closed_application_left with x.
+    assumption.
+Qed.
 
 (* TODO: fix typing on the following! *)
 

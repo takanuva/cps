@@ -309,7 +309,21 @@ Lemma closed_application_left:
   closed f.
 Proof.
   intros f x ? n.
+  specialize (H n).
+  dependent destruction H.
+  assumption.
+Qed.
 
+Lemma closed_application_right:
+  forall f x,
+  closed (application f x) ->
+  closed x.
+Proof.
+  intros f x ? n.
+  specialize (H n).
+  dependent destruction H.
+  assumption.
+Qed.
 
 (* TODO: this is a bi-implication in here. Should we make the same for the
    CPS-calculus? Also, applying this is a nightmare! *)
