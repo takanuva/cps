@@ -409,6 +409,17 @@ Qed.
 
 Global Hint Resolve rt_beta_bind_right: cps.
 
+Lemma rt_beta_lift:
+  forall b c,
+  rt(beta) b c ->
+  forall i k,
+  rt(beta) (lift i k b) (lift i k c).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_beta_lift: cps.
+
 (** ** Shrinking reduction. *)
 
 (* We will further explore the notion of shrinking reductions elsewhere, but we

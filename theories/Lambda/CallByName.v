@@ -14,6 +14,7 @@ Require Import Local.Reduction.
 Require Import Local.Factorization.
 Require Import Local.Observational.
 Require Import Local.Conservation.
+Require Import Local.Shrinking.
 Require Export Local.Lambda.Calculus.
 
 Module CPS := Local.Syntax.
@@ -594,6 +595,16 @@ Proof.
       assumption.
 Qed.
 
+Lemma normal_form_preservation:
+  forall e,
+  normal full e ->
+  forall c,
+  cbn_cps e c ->
+  normal step c.
+Proof.
+  admit.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 (* TODO: move this! *)
@@ -815,6 +826,36 @@ Proof.
         apply cps_terminates_barb with c'; auto with cps.
       * assumption.
       * assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma lambda_sn_implies_beta_normal_form:
+  forall e,
+  SN full e ->
+  forall b,
+  cbn_cps e b -> WN beta b.
+Proof.
+  induction 1 using SN_ind.
+  (* Since beta reduction is a congruence, and since the CPS translation is
+     compositional, we can use induction over the maximum reduction length to
+     prove the property for every subterm as well. *)
+  
+Admitted.
+
+Theorem preservation_of_strong_normalization:
+  forall e,
+  SN full e ->
+  forall b,
+  cbn_cps e b -> SN step b.
+Proof.
+  intros.
+  apply SN_subset with (union beta smol).
+  - apply step_characterization.
+  - apply shrinking_preserves_strong_normalization.
+    + apply smol_is_shrinking.
+    + apply uniform_normalization.
+      apply lambda_sn_implies_beta_normal_form with e; auto.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
