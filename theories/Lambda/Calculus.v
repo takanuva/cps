@@ -139,6 +139,30 @@ Proof.
   - auto.
 Qed.
 
+Inductive subterm: relation term :=
+  | subterm_abstraction:
+    forall t b,
+    subterm b (abstraction t b)
+  | subterm_application_left:
+    forall f x,
+    subterm f (application f x)
+  | subterm_application_right:
+    forall f x,
+    subterm x (application f x).
+
+Lemma subterm_is_well_founded:
+  forall e,
+  Acc subterm e.
+Proof.
+  induction e.
+  - constructor.
+    inversion 1.
+  - constructor.
+    inversion_clear 1; auto.
+  - constructor.
+    inversion_clear 1; auto.
+Qed.
+
 Inductive context: Set :=
   | context_hole
   | context_abstraction (t: type) (b: context)
@@ -408,6 +432,10 @@ Inductive full: relation term :=
     forall f x1 x2,
     full x1 x2 ->
     full (application f x1) (application f x2).
+
+Global Hint Constructors full: cps.
+
+(* TODO: is this one being used? *)
 
 Lemma full_normal_dec:
   forall e,
