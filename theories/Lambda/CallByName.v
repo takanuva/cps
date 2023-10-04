@@ -830,17 +830,91 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma wn_subterm:
+  forall e b,
+  cbn_cps e b ->
+  forall f,
+  subterm f e ->
+  forall c,
+  cbn_cps f c ->
+  WN beta b -> WN beta c.
+Proof.
+  destruct 2; intros.
+  - dependent destruction H.
+    apply cbn_cps_lift_inversion in H.
+    destruct H; subst; rename b0 into e.
+    assert (x = c); eauto with cps; subst.
+    admit.
+  - dependent destruction H.
+    apply cbn_cps_lift_inversion in H.
+    destruct H; subst; rename x0 into b.
+    assert (c0 = b); eauto with cps; subst.
+    admit.
+  - dependent destruction H.
+    apply cbn_cps_lift_inversion in H0.
+    destruct H0; subst; rename x0 into c.
+    assert (c0 = c); eauto with cps; subst.
+    admit.
+Admitted.
+
+Lemma foo:
+  forall y x,
+  t(subterm) y x ->
+  forall z,
+  t(full) y z ->
+  exists2 w, t(full) x w & t(subterm) z w.
+Proof.
+  intros.
+  eapply transitive_closure_preserves_diagram; eauto with cps.
+  destruct 1; eauto with cps.
+Qed.
+
+Lemma bar:
+  forall e,
+  SN full e ->
+  SN (union full (transp subterm)) e.
+Proof.
+  induction 1 using SN_ind.
+  induction subterm_is_well_founded with x.
+  clear H0.
+  assert (forall y : term,
+     subterm y x ->
+     SN full y ->
+     SN (union full (transp subterm)) y).
+  - intros.
+    apply H1; clear H1; auto; intros.
+    rename y0 into z.
+    assert (exists2 w, t(full) x w & subterm z w) as (w, ?, ?).
+    + edestruct foo; eauto with cps.
+      admit.
+    + specialize (H2 w H4).
+      destruct H2.
+      apply H2; right.
+      assumption.
+  - clear H1.
+    constructor; destruct 1.
+    + apply H2; auto with cps.
+    + apply H0; auto with cps.
+      admit.
+Admitted.
+
 Lemma lambda_sn_implies_beta_normal_form:
   forall e,
   SN full e ->
   forall b,
   cbn_cps e b -> WN beta b.
 Proof.
-  induction 1 using SN_ind.
-  (* Since beta reduction is a congruence, and since the CPS translation is
-     compositional, we can use induction over the maximum reduction length to
-     prove the property for every subterm as well. *)
-  
+  induction 1 using SN_ind; intros.
+  destruct x.
+  - clear H2.
+    dependent destruction H0.
+    eexists.
+    + eauto with cps.
+    + inversion 1.
+  - dependent destruction H0.
+    apply cbn_cps_lift_inversion in H0.
+    destruct H0; subst; rename x0 into b.
+    
 Admitted.
 
 Theorem preservation_of_strong_normalization:

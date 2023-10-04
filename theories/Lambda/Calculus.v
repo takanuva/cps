@@ -150,6 +150,8 @@ Inductive subterm: relation term :=
     forall f x,
     subterm x (application f x).
 
+Global Hint Constructors subterm: cps.
+
 Lemma subterm_is_well_founded:
   forall e,
   Acc subterm e.
