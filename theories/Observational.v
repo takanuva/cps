@@ -109,10 +109,21 @@ Lemma convergence_implies_head_normal_form:
   forall c k,
   converges c k -> normal head c.
 Proof.
-  intros.
-  (* So obvious on paper, so complicated on here... *)
-  admit.
-Admitted.
+  induction 1.
+  - inversion 1.
+    destruct r; try discriminate.
+  - intros d ?.
+    dependent destruction H0.
+    destruct H1; simpl in x.
+    + dependent destruction x.
+      apply converges_jump_inversion in H.
+      * contradiction.
+      * lia.
+    + rename h0 into r.
+      dependent destruction x.
+      eapply IHconverges.
+      constructor; auto.
+Qed.
 
 Lemma converges_is_preserved_by_subst:
   forall c k p y,
@@ -686,28 +697,6 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
-
-(* TODO: I've proved this again somewhere else, crap. *)
-
-Goal
-  forall b k,
-  converges b k -> normal head b.
-Proof.
-  induction 1.
-  - inversion 1.
-    destruct r; try discriminate.
-  - intros d ?.
-    dependent destruction H0.
-    destruct H1; simpl in x.
-    + dependent destruction x.
-      apply converges_jump_inversion in H.
-      * contradiction.
-      * lia.
-    + rename h0 into r.
-      dependent destruction x.
-      eapply IHconverges.
-      constructor; auto.
-Qed.
 
 Goal
   forall b c,
