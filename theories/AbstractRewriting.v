@@ -847,6 +847,23 @@ Section Normalization.
     assumption.
   Qed.
 
+  Hypothesis R_is_decidable:
+    forall a,
+    { normal a } + { exists b, R a b }.
+
+  Lemma sn_implies_wn:
+    forall a,
+    SN R a -> WN a.
+  Proof.
+    intros.
+    (* Coq: why can't I use SN_ind in here...? *)
+    induction H; clear H.
+    destruct R_is_decidable with x as [ ? | (y, ?) ].
+    - exists x; eauto with cps.
+    - destruct H0 with y as (z, ?, ?); auto.
+      exists z; eauto with cps.
+  Qed.
+
 End Normalization.
 
 Section ListNormalization.

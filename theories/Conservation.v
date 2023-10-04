@@ -261,6 +261,7 @@ Theorem uniform_normalization:
   WN beta b <-> SN beta b.
 Proof.
   split; intros.
+  (* Case: WN implies SN. *)
   - apply beta_and_parallel_SN_coincide.
     destruct H as (c, ?, ?).
     apply clos_rt_rt1n_iff in H.
@@ -272,9 +273,10 @@ Proof.
       apply clos_trans_t1n_iff in H.
       destruct H; firstorder.
     + apply backwards_parallel_preservation with y; auto with cps.
-  - (* Clearly, as beta is decidable. *)
-    admit.
-Admitted.
+  (* Case: WN implies SN. *)
+  - apply sn_implies_wn; auto.
+    apply beta_is_decidable.
+Qed.
 
 Corollary conservation:
   forall a,

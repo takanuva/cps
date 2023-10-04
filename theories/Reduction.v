@@ -420,6 +420,13 @@ Qed.
 
 Global Hint Resolve rt_beta_lift: cps.
 
+Lemma beta_is_decidable:
+  forall b,
+  { normal beta b } + { exists c, beta b c }.
+Proof.
+  admit.
+Admitted.
+
 (** ** Shrinking reduction. *)
 
 (* We will further explore the notion of shrinking reductions elsewhere, but we
