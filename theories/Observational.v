@@ -467,23 +467,16 @@ Proof.
   - firstorder.
 Qed.
 
-Theorem head_reduction_preserves_convergence:
-  forall a k,
-  weakly_converges a k -> comp rt(head) converges a k.
-Proof.
-  destruct 1 as (c, ?, ?).
-  apply factorization in H.
-  destruct H as (b, ?, ?).
-  exists b; auto.
-  apply rt_inner_backwards_preserves_convergence with c; auto.
-Qed.
-
-Corollary weak_convergence_characterization:
+Theorem weak_convergence_characterization:
   forall a k,
   weakly_converges a k <-> comp rt(head) converges a k.
 Proof.
   split; intros.
-  - apply head_reduction_preserves_convergence; auto.
+  - destruct H as (c, ?, ?).
+    apply factorization in H.
+    destruct H as (b, ?, ?).
+    exists b; auto.
+    apply rt_inner_backwards_preserves_convergence with c; auto.
   - destruct H as (b, ?, ?).
     exists b; auto.
     clear H0.
