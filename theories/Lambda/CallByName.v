@@ -830,7 +830,7 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Lemma wn_subterm:
+Lemma cbn_cps_subterm_wn:
   forall e b,
   cbn_cps e b ->
   forall f,
@@ -839,23 +839,50 @@ Lemma wn_subterm:
   cbn_cps f c ->
   WN beta b -> WN beta c.
 Proof.
-  destruct 2; intros.
+  intros.
+  (* This is perhaps not the best approach, computationally speaking, as we rely
+     a lot on uniform normalization, and there are certainly more efficient ways
+     to compute this, but still... it's a somewhat simple way to prove it. *)
+  apply uniform_normalization in H2.
+  destruct H0.
+  (* Case: inside abstraction. *)
   - dependent destruction H.
     apply cbn_cps_lift_inversion in H.
     destruct H; subst; rename b0 into e.
     assert (x = c); eauto with cps; subst.
-    admit.
+    apply uniform_normalization.
+    eapply SN_preimage with (f := fun c =>
+      bind _ _ (CPS.lift 1 2 c));
+    eauto; intros.
+    apply beta_bind_right.
+    apply beta_lift.
+    assumption.
+  (* Case: inside left hand side of application. *)
   - dependent destruction H.
     apply cbn_cps_lift_inversion in H.
     destruct H; subst; rename x0 into b.
     assert (c0 = b); eauto with cps; subst.
-    admit.
+    apply uniform_normalization.
+    eapply SN_preimage with (f := fun b =>
+      bind (CPS.lift 1 1 b) _ _);
+    eauto; intros.
+    apply beta_bind_left.
+    apply beta_lift.
+    assumption.
+  (* Case: inside right hand side of application. *)
   - dependent destruction H.
     apply cbn_cps_lift_inversion in H0.
     destruct H0; subst; rename x0 into c.
     assert (c0 = c); eauto with cps; subst.
-    admit.
-Admitted.
+    apply uniform_normalization.
+    eapply SN_preimage with (f := fun c =>
+      bind _ _ (bind _ _ (CPS.lift 2 1 c)));
+    eauto; intros.
+    apply beta_bind_right.
+    apply beta_bind_right.
+    apply beta_lift.
+    assumption.
+Qed.
 
 Lemma foo:
   forall y x,
@@ -914,7 +941,7 @@ Proof.
   - dependent destruction H0.
     apply cbn_cps_lift_inversion in H0.
     destruct H0; subst; rename x0 into b.
-    
+    admit.
 Admitted.
 
 Theorem preservation_of_strong_normalization:
