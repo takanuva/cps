@@ -376,7 +376,9 @@ Proof.
       eapply IHconverges; eauto.
 Qed.
 
-(* Local Lemma subst_backwards_preserves_convergence_eta:
+(* Just a quick (legacy) check: an eta step also conserves convergence. *)
+
+Goal
   forall h k xs y,
   static h ->
   forall c j p,
@@ -411,11 +413,11 @@ Proof.
     constructor.
     rewrite <- plus_Sn_m.
     apply IHstatic.
-    + rewrite plus_Snm_nSm.
+    + replace (S p + #h) with (p + S #h); try lia.
       assumption.
     + reflexivity.
     + assumption.
-Qed. *)
+Qed.
 
 Lemma inner_backwards_preserves_convergence:
   forall a b,
