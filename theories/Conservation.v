@@ -260,7 +260,20 @@ Theorem uniform_normalization:
   forall b,
   WN beta b <-> SN beta b.
 Proof.
-  admit.
+  split; intros.
+  - apply beta_and_parallel_SN_coincide.
+    destruct H as (c, ?, ?).
+    apply clos_rt_rt1n_iff in H.
+    induction H.
+    + constructor; intros.
+      exfalso.
+      (* As we have a parallel step, we gotta have at least one regular step. *)
+      apply t_beta_parallel in H.
+      apply clos_trans_t1n_iff in H.
+      destruct H; firstorder.
+    + apply backwards_parallel_preservation with y; auto with cps.
+  - (* Clearly, as beta is decidable. *)
+    admit.
 Admitted.
 
 Corollary conservation:
@@ -271,9 +284,8 @@ Corollary conservation:
 Proof.
   intros a ? b ? ?.
   eapply H; clear H.
-  (* TODO: review this. *)
   apply uniform_normalization in H1.
-  apply uniform_normalization.
   destruct H1 as (c, ?, ?).
+  apply uniform_normalization.
   exists c; eauto with cps.
 Qed.
