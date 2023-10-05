@@ -109,8 +109,11 @@ Section Technique.
     SN R c ->
     SN (modulo R equi) c.
   Proof.
-    apply modulo_bisimulation_strong_normalization.
-    - split; admit.
+    apply modulo_bisimulation_strong_normalization; try split.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     - admit.
   Admitted.
 
@@ -159,7 +162,11 @@ End Technique.
 
 (* Is jump reduction modulo strong parallel bisimilarity really valid? TODO: add
    some comments in here, of course. This seems a bit odd, as it should include
-   the (DISTR) law, which can duplicate redexes... *)
+   the (DISTR) law, which can duplicate redexes...
+
+   Edit: it IS valid, and it does NOT include the (DISTR) law. The issue is that
+   using (DISTR) doesn't require us to join/split a reference. I gotta write
+   some explanation about this. *)
 
 Goal
   forall c,
