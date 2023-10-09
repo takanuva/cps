@@ -154,7 +154,52 @@ Section DeBruijn.
     - unfold instantiate; simpl.
       (* Ok, somehow I still don't got a proof for that, but this is clearly
          true as 0 replaces 0 then unlifts everything. *)
-      admit.
-  Admitted.
+      assert (forall k, subst 0 k (lift 1 (S k) b) = b); auto.
+      induction b using pseudoterm_deepind; intros.
+      + reflexivity.
+      + reflexivity.
+      + reflexivity.
+      + reflexivity.
+      + destruct (le_gt_dec (S k) n).
+        rewrite lift_bound_ge; try lia.
+        rewrite subst_bound_gt; try lia.
+        reflexivity.
+        rewrite lift_bound_lt; try lia.
+        destruct (Nat.eq_dec k n).
+        rewrite subst_bound_eq; try lia.
+        rewrite lift_bound_ge; try lia.
+        rewrite Nat.add_0_r; auto.
+        rewrite subst_bound_lt; try lia.
+        reflexivity.
+      + rewrite lift_distributes_over_negation.
+        rewrite subst_distributes_over_negation.
+        f_equal.
+        induction H; simpl.
+        reflexivity.
+        f_equal; auto.
+        do 2 rewrite traverse_list_length.
+        replace (length l + S k) with (S (length l + k)); try lia.
+        apply H.
+      + rewrite lift_distributes_over_jump.
+        rewrite subst_distributes_over_jump.
+        f_equal.
+        apply IHb.
+        clear IHb b.
+        induction H; simpl.
+        reflexivity.
+        f_equal; auto.
+      + rewrite lift_distributes_over_bind.
+        rewrite subst_distributes_over_bind.
+        f_equal.
+        apply IHb1.
+        clear IHb1 IHb2 b1 b2.
+        induction H; auto.
+        simpl; f_equal; auto.
+        do 2 rewrite traverse_list_length.
+        replace (length l + S k) with (S (length l + k)); try lia.
+        apply H.
+        rewrite traverse_list_length.
+        apply IHb2.
+  Qed.
 
 End DeBruijn.
