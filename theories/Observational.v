@@ -788,11 +788,18 @@ Proof.
   - apply diverges_static_context with (h := context_left h ts c).
     + auto with cps.
     + apply diverges_apply_parameters.
+      apply diverges_lift.
       eassumption.
   - eapply rt_trans.
     + eassumption.
     + apply rt_step; simpl.
-      apply head_bind_left.
+      (* Aww crap... TODO: fix this, please!!! *)
+      assert (LONGJMP head) by apply head_longjmp.
+      unfold LONGJMP in H4.
+      specialize H4 with (r := context_hole); simpl in H4.
+      apply H4; auto with cps.
+      (* Huh... this might NOT be the case... it is in Merro's work, but here
+         terms can also get stuck... we don't know if it has the right arity! *)
       admit.
 Admitted.
 
