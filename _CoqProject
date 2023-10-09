@@ -2,6 +2,8 @@
 
 theories/Prelude.v
 theories/Syntax.v
+# Temporary file for exploring
+theories/Substitution.v
 theories/Metatheory.v
 theories/AbstractRewriting.v
 theories/Context.v
