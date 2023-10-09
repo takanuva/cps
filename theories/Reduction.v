@@ -987,6 +987,14 @@ Qed.
 
 Global Hint Resolve head_bind_left: cps.
 
+Lemma rt_head_bind_left:
+  LEFT rt(head).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_head_bind_left: cps.
+
 Lemma head_recjmp:
   RECJMP head.
 Proof.

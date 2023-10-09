@@ -772,36 +772,33 @@ Admitted.
 Lemma diverges_from_jump:
   forall c,
   diverges c ->
-  forall b,
-  weakly_converges b 0 ->
+  forall h,
+  static h ->
+  forall b xs,
+  (* A bit more restrict than Merro's version! *)
+  rt(head) b (h (jump #h xs)) ->
   forall ts,
-  diverges (bind b ts c).
+  length xs = length ts -> diverges (bind b ts c).
 Proof.
   intros.
-  apply weak_convergence_characterization in H0.
-  destruct H0 as (x, ?, ?).
-  assert (rt(head) (bind b ts c) (bind x ts c)) by admit.
-  assert (exists2 h, static h & exists xs, x = h (jump #h xs))
-    as (h, ?, (xs, ?)) by admit.
-  subst.
-  eapply diverges_rt_head.
-  - apply diverges_static_context with (h := context_left h ts c).
-    + auto with cps.
-    + apply diverges_apply_parameters.
-      apply diverges_lift.
-      eassumption.
-  - eapply rt_trans.
-    + eassumption.
-    + apply rt_step; simpl.
-      (* Aww crap... TODO: fix this, please!!! *)
+  apply diverges_rt_head with (bind (h (apply_parameters xs 0
+    (lift (S #h) (length ts) c))) ts c).
+  - (* I don't really wanna type the term, but I know what happens to it. *)
+    apply diverges_static_context with (h := context_left h ts c);
+      auto with cps.
+    apply diverges_apply_parameters.
+    apply diverges_lift.
+    assumption.
+  - simpl; apply rt_trans with (bind (h (jump #h xs)) ts c).
+    + apply rt_head_bind_left.
+      assumption.
+    + apply rt_step.
+      (* Sigh... TODO: fix this, please! The definition for (LONGJMP) sucks! *)
       assert (LONGJMP head) by apply head_longjmp.
-      unfold LONGJMP in H4.
-      specialize H4 with (r := context_hole); simpl in H4.
-      apply H4; auto with cps.
-      (* Huh... this might NOT be the case... it is in Merro's work, but here
-         terms can also get stuck... we don't know if it has the right arity! *)
-      admit.
-Admitted.
+      unfold LONGJMP in H3.
+      specialize H3 with (r := context_hole); simpl in H3.
+      apply H3; auto with cps.
+Qed.
 
 Theorem omega_law:
   forall b c,
