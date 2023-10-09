@@ -693,24 +693,129 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Goal
-  forall b c,
-  ~WN head b ->
-  ~WN head c ->
-  observational_equivalence head converges b c.
+(* As shown by Merro, the CPS-calculus validates the corresponding of the omega
+   rule in the lambda calculus: any two diverging terms are observationally
+   equivalent. *)
+
+Definition diverges (c: pseudoterm): Prop :=
+  ~WN head c.
+
+Lemma diverges_head:
+  forall c,
+  diverges c ->
+  forall b,
+  head b c -> diverges b.
 Proof.
-  intros b c ? ? k.
-  split; intros.
-  - destruct H1 as (d, ?, ?).
-    exfalso.
-    eapply H.
-    exists d.
-    + assumption.
-    + admit.
-  - destruct H1 as (d, ?, ?).
-    exfalso.
-    eapply H0.
-    exists d.
-    + assumption.
-    + admit.
+  admit.
+Admitted.
+
+Lemma diverges_rt_head:
+  forall c,
+  diverges c ->
+  forall b,
+  rt(head) b c -> diverges b.
+Proof.
+  intros.
+  apply clos_rt_rt1n_iff in H0.
+  induction H0.
+  - assumption.
+  - apply diverges_head with y; auto.
+Qed.
+
+(* From Merro's paper, proposition 5.1.(1). *)
+
+Lemma diverges_lift:
+  forall b,
+  diverges b ->
+  forall i k,
+  diverges (lift i k b).
+Proof.
+  admit.
+Admitted.
+
+Lemma diverges_subst:
+  forall b,
+  diverges b ->
+  forall y k,
+  diverges (subst y k b).
+Proof.
+  admit.
+Admitted.
+
+Lemma diverges_apply_parameters:
+  forall b,
+  diverges b ->
+  forall ys k,
+  diverges (apply_parameters ys k b).
+Proof.
+  intros until ys; generalize dependent b.
+  induction ys; simpl; intros.
+  - assumption.
+  - apply IHys.
+    apply diverges_subst.
+    assumption.
+Qed.
+
+(* From Merro's paper, proposition 5.1.(2). *)
+
+Lemma diverges_static_context:
+  forall h,
+  static h ->
+  forall b,
+  diverges b -> diverges (h b).
+Proof.
+  admit.
+Admitted.
+
+(* From Merro's paper, proposition 5.1.(3). *)
+
+Lemma diverges_from_jump:
+  forall c,
+  diverges c ->
+  forall b,
+  weakly_converges b 0 ->
+  forall ts,
+  diverges (bind b ts c).
+Proof.
+  intros.
+  apply weak_convergence_characterization in H0.
+  destruct H0 as (x, ?, ?).
+  assert (rt(head) (bind b ts c) (bind x ts c)) by admit.
+  assert (exists2 h, static h & exists xs, x = h (jump #h xs))
+    as (h, ?, (xs, ?)) by admit.
+  subst.
+  eapply diverges_rt_head.
+  - apply diverges_static_context with (h := context_left h ts c).
+    + auto with cps.
+    + apply diverges_apply_parameters.
+      eassumption.
+  - eapply rt_trans.
+    + eassumption.
+    + apply rt_step; simpl.
+      apply head_bind_left.
+      admit.
+Admitted.
+
+Theorem omega_law:
+  forall b c,
+  diverges b ->
+  diverges c ->
+  [b ~~ c].
+Proof.
+  intros.
+  (* TODO: automate this conversion... *)
+  exists (observational_equivalence head converges).
+  - apply observational_equivalence_is_a_barbed_bisimulation.
+    + (* Well, this is obviously the case, since it is deterministic. Didn't add
+       this proof yet though... *)
+      admit.
+    + (* TODO: move to a proper lemma? *)
+      clear H H0 b c h.
+      intros b c ? k ?.
+      eauto with cps.
+  - split; intros.
+    + clear H0; generalize dependent c.
+      admit.
+    + clear H; generalize dependent b.
+      admit.
 Admitted.
