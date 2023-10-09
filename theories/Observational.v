@@ -764,7 +764,24 @@ Lemma diverges_static_context:
   forall b,
   diverges b -> diverges (h b).
 Proof.
-  admit.
+  intros h ? b ? ?.
+  destruct H1 as (c, ?, ?).
+  apply clos_rt_rt1n_iff in H1.
+  dependent induction H1.
+  - destruct head_is_decidable with b as [ ? | (c, ?) ].
+    + apply H0.
+      exists b; auto with cps.
+    + apply H2 with (h c).
+      admit.
+  - clear H1.
+    destruct head_is_decidable with b as [ ? | (c, ?) ].
+    + apply H0.
+      exists b; auto with cps.
+    + assert (head (h b) (h c)) by admit.
+      assert (y = h c) by admit; subst.
+      eapply IHclos_refl_trans_1n with (b := c); eauto.
+      (* Of course... *)
+      admit.
 Admitted.
 
 (* From Merro's paper, proposition 5.1.(3). *)
