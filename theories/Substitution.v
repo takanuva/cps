@@ -103,7 +103,7 @@ Section DeBruijn.
       3) I >> s = s
       4) s >> I = s
       5) (s >> r) >> u = s >> (r >> u)
-      6) (e .: s) >> r = (e[r] .: s) >> r
+      6) (e .: s) >> r = e[r] .: (s >> r)
 
     Additionally:
 
