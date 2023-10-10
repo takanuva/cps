@@ -9,27 +9,30 @@ Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
+Require Import Local.Machine.
 
 Section DeBruijn.
 
   (* An algebra for substitution, or de Bruijn algebra, inspired by the work of
-     Schafer et al. on the paper Completeness and Decidability of de Bruijn
-     Substitution Algebra in Coq. This is in turn inspired by the definition of
-     the lambda sigma calculuf of Abadi et al., introduced in their Explicit
-     Substitutions paper. *)
+     Schafer et al. on the autosubst library and the paper Completeness and
+     Decidability of de Bruijn Substitution Algebra in Coq. This is in turn
+     inspired by the definition of the lambda sigma calculuf of Abadi et al.,
+     introduced in their Explicit Substitutions paper. By using an algebra like
+     this a few proofs should become easier, like the completeness for machine
+     semantics. *)
 
   Inductive substitution: Set :=
-    | subs_id
-    | subs_lift
+    | subs_lift (i: nat)
     | subs_cons (y: pseudoterm) (s: substitution)
     | subs_comp (s: substitution) (t: substitution).
 
+  Notation subs_id :=
+    (subs_lift 0).
+
   Fixpoint instantiate_rec (k: nat) (s: substitution) (c: pseudoterm)  :=
     match s with
-    | subs_id =>
-      c
-    | subs_lift =>
-      lift 1 k c
+    | subs_lift i =>
+      lift i k c
     | subs_cons y s =>
       subst y k (instantiate_rec (S k) s c)
     | subs_comp s t =>
@@ -41,12 +44,30 @@ Section DeBruijn.
 
   Coercion instantiate: substitution >-> Funclass.
 
+  (* Are we sound...? *)
+
+  Goal
+    forall i k c,
+    lift i k c = instantiate_rec k (subs_lift i) c.
+  Proof.
+    intros; simpl.
+    reflexivity.
+  Qed.
+
+  Goal
+    forall y k c,
+    subst y k c = instantiate_rec k (subs_cons y subs_id) c.
+  Proof.
+    intros; simpl.
+    rewrite lift_zero_e_equals_e.
+    reflexivity.
+  Qed.
+
   Lemma foo:
     forall s n,
     instantiate_rec (S n) s 0 = 0.
   Proof.
     induction s; simpl; intros.
-    - reflexivity.
     - rewrite lift_bound_lt; auto with arith.
     - rewrite IHs.
       rewrite subst_bound_lt; auto with arith.
@@ -62,7 +83,6 @@ Section DeBruijn.
       lift 1 n (instantiate_rec m s c).
   Proof.
     induction s; simpl; intros.
-    - reflexivity.
     - symmetry.
       rewrite lift_lift_permutation; try lia.
       reflexivity.
@@ -80,7 +100,6 @@ Section DeBruijn.
       subst (instantiate_rec k r y) p (instantiate_rec (S (p + k)) r e).
   Proof.
     induction r; simpl; intros.
-    - reflexivity.
     - rewrite lift_addition_distributes_over_subst.
       reflexivity.
     - specialize IHr with (k := S k); simpl in IHr.
@@ -94,6 +113,59 @@ Section DeBruijn.
       rewrite IHr2.
       reflexivity.
   Qed.
+
+  Lemma qux:
+    forall b k, subst 0 k (lift 1 (S k) b) = b.
+  Proof.
+    induction b using pseudoterm_deepind; intros.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - destruct (le_gt_dec (S k) n).
+      rewrite lift_bound_ge; try lia.
+      rewrite subst_bound_gt; try lia.
+      reflexivity.
+      rewrite lift_bound_lt; try lia.
+      destruct (Nat.eq_dec k n).
+      rewrite subst_bound_eq; try lia.
+      rewrite lift_bound_ge; try lia.
+      rewrite Nat.add_0_r; auto.
+      rewrite subst_bound_lt; try lia.
+      reflexivity.
+    - rewrite lift_distributes_over_negation.
+      rewrite subst_distributes_over_negation.
+      f_equal.
+      induction H; simpl.
+      reflexivity.
+      f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      replace (length l + S k) with (S (length l + k)); try lia.
+      apply H.
+    - rewrite lift_distributes_over_jump.
+      rewrite subst_distributes_over_jump.
+      f_equal.
+      apply IHb.
+      clear IHb b.
+      induction H; simpl.
+      reflexivity.
+      f_equal; auto.
+    - rewrite lift_distributes_over_bind.
+      rewrite subst_distributes_over_bind.
+      f_equal.
+      apply IHb1.
+      clear IHb1 IHb2 b1 b2.
+      induction H; auto.
+      simpl; f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      replace (length l + S k) with (S (length l + k)); try lia.
+      apply H.
+      rewrite traverse_list_length.
+      apply IHb2.
+  Qed.
+
+  Definition up (s: substitution): substitution :=
+    subs_cons 0 (subs_comp s (subs_lift 1)).
 
   (*
     So, we have the following axioms to satisfy:
@@ -109,13 +181,14 @@ Section DeBruijn.
 
       7) 0 .: S = I
       8) 0[S^n] = n
+
   *)
 
   Structure curien_axioms: Prop := {
     H1: forall b s,
         instantiate (subs_cons b s) 0 = b;
     H2: forall b c s,
-        subs_comp subs_lift (subs_cons b s) c = s c;
+        subs_comp (subs_lift 1) (subs_cons b s) c = s c;
     H3: forall b s,
         subs_comp subs_id s b = s b;
     H4: forall b s,
@@ -125,7 +198,9 @@ Section DeBruijn.
     H6: forall b c s r,
         subs_comp (subs_cons b s) r c = subs_cons (r b) (subs_comp s r) c;
     H7: forall b,
-        subs_cons 0 subs_lift b = subs_id b
+        subs_cons 0 (subs_lift 1) b = subs_id b;
+    HX: forall i j b,
+        subs_comp (subs_lift i) (subs_lift j) b = subs_lift (i + j) b
   }.
 
   Goal
@@ -143,8 +218,10 @@ Section DeBruijn.
       rewrite lift_zero_e_equals_e.
       reflexivity.
     - unfold instantiate; simpl.
+      rewrite lift_zero_e_equals_e.
       reflexivity.
     - unfold instantiate; simpl.
+       rewrite lift_zero_e_equals_e.
       reflexivity.
     - unfold instantiate; simpl.
       reflexivity.
@@ -154,52 +231,109 @@ Section DeBruijn.
     - unfold instantiate; simpl.
       (* Ok, somehow I still don't got a proof for that, but this is clearly
          true as 0 replaces 0 then unlifts everything. *)
-      assert (forall k, subst 0 k (lift 1 (S k) b) = b); auto.
-      induction b using pseudoterm_deepind; intros.
-      + reflexivity.
-      + reflexivity.
-      + reflexivity.
-      + reflexivity.
-      + destruct (le_gt_dec (S k) n).
-        rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
+      rewrite lift_zero_e_equals_e.
+      rewrite qux.
+      reflexivity.
+    - unfold instantiate; simpl.
+      rewrite lift_lift_simplification; try lia.
+      f_equal; try lia.
+  Qed.
+
+  Lemma instantiate_rec_distributes_over_jump:
+    forall s k x xs,
+    instantiate_rec k s (jump x xs) =
+      jump (instantiate_rec k s x) (map (instantiate_rec k s) xs).
+  Proof.
+    induction s; simpl; intros.
+    - rewrite lift_distributes_over_jump.
+      reflexivity.
+    - rewrite IHs.
+      rewrite subst_distributes_over_jump.
+      f_equal.
+      (* I almost forgot I had written this tactic in here... *)
+      list induction over xs.
+    - rewrite IHs1.
+      rewrite IHs2.
+      f_equal.
+      list induction over xs.
+  Qed.
+
+  Lemma instantiate_respects_structure:
+    forall c s k,
+    instantiate_rec k s c =
+      traverse (fun k => instantiate_rec k s) k c.
+  Proof.
+    induction c using pseudoterm_deepind; simpl; intros.
+    - generalize dependent k.
+      induction s; simpl; intros.
+      reflexivity.
+      rewrite IHs.
+      reflexivity.
+      rewrite IHs1.
+      rewrite IHs2.
+      reflexivity.
+    - generalize dependent k.
+      induction s; simpl; intros.
+      reflexivity.
+      rewrite IHs.
+      reflexivity.
+      rewrite IHs1.
+      rewrite IHs2.
+      reflexivity.
+    - generalize dependent k.
+      induction s; simpl; intros.
+      reflexivity.
+      rewrite IHs.
+      reflexivity.
+      rewrite IHs1.
+      rewrite IHs2.
+      reflexivity.
+    - generalize dependent k.
+      induction s; simpl; intros.
+      reflexivity.
+      rewrite IHs.
+      reflexivity.
+      rewrite IHs1.
+      rewrite IHs2.
+      reflexivity.
+    - reflexivity.
+    - admit.
+    - rewrite instantiate_rec_distributes_over_jump.
+      f_equal.
+      apply IHc.
+      list induction over H.
+    - admit.
+  Admitted.
+
+  Instance instantiate_proper s: proper (fun k => instantiate_rec k s).
+  Proof.
+    split; intros.
+    - rewrite instantiate_respects_structure.
+      reflexivity.
+    - generalize dependent k.
+      induction s; simpl; intros.
+      + rewrite lift_bound_lt; try lia.
         reflexivity.
-        rewrite lift_bound_lt; try lia.
-        destruct (Nat.eq_dec k n).
-        rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite Nat.add_0_r; auto.
+      + rewrite IHs; auto.
         rewrite subst_bound_lt; try lia.
         reflexivity.
-      + rewrite lift_distributes_over_negation.
-        rewrite subst_distributes_over_negation.
-        f_equal.
-        induction H; simpl.
+      + rewrite IHs1; try lia.
+        rewrite IHs2; try lia.
         reflexivity.
-        f_equal; auto.
-        do 2 rewrite traverse_list_length.
-        replace (length l + S k) with (S (length l + k)); try lia.
-        apply H.
-      + rewrite lift_distributes_over_jump.
-        rewrite subst_distributes_over_jump.
-        f_equal.
-        apply IHb.
-        clear IHb b.
-        induction H; simpl.
+    - replace (bound (S n)) with (lift 1 0 n).
+      generalize (bound n) as b; clear n.
+      generalize dependent k.
+      induction s; simpl; intros.
+      + symmetry.
+        rewrite lift_lift_permutation; auto with arith cps.
+      + rewrite lift_and_subst_commute; auto with arith.
+        rewrite IHs.
         reflexivity.
-        f_equal; auto.
-      + rewrite lift_distributes_over_bind.
-        rewrite subst_distributes_over_bind.
-        f_equal.
-        apply IHb1.
-        clear IHb1 IHb2 b1 b2.
-        induction H; auto.
-        simpl; f_equal; auto.
-        do 2 rewrite traverse_list_length.
-        replace (length l + S k) with (S (length l + k)); try lia.
-        apply H.
-        rewrite traverse_list_length.
-        apply IHb2.
-  Qed.
+      + rewrite IHs1.
+        rewrite IHs2.
+        reflexivity.
+      + rewrite lift_bound_ge; try lia.
+        reflexivity.
+    Qed.
 
 End DeBruijn.
