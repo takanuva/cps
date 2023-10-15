@@ -16,6 +16,7 @@ theories/Factorization.v
 # Ignore this for now...
 # theories/Standardization.v
 theories/Observational.v
+theories/Contification.v
 theories/Machine.v
 theories/Interpreter.v
 theories/Transition.v
