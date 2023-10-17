@@ -1506,6 +1506,47 @@ Section StrongBisimulation.
   Definition strong_bisimulation (S: relation T): Prop :=
     strong_simulation S /\ strong_simulation (transp S).
 
+  Definition strong_bisimilarity a b: Prop :=
+    exists2 S, strong_bisimulation S & S a b.
+
+  Lemma strong_bisimilarity_refl:
+    reflexive strong_bisimilarity.
+  Proof.
+    exists eq; auto.
+    split; intros a b ? c l ?.
+    - destruct H.
+      exists c; auto.
+    - destruct H.
+      exists c; auto with cps.
+  Qed.
+
+  Lemma strong_bisimilarity_sym:
+    symmetric strong_bisimilarity.
+  Proof.
+    destruct 1 as (S, (?, ?), ?).
+    exists (transp S); auto.
+    firstorder.
+  Qed.
+
+  Lemma strong_bisimilarity_trans:
+    transitive strong_bisimilarity.
+  Proof.
+    destruct 1 as (S1, (?, ?), ?).
+    destruct 1 as (S2, (?, ?), ?).
+    exists (comp S1 S2).
+    - clear H1 H4 x y z.
+      split; intros.
+      + intros x z (y, ?, ?) w l ?.
+        destruct H with x y w l as (v, ?, ?); auto.
+        destruct H2 with y z v l as (u, ?, ?); auto.
+        exists u; eauto with cps.
+      + intros z x (y, ?, ?) w l ?.
+        destruct H3 with z y w l as (v, ?, ?); eauto.
+        destruct H0 with y x v l as (u, ?, ?); eauto.
+        exists u; eauto with cps.
+    - eauto with cps.
+  Qed.
+
   (* TODO: take a look at the definitions below. *)
 
   Variable l: L.
@@ -1582,6 +1623,94 @@ Section StrongBisimulation.
   Qed.
 
 End StrongBisimulation.
+
+Section StrongBisimulationCoind.
+
+  Variable T: Type.
+  Variable L: Type.
+
+  Variable R: L -> relation T.
+
+  (* Just for the sake of it, we also give the coinductive definition for strong
+     bisimilarity and check that it is indeed equivalent to the set-theoretic
+     version we use above. *)
+
+  Set Primitive Projections.
+
+  CoInductive strong_bisimilarity_coind (p q: T): Prop := {
+    strong_bisimilarity_commutes:
+      forall l p',
+      R l p p' ->
+      exists2 q',
+      R l q q' & strong_bisimilarity_coind p' q';
+    strong_bisimilarity_postpones:
+      forall l q',
+      R l q q' ->
+      exists2 p',
+      R l p p' & strong_bisimilarity_coind p' q'
+  }.
+
+  Goal
+    reflexive strong_bisimilarity_coind.
+  Proof.
+    cofix CH.
+    constructor; intros.
+    - exists p'; auto.
+    - exists q'; auto.
+  Qed.
+
+  Goal
+    symmetric strong_bisimilarity_coind.
+  Proof.
+    cofix CH.
+    constructor; intros.
+    - edestruct strong_bisimilarity_postpones as (z, ?, ?).
+      + eassumption.
+      + eassumption.
+      + eexists; eauto.
+    - edestruct strong_bisimilarity_commutes as (z, ?, ?).
+      + eassumption.
+      + eassumption.
+      + eexists; eauto.
+  Qed.
+
+  Goal
+    transitive strong_bisimilarity_coind.
+  Proof.
+    cofix CH.
+    constructor; intros.
+    - edestruct strong_bisimilarity_commutes with x y l p' as (w, ?, ?); auto.
+      edestruct strong_bisimilarity_commutes with y z l w as (v, ?, ?); auto.
+      exists v; auto.
+      apply CH with w; auto.
+    - edestruct strong_bisimilarity_postpones with y z l q' as (w, ?, ?); auto.
+      edestruct strong_bisimilarity_postpones with x y l w as (v, ?, ?); auto.
+      exists v; auto.
+      apply CH with w; auto.
+  Qed.
+
+  Goal
+    same_relation strong_bisimilarity_coind (strong_bisimilarity R).
+  Proof.
+    split.
+    - exists strong_bisimilarity_coind.
+      + clear H x y.
+        split; intros.
+        * intros a b (f, _) c l ?.
+          destruct f with l c as (d, ?, ?); eauto.
+        * intros a b (_, g) c l ?.
+          destruct g with l c as (d, ?, ?); eauto.
+      + assumption.
+    - intros x y (S, (?, ?), ?).
+      generalize dependent y.
+      generalize dependent x.
+      cofix CH.
+      constructor; intros.
+      + edestruct H as (z, ?, ?); eauto.
+      + edestruct H0 as (z, ?, ?); eauto.
+  Qed.
+
+End StrongBisimulationCoind.
 
 Section Postponement.
 

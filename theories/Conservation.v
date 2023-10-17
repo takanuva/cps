@@ -23,9 +23,7 @@ Notation const T x :=
 
 Definition equi: relation pseudoterm :=
   (* TODO: we need the definition of strong bisimilarity! *)
-  fun b c =>
-    exists2 S,
-    strong_bisimulation (const unit parallel) S & S b c.
+  strong_bisimilarity (const unit parallel).
 
 Global Hint Unfold equi: cps.
 
