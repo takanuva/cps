@@ -2,338 +2,283 @@
 (*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Set Implicit Arguments.
 Require Import Lia.
 Require Import List.
 Require Import Arith.
+Require Import Relations.
+Require Import Morphisms.
+(* TODO: remove me. *)
+Require Import String.
+
+(* We'll make a database just for rewriting substitution stuff, so that we can
+   easily add rewriting rules to it and rewrite just that if we wish. *)
+Create HintDb sigma.
+
+(* We define in here renaming, well-scoped substitution, and an algebra for
+   substitution (or de Bruijn algebra), inspired by the work of Schafer et al.
+   on the autosubst library, particularly by the Completeness and Decidability
+   of de Bruijn Substitution Algebra in Coq paper. This was inspired by the
+   definition of the lambda sigma calculus, from Abadi et al., introduced in
+   their Explicit Substitutions paper. By using an algebra like this a few
+   proofs should become easier, like the completeness for machine semantics. See
+   also Stark et al.'s Autosubst 2: Reasoning with Multi-sorted de Bruijn Terms
+   and Vector Substitutions paper. *)
+
+Section DeBruijn.
+
+  Variable X: Set.
+
+  Class deBruijn: Type := {
+    var:
+      nat -> X;
+    traverse:
+      (nat -> nat -> X) -> nat -> X -> X
+  }.
+
+  Context `{deBruijn}.
+
+  #[nonuniform]
+  Local Coercion var: nat >-> X.
+
+  Inductive substitution: Set :=
+    | subst_id
+    | subst_lift (i: nat)
+    | subst_cons (x: X) (s: substitution)
+    | subst_comp (s: substitution) (t: substitution).
+
+  Local Notation I := subst_id.
+  Local Notation L i := (subst_lift i).
+  Local Notation S := (L 1).
+  Local Notation "( x1 , .. , xn , s )" :=
+    (subst_cons x1 .. (subst_cons xn s) ..) (at level 0, right associativity).
+  Local Notation "s 'o' r" :=
+    (subst_comp s r) (at level 11, left associativity).
+
+  Local Notation up s :=
+    (0, s o L 1).
+
+  (* Definition lift (i: nat) (k: nat) (n: nat): nat :=
+    if le_gt_dec k n then
+      i + n
+    else
+      n. *)
+
+  Axiom TODO: forall {T}, string -> T.
+
+  Fixpoint subst_apply (s: substitution) (k: nat) (n: nat): X :=
+    if le_gt_dec k n then
+      match s with
+      | I =>
+        n
+      | L i =>
+        i + n
+      | (y, s) =>
+        TODO "cons"
+      | s o r =>
+        TODO "comp"
+      end
+    else
+      n.
+
+  Notation instantiate_rec s :=
+    (traverse (subst_apply s)).
+
+  Definition instantiate (s: substitution): X -> X :=
+    instantiate_rec s 0.
+
+  Coercion instantiate: substitution >-> Funclass.
+
+  Lemma traverse_subst_instantiate:
+    forall s x,
+    instantiate_rec s 0 x = s x.
+  Proof.
+    intros.
+    reflexivity.
+  Qed.
+
+  Definition subst_equiv: relation substitution :=
+    fun s r =>
+      forall x, s x = r x.
+
+  (*
+    Instantiation laws:
+
+      - 0[y, s] = y
+      - (1 + n)[y, s] = n[s]
+      - n[S^i] = i + n
+
+    Monad laws:
+
+      - e[I] = e
+      - e[s][r] = e[s >> r]
+
+    Algebraic laws:
+
+      - 0 .: S = I (could be derived from the eta-like law and the monad laws)
+      - S >> (e .: s) = s
+      - I >> s = s
+      - s >> I = s
+      - (s >> r) >> u = s >> (r >> u) (we need to reverse this one!)
+      - (e .: s) >> r = e[r] .: (s >> r)
+      - (0[s], S >> s) = s (is this an eta law...?)
+
+    We also need extra care since we want to simplify stuff by using the up
+    combinator... so in normal form, we'll associate composition to the left
+    instead of to the right. Also, as we are taking the lift primitive indexed
+    by a number to optimize stuff a bit, we probably need laws such as, e.g.,
+    (s >> L n) >> L m = s >> L (n + m). As s can be I, L n >> L m = L (n + m)
+    too, we probably need an extra reduction law for that. Ideally we would want
+    to prove confluence and completeness for this eventually, but this is not
+    important right now.
+  *)
+
+  Lemma instantiate_cons_zero:
+    forall y s,
+    (y, s) 0 = y.
+  Proof.
+    intros.
+    unfold instantiate.
+    admit.
+  Admitted.
+
+  Lemma instantiate_cons_succ:
+    forall y s n,
+    (y, s) (1 + n) = s n.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma instantiate_lift:
+    forall (n: nat) i,
+    L i n = i + n.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma instantiate_id:
+    forall x,
+    I x = x.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma instantiate_comp:
+    forall x s r,
+    (s o r) x = r (s x).
+  Proof.
+    admit.
+  Admitted.
+
+  (* TODO: do we want to import SetoidClass? *)
+
+  Local Notation "s == r" := (subst_equiv s r) (at level 70, no associativity).
+
+  Lemma subst_cons_lift_simpl:
+    (0, S) == I.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_cons_simpl:
+    forall y s,
+    S o (y, s) == s.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_comp_left_identity:
+    forall s,
+    I o s == s.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_comp_right_identity:
+    forall s,
+    s o I == s.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_comp_assoc:
+    forall s r t,
+    s o (r o t) == s o r o t.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_comp_cons_distr:
+    forall y s r,
+    (y, s) o r == (r y, s o r).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_cons_eta:
+    forall s: substitution,
+    (s 0, S o s) == s.
+  Proof.
+    admit.
+  Admitted.
+
+  (* ---------------------------------------------------------------------- *)
+
+  Global Instance subst_equiv_equivalence:
+    Equivalence subst_equiv.
+  Proof.
+    split.
+    - intros s x.
+      reflexivity.
+    - intros s r ? x.
+      symmetry; auto.
+    - intros s r t ? ? x.
+      transitivity (r x); auto.
+  Qed.
+
+  Global Instance subst_equiv_cons_proper:
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
+  Proof.
+    intros y _ () s r ? x.
+    admit.
+  Admitted.
+
+  Global Instance subst_equiv_comp_proper:
+    Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
+  Proof.
+    intros s r ? t u ? x.
+    admit.
+  Admitted.
+
+  Global Instance instantiate_subst_equiv_proper:
+    Proper (subst_equiv ==> eq ==> eq) instantiate.
+  Proof.
+    intros s r ? x _ ().
+    apply H0.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
+
+End DeBruijn.
+
+Global Opaque instantiate.
+
+Arguments subst_id {X}.
+Arguments subst_lift {X}.
+Arguments subst_cons {X}.
+Arguments subst_comp {X}.
+
+(* -------------------------------------------------------------------------- *)
+
+(* Below we have some tests. TODO: remove this and move into proper places. *)
+
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Machine.
 
-Section DeBruijn.
-
-  (* An algebra for substitution, or de Bruijn algebra, inspired by the work of
-     Schafer et al. on the autosubst library and the paper Completeness and
-     Decidability of de Bruijn Substitution Algebra in Coq. This is in turn
-     inspired by the definition of the lambda sigma calculuf of Abadi et al.,
-     introduced in their Explicit Substitutions paper. By using an algebra like
-     this a few proofs should become easier, like the completeness for machine
-     semantics. *)
-
-  Inductive substitution: Set :=
-    | subs_lift (i: nat)
-    | subs_cons (y: pseudoterm) (s: substitution)
-    | subs_comp (s: substitution) (t: substitution).
-
-  Notation subs_id :=
-    (subs_lift 0).
-
-  Fixpoint instantiate_rec (k: nat) (s: substitution) (c: pseudoterm)  :=
-    match s with
-    | subs_lift i =>
-      lift i k c
-    | subs_cons y s =>
-      subst y k (instantiate_rec (S k) s c)
-    | subs_comp s t =>
-      instantiate_rec k t (instantiate_rec k s c)
-    end.
-
-  Definition instantiate: substitution -> pseudoterm -> pseudoterm :=
-    instantiate_rec 0.
-
-  Coercion instantiate: substitution >-> Funclass.
-
-  (* Are we sound...? *)
-
-  Goal
-    forall i k c,
-    lift i k c = instantiate_rec k (subs_lift i) c.
-  Proof.
-    intros; simpl.
-    reflexivity.
-  Qed.
-
-  Goal
-    forall y k c,
-    subst y k c = instantiate_rec k (subs_cons y subs_id) c.
-  Proof.
-    intros; simpl.
-    rewrite lift_zero_e_equals_e.
-    reflexivity.
-  Qed.
-
-  Lemma foo:
-    forall s n,
-    instantiate_rec (S n) s 0 = 0.
-  Proof.
-    induction s; simpl; intros.
-    - rewrite lift_bound_lt; auto with arith.
-    - rewrite IHs.
-      rewrite subst_bound_lt; auto with arith.
-    - rewrite IHs1.
-      rewrite IHs2.
-      reflexivity.
-  Qed.
-
-  Lemma bar:
-    forall s c n m,
-    m >= n ->
-    instantiate_rec (S m) s (lift 1 n c) =
-      lift 1 n (instantiate_rec m s c).
-  Proof.
-    induction s; simpl; intros.
-    - symmetry.
-      rewrite lift_lift_permutation; try lia.
-      reflexivity.
-    - rewrite IHs; try lia.
-      rewrite lift_and_subst_commute; try lia.
-      reflexivity.
-    - rewrite IHs1; try lia.
-      rewrite IHs2; try lia.
-      reflexivity.
-  Qed.
-
-  Lemma baz:
-    forall r e y p k,
-    instantiate_rec (p + k) r (subst y p e) =
-      subst (instantiate_rec k r y) p (instantiate_rec (S (p + k)) r e).
-  Proof.
-    induction r; simpl; intros.
-    - rewrite lift_addition_distributes_over_subst.
-      reflexivity.
-    - specialize IHr with (k := S k); simpl in IHr.
-      replace (S (p + k)) with (p + S k); try lia.
-      rewrite IHr.
-      remember (instantiate_rec (S (p + S k)) r e) as d.
-      rewrite subst_addition_distributes_over_itself.
-      f_equal; f_equal.
-      lia.
-    - rewrite IHr1.
-      rewrite IHr2.
-      reflexivity.
-  Qed.
-
-  Lemma qux:
-    forall b k, subst 0 k (lift 1 (S k) b) = b.
-  Proof.
-    induction b using pseudoterm_deepind; intros.
-    - reflexivity.
-    - reflexivity.
-    - reflexivity.
-    - reflexivity.
-    - destruct (le_gt_dec (S k) n).
-      rewrite lift_bound_ge; try lia.
-      rewrite subst_bound_gt; try lia.
-      reflexivity.
-      rewrite lift_bound_lt; try lia.
-      destruct (Nat.eq_dec k n).
-      rewrite subst_bound_eq; try lia.
-      rewrite lift_bound_ge; try lia.
-      rewrite Nat.add_0_r; auto.
-      rewrite subst_bound_lt; try lia.
-      reflexivity.
-    - rewrite lift_distributes_over_negation.
-      rewrite subst_distributes_over_negation.
-      f_equal.
-      induction H; simpl.
-      reflexivity.
-      f_equal; auto.
-      do 2 rewrite traverse_list_length.
-      replace (length l + S k) with (S (length l + k)); try lia.
-      apply H.
-    - rewrite lift_distributes_over_jump.
-      rewrite subst_distributes_over_jump.
-      f_equal.
-      apply IHb.
-      clear IHb b.
-      induction H; simpl.
-      reflexivity.
-      f_equal; auto.
-    - rewrite lift_distributes_over_bind.
-      rewrite subst_distributes_over_bind.
-      f_equal.
-      apply IHb1.
-      clear IHb1 IHb2 b1 b2.
-      induction H; auto.
-      simpl; f_equal; auto.
-      do 2 rewrite traverse_list_length.
-      replace (length l + S k) with (S (length l + k)); try lia.
-      apply H.
-      rewrite traverse_list_length.
-      apply IHb2.
-  Qed.
-
-  Definition up (s: substitution): substitution :=
-    subs_cons 0 (subs_comp s (subs_lift 1)).
-
-  (*
-    So, we have the following axioms to satisfy:
-
-      1) 0[e .: s] = e
-      2) S >> (e .: s) = s
-      3) I >> s = s
-      4) s >> I = s
-      5) (s >> r) >> u = s >> (r >> u)
-      6) (e .: s) >> r = e[r] .: (s >> r)
-
-    Additionally:
-
-      7) 0 .: S = I
-      8) 0[S^n] = n
-
-  *)
-
-  Structure curien_axioms: Prop := {
-    H1: forall b s,
-        instantiate (subs_cons b s) 0 = b;
-    H2: forall b c s,
-        subs_comp (subs_lift 1) (subs_cons b s) c = s c;
-    H3: forall b s,
-        subs_comp subs_id s b = s b;
-    H4: forall b s,
-        subs_comp s subs_id b = s b;
-    H5: forall b s r u,
-        subs_comp (subs_comp s r) u b = subs_comp s (subs_comp r u) b;
-    H6: forall b c s r,
-        subs_comp (subs_cons b s) r c = subs_cons (r b) (subs_comp s r) c;
-    H7: forall b,
-        subs_cons 0 (subs_lift 1) b = subs_id b;
-    HX: forall i j b,
-        subs_comp (subs_lift i) (subs_lift j) b = subs_lift (i + j) b
-  }.
-
-  Goal
-    curien_axioms.
-  Proof.
-    split; intros.
-    - unfold instantiate; simpl.
-      rewrite foo.
-      rewrite subst_bound_eq; auto.
-      rewrite lift_zero_e_equals_e.
-      reflexivity.
-    - unfold instantiate; simpl.
-      rewrite bar; auto.
-      rewrite subst_lift_simplification; auto.
-      rewrite lift_zero_e_equals_e.
-      reflexivity.
-    - unfold instantiate; simpl.
-      rewrite lift_zero_e_equals_e.
-      reflexivity.
-    - unfold instantiate; simpl.
-       rewrite lift_zero_e_equals_e.
-      reflexivity.
-    - unfold instantiate; simpl.
-      reflexivity.
-    - unfold instantiate; simpl.
-      rewrite baz with (p := 0) (k := 0); simpl.
-      reflexivity.
-    - unfold instantiate; simpl.
-      (* Ok, somehow I still don't got a proof for that, but this is clearly
-         true as 0 replaces 0 then unlifts everything. *)
-      rewrite lift_zero_e_equals_e.
-      rewrite qux.
-      reflexivity.
-    - unfold instantiate; simpl.
-      rewrite lift_lift_simplification; try lia.
-      f_equal; try lia.
-  Qed.
-
-  Lemma instantiate_rec_distributes_over_jump:
-    forall s k x xs,
-    instantiate_rec k s (jump x xs) =
-      jump (instantiate_rec k s x) (map (instantiate_rec k s) xs).
-  Proof.
-    induction s; simpl; intros.
-    - rewrite lift_distributes_over_jump.
-      reflexivity.
-    - rewrite IHs.
-      rewrite subst_distributes_over_jump.
-      f_equal.
-      (* I almost forgot I had written this tactic in here... *)
-      list induction over xs.
-    - rewrite IHs1.
-      rewrite IHs2.
-      f_equal.
-      list induction over xs.
-  Qed.
-
-  Lemma instantiate_respects_structure:
-    forall c s k,
-    instantiate_rec k s c =
-      traverse (fun k => instantiate_rec k s) k c.
-  Proof.
-    induction c using pseudoterm_deepind; simpl; intros.
-    - generalize dependent k.
-      induction s; simpl; intros.
-      reflexivity.
-      rewrite IHs.
-      reflexivity.
-      rewrite IHs1.
-      rewrite IHs2.
-      reflexivity.
-    - generalize dependent k.
-      induction s; simpl; intros.
-      reflexivity.
-      rewrite IHs.
-      reflexivity.
-      rewrite IHs1.
-      rewrite IHs2.
-      reflexivity.
-    - generalize dependent k.
-      induction s; simpl; intros.
-      reflexivity.
-      rewrite IHs.
-      reflexivity.
-      rewrite IHs1.
-      rewrite IHs2.
-      reflexivity.
-    - generalize dependent k.
-      induction s; simpl; intros.
-      reflexivity.
-      rewrite IHs.
-      reflexivity.
-      rewrite IHs1.
-      rewrite IHs2.
-      reflexivity.
-    - reflexivity.
-    - admit.
-    - rewrite instantiate_rec_distributes_over_jump.
-      f_equal.
-      apply IHc.
-      list induction over H.
-    - admit.
-  Admitted.
-
-  Instance instantiate_proper s: proper (fun k => instantiate_rec k s).
-  Proof.
-    split; intros.
-    - rewrite instantiate_respects_structure.
-      reflexivity.
-    - generalize dependent k.
-      induction s; simpl; intros.
-      + rewrite lift_bound_lt; try lia.
-        reflexivity.
-      + rewrite IHs; auto.
-        rewrite subst_bound_lt; try lia.
-        reflexivity.
-      + rewrite IHs1; try lia.
-        rewrite IHs2; try lia.
-        reflexivity.
-    - replace (bound (S n)) with (lift 1 0 n).
-      generalize (bound n) as b; clear n.
-      generalize dependent k.
-      induction s; simpl; intros.
-      + symmetry.
-        rewrite lift_lift_permutation; auto with arith cps.
-      + rewrite lift_and_subst_commute; auto with arith.
-        rewrite IHs.
-        reflexivity.
-      + rewrite IHs1.
-        rewrite IHs2.
-        reflexivity.
-      + rewrite lift_bound_ge; try lia.
-        reflexivity.
-    Qed.
-
-End DeBruijn.
+Global Instance pseudoterm_deBruijn: deBruijn pseudoterm.
+Proof.
+  apply (Build_deBruijn bound traverse).
+Defined.
