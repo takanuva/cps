@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import List.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Syntax.

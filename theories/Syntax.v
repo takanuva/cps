@@ -2,10 +2,11 @@
 (*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
-Require Export List.
+Require Import List.
 Require Import Arith.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 
 Export ListNotations.
 
