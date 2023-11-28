@@ -1,29 +1,23 @@
-name: Makefile CI
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+name: Coq 8.16
+on: push
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        coq_version: ["8.16"]
-        ocaml_version: [default]
-      fail-fast: false
     steps:
     - uses: actions/checkout@v3
     - uses: coq-community/docker-coq-action@v1.4.1
       with:
-        coq_version: ${{ matrix.coq_version }}
-        ocaml_version: ${{ matrix.ocaml_version }}
+        coq_version: "8.16"
+        ocaml_version: default
         before_script: |
           startGroup "Workaround permission issue"
             sudo chown -R coq:coq .
           endGroup
         script: |
           startGroup "Build project"
-            coqc --version
             make
+          endGroup
+        after_script: |
+          startGroup "Revert permissions"
+            sudo chown -R 1001:116 .
           endGroup
