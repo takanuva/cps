@@ -1584,7 +1584,7 @@ Section StrongBisimulation.
     generalize dependent y.
     induction H0; intros.
     - rename y0 into y, y into z.
-      destruct S_is_bisim as ((w, ?, ?), _).
+      edestruct S_is_bisim as ((w, ?, ?), _).
       + eassumption.
       + eassumption.
       + exists w; auto.
@@ -1607,7 +1607,7 @@ Section StrongBisimulation.
       constructor; intros w ?H.
       fold (SN (R l)) in H |- *.
       unfold transp in H, H0, H2.
-      destruct S_is_bisim as (_, (a, ?, ?)).
+      edestruct S_is_bisim as (_, (a, ?, ?)).
       + eassumption.
       + eassumption.
       + eapply H0; eauto.
@@ -1616,7 +1616,7 @@ Section StrongBisimulation.
       constructor; intros w ?H.
       fold (SN (R l)) in H |- *.
       unfold transp in H, H0, H2.
-      destruct S_is_bisim as ((a, ?, ?), _).
+      edestruct S_is_bisim as ((a, ?, ?), _).
       + eassumption.
       + eassumption.
       + eapply H0; eauto.
@@ -1817,7 +1817,7 @@ Section Modulo.
     - apply clos_trans_tn1_iff in H.
       induction H.
       + destruct H as (b, (c, (?, (?, ?)))).
-        destruct S_is_bisimulation as (_, (d, ?, ?)).
+        edestruct S_is_bisimulation as (_, (d, ?, ?)).
         * exact H.
         * easy.
         * exact H0.
@@ -1825,7 +1825,7 @@ Section Modulo.
       + apply clos_trans_tn1_iff in H0.
         destruct IHclos_trans_n1 as (a, ?, ?).
         destruct H as (b, (c, (?, (?, ?)))).
-        destruct S_is_bisimulation as (_, (d, ?, ?)).
+        edestruct S_is_bisimulation as (_, (d, ?, ?)).
         * apply equiv_trans with y; eauto.
         * easy.
         * eassumption.
@@ -1853,11 +1853,11 @@ Section Modulo.
     unfold transp in H1 |- *.
     destruct H0 as (a, (b, (?, (?, ?)))).
     destruct H1 as (c, (d, (?, (?, ?)))).
-    destruct S_is_bisimulation as (_, (e, ?, ?)).
+    edestruct S_is_bisimulation as (_, (e, ?, ?)).
     - exact H0.
     - easy.
     - exact H2.
-    - destruct S_is_bisimulation as (_, (f, ?, ?)).
+    - edestruct S_is_bisimulation as (_, (f, ?, ?)).
       + exact H1.
       + easy.
       + exact H4.
