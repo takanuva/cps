@@ -290,3 +290,44 @@ Fixpoint cbv_type (t: type): pseudoterm :=
 
 Definition cbv_env (g: env): list pseudoterm :=
   map (fun t => cbv_type t) g.
+
+(* -------------------------------------------------------------------------- *)
+
+(* This should ideally be moved to a new file. Anyway, the naive one-pass CPS
+   translation of Danvy and Filinski's that Kennedy describes in his paper is
+   given as follows:
+
+     [-]: term -> (var -> pseudoterm) -> pseudoterm
+
+                            +------------+
+     [x] K = K(x)          \|/           |
+     [\x.e] K = K(f) { f<x, k> = [e] (\z.k z) }
+     [e1 e2] K = [e1] (\z1.
+                   [e2] (\z2.
+                    z1<z2, k> { k<v> = K(v) }))
+                                  |     /|\
+                                  +------+
+
+   As of writing, I'm still not sure how to handle the de Bruijn indexes in here
+   correctly. Probably applying a substitution would be a nice way, as we don't
+   know in advance how far the variable will be pushed inside a term... can we
+   calculate that? Sigh...
+
+   The final version, which avoids the introduction of tail-calls, i.e., (ETA)
+   redexes, can be defined by modifying the above with:
+
+     [\x.e] K = K(f) { f<x, k> = (e) k }
+
+   Along with the introduction of an auxiliary definition:
+
+     (-): term -> var -> pseudoterm
+
+     (x) k = k<x>
+     (\x.e) k = k<f> { f<x, j> = (e) j }
+     (e1 e2) k = [e1] (\z1.[e2] (\z2.z1<z2, k>))
+
+   Ideally, we would like to show that we can get from Plotkin's translation to
+   the naive one by performing some jumps, then from the naive one to the final
+   one by performing some tail-call eliminations. The combination would lead to
+   the result that these translations are adequate and that they give a sound
+   denotational semantics for the lambda calculus. *)
