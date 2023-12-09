@@ -25,8 +25,6 @@ Proof.
   induction n; simpl; auto.
 Qed.
 
-Hint Rewrite sequence_length: cps.
-
 Lemma lift_distributes_over_negation:
   forall i k ts,
   lift i k (negation ts) =
@@ -1580,7 +1578,8 @@ Proof.
         rewrite lift_bound_ge; try lia.
         rewrite subst_bound_gt; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite apply_parameters_high_sequence_bound_in; try lia.
         f_equal; lia.
       * rewrite apply_parameters_bound_lt; try lia.
@@ -1597,21 +1596,25 @@ Proof.
       * rewrite lift_bound_ge; try lia.
         rewrite subst_bound_gt; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite lift_bound_ge; try lia.
         rewrite subst_bound_gt; try lia.
         rewrite lift_bound_ge; try lia.
         rewrite subst_bound_gt; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         simpl; f_equal; lia.
       * rewrite lift_bound_lt; try lia.
         rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite lift_bound_lt; try lia.
         rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; try lia.
@@ -1619,9 +1622,11 @@ Proof.
         rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         f_equal; lia.
       * rewrite lift_bound_lt; try lia.
         rewrite subst_bound_lt; try lia.
@@ -1631,7 +1636,8 @@ Proof.
         rewrite lift_bound_lt; try lia.
         rewrite subst_bound_lt; try lia.
         rewrite apply_parameters_bound_gt;
-          autorewrite with cps using try lia.
+        rewrite sequence_length;
+        try lia.
         rewrite apply_parameters_high_sequence_bound_in; try lia.
         f_equal; lia.
       * rewrite lift_bound_lt; try lia.

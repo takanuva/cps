@@ -267,7 +267,6 @@ Proof.
 Qed.
 
 Global Hint Resolve same_path_implies_same_bvars: cps.
-Hint Rewrite same_path_implies_same_bvars: cps.
 
 Lemma same_path_implies_same_depth:
   forall h r,
@@ -277,7 +276,6 @@ Proof.
 Qed.
 
 Global Hint Resolve same_path_implies_same_depth: cps.
-Hint Rewrite same_path_implies_same_depth: cps.
 
 Lemma same_path_same_hole_implies_same_context:
   forall h r,
