@@ -1970,3 +1970,36 @@ Proof.
       rewrite Nat.add_comm.
       assumption.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Fixpoint apply_parameters' ys k e: pseudoterm :=
+  match ys with
+  | [] => e
+  | y :: ys => (* apply_parameters ys k (subst y (k + length ys) e) *)
+               subst y k (apply_parameters' ys (1 + k) e)
+  end.
+
+Lemma aaaaa:
+  forall xs ys k e,
+  apply_parameters (xs ++ ys) k e =
+    apply_parameters ys k (apply_parameters xs (k + length ys) e).
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    do 3 f_equal.
+    rewrite app_length.
+    lia.
+Qed.
+
+Goal
+  forall ys e k,
+  apply_parameters (rev ys) k e = apply_parameters' ys k e.
+Proof.
+  induction ys; simpl; intros.
+  - reflexivity.
+  - rewrite <- IHys, aaaaa; simpl.
+    replace (k + 0) with k by lia.
+    repeat f_equal; lia.
+Qed.
