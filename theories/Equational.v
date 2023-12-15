@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -30,7 +30,7 @@ Global Hint Unfold RECJMP: cps.
 
 Definition ETA (R: relation pseudoterm): Prop :=
   forall b ts k,
-  R (bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts))))
+  R (bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts) [])))
     (subst k 0 b).
 
 Global Hint Unfold ETA: cps.
@@ -290,7 +290,7 @@ Qed.
 
 Local Lemma axiom_eta_helper:
   forall b ts k x1 x2,
-  x1 = jump (lift (length ts) 0 k) (low_sequence (length ts)) ->
+  x1 = jump (lift (length ts) 0 k) (low_sequence (length ts) []) ->
   x2 = subst k 0 b ->
   axiom (bind b ts x1) x2.
 Proof.
@@ -654,41 +654,34 @@ Qed.
 Local Lemma technical1:
   forall n k c: nat,
   c < k ->
-  (apply_parameters (high_sequence n) k
-    (lift (1 + n) (k + n) c)) = lift 1 k c.
+  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.
   rewrite lift_bound_lt; try lia.
-  induction n; simpl.
-  - reflexivity.
-  - rewrite sequence_length.
-    rewrite subst_bound_lt; try lia.
-    assumption.
+  apply apply_parameters_bound_lt.
+  lia.
 Qed.
 
 Local Lemma technical2:
   forall c n k,
   c >= n + k ->
-  apply_parameters (high_sequence n) k (1 + n + c) = 1 + c.
+  apply_parameters (high_sequence n []) k (1 + n + c) = 1 + c.
 Proof.
   intros.
   replace (1 + c) with ((1 + n + c) - n); try lia.
-  cut (1 + n + c > k + n); try lia.
-  generalize (1 + n + c) as m.
-  induction n; simpl; intros.
-  - f_equal; lia.
-  - rewrite sequence_length.
-    rewrite subst_bound_gt; try lia.
-    replace (m - S n) with (pred m - n); try lia.
-    apply IHn; lia.
+  rewrite apply_parameters_bound_gt; try lia.
+  + rewrite sequence_length; simpl.
+    replace (n + 0) with n by lia.
+    reflexivity.
+  + rewrite sequence_length; simpl.
+    lia.
 Qed.
 
 Local Lemma technical3:
   forall n k c: nat,
   c >= n + k ->
-  (apply_parameters (high_sequence n) k
-    (lift (1 + n) (k + n) c)) = lift 1 k c.
+  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_ge; try lia.
@@ -700,39 +693,35 @@ Local Lemma technical4:
   forall n k c: nat,
   c >= k ->
   c < n + k ->
-  (apply_parameters (high_sequence n) k
-    (lift (1 + n) (k + n) c)) = lift 1 k c.
+  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.
   rewrite lift_bound_ge; try lia.
-  (* So here, we'll actually replace c with something! *)
-  induction n.
-  - exfalso.
+  replace c with (k + (c - k)) at 1 by lia.
+  rewrite apply_parameters_bound_in with (x := 1 + (c - k)).
+  - rewrite lift_bound_ge by lia.
+    f_equal; lia.
+  - rewrite sequence_length; simpl.
     lia.
-  - (* Are we there yet...? *)
-    simpl; rewrite sequence_length.
-    destruct (le_gt_dec (n + k) c).
-    + clear IHn.
-      rewrite subst_bound_eq; try lia.
-      rewrite lift_bound_ge; try lia.
-      replace c with (n + k); try lia.
-      replace (n + k + S n) with (1 + n + (n + k)); try lia.
-      apply technical2; auto.
-    + rewrite subst_bound_lt; try lia.
-      apply IHn; lia.
-Qed.
+  - assert (c - k < n) by lia.
+    (* Sure. *)
+    admit.
+Admitted.
 
 Local Lemma technical5:
   forall c n k,
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) =
-    lift 1 k c.
+  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   induction c using pseudoterm_deepind; intros.
-  - induction n; simpl; auto.
-  - induction n; simpl; auto.
-  - induction n; simpl; auto.
-  - induction n; simpl; auto.
+  - rewrite apply_parameters_type.
+    reflexivity.
+  - rewrite apply_parameters_prop.
+    reflexivity.
+  - rewrite apply_parameters_base.
+    reflexivity.
+  - rewrite apply_parameters_void.
+    reflexivity.
   - rename n0 into m.
     destruct (le_gt_dec k n).
     + destruct (le_gt_dec (m + k) n).
@@ -814,7 +803,8 @@ Proof.
     apply sema_recjmp.
     rewrite map_length.
     rewrite traverse_list_length.
-    apply sequence_length.
+    rewrite sequence_length; simpl.
+    lia.
   - apply sema_bind_right.
     apply sema_gc.
     rewrite right_cycle_low_sequence_n_equals_high_sequence_n; auto.

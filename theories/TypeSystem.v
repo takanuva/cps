@@ -10,6 +10,7 @@ Require Import Local.Prelude.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
+Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Observational.
 
@@ -40,7 +41,7 @@ Inductive typing: env -> relation pseudoterm :=
   | typing_jump:
     forall g k xs ts,
     typing g k (negation ts) ->
-    Forall2 (typing g) (rev xs) ts ->
+    Forall2 (typing g) xs ts ->
     typing g (jump k xs) void
   | typing_bind:
     forall g b ts c,
@@ -49,6 +50,30 @@ Inductive typing: env -> relation pseudoterm :=
     typing g (bind b ts c) void.
 
 Global Hint Constructors typing: cps.
+
+Goal
+  let G := [base; base; base; negation [base; base]] in
+  typing G ex1 void.
+Proof.
+  compute.
+  repeat econstructor.
+Qed.
+
+Goal
+  let G := [base; base; base; negation [base; base]] in
+  typing G ex2 void.
+Proof.
+  compute.
+  repeat econstructor.
+Qed.
+
+Goal
+  let G := [base; base; base; negation [base; base]] in
+  typing G ex3 void.
+Proof.
+  compute.
+  repeat econstructor.
+Qed.
 
 Lemma valid_env_typing:
   forall g e t,
@@ -194,14 +219,12 @@ Proof.
     econstructor.
     + apply IHe with g u; eauto.
     + clear IHe H0.
-      apply Forall_rev in H.
-      rewrite <- map_rev.
       generalize dependent ts.
-      induction xs using rev_ind; intros.
+      induction xs; intros.
       * simpl in H, H1 |- *.
         dependent destruction H1.
         constructor.
-      * rewrite rev_app_distr in H, H1 |- *; simpl in H, H1 |- *.
+      * simpl in H, H1 |- *.
         dependent destruction H.
         dependent destruction H1.
         constructor; eauto.
@@ -311,14 +334,12 @@ Proof.
     econstructor.
     + apply IHe with g; eauto.
     + clear IHe H0.
-      apply Forall_rev in H.
-      rewrite <- map_rev.
       generalize dependent ts.
-      induction xs using rev_ind; intros.
+      induction xs; intros.
       * simpl in H, H1 |- *.
         dependent destruction H1.
         constructor.
-      * rewrite rev_app_distr in H, H1 |- *; simpl in H, H1 |- *.
+      * simpl in H, H1 |- *.
         dependent destruction H.
         dependent destruction H1.
         constructor; eauto.
@@ -410,14 +431,12 @@ Proof.
     econstructor.
     + apply IHe with g; eauto.
     + clear IHe H0.
-      apply Forall_rev in H.
-      rewrite <- map_rev.
       generalize dependent ts.
-      induction xs using rev_ind; intros.
+      induction xs; intros.
       * simpl in H, H1 |- *.
         dependent destruction H1.
         constructor.
-      * rewrite rev_app_distr in H, H1 |- *; simpl in H, H1 |- *.
+      * simpl in H, H1 |- *.
         dependent destruction H.
         dependent destruction H1.
         constructor; eauto.
@@ -476,7 +495,6 @@ Proof.
       * eapply item_unique; eauto.
       * dependent destruction H3; clear H1.
         apply Forall2_length in H2.
-        rewrite rev_length in H2.
         assumption.
     + rename ts0 into us.
       dependent destruction H0.
@@ -576,14 +594,12 @@ Proof.
     econstructor.
     + apply IHe with g; eauto.
     + clear IHe H0 H3.
-      apply Forall_rev in H, H4.
-      rewrite <- map_rev.
       generalize dependent ts.
-      induction xs using rev_ind; intros.
+      induction xs; intros.
       * simpl in H, H1, H4 |- *.
         dependent destruction H1.
         constructor.
-      * rewrite rev_app_distr in H, H1, H4 |- *; simpl in H, H1, H4 |- *.
+      * simpl in H, H1, H4 |- *.
         dependent destruction H.
         dependent destruction H1.
         dependent destruction H4.

@@ -148,7 +148,7 @@ Section CBV.
       [N [T]; N [N [N []]; N [N [N []]; T]]]
       (bind
         (bind
-          (jump 3 [Syntax.bound 0; Syntax.bound 1])
+          (jump 3 [Syntax.bound 1; Syntax.bound 0])
           [N [N []]; T]
           (bind
             (jump 1 [Syntax.bound 0])
@@ -203,7 +203,7 @@ Section CBV.
 
   Local Lemma axiom_eta_helper:
     forall b ts k x1 x2,
-    x1 = jump (Syntax.lift (length ts) 0 k) (low_sequence (length ts)) ->
+    x1 = jump (Syntax.lift (length ts) 0 k) (low_sequence (length ts) []) ->
     x2 = Syntax.subst k 0 b ->
     axiom (bind b ts x1) x2.
   Proof.
@@ -337,7 +337,7 @@ Section CBV.
     etransitivity.
     transitivity
       (bind (bind (jump 2 [CPS.bound 0]) [N [N []]; N []]
-        (jump 2 (low_sequence 2))) [void; void]
+        (jump 2 (low_sequence 2 []))) [void; void]
           (jump 1 [])).
     apply sema_sym.
     apply sema_bind_left.
@@ -351,9 +351,9 @@ Section CBV.
     apply step_beta.
     replace ((bind (jump 2 [CPS.bound 0]) [
         N [N []]; N []]
-        (jump 2 (CPS.low_sequence 2)))) with
+        (jump 2 (low_sequence 2 [])))) with
       (context_right (jump 2 [CPS.bound 0]) [
-        N [N []]; N []] Context.context_hole (jump 2 (CPS.low_sequence 2)));
+        N [N []]; N []] Context.context_hole (jump 2 (low_sequence 2 [])));
     auto.
     apply beta_ctxjmp.
     reflexivity.
@@ -420,7 +420,7 @@ Section CBN.
         [N [N [N []]; N [U]]]
         (bind
           (bind
-            (jump 2 [Syntax.bound 0; Syntax.bound 1])
+            (jump 2 [Syntax.bound 1; Syntax.bound 0])
             [U]
             (bind
               (jump 1 [Syntax.bound 0])

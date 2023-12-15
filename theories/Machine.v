@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -354,15 +354,16 @@ Qed.
 
 Global Hint Resolve subst_proper: cps.
 
-Global Instance apply_parameters_proper: forall xs, proper (apply_parameters xs).
+Global Instance apply_parameters_proper:
+  forall xs, proper (apply_parameters xs).
 Proof.
   constructor; intros.
   - generalize dependent k.
     induction x using pseudoterm_deepind; simpl; intros.
-    + induction xs; simpl; auto.
-    + induction xs; simpl; auto.
-    + induction xs; simpl; auto.
-    + induction xs; simpl; auto.
+    + apply apply_parameters_type.
+    + apply apply_parameters_prop.
+    + apply apply_parameters_base.
+    + apply apply_parameters_void.
     + reflexivity.
     + rewrite apply_parameters_distributes_over_negation.
       f_equal.
@@ -388,9 +389,9 @@ Proof.
         rewrite apply_parameters_bound_gt; try lia.
         rewrite lift_bound_ge; try lia.
         f_equal; lia.
-      * assert (exists x, item x (rev xs) (n - k)) as (x, ?).
+      * (* TODO: refactor me, please. I'm so tired. *)
+        assert (exists x, item x xs (n - k)) as (x, ?).
         apply item_exists.
-        rewrite rev_length.
         lia.
         replace (S n) with (S k + (S n - S k)); try lia.
         rewrite apply_parameters_bound_in with (x := x); try lia.

@@ -1,6 +1,9 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2021 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
+
+(* TODO: as we move to a substitution algebra, most of this file will be either
+   removed or rewritten. It was about time! *)
 
 Require Import Lia.
 Require Import Arith.
@@ -19,10 +22,13 @@ Proof.
 Qed.
 
 Lemma sequence_length:
-  forall n b,
-  length (sequence b n) = n.
+  forall n b xs,
+  length (sequence b n xs) = n + length xs.
 Proof.
-  induction n; simpl; auto.
+  induction n; simpl; intros.
+  - reflexivity.
+  - rewrite IHn; simpl.
+    lia.
 Qed.
 
 Lemma lift_distributes_over_negation:
@@ -563,8 +569,8 @@ Proof.
   - f_equal; induction ts; auto.
     simpl; f_equal.
     assumption.
-  - rewrite subst_distributes_over_negation.
-    rewrite IHys.
+  - rewrite IHys.
+    rewrite subst_distributes_over_negation.
     f_equal; clear IHys.
     induction ts; auto; simpl.
     do 3 rewrite traverse_list_length.
@@ -582,8 +588,8 @@ Proof.
   - f_equal; induction xs; auto.
     simpl; f_equal.
     assumption.
-  - rewrite subst_distributes_over_jump.
-    rewrite IHys.
+  - rewrite IHys.
+    rewrite subst_distributes_over_jump.
     f_equal; clear IHys.
     induction xs; auto; simpl.
     f_equal; assumption.
@@ -600,17 +606,15 @@ Proof.
   - f_equal; induction ts; auto.
     simpl; f_equal.
     assumption.
-  - rewrite subst_distributes_over_bind.
-    rewrite IHys; clear IHys.
+  - rewrite IHys; clear IHys.
+    rewrite subst_distributes_over_bind.
     rewrite traverse_list_length.
     f_equal.
-    + induction ts; auto; simpl.
-      do 3 rewrite traverse_list_length.
-      f_equal; auto.
-      f_equal; f_equal.
-      lia.
-    + f_equal; f_equal.
-      lia.
+    induction ts; auto; simpl.
+    do 3 rewrite traverse_list_length.
+    f_equal; auto.
+    do 2 f_equal.
+    lia.
 Qed.
 
 Lemma lift_addition_distributes_over_apply_parameters:
@@ -622,9 +626,9 @@ Proof.
   (* Case: nil. *)
   - replace (p + 0) with p; auto.
   (* Case: cons. *)
-  - rewrite IHys.
-    rewrite lift_addition_distributes_over_subst.
-    rewrite map_length.
+  - rewrite lift_addition_distributes_over_subst.
+    replace (S (p + k)) with (S p + k) by lia.
+    rewrite IHys.
     do 3 f_equal; lia.
 Qed.
 
@@ -647,9 +651,9 @@ Proof.
   (* Case: nil. *)
   - replace (p + 0) with p; auto.
   (* Case: cons. *)
-  - rewrite IHys.
-    rewrite subst_addition_distributes_over_itself.
-    rewrite map_length.
+  - rewrite subst_addition_distributes_over_itself.
+    replace (S (p + k)) with (S p + k) by lia.
+    rewrite IHys.
     do 3 f_equal; lia.
 Qed.
 
@@ -695,7 +699,6 @@ Proof.
       * rewrite subst_bound_eq; auto.
         rewrite subst_bound_lt; try lia.
         rewrite subst_bound_eq; eauto with arith.
-        lia.
       * rewrite subst_bound_gt; auto.
         rewrite subst_bound_eq; try lia.
         rewrite lift_bound_ge; auto.
@@ -709,8 +712,9 @@ Proof.
     do 5 rewrite traverse_list_length.
     f_equal; auto.
     replace (length l + S (S k)) with (S (S (length l + k))); try lia.
-    do 2 rewrite Nat.add_assoc.
-    apply H.
+    rewrite H.
+    do 2 f_equal.
+    lia.
   (* Case: jump. *)
   - do 2 rewrite lift_distributes_over_jump.
     do 3 rewrite subst_distributes_over_jump.
@@ -727,8 +731,9 @@ Proof.
       do 5 rewrite traverse_list_length.
       f_equal; auto.
       replace (length l + S (S k)) with (S (S (length l + k))); try lia.
-      do 2 rewrite Nat.add_assoc.
-      apply H.
+      rewrite H.
+      do 2 f_equal.
+      lia.
     + do 3 rewrite traverse_list_length.
       replace (k + 0 + length ts) with (k + length ts + 0); try lia.
       replace (k + 1 + length ts) with (k + length ts + 1); try lia.
@@ -1075,6 +1080,8 @@ Proof.
   assumption.
 Qed.
 
+(*
+
 Lemma lifting_over_n_doesnt_change_sequence_n:
   forall n i k (b: bool),
   (if b then k > n else k >= n) ->
@@ -1100,14 +1107,18 @@ Proof.
   apply lifting_over_n_doesnt_change_sequence_n with (b := true); auto.
 Qed.
 
+*)
+
 Lemma lifting_over_n_doesnt_change_low_sequence_n:
-  forall n i k,
+  forall n i k xs,
   k >= n ->
-  map (lift i k) (low_sequence n) = low_sequence n.
+  map (lift i k) (low_sequence n xs) = low_sequence n (map (lift i k) xs).
 Proof.
   intros.
-  apply lifting_over_n_doesnt_change_sequence_n with (b := false); auto.
-Qed.
+  admit.
+Admitted.
+
+(*
 
 Lemma substing_over_n_doesnt_change_sequence_n:
   forall n x k (b: bool),
@@ -1134,14 +1145,15 @@ Proof.
   apply substing_over_n_doesnt_change_sequence_n with (b := true); auto.
 Qed.
 
+*)
+
 Lemma substing_over_n_doesnt_change_low_sequence_n:
-  forall n x k,
+  forall n x k xs,
   k >= n ->
-  map (subst x k) (low_sequence n) = low_sequence n.
+  map (subst x k) (low_sequence n xs) = low_sequence n (map (subst x k) xs).
 Proof.
-  intros.
-  apply substing_over_n_doesnt_change_sequence_n with (b := false); auto.
-Qed.
+  admit.
+Admitted.
 
 Lemma lift_and_right_cycle_commute:
   forall e n i k p,
@@ -1151,14 +1163,13 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_addition_distributes_over_apply_parameters.
-  do 2 f_equal.
-  - apply lifting_over_n_doesnt_change_high_sequence_n; auto.
-  - rewrite lift_addition_distributes_over_subst; f_equal.
-    + rewrite lift_bound_lt; auto; lia.
-    + rewrite sequence_length; symmetry.
-      rewrite lift_lift_permutation; try lia.
-      f_equal; lia.
-Qed.
+  f_equal.
+  - admit.
+  - rewrite sequence_length; symmetry.
+    rewrite lift_lift_permutation; try lia.
+    simpl; f_equal.
+    lia.
+Admitted.
 
 Lemma lift_and_switch_bindings_commute:
   forall i k e,
@@ -1180,14 +1191,12 @@ Proof.
   unfold right_cycle; simpl.
   rewrite subst_addition_distributes_over_apply_parameters.
   f_equal.
-  - apply substing_over_n_doesnt_change_high_sequence_n; auto.
-  - rewrite subst_addition_distributes_over_itself; f_equal.
-    + rewrite subst_bound_lt; auto.
-      lia.
-    + rewrite sequence_length.
-      rewrite lift_and_subst_commute; try lia.
-      f_equal; lia.
-Qed.
+  - admit.
+  - rewrite sequence_length.
+    rewrite lift_and_subst_commute; try lia.
+    f_equal; simpl.
+    lia.
+Admitted.
 
 Lemma subst_and_switch_bindings_commute:
   forall x k e,
@@ -1206,36 +1215,11 @@ Lemma apply_parameters_lift_simplification:
 Proof.
   induction xs; simpl; intros.
   - f_equal; lia.
-  - replace (p + S (length xs)) with (S (p + length xs)); try lia.
-    rewrite subst_lift_simplification; try lia.
-    apply IHxs; auto.
-Qed.
-
-Lemma apply_parameters_bound_in:
-  forall n xs,
-  length xs > n ->
-  forall x,
-  item x (rev xs) n ->
-  forall k,
-  apply_parameters xs k (k + n) = lift k 0 x.
-Proof.
-  induction xs; simpl; intros.
-  - exfalso.
-    inversion H0.
-  - destruct (le_gt_dec (length xs) n).
-    + assert (n = length xs); try lia.
-      rewrite subst_bound_eq; try lia.
-      dependent destruction H1.
-      apply item_ignore_head in H0.
-      * rewrite rev_length in H0.
-        rewrite Nat.sub_diag in H0.
-        dependent destruction H0.
-        apply apply_parameters_lift_simplification; auto.
-      * rewrite rev_length; lia.
-    + rewrite subst_bound_lt; try lia.
-      apply IHxs; try lia.
-      eapply item_ignore_tail; eauto.
-      rewrite rev_length; auto.
+  - replace (p + S (length xs)) with (S p + length xs) by lia.
+    rewrite IHxs.
+    + rewrite subst_lift_simplification; try lia.
+      reflexivity.
+    + lia.
 Qed.
 
 Lemma apply_parameters_bound_gt:
@@ -1244,10 +1228,11 @@ Lemma apply_parameters_bound_gt:
   apply_parameters xs k (bound n) = n - length xs.
 Proof.
   induction xs; intros.
-  - simpl; f_equal; lia.
+  - simpl.
+    f_equal; lia.
   - simpl in H |- *.
-    rewrite subst_bound_gt; try lia.
     rewrite IHxs; try lia.
+    rewrite subst_bound_gt; try lia.
     f_equal; lia.
 Qed.
 
@@ -1257,12 +1242,40 @@ Lemma apply_parameters_bound_lt:
   apply_parameters xs k (bound n) = n.
 Proof.
   induction xs; intros.
-  - simpl; f_equal; lia.
+  - simpl.
+    reflexivity.
   - simpl in H |- *.
-    rewrite subst_bound_lt; try lia.
     rewrite IHxs; try lia.
-    f_equal; lia.
+    rewrite subst_bound_lt; try lia.
+    reflexivity.
 Qed.
+
+Lemma apply_parameters_bound_in:
+  forall n xs,
+  length xs > n ->
+  forall x,
+  item x xs n ->
+  forall k,
+  apply_parameters xs k (k + n) = lift k 0 x.
+Proof.
+  induction n; intros.
+  - dependent destruction H0.
+    simpl in H |- *.
+    rewrite apply_parameters_bound_lt; try lia.
+    rewrite subst_bound_eq; try lia.
+    f_equal; lia.
+  - dependent destruction H0.
+    simpl.
+    replace (k + S n) with (S k + n) by lia.
+    rewrite IHn with (x := x).
+    + rewrite subst_lift_simplification; try lia.
+      reflexivity.
+    + simpl in H.
+      lia.
+    + assumption.
+Qed.
+
+(*
 
 Lemma high_sequence_rev_lifts_by_one:
   forall n k,
@@ -1285,6 +1298,8 @@ Proof.
       apply IHk; lia.
 Qed.
 
+*)
+
 Lemma right_cycle_bound_lt:
   forall k n,
   n < k -> right_cycle k 0 (bound n) = S n.
@@ -1292,14 +1307,14 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_bound_lt; try lia.
-  rewrite sequence_length.
-  rewrite subst_bound_lt; auto.
-  replace n with (0 + n) at 1; auto.
+  replace n with (0 + n) at 1 by lia.
   rewrite apply_parameters_bound_in with (x := S n).
-  - rewrite lift_zero_e_equals_e; auto.
-  - rewrite sequence_length; auto.
-  - apply high_sequence_rev_lifts_by_one; auto.
-Qed.
+  - rewrite lift_bound_ge; try lia.
+    f_equal; lia.
+  - rewrite sequence_length; simpl.
+    lia.
+  - admit.
+Admitted.
 
 Lemma right_cycle_bound_eq:
   forall k n,
@@ -1308,16 +1323,14 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_bound_lt; try lia.
-  rewrite sequence_length.
-  rewrite subst_bound_eq; auto.
-  rewrite lift_bound_ge; auto.
-  rewrite Nat.add_comm.
-  rewrite apply_parameters_bound_gt.
-  - rewrite sequence_length.
-    f_equal; lia.
-  - rewrite sequence_length.
+  replace n with (0 + n) by lia.
+  rewrite apply_parameters_bound_in with (x := 0).
+  - rewrite lift_zero_e_equals_e.
+    reflexivity.
+  - rewrite sequence_length; simpl.
     lia.
-Qed.
+  - admit.
+Admitted.
 
 Lemma right_cycle_bound_gt:
   forall k n,
@@ -1326,41 +1339,84 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_bound_ge; try lia.
-  rewrite sequence_length.
-  rewrite subst_bound_gt; try lia.
-  rewrite apply_parameters_bound_gt; simpl.
-  - rewrite sequence_length.
+  rewrite apply_parameters_bound_gt.
+  - rewrite sequence_length; simpl.
+    rewrite Nat.add_comm; simpl.
     f_equal; lia.
-  - rewrite sequence_length.
+  - rewrite sequence_length; simpl.
     lia.
+Qed.
+
+Lemma apply_parameters_type:
+  forall xs k,
+  apply_parameters xs k type = type.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    reflexivity.
 Qed.
 
 Lemma right_cycle_type:
   forall i k,
   right_cycle i k type = type.
 Proof.
-  induction i; auto.
+  intros.
+  apply apply_parameters_type.
+Qed.
+
+Lemma apply_parameters_prop:
+  forall xs k,
+  apply_parameters xs k prop = prop.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    reflexivity.
 Qed.
 
 Lemma right_cycle_prop:
   forall i k,
   right_cycle i k prop = prop.
 Proof.
-  induction i; auto.
+  intros.
+  apply apply_parameters_prop.
+Qed.
+
+Lemma apply_parameters_base:
+  forall xs k,
+  apply_parameters xs k base = base.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    reflexivity.
 Qed.
 
 Lemma right_cycle_base:
   forall i k,
   right_cycle i k base = base.
 Proof.
-  induction i; auto.
+  intros.
+  apply apply_parameters_base.
+Qed.
+
+Lemma apply_parameters_void:
+  forall xs k,
+  apply_parameters xs k void = void.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    reflexivity.
 Qed.
 
 Lemma right_cycle_void:
   forall i k,
   right_cycle i k void = void.
 Proof.
-  induction i; auto.
+  intros.
+  apply apply_parameters_void.
 Qed.
 
 Lemma right_cycle_distributes_over_negation:
@@ -1371,14 +1427,13 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_distributes_over_negation.
-  rewrite subst_distributes_over_negation.
   rewrite apply_parameters_distributes_over_negation.
   f_equal.
   induction ts; auto.
   simpl; f_equal; auto.
-  do 4 rewrite traverse_list_length.
-  f_equal; f_equal; try lia.
-  f_equal; lia.
+  do 3 rewrite traverse_list_length.
+  repeat f_equal.
+  lia.
 Qed.
 
 Lemma right_cycle_distributes_over_jump:
@@ -1389,7 +1444,6 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_distributes_over_jump.
-  rewrite subst_distributes_over_jump.
   rewrite apply_parameters_distributes_over_jump; simpl.
   f_equal; list induction over xs.
 Qed.
@@ -1404,19 +1458,18 @@ Proof.
   intros.
   unfold right_cycle; simpl.
   rewrite lift_distributes_over_bind.
-  rewrite subst_distributes_over_bind.
   rewrite apply_parameters_distributes_over_bind.
   f_equal.
-  - f_equal; f_equal; f_equal.
+  - repeat f_equal.
     lia.
   - induction ts; auto.
     simpl; f_equal; auto.
-    do 4 rewrite traverse_list_length.
-    f_equal; f_equal; try lia.
-    f_equal; lia.
-  - do 2 rewrite traverse_list_length.
-    f_equal; f_equal; try lia.
-    f_equal; lia.
+    do 3 rewrite traverse_list_length.
+    repeat f_equal.
+    lia.
+  - rewrite traverse_list_length.
+    repeat f_equal.
+    lia.
 Qed.
 
 Lemma right_cycle_zero_e_equals_e:
@@ -1526,10 +1579,10 @@ Proof.
 Qed.
 
 Lemma apply_parameters_high_sequence_bound_in:
-  forall n i k,
+  forall n i k xs,
   n >= k ->
   i + k > n ->
-  apply_parameters (high_sequence i) k n = S n.
+  apply_parameters (high_sequence i xs) k n = S n.
 Proof.
   intros.
   replace n with (k + (n - k)); try lia.
@@ -1537,8 +1590,10 @@ Proof.
   - rewrite lift_bound_ge; try lia.
     f_equal; lia.
   - rewrite sequence_length; try lia.
-  - apply high_sequence_rev_lifts_by_one; lia.
-Qed.
+  - (* apply high_sequence_rev_lifts_by_one; lia. *)
+    assert (n - k < i) by lia.
+    admit.
+Admitted.
 
 Lemma right_cycle_right_cycle_simplification:
   forall e k p i,
@@ -1546,120 +1601,33 @@ Lemma right_cycle_right_cycle_simplification:
     right_cycle (i + p) k e.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - do 3 rewrite right_cycle_type; auto.
-  - do 3 rewrite right_cycle_prop; auto.
-  - do 3 rewrite right_cycle_base; auto.
-  - do 3 rewrite right_cycle_void; auto.
+  - repeat rewrite right_cycle_type.
+    reflexivity.
+  - repeat rewrite right_cycle_prop.
+    reflexivity.
+  - repeat rewrite right_cycle_base.
+    reflexivity.
+  - repeat rewrite right_cycle_void.
+    reflexivity.
   - remember (i + k) as l.
     unfold right_cycle; simpl.
     (* I'm too tired to think the proper conditions here, so this was kinda
-       written by trial and error... I probably should have automated this. *)
+       written by trial and error... I probably should have automated this.
+       TODO: automate this. *)
     assert (n < k
          \/ n >= k /\ n < i + p
          \/ n >= i + p) as [ ? | [ [ ? ? ] | ? ] ]; try lia.
-    + do 3 rewrite sequence_length.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
+    + rewrite lift_bound_lt; try lia.
       rewrite apply_parameters_bound_lt; try lia.
       rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
       rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
       rewrite apply_parameters_bound_lt; try lia.
       rewrite apply_parameters_bound_lt; try lia.
       reflexivity.
-    + do 3 rewrite sequence_length.
+    + rewrite lift_bound_lt; try lia.
       rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
-      destruct (le_gt_dec l n).
-      * rewrite apply_parameters_high_sequence_bound_in; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        f_equal; lia.
-      * rewrite apply_parameters_bound_lt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        reflexivity.
-    + do 3 rewrite sequence_length.
-      destruct (lt_eq_lt_dec (p + l) n) as [ [ ? | ? ] | ? ];
-      destruct (le_gt_dec l n);
-      destruct (le_gt_dec k n);
-      try lia.
-      * rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        simpl; f_equal; lia.
-      * rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        f_equal; lia.
-      * rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        rewrite lift_bound_ge; try lia.
-        rewrite subst_bound_gt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_bound_gt;
-        rewrite sequence_length;
-        try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        f_equal; lia.
-      * rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_bound_lt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        reflexivity.
-      * rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_bound_lt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite lift_bound_lt; try lia.
-        rewrite subst_bound_lt; try lia.
-        rewrite apply_parameters_bound_lt; try lia.
-        rewrite apply_parameters_bound_lt; try lia.
-        reflexivity.
+      admit.
+    + admit.
   - do 3 rewrite right_cycle_distributes_over_negation.
     f_equal.
     induction H; simpl; auto.
@@ -1683,7 +1651,7 @@ Proof.
     + rewrite traverse_list_length.
       replace (i + k + length ts) with (i + (k + length ts)); try lia.
       apply IHe2.
-Qed.
+Admitted.
 
 Lemma right_cycle_switch_bindings_simplification:
   forall e i k,
@@ -1772,15 +1740,16 @@ Proof.
 Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
-  forall n m,
+  forall n m xs,
   m >= n ->
-  map (right_cycle m 0) (low_sequence n) = high_sequence n.
+  map (right_cycle m 0) (low_sequence n xs) =
+    high_sequence n (map (right_cycle m 0) xs).
 Proof.
   induction n; intros.
   - reflexivity.
   - simpl.
     rewrite IHn; auto with arith.
-    simpl; f_equal.
+    simpl; do 2 f_equal.
     apply right_cycle_bound_lt; auto.
 Qed.
 
@@ -1857,19 +1826,15 @@ Proof.
       dependent destruction H0.
       constructor; lia.
     + replace n with (k + (n - k)); try lia.
-      assert (exists x, item x xs (length xs - S (n - k))) as (x, ?).
+      assert (exists x, item x xs (n - k)) as (x, ?).
       * apply item_exists.
         lia.
-      * apply item_rev in H1.
-        replace (length xs - S (length xs - S (n - k))) with (n - k) in H1;
-          try lia.
-        rewrite apply_parameters_bound_in with (x := x); auto; try lia.
-        apply nth_item with (y := void) in H1.
-        apply Forall_rev in H.
-        rewrite <- rev_length in g.
-        replace (p + k) with (p + k + 0); auto.
+      * rewrite apply_parameters_bound_in with (x := x); auto; try lia.
+        replace (p + k) with (p + k + 0) by lia.
         apply not_free_lift.
         rewrite Nat.add_0_r.
+        (* TODO: should we make a tactic for that? I think so! *)
+        apply nth_item with (y := void) in H1.
         rewrite <- H1.
         apply Forall_nth; auto.
         lia.
@@ -1885,13 +1850,17 @@ Lemma not_free_apply_parameters:
 Proof.
   induction c using pseudoterm_deepind; intros.
   - clear H H0.
-    induction xs; auto with cps.
+    rewrite apply_parameters_type.
+    constructor.
   - clear H H0.
-    induction xs; auto with cps.
+    rewrite apply_parameters_prop.
+    constructor.
   - clear H H0.
-    induction xs; auto with cps.
+    rewrite apply_parameters_base.
+    constructor.
   - clear H H0.
-    induction xs; auto with cps.
+    rewrite apply_parameters_void.
+    constructor.
   - apply not_free_apply_parameters_bound; auto.
   - dependent destruction H1.
     rewrite apply_parameters_distributes_over_negation.
@@ -1969,37 +1938,4 @@ Proof.
     + apply IHb2.
       rewrite Nat.add_comm.
       assumption.
-Qed.
-
-(* -------------------------------------------------------------------------- *)
-
-Fixpoint apply_parameters' ys k e: pseudoterm :=
-  match ys with
-  | [] => e
-  | y :: ys => (* apply_parameters ys k (subst y (k + length ys) e) *)
-               subst y k (apply_parameters' ys (1 + k) e)
-  end.
-
-Lemma aaaaa:
-  forall xs ys k e,
-  apply_parameters (xs ++ ys) k e =
-    apply_parameters ys k (apply_parameters xs (k + length ys) e).
-Proof.
-  induction xs; simpl; intros.
-  - reflexivity.
-  - rewrite IHxs.
-    do 3 f_equal.
-    rewrite app_length.
-    lia.
-Qed.
-
-Goal
-  forall ys e k,
-  apply_parameters (rev ys) k e = apply_parameters' ys k e.
-Proof.
-  induction ys; simpl; intros.
-  - reflexivity.
-  - rewrite <- IHys, aaaaa; simpl.
-    replace (k + 0) with k by lia.
-    repeat f_equal; lia.
 Qed.

@@ -34,12 +34,13 @@ Inductive pseudoterm: Set :=
 
 Coercion bound: nat >-> pseudoterm.
 
-(** A simple example. We use a lambda syntax to bind the name of free variables
-    for illustration purposes. Notice that, in the list notation used by Coq,
-    the head of the list appears at the leftmost position, while in the CPS term
-    syntax, the most recent binding will appear at the rightmost position.
+(** A simple example.
 
-    As such, [ex1] is equivalent to the following term:
+    We use a lambda syntax to bind the name of free variables for illustration
+    purposes. Notice that in the written syntax, the most recent term (index 0)
+    is at the rightmost position, while in the abstract syntax we use here it's
+    the leftmost one, so we always write lists (of types or terms) inverted. As
+    such, [ex1] is equivalent to the following term:
 
     \j.\x.\y.\z.
       h@1<y@3, k@0, x@4>
@@ -182,7 +183,7 @@ Arguments subst y k e: simpl nomatch.
 Fixpoint apply_parameters ys k e: pseudoterm :=
   match ys with
   | [] => e
-  | y :: ys => apply_parameters ys k (subst y (k + length ys) e)
+  | y :: ys => subst y k (apply_parameters ys (1 + k) e)
   end.
 
 Global Hint Unfold apply_parameters: cps.
@@ -192,10 +193,10 @@ Definition switch_bindings k e: pseudoterm :=
 
 Global Hint Unfold switch_bindings: cps.
 
-Fixpoint sequence (high: bool) (i: nat): list pseudoterm :=
+Fixpoint sequence (high: bool) (i: nat) tail: list pseudoterm :=
   match i with
-  | 0 => []
-  | S j => bound (if high then i else j) :: sequence high j
+  | 0 => tail
+  | S j => sequence high j (bound (if high then i else j) :: tail)
   end.
 
 Global Hint Unfold sequence: cps.
@@ -204,7 +205,7 @@ Notation high_sequence := (sequence true).
 Notation low_sequence := (sequence false).
 
 Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
-  apply_parameters (bound 0 :: high_sequence i) k (lift (S i) (S i + k) e).
+  apply_parameters (high_sequence i [bound 0]) k (lift (S i) (S i + k) e).
 
 Global Hint Unfold right_cycle: cps.
 

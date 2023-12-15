@@ -206,7 +206,7 @@ Local Notation ABS b :=
 
 Local Notation APP b c :=
   (* [e f] = [e] { k<f> = f<v, k> { v<k> = [f] } } *)
-  (bind b [void] (bind (jump 1 [CPS.bound 0; CPS.bound 2]) [void] c)).
+  (bind b [void] (bind (jump 1 [CPS.bound 2; CPS.bound 0]) [void] c)).
 
 (* TODO: these lifts could be moved from source to target! *)
 

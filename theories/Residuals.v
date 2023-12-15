@@ -100,7 +100,7 @@ Fixpoint redexes_subst y k e: redexes :=
 Fixpoint redexes_apply_parameters ys k e: redexes :=
   match ys with
   | [] => e
-  | y :: ys => redexes_apply_parameters ys k (redexes_subst y (k + length ys) e)
+  | y :: ys => redexes_subst y k (redexes_apply_parameters ys (1 + k) e)
   end.
 
 Lemma mark_lift_is_sound:
@@ -141,8 +141,9 @@ Lemma mark_apply_parameters_is_sound:
 Proof.
   induction xs; simpl; intros.
   - reflexivity.
-  - rewrite IHxs; f_equal.
-    apply mark_subst_is_sound.
+  - rewrite mark_subst_is_sound.
+    f_equal.
+    apply IHxs.
 Qed.
 
 Inductive compatible: relation redexes :=
@@ -241,8 +242,8 @@ Lemma compatible_apply_parameters:
 Proof.
   induction ys; simpl; intros.
   - assumption.
-  - apply IHys.
-    apply compatible_subst.
+  - apply compatible_subst.
+    apply IHys.
     assumption.
 Qed.
 

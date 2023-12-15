@@ -194,8 +194,8 @@ Proof.
   - simpl.
     assumption.
   - simpl.
-    apply IHxs.
     apply beta_subst.
+    apply IHxs.
     assumption.
 Qed.
 
@@ -486,8 +486,8 @@ Proof.
   - simpl.
     assumption.
   - simpl.
-    apply IHxs.
     apply smol_subst.
+    apply IHxs.
     assumption.
 Qed.
 
@@ -610,7 +610,7 @@ Notation "[ a => b ]" := (step a b)
 
 (*
     \j.\x.\y.\z.                         \j.\x.\y.\z.
-      h@1<x@4, k@0, y@3>                   k@0<y@3, z@2>
+      h@1<y@3, k@0, x@4>                   k@0<x@4, z@2>
       { k<a, b> =                 =>       { k<a, b> =
           h@2<b@0, j@6, a@1> }                 h@2<b@0, j@6, a@1> }
       { h<c, d, e> =                       { h<c, d, e> =
@@ -619,7 +619,7 @@ Notation "[ a => b ]" := (step a b)
 
 Example ex3: pseudoterm :=
   (bind (bind
-    (jump 0 [bound 2; bound 3])
+    (jump 0 [bound 2; bound 4])
     [base; base]
       (jump 2 [bound 1; bound 6; bound 0]))
     [base; negation [base; base]; base]
@@ -721,8 +721,8 @@ Proof.
   - simpl.
     assumption.
   - simpl.
-    apply IHxs.
     apply step_subst.
+    apply IHxs.
     assumption.
 Qed.
 
@@ -1302,25 +1302,27 @@ Lemma right_cycle_lift_simplification:
   right_cycle i k (lift 1 (k + i) e) = lift 1 k e.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - induction i; auto.
-  - induction i; auto.
-  - induction i; auto.
-  - induction i; auto.
+  - rewrite right_cycle_type.
+    reflexivity.
+  - rewrite right_cycle_prop.
+    reflexivity.
+  - rewrite right_cycle_base.
+    reflexivity.
+  - rewrite right_cycle_void.
+    reflexivity.
   - unfold right_cycle; simpl.
-    rewrite sequence_length.
     destruct (le_gt_dec (k + i) n).
     + rewrite lift_bound_ge; try lia.
       rewrite lift_bound_ge; try lia.
-      rewrite subst_bound_gt; try lia.
       rewrite lift_bound_ge; try lia.
       rewrite apply_parameters_bound_gt; try lia.
       * rewrite sequence_length; simpl.
+        rewrite Nat.add_comm; simpl.
         f_equal; lia.
       * rewrite sequence_length; simpl.
         lia.
     + rewrite lift_bound_lt; try lia.
       rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
       destruct (le_gt_dec k n).
       * rewrite lift_bound_ge; try lia.
         rewrite apply_parameters_high_sequence_bound_in; try lia.

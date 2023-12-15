@@ -751,8 +751,8 @@ Proof.
   intros until ys; generalize dependent b.
   induction ys; simpl; intros.
   - assumption.
-  - apply IHys.
-    apply diverges_subst.
+  - apply diverges_subst.
+    apply IHys.
     assumption.
 Qed.
 
