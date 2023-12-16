@@ -5,6 +5,8 @@ My take on Thielecke's CPS calculus, and variants hereof.
 I'm currently running against time to finish everything, and I'm pretty tired,
 but I'll get back in here to improve this documentation.
 
+![Coq 8.16](https://github.com/takanuva/cps/actions/workflows/coq-8.16.yml/badge.svg)
+
 # Summary of files
 
 A summary of the proof files, in order, and what they cover.

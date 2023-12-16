@@ -1,4 +1,4 @@
-name: Coq 8.16
+name: 8.16
 on: push
 jobs:
   build:
