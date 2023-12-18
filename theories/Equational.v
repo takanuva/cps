@@ -30,7 +30,7 @@ Global Hint Unfold RECJMP: cps.
 
 Definition ETA (R: relation pseudoterm): Prop :=
   forall b ts k,
-  R (bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts) [])))
+  R (bind b ts (jump (lift (length ts) 0 k) (low_sequence (length ts))))
     (subst k 0 b).
 
 Global Hint Unfold ETA: cps.
@@ -290,7 +290,7 @@ Qed.
 
 Local Lemma axiom_eta_helper:
   forall b ts k x1 x2,
-  x1 = jump (lift (length ts) 0 k) (low_sequence (length ts) []) ->
+  x1 = jump (lift (length ts) 0 k) (low_sequence (length ts)) ->
   x2 = subst k 0 b ->
   axiom (bind b ts x1) x2.
 Proof.
@@ -389,7 +389,7 @@ Proof.
       rewrite traverse_list_length; f_equal.
       * symmetry.
         apply lift_lift_permutation; auto with arith.
-      * apply lifting_over_n_doesnt_change_low_sequence_n.
+      * apply lifting_over_n_doesnt_change_sequence_p_n.
         lia.
     + apply lift_distributes_over_subst.
   (* Case: axiom_gc. *)
@@ -491,7 +491,7 @@ Proof.
       rewrite traverse_list_length; f_equal.
       * symmetry.
         apply lift_and_subst_commute; auto with arith.
-      * apply substing_over_n_doesnt_change_low_sequence_n; lia.
+      * apply substing_over_n_doesnt_change_sequence_p_n; lia.
     + apply subst_distributes_over_itself.
   (* Case: axiom_gc. *)
   - rewrite subst_distributes_over_bind.
@@ -654,7 +654,7 @@ Qed.
 Local Lemma technical1:
   forall n k c: nat,
   c < k ->
-  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.
@@ -666,7 +666,7 @@ Qed.
 Local Lemma technical2:
   forall c n k,
   c >= n + k ->
-  apply_parameters (high_sequence n []) k (1 + n + c) = 1 + c.
+  apply_parameters (high_sequence n) k (1 + n + c) = 1 + c.
 Proof.
   intros.
   replace (1 + c) with ((1 + n + c) - n); try lia.
@@ -681,7 +681,7 @@ Qed.
 Local Lemma technical3:
   forall n k c: nat,
   c >= n + k ->
-  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_ge; try lia.
@@ -693,7 +693,7 @@ Local Lemma technical4:
   forall n k c: nat,
   c >= k ->
   c < n + k ->
-  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.
@@ -704,14 +704,13 @@ Proof.
     f_equal; lia.
   - rewrite sequence_length; simpl.
     lia.
-  - assert (c - k < n) by lia.
-    (* Sure. *)
-    admit.
-Admitted.
+  - apply item_sequence with (i := 1).
+    lia.
+Qed.
 
 Local Lemma technical5:
   forall c n k,
-  apply_parameters (high_sequence n []) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   induction c using pseudoterm_deepind; intros.
   - rewrite apply_parameters_type.

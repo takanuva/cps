@@ -1316,19 +1316,22 @@ Proof.
       rewrite lift_bound_ge; try lia.
       rewrite lift_bound_ge; try lia.
       rewrite apply_parameters_bound_gt; try lia.
-      * rewrite sequence_length; simpl.
+      * rewrite app_length, sequence_length; simpl.
         rewrite Nat.add_comm; simpl.
         f_equal; lia.
-      * rewrite sequence_length; simpl.
+      * rewrite app_length, sequence_length; simpl.
         lia.
     + rewrite lift_bound_lt; try lia.
       rewrite lift_bound_lt; try lia.
       destruct (le_gt_dec k n).
       * rewrite lift_bound_ge; try lia.
-        rewrite apply_parameters_high_sequence_bound_in; try lia.
-        f_equal; lia.
-      * rewrite lift_bound_lt; try lia.
-        rewrite apply_parameters_bound_lt; try lia.
+        rewrite apply_parameters_app; simpl.
+        rewrite sequence_length.
+        rewrite subst_bound_lt by lia.
+        rewrite apply_parameters_high_sequence_bound_in by lia.
+        reflexivity.
+      * rewrite lift_bound_lt by lia.
+        rewrite apply_parameters_bound_lt by lia.
         reflexivity.
   - do 2 rewrite lift_distributes_over_negation.
     rewrite right_cycle_distributes_over_negation.

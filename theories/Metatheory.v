@@ -21,14 +21,32 @@ Proof.
   - f_equal; assumption.
 Qed.
 
+(* TODO: move the two following lemmas about sequences elsewhere, as we might
+   need those for other calculi... I'm guessing. *)
+
 Lemma sequence_length:
-  forall n b xs,
-  length (sequence b n xs) = n + length xs.
+  forall n b,
+  length (sequence b n) = n.
 Proof.
   induction n; simpl; intros.
   - reflexivity.
-  - rewrite IHn; simpl.
-    lia.
+  - now rewrite IHn.
+Qed.
+
+Lemma item_sequence:
+  forall n m i,
+  m < n ->
+  item (bound (i + m)) (sequence i n) m.
+Proof.
+  induction n; intros.
+  - inversion H.
+  - destruct m; simpl.
+    + rewrite Nat.add_0_r.
+      constructor.
+    + constructor.
+      replace (i + S m) with (S i + m) by lia.
+      apply IHn.
+      lia.
 Qed.
 
 Lemma lift_distributes_over_negation:
@@ -667,6 +685,18 @@ Proof.
   apply subst_addition_distributes_over_apply_parameters.
 Qed.
 
+Lemma apply_parameters_app:
+  forall xs ys k e,
+  apply_parameters (xs ++ ys) k e =
+    apply_parameters xs k (apply_parameters ys (length xs + k) e).
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite IHxs.
+    do 3 f_equal.
+    lia.
+Qed.
+
 Lemma switch_bindings_behavior:
   forall e k,
   switch_bindings k e = right_cycle 1 k e.
@@ -1080,80 +1110,29 @@ Proof.
   assumption.
 Qed.
 
-(*
-
-Lemma lifting_over_n_doesnt_change_sequence_n:
-  forall n i k (b: bool),
-  (if b then k > n else k >= n) ->
-  map (lift i k) (sequence b n) = sequence b n.
+Lemma lifting_over_n_doesnt_change_sequence_p_n:
+  forall n p i k,
+  k >= p + n ->
+  map (lift i k) (sequence p n) = sequence p n.
 Proof.
-  induction n; intros.
-  (* Case: zero. *)
+  induction n; simpl; intros.
   - reflexivity.
-  (* Case: succ. *)
-  - simpl; f_equal.
-    + rewrite lift_bound_lt; auto.
-      destruct b; lia.
-    + apply IHn.
-      destruct b; lia.
+  - rewrite IHn by lia.
+    f_equal.
+    now rewrite lift_bound_lt by lia.
 Qed.
 
-Lemma lifting_over_n_doesnt_change_high_sequence_n:
-  forall n i k,
-  k > n ->
-  map (lift i k) (high_sequence n) = high_sequence n.
+Lemma substing_over_n_doesnt_change_sequence_p_n:
+  forall n p x k,
+  k >= p + n ->
+  map (subst x k) (sequence p n) = sequence p n.
 Proof.
-  intros.
-  apply lifting_over_n_doesnt_change_sequence_n with (b := true); auto.
-Qed.
-
-*)
-
-Lemma lifting_over_n_doesnt_change_low_sequence_n:
-  forall n i k xs,
-  k >= n ->
-  map (lift i k) (low_sequence n xs) = low_sequence n (map (lift i k) xs).
-Proof.
-  intros.
-  admit.
-Admitted.
-
-(*
-
-Lemma substing_over_n_doesnt_change_sequence_n:
-  forall n x k (b: bool),
-  (if b then k > n else k >= n) ->
-  map (subst x k) (sequence b n) = sequence b n.
-Proof.
-  induction n; intros.
-  (* Case: zero. *)
+  induction n; simpl; intros.
   - reflexivity.
-  (* Case: succ. *)
-  - simpl; f_equal.
-    + rewrite subst_bound_lt; auto.
-      destruct b; lia.
-    + apply IHn.
-      destruct b; lia.
+  - rewrite IHn by lia.
+    f_equal.
+    now rewrite subst_bound_lt by lia.
 Qed.
-
-Lemma substing_over_n_doesnt_change_high_sequence_n:
-  forall n x k,
-  k > n ->
-  map (subst x k) (high_sequence n) = high_sequence n.
-Proof.
-  intros.
-  apply substing_over_n_doesnt_change_sequence_n with (b := true); auto.
-Qed.
-
-*)
-
-Lemma substing_over_n_doesnt_change_low_sequence_n:
-  forall n x k xs,
-  k >= n ->
-  map (subst x k) (low_sequence n xs) = low_sequence n (map (subst x k) xs).
-Proof.
-  admit.
-Admitted.
 
 Lemma lift_and_right_cycle_commute:
   forall e n i k p,
@@ -1164,12 +1143,16 @@ Proof.
   unfold right_cycle; simpl.
   rewrite lift_addition_distributes_over_apply_parameters.
   f_equal.
-  - admit.
-  - rewrite sequence_length; symmetry.
+  - rewrite map_app; simpl.
+    f_equal.
+    + apply lifting_over_n_doesnt_change_sequence_p_n.
+      lia.
+    + now rewrite lift_bound_lt by lia.
+  - rewrite app_length, sequence_length; symmetry.
     rewrite lift_lift_permutation; try lia.
     simpl; f_equal.
     lia.
-Admitted.
+Qed.
 
 Lemma lift_and_switch_bindings_commute:
   forall i k e,
@@ -1191,12 +1174,16 @@ Proof.
   unfold right_cycle; simpl.
   rewrite subst_addition_distributes_over_apply_parameters.
   f_equal.
-  - admit.
-  - rewrite sequence_length.
+  - rewrite map_app; simpl.
+    f_equal.
+    + apply substing_over_n_doesnt_change_sequence_p_n.
+      lia.
+    + now rewrite subst_bound_lt by lia.
+  - rewrite app_length, sequence_length; symmetry.
     rewrite lift_and_subst_commute; try lia.
-    f_equal; simpl.
+    simpl; f_equal.
     lia.
-Admitted.
+Qed.
 
 Lemma subst_and_switch_bindings_commute:
   forall x k e,
@@ -1275,31 +1262,6 @@ Proof.
     + assumption.
 Qed.
 
-(*
-
-Lemma high_sequence_rev_lifts_by_one:
-  forall n k,
-  n < k -> item (bound (S n)) (rev (high_sequence k)) n.
-Proof.
-  intros.
-  induction k; simpl.
-  - exfalso.
-    inversion H.
-  - destruct (le_gt_dec k n).
-    + cut (n = k); try lia.
-      destruct 1.
-      replace n with (length (rev (high_sequence n))) at 4.
-      * apply item_insert_head with (k := 0).
-        constructor.
-      * rewrite rev_length.
-        rewrite sequence_length.
-        reflexivity.
-    + apply item_insert_tail.
-      apply IHk; lia.
-Qed.
-
-*)
-
 Lemma right_cycle_bound_lt:
   forall k n,
   n < k -> right_cycle k 0 (bound n) = S n.
@@ -1309,12 +1271,13 @@ Proof.
   rewrite lift_bound_lt; try lia.
   replace n with (0 + n) at 1 by lia.
   rewrite apply_parameters_bound_in with (x := S n).
-  - rewrite lift_bound_ge; try lia.
+  - rewrite lift_bound_ge by lia.
     f_equal; lia.
-  - rewrite sequence_length; simpl.
+  - rewrite app_length, sequence_length; simpl.
     lia.
-  - admit.
-Admitted.
+  - apply item_insert_tail.
+    now apply item_sequence with (i := 1).
+Qed.
 
 Lemma right_cycle_bound_eq:
   forall k n,
@@ -1327,10 +1290,13 @@ Proof.
   rewrite apply_parameters_bound_in with (x := 0).
   - rewrite lift_zero_e_equals_e.
     reflexivity.
-  - rewrite sequence_length; simpl.
+  - rewrite app_length, sequence_length; simpl.
     lia.
-  - admit.
-Admitted.
+  - replace n with (0 + length (high_sequence k)).
+    + apply item_insert_head.
+      constructor.
+    + now rewrite sequence_length.
+Qed.
 
 Lemma right_cycle_bound_gt:
   forall k n,
@@ -1340,10 +1306,10 @@ Proof.
   unfold right_cycle; simpl.
   rewrite lift_bound_ge; try lia.
   rewrite apply_parameters_bound_gt.
-  - rewrite sequence_length; simpl.
+  - rewrite app_length, sequence_length; simpl.
     rewrite Nat.add_comm; simpl.
     f_equal; lia.
-  - rewrite sequence_length; simpl.
+  - rewrite app_length, sequence_length; simpl.
     lia.
 Qed.
 
@@ -1579,10 +1545,10 @@ Proof.
 Qed.
 
 Lemma apply_parameters_high_sequence_bound_in:
-  forall n i k xs,
+  forall n i k,
   n >= k ->
   i + k > n ->
-  apply_parameters (high_sequence i xs) k n = S n.
+  apply_parameters (high_sequence i) k n = S n.
 Proof.
   intros.
   replace n with (k + (n - k)); try lia.
@@ -1590,10 +1556,9 @@ Proof.
   - rewrite lift_bound_ge; try lia.
     f_equal; lia.
   - rewrite sequence_length; try lia.
-  - (* apply high_sequence_rev_lifts_by_one; lia. *)
-    assert (n - k < i) by lia.
-    admit.
-Admitted.
+  - apply item_sequence with (i := 1).
+    lia.
+Qed.
 
 Lemma right_cycle_right_cycle_simplification:
   forall e k p i,
@@ -1740,17 +1705,21 @@ Proof.
 Qed.
 
 Lemma right_cycle_low_sequence_n_equals_high_sequence_n:
-  forall n m xs,
+  forall n m,
   m >= n ->
-  map (right_cycle m 0) (low_sequence n xs) =
-    high_sequence n (map (right_cycle m 0) xs).
+  map (right_cycle m 0) (low_sequence n) = high_sequence n.
 Proof.
-  induction n; intros.
+  intros.
+  assert (exists2 p, p = 0 & p + n <= m) as (p, ?, ?) by eauto with arith.
+  rewrite <- H0 at 2 3; clear H0.
+  generalize dependent p.
+  generalize dependent m.
+  induction n; simpl; intros.
   - reflexivity.
-  - simpl.
-    rewrite IHn; auto with arith.
+  - rewrite IHn by lia.
     simpl; do 2 f_equal.
-    apply right_cycle_bound_lt; auto.
+    apply right_cycle_bound_lt.
+    lia.
 Qed.
 
 Lemma not_free_lift:

@@ -193,19 +193,19 @@ Definition switch_bindings k e: pseudoterm :=
 
 Global Hint Unfold switch_bindings: cps.
 
-Fixpoint sequence (high: bool) (i: nat) tail: list pseudoterm :=
-  match i with
-  | 0 => tail
-  | S j => sequence high j (bound (if high then i else j) :: tail)
+Fixpoint sequence (i: nat) (n: nat): list pseudoterm :=
+  match n with
+  | 0 => []
+  | S m => bound i :: sequence (1 + i) m
   end.
 
 Global Hint Unfold sequence: cps.
 
-Notation high_sequence := (sequence true).
-Notation low_sequence := (sequence false).
+Notation high_sequence := (sequence 1).
+Notation low_sequence := (sequence 0).
 
 Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
-  apply_parameters (high_sequence i [bound 0]) k (lift (S i) (S i + k) e).
+  apply_parameters (high_sequence i ++ [bound 0]) k (lift (S i) (S i + k) e).
 
 Global Hint Unfold right_cycle: cps.
 
