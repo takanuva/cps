@@ -14,11 +14,16 @@ Set Implicit Arguments.
 (* TODO: move this tactic! Also... TODO: use this tactic more! *)
 
 Tactic Notation "simplify" "decidable" "equality" :=
-  match goal with
+  repeat progress match goal with
   | |- context H [le_gt_dec ?m ?n] =>
     (destruct (le_gt_dec m n) as [ ? | _ ];
       [ exfalso; lia | idtac ]) +
     (destruct (le_gt_dec m n) as [ _ | ? ];
+      [ idtac | exfalso; lia ])
+  | |- context H [Nat.eq_dec ?m ?n] =>
+    (destruct (Nat.eq_dec m n) as [ ? | _ ];
+      [ exfalso; lia | idtac ]) +
+    (destruct (Nat.eq_dec m n) as [ _ | ? ];
       [ idtac | exfalso; lia ])
   end.
 
@@ -113,6 +118,8 @@ Section DeBruijn.
   Implicit Types s t u: substitution.
   Implicit Types n m i k j: nat.
 
+  (* TODO: this should probably become a rewriting rule. *)
+
   Goal
     forall i,
     lift i = inst (subst_lift i).
@@ -121,12 +128,11 @@ Section DeBruijn.
     auto.
   Qed.
 
-  Lemma lift_zero_e_equals_e:
-    forall n k x,
-    n = 0 ->
-    subst_lift n k x = x.
+  Lemma subst_ids_simpl:
+    forall k x,
+    subst_ids k x = x.
   Proof.
-    intros; subst.
+    intros.
     unfold inst.
     rewrite traverse_ext with (g := fun _ n => var n).
     - now rewrite traverse_ids.
@@ -134,15 +140,35 @@ Section DeBruijn.
       now destruct (le_gt_dec k n).
   Qed.
 
-  Lemma subst_fvar_cons:
-    forall s x,
-    subst_cons x s 0 (var 0) = x.
+  Lemma subst_lift_zero_ids:
+    forall n k x,
+    n = 0 ->
+    subst_lift n k x = subst_ids k x.
   Proof.
-    intros.
+    intros; subst.
     unfold inst.
-    rewrite traverse_var; simpl.
-    now apply lift_zero_e_equals_e.
+    apply traverse_ext; simpl.
+    clear k x; intros.
+    now destruct (le_gt_dec k n).
   Qed.
+
+  Lemma subst_fvar_cons:
+    forall s k n x,
+    k = n ->
+    subst_cons x s k (var n) = subst_lift k 0 x.
+  Proof.
+    intros; subst.
+    unfold inst at 1.
+    rewrite traverse_var at 1; simpl.
+    now simplify decidable equality.
+  Qed.
+
+  Lemma subst_rvar_cons:
+    forall s x n,
+    subst_cons x s 0 (var (1 + n)) = s 0 (var n).
+  Proof.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -158,8 +184,10 @@ Arguments subst_app {X}.
 
 Create HintDb sigma.
 
-Local Hint Rewrite lift_zero_e_equals_e using lia: sigma.
-Local Hint Rewrite subst_fvar_cons: sigma.
+Local Hint Rewrite subst_ids_simpl: sigma.
+Local Hint Rewrite subst_lift_zero_ids using lia: sigma.
+Local Hint Rewrite subst_fvar_cons using lia: sigma.
+Local Hint Rewrite subst_rvar_cons using lia: sigma.
 
 Ltac sigma :=
   rewrite_db sigma;
@@ -204,8 +232,9 @@ Section Tests.
     (* RVarCons: (1+n)[x, s] = n[s] *)
     subst_cons x s 0 (var (1 + n)) = s 0 (var n).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    now sigma.
+  Qed.
 
   Goal
     forall n,
@@ -220,8 +249,9 @@ Section Tests.
     (* Id: x[I] = x *)
     subst_ids 0 x = x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    now sigma.
+  Qed.
 
   Goal
     forall x s t,
