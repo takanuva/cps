@@ -153,11 +153,13 @@ Section Tests.
 
   Local Notation "s ~ t" := (subst_equiv s t) (at level 70, no associativity).
 
-  (* Lets first check the laws for the sigma SP calculus... *)
+  (* Lets first check the laws for the sigma SP calculus... we note that these
+     differ a bit from the paper because they take non-zero indexes to be zero
+     applied to the lifting substitution in there, i.e., n = 0[S^n]. *)
 
   Goal
     forall x s,
-    (* 0[x, s] = x *)
+    (* FVarCons: 0[x, s] = x *)
     subst_cons x s 0 (var 0) = x.
   Proof.
     admit.
@@ -165,6 +167,7 @@ Section Tests.
 
   Goal
     forall x s n,
+    (* RVarCons: (1+n)[x, s] = n[s] *)
     subst_cons x s 0 (var (1 + n)) = s 0 (var n).
   Proof.
     admit.
@@ -172,6 +175,7 @@ Section Tests.
 
   Goal
     forall n,
+    (* VarShift1: n[S] = 1+n *)
     subst_lift 1 0 (var n) = var (1 + n).
   Proof.
     admit.
@@ -179,6 +183,7 @@ Section Tests.
 
   Goal
     forall x,
+    (* Id: x[I] = x *)
     subst_ids 0 x = x.
   Proof.
     admit.
@@ -186,12 +191,14 @@ Section Tests.
 
   Goal
     forall x s t,
+    (* Clos: x[s][t] = x[s o t] *)
     t 0 (s 0 x) = subst_comp s t 0 x.
   Proof.
     admit.
   Admitted.
 
   Goal
+    (* VarShift: (0, S) ~ I *)
     subst_cons (var 0) (subst_lift 1) ~ subst_ids.
   Proof.
     admit.
@@ -199,6 +206,7 @@ Section Tests.
 
   Goal
     forall x s,
+    (* ShiftCons: S o (x, s) ~ s *)
     subst_comp (subst_lift 1) (subst_cons x s) ~ s.
   Proof.
     admit.
@@ -206,6 +214,7 @@ Section Tests.
 
   Goal
     forall s,
+    (* IdL: I o s ~ s *)
     subst_comp subst_ids s ~ s.
   Proof.
     admit.
@@ -213,6 +222,7 @@ Section Tests.
 
   Goal
     forall s,
+    (* IdR: s o I ~ s *)
     subst_comp s subst_ids ~ s.
   Proof.
     admit.
@@ -220,6 +230,7 @@ Section Tests.
 
   Goal
     forall s t u,
+    (* AssEnv: (s o t) o u ~ s o (t o u) *)
     subst_comp (subst_comp s t) u ~ subst_comp s (subst_comp t u).
   Proof.
     admit.
@@ -227,6 +238,7 @@ Section Tests.
 
   Goal
     forall x s t,
+    (* MapEnv: (x, s) o t ~ (x[t], s o t) *)
     subst_comp (subst_cons x s) t ~ subst_cons (t 0 x) (subst_comp s t).
   Proof.
     admit.
@@ -234,7 +246,103 @@ Section Tests.
 
   Goal
     forall s,
+    (* SCons: (0[s], S o s) ~ s *)
     subst_cons (s 0 (var 0)) (subst_comp (subst_lift 1) s) ~ s.
+  Proof.
+    admit.
+  Admitted.
+
+  (* Now, lets check the additional laws for the confluent sigma calculus...
+     notice that the confluent sigma calculus seems to drop the (VarShift) and
+     the (SCons) rule, although we still want those because it allows us to
+     equate more terms in the presence of metavariables. *)
+
+  Goal
+    forall s n,
+    (* VarShift2: n[S o s] = (1+n)[s] *)
+    subst_comp (subst_lift 1) s 0 (var n) = s 0 (var (1 + n)).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s,
+    (* FVarLift1: 0[U(s)] = 0 *)
+    subst_upn 1 s 0 (var 0) = var 0.
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t,
+    (* FVarLift2: 0[U(s) o t] = 0[t] *)
+    subst_comp (subst_upn 1 s) t 0 (var 0) = t 0 (var 0).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s n,
+    (* RVarLift1: (n+1)[U(s)] = n[s o S] *)
+    subst_upn 1 s 0 (var (n + 1)) = subst_comp s (subst_lift 1) 0 (var n).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t n,
+    (* RVarLift2: (n+1)[U(s) o t] = n[s o S o t] *)
+    subst_comp (subst_upn 1 s) t 0 (var (n + 1)) =
+      subst_comp s (subst_comp (subst_lift 1) t) 0 (var n).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s,
+    (* ShiftLift1: S o U(s) ~ s o S *)
+    subst_comp (subst_lift 1) (subst_upn 1 s) ~ subst_comp s (subst_lift 1).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t,
+    (* ShiftLift2: S o (U(s) o t) ~ s o S o t *)
+    subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t) ~
+      subst_comp s (subst_comp (subst_lift 1) t).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t,
+    (* Lift1: U(s) o U(t) ~ U(s o t) *)
+    subst_comp (subst_upn 1 s) (subst_upn 1 t) ~ subst_upn 1 (subst_comp s t).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t u,
+    (* Lift2: U(s) o (U(t) o u) ~ U(s o t) o u *)
+    subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u) ~
+      subst_comp (subst_upn 1 (subst_comp s t)) u.
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    forall s t x,
+    (* LiftEnv: U(s) o (x, t) ~ (x, s o t) *)
+    subst_comp (subst_upn 1 s) (subst_cons x t) ~ subst_cons x (subst_comp s t).
+  Proof.
+    admit.
+  Admitted.
+
+  Goal
+    (* LiftId: U(I) ~ I *)
+    subst_upn 1 subst_ids ~ subst_ids.
   Proof.
     admit.
   Admitted.
