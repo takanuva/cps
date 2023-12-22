@@ -45,7 +45,7 @@ Section DeBruijn.
       nat -> X;
     traverse:
       (nat -> nat -> X) -> nat -> X -> X;
-    (* traverse_var:
+    traverse_var:
       forall f k n,
       traverse f k (var n) = f k n;
     traverse_ids:
@@ -55,14 +55,19 @@ Section DeBruijn.
       forall f g,
       (forall k n, f k n = g k n) ->
       forall x k,
-      traverse f k x = traverse g k x;
-    traverse_fun:
-      forall f g x k j,
-      traverse f k (traverse g j x) =
-        traverse (fun i n => traverse f (i + k - j) (g i n)) j x *)
+      traverse f k x = traverse g k x
   }.
 
   Context `{dB: deBruijn}.
+
+  (* Goal
+    forall f g x k j,
+    traverse f k (traverse g j x) =
+      traverse (fun i n => traverse f (i + k - j) (g i n)) j x.
+  Proof.
+    intros.
+    admit.
+  Admitted. *)
 
   Definition lift_fun i k n :=
     if le_gt_dec k n then
@@ -98,6 +103,16 @@ Section DeBruijn.
 
   Global Coercion inst: substitution >-> Funclass.
 
+  Definition subst_equiv (s: substitution) (t: substitution): Prop :=
+    forall x k,
+    s k x = t k x.
+
+  (* ---------------------------------------------------------------------- *)
+
+  Implicit Types x y z: X.
+  Implicit Types s t u: substitution.
+  Implicit Types n m i k j: nat.
+
   Goal
     forall i,
     lift i = inst (subst_lift i).
@@ -106,16 +121,30 @@ Section DeBruijn.
     auto.
   Qed.
 
-  Definition subst_equiv (s: substitution) (t: substitution): Prop :=
-    forall x k,
-    inst s k x = inst t k x.
-
-  Global Instance inst_proper:
-    Proper (subst_equiv ==> eq ==> eq ==> eq) inst.
+  Lemma lift_zero_e_equals_e:
+    forall n k x,
+    n = 0 ->
+    subst_lift n k x = x.
   Proof.
-    intros s t ? k _ () x _ ().
-    apply H.
+    intros; subst.
+    unfold inst.
+    rewrite traverse_ext with (g := fun _ n => var n).
+    - now rewrite traverse_ids.
+    - clear k x; simpl; intros.
+      now destruct (le_gt_dec k n).
   Qed.
+
+  Lemma subst_fvar_cons:
+    forall s x,
+    subst_cons x s 0 (var 0) = x.
+  Proof.
+    intros.
+    unfold inst.
+    rewrite traverse_var; simpl.
+    now apply lift_zero_e_equals_e.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
 
@@ -129,8 +158,12 @@ Arguments subst_app {X}.
 
 Create HintDb sigma.
 
+Local Hint Rewrite lift_zero_e_equals_e using lia: sigma.
+Local Hint Rewrite subst_fvar_cons: sigma.
+
 Ltac sigma :=
-  idtac.
+  rewrite_db sigma;
+  simpl var.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -162,8 +195,9 @@ Section Tests.
     (* FVarCons: 0[x, s] = x *)
     subst_cons x s 0 (var 0) = x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    now sigma.
+  Qed.
 
   Goal
     forall x s n,
