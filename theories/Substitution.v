@@ -164,15 +164,32 @@ Section DeBruijn.
   Qed.
 
   Lemma subst_rvar_cons:
-    forall s x n,
-    subst_cons x s 0 (var (1 + n)) = s 0 (var n).
+    forall s x k n,
+    n > k ->
+    subst_cons x s k (var n) = s k (var (n - 1)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst.
+    do 2 rewrite traverse_var; simpl.
+    now simplify decidable equality.
+  Qed.
+
+  Lemma subst_var_shift1:
+    forall i n k,
+    n >= k ->
+    subst_lift i k (var n) = var (i + n).
+  Proof.
+    intros.
+    unfold inst.
+    rewrite traverse_var; simpl.
+    now simplify decidable equality.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
+
+(* *)
 
 Arguments substitution {X}.
 Arguments subst_ids {X}.
@@ -182,16 +199,32 @@ Arguments subst_comp {X}.
 Arguments subst_upn {X}.
 Arguments subst_app {X}.
 
+(* *)
+
 Create HintDb sigma.
+
+(* *)
 
 Local Hint Rewrite subst_ids_simpl: sigma.
 Local Hint Rewrite subst_lift_zero_ids using lia: sigma.
 Local Hint Rewrite subst_fvar_cons using lia: sigma.
 Local Hint Rewrite subst_rvar_cons using lia: sigma.
+Local Hint Rewrite subst_var_shift1 using lia: sigma.
+
+(* *)
+
+Local Hint Rewrite Nat.sub_0_r: sigma.
+
+(* *)
 
 Ltac sigma :=
-  rewrite_db sigma;
-  simpl var.
+  repeat rewrite_strat (
+    choice
+      (topdown (hints sigma))
+      (progress eval simpl plus)
+      (progress eval simpl minus)
+      (progress eval simpl var)
+  ).
 
 (* -------------------------------------------------------------------------- *)
 
@@ -223,7 +256,6 @@ Section Tests.
     (* FVarCons: 0[x, s] = x *)
     subst_cons x s 0 (var 0) = x.
   Proof.
-    intros.
     now sigma.
   Qed.
 
@@ -232,7 +264,6 @@ Section Tests.
     (* RVarCons: (1+n)[x, s] = n[s] *)
     subst_cons x s 0 (var (1 + n)) = s 0 (var n).
   Proof.
-    intros.
     now sigma.
   Qed.
 
@@ -241,15 +272,14 @@ Section Tests.
     (* VarShift1: n[S] = 1+n *)
     subst_lift 1 0 (var n) = var (1 + n).
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall x,
     (* Id: x[I] = x *)
     subst_ids 0 x = x.
   Proof.
-    intros.
     now sigma.
   Qed.
 
