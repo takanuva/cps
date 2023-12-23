@@ -112,6 +112,67 @@ Section DeBruijn.
     forall k x,
     s k x = t k x.
 
+  Global Instance subst_equivalence:
+    Equivalence subst_equiv.
+  Proof.
+    split; now congruence.
+  Qed.
+
+  Global Instance inst_proper:
+    Proper (subst_equiv ==> eq ==> eq ==> eq) inst.
+  Proof.
+    intros s t ? k _ () x _ ().
+    apply H.
+  Qed.
+
+  Global Instance subst_cons_proper:
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
+  Proof.
+    intros y _ () s t ? k x.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      do 2 rewrite <- traverse_var.
+      apply H.
+    - now simplify decidable equality.
+    - now simplify decidable equality.
+  Qed.
+
+  Global Instance subst_comp_proper:
+    Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
+  Proof.
+    intros s t ? u v ? k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - replace (inst_fun s k n) with (s k (var n)).
+      + rewrite H.
+        unfold inst.
+        rewrite traverse_var.
+        apply traverse_ext.
+        clear k n l; intros.
+        do 2 rewrite <- traverse_var.
+        apply H0.
+      + unfold inst.
+        now rewrite traverse_var.
+    - reflexivity.
+  Qed.
+
+  Global Instance subst_upn_proper:
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_upn.
+  Proof.
+    intros i _ () s t ? k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - do 2 rewrite <- traverse_var.
+      apply H.
+    - reflexivity.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
   Implicit Types x y z: X.
@@ -206,61 +267,6 @@ Section DeBruijn.
 
   Local Notation "s ~ t" := (subst_equiv s t) (at level 70, no associativity).
 
-  Global Instance inst_proper:
-    Proper (subst_equiv ==> eq ==> eq ==> eq) inst.
-  Proof.
-    intros s t ? k _ () x _ ().
-    apply H.
-  Qed.
-
-  Global Instance subst_cons_proper:
-    Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
-  Proof.
-    intros y _ () s t ? k x.
-    apply traverse_ext.
-    clear k x; simpl; intros.
-    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
-    - simplify decidable equality.
-      do 2 rewrite <- traverse_var.
-      apply H.
-    - now simplify decidable equality.
-    - now simplify decidable equality.
-  Qed.
-
-  Global Instance subst_comp_proper:
-    Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
-  Proof.
-    intros s t ? u v ? k x.
-    unfold inst.
-    apply traverse_ext.
-    clear k x; simpl; intros.
-    destruct (le_gt_dec k n).
-    - replace (inst_fun s k n) with (s k (var n)).
-      + rewrite H.
-        unfold inst.
-        rewrite traverse_var.
-        apply traverse_ext.
-        clear k n l; intros.
-        do 2 rewrite <- traverse_var.
-        apply H0.
-      + unfold inst.
-        now rewrite traverse_var.
-    - reflexivity.
-  Qed.
-
-  Global Instance subst_upn_proper:
-    Proper (eq ==> subst_equiv ==> subst_equiv) subst_upn.
-  Proof.
-    intros i _ () s t ? k x.
-    unfold inst.
-    apply traverse_ext.
-    clear k x; simpl; intros.
-    destruct (le_gt_dec k n).
-    - do 2 rewrite <- traverse_var.
-      apply H.
-    - reflexivity.
-  Qed.
-
   Lemma subst_shift_zero:
     forall n,
     n = 0 ->
@@ -285,6 +291,49 @@ Section DeBruijn.
     destruct s; simpl;
     now destruct (le_gt_dec k n).
   Qed.
+
+  Lemma subst_var_shift:
+    forall n,
+    n = 0 ->
+    subst_cons (var n) (subst_lift 1) ~ subst_ids.
+  Proof.
+    intros n ? k x; subst.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      f_equal; lia.
+    - simplify decidable equality.
+      unfold lift.
+      rewrite traverse_var.
+      unfold lift_fun; simpl.
+      f_equal; lia.
+    - now simplify decidable equality.
+  Qed.
+
+  Lemma subst_shift_cons:
+    forall n y s,
+    n > 0 ->
+    subst_comp (subst_lift n) (subst_cons y s) ~
+      subst_comp (subst_lift (n - 1)) s.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_id_left:
+    forall s,
+    subst_comp subst_ids s ~ s.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_id_right:
+    forall s,
+    subst_comp s subst_ids ~ s.
+  Proof.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -318,6 +367,10 @@ Global Hint Rewrite subst_clos: sigma.
 
 Global Hint Rewrite subst_shift_zero using lia: sigma.
 Global Hint Rewrite subst_lift_zero using lia: sigma.
+Global Hint Rewrite subst_var_shift using lia: sigma.
+Global Hint Rewrite subst_shift_cons using lia: sigma.
+Global Hint Rewrite subst_id_left: sigma.
+Global Hint Rewrite subst_id_right: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -326,14 +379,14 @@ Global Hint Rewrite Nat.sub_0_r: sigma.
 (* *)
 
 Ltac sigma :=
-  repeat rewrite_strat (
-    choice
-      (topdown (hints sigma))
-      (progress eval simpl var)
-      (* TODO: we want to restrict those... somehow. *)
-      (progress eval simpl plus)
-      (progress eval simpl minus)
-  ).
+  rewrite_strat
+    (topdown
+      (choice
+        (hints sigma)
+        (* TODO: we want to restrict the context in those... somehow... *)
+        (progress eval simpl var)
+        (progress eval simpl plus)
+        (progress eval simpl minus))).
 
 (* -------------------------------------------------------------------------- *)
 
@@ -361,17 +414,17 @@ Section Tests.
      applied to the lifting substitution in there, i.e., n = 0[S^n]. *)
 
   Goal
-    forall x s,
-    (* FVarCons: 0[x, s] = x *)
-    subst_cons x s 0 (var 0) = x.
+    forall y s,
+    (* FVarCons: 0[y, s] = y *)
+    subst_cons y s 0 (var 0) = y.
   Proof.
     now sigma.
   Qed.
 
   Goal
-    forall x s n,
-    (* RVarCons: (1+n)[x, s] = n[s] *)
-    subst_cons x s 0 (var (1 + n)) = s 0 (var n).
+    forall y s n,
+    (* RVarCons: (1+n)[y, s] = n[s] *)
+    subst_cons y s 0 (var (1 + n)) = s 0 (var n).
   Proof.
     now sigma.
   Qed.
@@ -401,35 +454,36 @@ Section Tests.
   Qed.
 
   Goal
+    forall k x,
     (* VarShift: (0, S) ~ I *)
-    subst_cons (var 0) (subst_lift 1) ~ subst_ids.
+    subst_cons (var 0) (subst_lift 1) k x = x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
-    forall x s,
-    (* ShiftCons: S o (x, s) ~ s *)
-    subst_comp (subst_lift 1) (subst_cons x s) ~ s.
+    forall y s k x,
+    (* ShiftCons: S o (y, s) ~ s *)
+    subst_comp (subst_lift 1) (subst_cons y s) k x = s k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s,
     (* IdL: I o s ~ s *)
     subst_comp subst_ids s ~ s.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s,
     (* IdR: s o I ~ s *)
     subst_comp s subst_ids ~ s.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t u,
