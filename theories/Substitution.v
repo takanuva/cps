@@ -109,7 +109,7 @@ Section DeBruijn.
   Global Coercion inst: substitution >-> Funclass.
 
   Definition subst_equiv (s: substitution) (t: substitution): Prop :=
-    forall x k,
+    forall k x,
     s k x = t k x.
 
   (* ---------------------------------------------------------------------- *)
@@ -140,16 +140,16 @@ Section DeBruijn.
       now destruct (le_gt_dec k n).
   Qed.
 
-  Lemma subst_lift_zero_ids:
-    forall n k x,
-    n = 0 ->
-    subst_lift n k x = subst_ids k x.
+  Lemma subst_bvar:
+    forall s k n,
+    n < k ->
+    s k (var n) = var n.
   Proof.
-    intros; subst.
+    intros.
     unfold inst.
-    apply traverse_ext; simpl.
-    clear k x; intros.
-    now destruct (le_gt_dec k n).
+    rewrite traverse_var.
+    destruct s; simpl;
+    now simplify decidable equality.
   Qed.
 
   Lemma subst_fvar_cons:
@@ -185,6 +185,85 @@ Section DeBruijn.
     now simplify decidable equality.
   Qed.
 
+  Lemma subst_inst_lift:
+    forall n s k x,
+    n > 0 ->
+    subst_upn n s k x = s (n + k) x.
+  Proof.
+    intros.
+    unfold inst.
+    admit.
+  Admitted.
+
+  Lemma subst_clos:
+    forall s t k j x,
+    t j (s k x) = subst_comp (subst_upn k s) (subst_upn j t) 0 x.
+  Proof.
+    admit.
+  Admitted.
+
+  (* ---------------------------------------------------------------------- *)
+
+  Local Notation "s ~ t" := (subst_equiv s t) (at level 70, no associativity).
+
+  Global Instance inst_proper:
+    Proper (subst_equiv ==> eq ==> eq ==> eq) inst.
+  Proof.
+    intros s t ? k _ () x _ ().
+    apply H.
+  Qed.
+
+  Global Instance subst_cons_proper:
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
+  Proof.
+    intros y _ () s t ? k x.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      do 2 rewrite <- traverse_var.
+      apply H.
+    - now simplify decidable equality.
+    - now simplify decidable equality.
+  Qed.
+
+  Global Instance subst_comp_proper:
+    Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
+  Proof.
+    admit.
+  Admitted.
+
+  Global Instance subst_upn_proper:
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_upn.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_shift_zero:
+    forall n,
+    n = 0 ->
+    subst_lift n ~ subst_ids.
+  Proof.
+    intros n ? k x; subst.
+    unfold inst.
+    apply traverse_ext; simpl.
+    clear k x; intros.
+    now destruct (le_gt_dec k n).
+  Qed.
+
+  Lemma subst_lift_zero:
+    forall n s,
+    n = 0 ->
+    subst_upn n s ~ s.
+  Proof.
+    intros n s ? k x; subst.
+    unfold inst.
+    apply traverse_ext; simpl.
+    clear k x; intros.
+    destruct s; simpl;
+    now destruct (le_gt_dec k n).
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -205,15 +284,22 @@ Create HintDb sigma.
 
 (* *)
 
-Local Hint Rewrite subst_ids_simpl: sigma.
-Local Hint Rewrite subst_lift_zero_ids using lia: sigma.
-Local Hint Rewrite subst_fvar_cons using lia: sigma.
-Local Hint Rewrite subst_rvar_cons using lia: sigma.
-Local Hint Rewrite subst_var_shift1 using lia: sigma.
+Global Hint Rewrite subst_ids_simpl: sigma.
+Global Hint Rewrite subst_bvar using lia: sigma.
+Global Hint Rewrite subst_fvar_cons using lia: sigma.
+Global Hint Rewrite subst_rvar_cons using lia: sigma.
+Global Hint Rewrite subst_var_shift1 using lia: sigma.
+Global Hint Rewrite subst_inst_lift using lia: sigma.
+Global Hint Rewrite subst_clos: sigma.
 
 (* *)
 
-Local Hint Rewrite Nat.sub_0_r: sigma.
+Global Hint Rewrite subst_shift_zero using lia: sigma.
+Global Hint Rewrite subst_lift_zero using lia: sigma.
+
+(* TODO: figure out a way to restrict these rewritings. *)
+
+Global Hint Rewrite Nat.sub_0_r: sigma.
 
 (* *)
 
@@ -221,9 +307,10 @@ Ltac sigma :=
   repeat rewrite_strat (
     choice
       (topdown (hints sigma))
+      (progress eval simpl var)
+      (* TODO: we want to restrict those... somehow. *)
       (progress eval simpl plus)
       (progress eval simpl minus)
-      (progress eval simpl var)
   ).
 
 (* -------------------------------------------------------------------------- *)
@@ -288,8 +375,8 @@ Section Tests.
     (* Clos: x[s][t] = x[s o t] *)
     t 0 (s 0 x) = subst_comp s t 0 x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     (* VarShift: (0, S) ~ I *)
