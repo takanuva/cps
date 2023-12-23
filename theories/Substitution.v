@@ -115,7 +115,7 @@ Section DeBruijn.
   (* ---------------------------------------------------------------------- *)
 
   Implicit Types x y z: X.
-  Implicit Types s t u: substitution.
+  Implicit Types s t u v: substitution.
   Implicit Types n m i k j: nat.
 
   (* TODO: this should probably become a rewriting rule. *)
@@ -230,14 +230,36 @@ Section DeBruijn.
   Global Instance subst_comp_proper:
     Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
   Proof.
-    admit.
-  Admitted.
+    intros s t ? u v ? k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - replace (inst_fun s k n) with (s k (var n)).
+      + rewrite H.
+        unfold inst.
+        rewrite traverse_var.
+        apply traverse_ext.
+        clear k n l; intros.
+        do 2 rewrite <- traverse_var.
+        apply H0.
+      + unfold inst.
+        now rewrite traverse_var.
+    - reflexivity.
+  Qed.
 
   Global Instance subst_upn_proper:
     Proper (eq ==> subst_equiv ==> subst_equiv) subst_upn.
   Proof.
-    admit.
-  Admitted.
+    intros i _ () s t ? k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - do 2 rewrite <- traverse_var.
+      apply H.
+    - reflexivity.
+  Qed.
 
   Lemma subst_shift_zero:
     forall n,
