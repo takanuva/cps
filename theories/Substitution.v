@@ -313,27 +313,57 @@ Section DeBruijn.
   Qed.
 
   Lemma subst_shift_cons:
-    forall n y s,
-    n > 0 ->
-    subst_comp (subst_lift n) (subst_cons y s) ~
-      subst_comp (subst_lift (n - 1)) s.
+    forall i y s,
+    i > 0 ->
+    subst_comp (subst_lift i) (subst_cons y s) ~
+      subst_comp (subst_lift (i - 1)) s.
   Proof.
-    admit.
-  Admitted.
+    intros i y s ? k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      do 2 rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - simplify decidable equality.
+      do 2 rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - now simplify decidable equality.
+  Qed.
 
   Lemma subst_id_left:
     forall s,
     subst_comp subst_ids s ~ s.
   Proof.
-    admit.
-  Admitted.
+    intros s k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - now rewrite traverse_var.
+    - destruct s; simpl;
+      now simplify decidable equality.
+  Qed.
 
   Lemma subst_id_right:
     forall s,
     subst_comp s subst_ids ~ s.
   Proof.
-    admit.
-  Admitted.
+    intros s k x.
+    unfold inst.
+    apply traverse_ext.
+    clear k x; simpl; intros.
+    destruct (le_gt_dec k n).
+    - rewrite traverse_ext with (g := fun _ n => var n).
+      + now rewrite traverse_ids.
+      + clear k n l; intros.
+        now destruct (le_gt_dec k n).
+    - destruct s; simpl;
+      now simplify decidable equality.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
