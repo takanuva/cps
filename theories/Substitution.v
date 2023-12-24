@@ -68,7 +68,7 @@ Section DeBruijn.
         traverse (fun i n => traverse f (i + k - j) (g i n)) j x
   }.
 
-  Context `{dB: deBruijn}.
+  Context `{db: deBruijn}.
 
   Definition lift_fun i k n :=
     if le_gt_dec k n then
@@ -125,6 +125,7 @@ Section DeBruijn.
     Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
   Proof.
     intros y _ () s t ? k x.
+    unfold inst.
     apply traverse_ext.
     intros; simpl.
     destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
@@ -175,6 +176,8 @@ Section DeBruijn.
   Implicit Types s t u v: substitution.
   Implicit Types n m i k j: nat.
 
+  (* TODO: check why rewriting doesn't work with the following! *)
+
   Lemma subst_lift_unfold:
     forall i,
     lift i = inst (subst_lift i).
@@ -191,7 +194,7 @@ Section DeBruijn.
     intros.
     rewrite subst_lift_unfold.
     unfold inst.
-    (* Huh... we need to generalize the extensionality law, it seems. *)
+    (* Huh... we need to generalize the extensionality law. TODO: do it. *)
     admit.
   Admitted.
 
@@ -281,12 +284,27 @@ Section DeBruijn.
     - now rewrite inst_fun_bvar by lia.
   Qed.
 
-  Lemma subst_clos:
+  Lemma subst_comp_clos:
     forall s t k j x,
     t j (s k x) = subst_comp (subst_upn k s) (subst_upn j t) 0 x.
   Proof.
+    intros.
+    unfold inst.
+    rewrite traverse_fun.
+    (* Sigh... *)
     admit.
   Admitted.
+
+  Lemma subst_var_shift2:
+    forall s i n k,
+    n >= k ->
+    subst_comp (subst_lift i) s k (var n) = s k (var (i + n)).
+  Proof.
+    intros.
+    unfold inst.
+    rewrite traverse_var; simpl.
+    now simplify decidable equality.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -476,7 +494,8 @@ Global Hint Rewrite subst_fvar_cons using lia: sigma.
 Global Hint Rewrite subst_rvar_cons using lia: sigma.
 Global Hint Rewrite subst_var_shift1 using lia: sigma.
 Global Hint Rewrite subst_inst_lift using lia: sigma.
-Global Hint Rewrite subst_clos: sigma.
+Global Hint Rewrite subst_comp_clos: sigma.
+Global Hint Rewrite subst_var_shift2 using lia: sigma.
 
 (* *)
 
@@ -635,16 +654,16 @@ Section Tests.
     (* VarShift2: n[S o s] = (1+n)[s] *)
     subst_comp (subst_lift 1) s 0 (var n) = s 0 (var (1 + n)).
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s,
     (* FVarLift1: 0[U(s)] = 0 *)
     subst_upn 1 s 0 (var 0) = var 0.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t,
