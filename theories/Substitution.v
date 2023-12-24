@@ -537,6 +537,47 @@ Section DeBruijn.
     - now simplify decidable equality.
   Admitted.
 
+  Lemma subst_lift_comp1:
+    forall s t k j,
+    k = j ->
+    subst_comp (subst_upn k s) (subst_upn j t) ~
+      subst_upn j (subst_comp (subst_upn (k - j) s) t).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_comp2:
+    forall s t k j,
+    k >= j ->
+    subst_comp (subst_upn k s) (subst_upn j t) ~
+      subst_upn j (subst_comp (subst_upn (k - j) s) t).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_comp3:
+    forall s t k j,
+    j >= k ->
+    subst_comp (subst_upn k s) (subst_upn j t) ~
+      subst_upn k (subst_comp s (subst_upn (j - k) t)).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_shift_shift:
+    forall s i j,
+    subst_comp (subst_lift i) (subst_lift j) ~ (subst_lift (i + j)).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_lift:
+    forall s k j,
+    subst_upn k (subst_upn j s) ~ subst_upn (k + j) s.
+  Proof.
+    admit.
+  Admitted.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -582,11 +623,17 @@ Global Hint Rewrite subst_cons_simpl using lia: sigma.
 Global Hint Rewrite subst_comp_shift1: sigma.
 Global Hint Rewrite subst_comp_shift2: sigma.
 Global Hint Rewrite subst_lift_cons using lia: sigma.
+Global Hint Rewrite subst_lift_comp1 using lia: sigma.
+Global Hint Rewrite subst_lift_comp2 using lia: sigma.
+Global Hint Rewrite subst_lift_comp3 using lia: sigma.
+Global Hint Rewrite subst_shift_shift: sigma.
+Global Hint Rewrite subst_lift_lift: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
 Global Hint Rewrite Nat.sub_0_r: sigma.
 Global Hint Rewrite Nat.add_0_r: sigma.
+Global Hint Rewrite Nat.add_sub_assoc using lia: sigma.
 Global Hint Rewrite <- plus_n_Sm: sigma.
 
 (* *)
@@ -763,8 +810,8 @@ Section Tests.
     subst_comp (subst_upn 1 s) t 0 (var (1 + n)) =
       subst_comp s (subst_comp (subst_lift 1) t) 0 (var n).
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s k x,
@@ -791,8 +838,8 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_upn 1 t) k x =
       subst_upn 1 (subst_comp s t) k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t u k x,
@@ -828,9 +875,9 @@ Section Tests.
     lift i k (inst s j x) = inst s (i + j) (lift i k x).
   Proof.
     intros.
-    (* TODO: this rewrite should happen automatically... *)
+    (* TODO: this rewrite step should happen automatically... *)
     replace (lift i) with (inst (subst_lift i)) by auto.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
 End Tests.
