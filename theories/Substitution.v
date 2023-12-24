@@ -175,15 +175,27 @@ Section DeBruijn.
   Implicit Types s t u v: substitution.
   Implicit Types n m i k j: nat.
 
-  (* TODO: this should probably become a rewriting rule. *)
-
-  Goal
+  Lemma subst_lift_unfold:
     forall i,
     lift i = inst (subst_lift i).
   Proof.
     (* We have intensional equality between these! *)
     auto.
   Qed.
+
+  Lemma subst_lift_inst_commute:
+    forall x s i k j,
+    k <= j ->
+    lift i k (inst s j x) = inst s (i + j) (lift i k x).
+  Proof.
+    intros.
+    rewrite subst_lift_unfold.
+    unfold inst.
+    (* Huh... we need to generalize the extensionality law, it seems. *)
+    admit.
+  Admitted.
+
+  (* ---------------------------------------------------------------------- *)
 
   Lemma subst_ids_simpl:
     forall k x,
@@ -395,6 +407,22 @@ Section DeBruijn.
     - reflexivity.
   Qed.
 
+  Lemma subst_comp_cons_map:
+    forall y s t,
+    subst_comp (subst_cons y s) t ~ subst_cons (t 0 y) (subst_comp s t).
+  Proof.
+    intros y s t k x.
+    unfold inst.
+    apply traverse_ext; simpl; intros.
+    destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
+    - now simplify decidable equality.
+    - simplify decidable equality.
+      replace (traverse (inst_fun t)) with (inst t) by auto.
+      rewrite subst_lift_inst_commute by lia.
+      f_equal; lia.
+    - now simplify decidable equality.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -415,6 +443,7 @@ Create HintDb sigma.
 
 (* *)
 
+Global Hint Rewrite subst_lift_unfold: sigma.
 Global Hint Rewrite subst_ids_simpl: sigma.
 Global Hint Rewrite subst_bvar using lia: sigma.
 Global Hint Rewrite subst_fvar_cons using lia: sigma.
@@ -432,6 +461,7 @@ Global Hint Rewrite subst_shift_cons using lia: sigma.
 Global Hint Rewrite subst_id_left: sigma.
 Global Hint Rewrite subst_id_right: sigma.
 Global Hint Rewrite subst_comp_assoc: sigma.
+Global Hint Rewrite subst_comp_cons_map: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -553,12 +583,12 @@ Section Tests.
   Qed.
 
   Goal
-    forall x s t k x,
-    (* MapEnv: (x, s) o t ~ (x[t], s o t) *)
-    subst_comp (subst_cons x s) t k x = subst_cons (t 0 x) (subst_comp s t) k x.
+    forall y s t k x,
+    (* MapEnv: (y, s) o t ~ (y[t], s o t) *)
+    subst_comp (subst_cons y s) t k x = subst_cons (t 0 y) (subst_comp s t) k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s k x,
