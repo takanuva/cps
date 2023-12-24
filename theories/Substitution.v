@@ -316,16 +316,18 @@ Section DeBruijn.
     - now rewrite inst_fun_bvar.
   Qed.
 
+  (* Notice the generalization in the following rule! *)
+
   Lemma subst_var_shift:
-    forall n,
-    n = 0 ->
-    subst_cons (var n) (subst_lift 1) ~ subst_ids.
+    forall n i,
+    i = 1 + n ->
+    subst_cons (var n) (subst_lift i) ~ subst_lift n.
   Proof.
-    intros n ? k x; subst.
+    intros n i ? k x; subst.
     unfold inst.
     apply traverse_ext.
-    simpl; intros.
-    destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
+    simpl; intros j m ?.
+    destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
     - simplify decidable equality.
       f_equal; lia.
     - simplify decidable equality.
@@ -423,6 +425,30 @@ Section DeBruijn.
     - now simplify decidable equality.
   Qed.
 
+  Lemma subst_cons_simpl:
+    forall s k n m,
+    k = 0 ->
+    m = 1 + n ->
+    subst_cons (s k (var n)) (subst_comp (subst_lift m) s) ~
+      subst_comp (subst_lift n) s.
+  Proof.
+    intros s k n m ? ?; subst.
+    intros k x; unfold inst.
+    apply traverse_ext.
+    intros j m ?; simpl.
+    destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      repeat f_equal; lia.
+    - simplify decidable equality.
+      replace (traverse (inst_fun s)) with (inst s) by auto.
+      rewrite subst_lift_inst_commute by lia.
+      unfold lift; rewrite traverse_var.
+      unfold lift_fun; simpl.
+      replace (j + 0) with j by lia.
+      do 2 f_equal; lia.
+    - now simplify decidable equality.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -462,6 +488,7 @@ Global Hint Rewrite subst_id_left: sigma.
 Global Hint Rewrite subst_id_right: sigma.
 Global Hint Rewrite subst_comp_assoc: sigma.
 Global Hint Rewrite subst_comp_cons_map: sigma.
+Global Hint Rewrite subst_cons_simpl using lia: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -595,8 +622,8 @@ Section Tests.
     (* SCons: (0[s], S o s) ~ s *)
     subst_cons (s 0 (var 0)) (subst_comp (subst_lift 1) s) k x = s k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   (* Now, lets check the additional laws for the confluent sigma calculus...
      notice that the confluent sigma calculus seems to drop the (VarShift) and
