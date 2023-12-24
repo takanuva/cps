@@ -482,7 +482,7 @@ Section DeBruijn.
 
   (* This goes on the opposite direction than the confluent sigma calculus! *)
 
-  Lemma subst_comp_shift:
+  Lemma subst_comp_shift1:
     forall s i,
     subst_comp s (subst_lift i) ~ subst_comp (subst_lift i) (subst_upn i s).
   Proof.
@@ -501,6 +501,41 @@ Section DeBruijn.
       unfold inst; now rewrite traverse_var.
     - reflexivity.
   Qed.
+
+  Lemma subst_comp_shift2:
+    forall s t i,
+    subst_comp s (subst_comp (subst_lift i) t) ~
+      subst_comp (subst_lift i) (subst_comp (subst_upn i s) t).
+  Proof.
+    intros s t i k x.
+    unfold inst.
+    apply traverse_ext; intros.
+    simpl.
+    destruct (le_gt_dec j n).
+    - (* Hm... *)
+      admit.
+    - reflexivity.
+  Admitted.
+
+  Lemma subst_lift_cons:
+    forall n s y t,
+    n > 0 ->
+    subst_comp (subst_upn n s) (subst_cons y t) ~
+      subst_cons y (subst_comp (subst_upn (n - 1) s) t).
+  Proof.
+    intros n s y t ? k x.
+    unfold inst.
+    apply traverse_ext; intros j m ?.
+    simpl.
+    destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
+    - simplify decidable equality.
+      admit.
+    - simplify decidable equality.
+      rewrite inst_fun_bvar by lia.
+      rewrite traverse_var.
+      now simplify decidable equality.
+    - now simplify decidable equality.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -544,7 +579,9 @@ Global Hint Rewrite subst_id_right: sigma.
 Global Hint Rewrite subst_comp_assoc: sigma.
 Global Hint Rewrite subst_comp_cons_map: sigma.
 Global Hint Rewrite subst_cons_simpl using lia: sigma.
-Global Hint Rewrite subst_comp_shift: sigma.
+Global Hint Rewrite subst_comp_shift1: sigma.
+Global Hint Rewrite subst_comp_shift2: sigma.
+Global Hint Rewrite subst_lift_cons using lia: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -745,8 +782,8 @@ Section Tests.
     subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t) k x =
       subst_comp s (subst_comp (subst_lift 1) t) k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t k x,
@@ -772,8 +809,8 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_cons y t) k x =
       subst_cons y (subst_comp s t) k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall k x,
@@ -782,5 +819,18 @@ Section Tests.
   Proof.
     now sigma.
   Qed.
+
+  (* We can also check some rules from the original de Bruijn implementation! *)
+
+  Goal
+    forall x s i k j,
+    k <= j ->
+    lift i k (inst s j x) = inst s (i + j) (lift i k x).
+  Proof.
+    intros.
+    (* TODO: this rewrite should happen automatically... *)
+    replace (lift i) with (inst (subst_lift i)) by auto.
+    admit.
+  Admitted.
 
 End Tests.
