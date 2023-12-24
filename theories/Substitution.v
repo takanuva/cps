@@ -564,6 +564,33 @@ Section DeBruijn.
     admit.
   Admitted.
 
+  Lemma subst_lift_comp4:
+    forall s t u k j,
+    k = j ->
+    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
+      subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_comp5:
+    forall s t u k j,
+    k >= j ->
+    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
+      subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_comp6:
+    forall s t u k j,
+    j >= k ->
+    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
+      subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u.
+  Proof.
+    admit.
+  Admitted.
+
   Lemma subst_shift_shift:
     forall s i j,
     subst_comp (subst_lift i) (subst_lift j) ~ (subst_lift (i + j)).
@@ -626,6 +653,9 @@ Global Hint Rewrite subst_lift_cons using lia: sigma.
 Global Hint Rewrite subst_lift_comp1 using lia: sigma.
 Global Hint Rewrite subst_lift_comp2 using lia: sigma.
 Global Hint Rewrite subst_lift_comp3 using lia: sigma.
+Global Hint Rewrite subst_lift_comp4 using lia: sigma.
+Global Hint Rewrite subst_lift_comp5 using lia: sigma.
+Global Hint Rewrite subst_lift_comp6 using lia: sigma.
 Global Hint Rewrite subst_shift_shift: sigma.
 Global Hint Rewrite subst_lift_lift: sigma.
 
@@ -847,8 +877,8 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u) k x =
       subst_comp (subst_upn 1 (subst_comp s t)) u k x.
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t y k x,
