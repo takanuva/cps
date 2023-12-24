@@ -176,13 +176,11 @@ Section DeBruijn.
   Implicit Types s t u v: substitution.
   Implicit Types n m i k j: nat.
 
-  (* TODO: check why rewriting doesn't work with the following! *)
-
   Lemma subst_lift_unfold:
-    forall i,
-    lift i = inst (subst_lift i).
+    forall i k x,
+    lift i k x = inst (subst_lift i) k x.
   Proof.
-    (* We have intensional equality between these! *)
+    (* We have intensional equality between lift i and inst (subst_lift i)! *)
     auto.
   Qed.
 
@@ -288,11 +286,22 @@ Section DeBruijn.
     t j (s k x) = subst_comp (subst_upn k s) (subst_upn j t) 0 x.
   Proof.
     intros.
+    replace k with (k + 0) at 1 by lia.
+    rewrite <- subst_inst_lift.
     unfold inst.
     rewrite traverse_fun.
-    (* Sigh... *)
-    admit.
-  Admitted.
+    apply traverse_ext; simpl; intros l n _.
+    replace (l + j - 0) with (l + j) by lia.
+    destruct (le_gt_dec l n).
+    - (* The term on the right-hand side is just inst_fun (subst_upn j t). *)
+      fold (inst t).
+      replace (l + j) with (j + l) by lia.
+      rewrite <- subst_inst_lift.
+      (* Both sides are intensionally equal now! *)
+      reflexivity.
+    - rewrite traverse_var.
+      now rewrite inst_fun_bvar by lia.
+  Qed.
 
   Lemma subst_var_shift2:
     forall s i n k,
@@ -543,8 +552,25 @@ Section DeBruijn.
     subst_comp (subst_upn k s) (subst_upn j t) ~
       subst_upn j (subst_comp (subst_upn (k - j) s) t).
   Proof.
-    admit.
-  Admitted.
+    intros s t k _ () j x.
+    unfold inst.
+    apply traverse_ext; intros l n ?.
+    simpl.
+    destruct (le_gt_dec l n).
+    - replace (k - k + (k + l)) with (k + l) by lia.
+      destruct (le_gt_dec (k + l) n).
+      + replace (traverse (inst_fun t)) with (inst t) by auto.
+        rewrite <- subst_inst_lift.
+        unfold inst.
+        apply traverse_ext; intros p m ?.
+        simpl.
+        now destruct (le_gt_dec p m).
+      + rewrite inst_fun_bvar by lia.
+        rewrite traverse_var.
+        rewrite inst_fun_bvar by lia.
+        now simplify decidable equality.
+    - reflexivity.
+  Qed.
 
   Lemma subst_lift_comp2:
     forall s t k j,
@@ -905,8 +931,6 @@ Section Tests.
     lift i k (inst s j x) = inst s (i + j) (lift i k x).
   Proof.
     intros.
-    (* TODO: this rewrite step should happen automatically... *)
-    replace (lift i) with (inst (subst_lift i)) by auto.
     now sigma.
   Qed.
 
