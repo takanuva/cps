@@ -268,7 +268,6 @@ Section DeBruijn.
 
   Lemma subst_inst_lift:
     forall n s k x,
-    n > 0 ->
     subst_upn n s k x = s (n + k) x.
   Proof.
     intros.
@@ -304,6 +303,20 @@ Section DeBruijn.
     unfold inst.
     rewrite traverse_var; simpl.
     now simplify decidable equality.
+  Qed.
+
+  Lemma subst_fvar_lift2:
+    forall s t k i n,
+    i + k > n ->
+    subst_comp (subst_upn i s) t k (var n) = t k (var n).
+  Proof.
+    intros.
+    unfold inst.
+    rewrite traverse_var; simpl.
+    destruct (le_gt_dec k n).
+    - now rewrite inst_fun_bvar by lia.
+    - rewrite traverse_var.
+      now rewrite inst_fun_bvar by lia.
   Qed.
 
   (* ---------------------------------------------------------------------- *)
@@ -467,6 +480,28 @@ Section DeBruijn.
     - now simplify decidable equality.
   Qed.
 
+  (* This goes on the opposite direction than the confluent sigma calculus! *)
+
+  Lemma subst_comp_shift:
+    forall s i,
+    subst_comp s (subst_lift i) ~ subst_comp (subst_lift i) (subst_upn i s).
+  Proof.
+    intros s i k x.
+    unfold inst.
+    apply traverse_ext; intros.
+    simpl.
+    destruct (le_gt_dec j n).
+    - rewrite traverse_var.
+      simplify decidable equality.
+      rewrite <- traverse_var.
+      fold (lift_fun i) (lift i) (inst s).
+      rewrite subst_lift_inst_commute by lia.
+      rewrite subst_lift_unfold.
+      rewrite subst_var_shift1 by lia.
+      unfold inst; now rewrite traverse_var.
+    - reflexivity.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -493,9 +528,10 @@ Global Hint Rewrite subst_bvar using lia: sigma.
 Global Hint Rewrite subst_fvar_cons using lia: sigma.
 Global Hint Rewrite subst_rvar_cons using lia: sigma.
 Global Hint Rewrite subst_var_shift1 using lia: sigma.
-Global Hint Rewrite subst_inst_lift using lia: sigma.
+Global Hint Rewrite subst_inst_lift: sigma.
 Global Hint Rewrite subst_comp_clos: sigma.
 Global Hint Rewrite subst_var_shift2 using lia: sigma.
+Global Hint Rewrite subst_fvar_lift2 using lia: sigma.
 
 (* *)
 
@@ -508,10 +544,13 @@ Global Hint Rewrite subst_id_right: sigma.
 Global Hint Rewrite subst_comp_assoc: sigma.
 Global Hint Rewrite subst_comp_cons_map: sigma.
 Global Hint Rewrite subst_cons_simpl using lia: sigma.
+Global Hint Rewrite subst_comp_shift: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
 Global Hint Rewrite Nat.sub_0_r: sigma.
+Global Hint Rewrite Nat.add_0_r: sigma.
+Global Hint Rewrite <- plus_n_Sm: sigma.
 
 (* *)
 
@@ -670,21 +709,21 @@ Section Tests.
     (* FVarLift2: 0[U(s) o t] = 0[t] *)
     subst_comp (subst_upn 1 s) t 0 (var 0) = t 0 (var 0).
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s n,
-    (* RVarLift1: (n+1)[U(s)] = n[s o S] *)
-    subst_upn 1 s 0 (var (n + 1)) = subst_comp s (subst_lift 1) 0 (var n).
+    (* RVarLift1: (1+n)[U(s)] = n[s o S] *)
+    subst_upn 1 s 0 (var (1 + n)) = subst_comp s (subst_lift 1) 0 (var n).
   Proof.
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
   Goal
     forall s t n,
-    (* RVarLift2: (n+1)[U(s) o t] = n[s o S o t] *)
-    subst_comp (subst_upn 1 s) t 0 (var (n + 1)) =
+    (* RVarLift2: (1+n)[U(s) o t] = n[s o S o t] *)
+    subst_comp (subst_upn 1 s) t 0 (var (1 + n)) =
       subst_comp s (subst_comp (subst_lift 1) t) 0 (var n).
   Proof.
     admit.
@@ -696,8 +735,9 @@ Section Tests.
     subst_comp (subst_lift 1) (subst_upn 1 s) k x =
       subst_comp s (subst_lift 1) k x.
   Proof.
-    admit.
-  Admitted.
+    (* We go in the opposite direction! *)
+    now sigma.
+  Qed.
 
   Goal
     forall s t k x,
