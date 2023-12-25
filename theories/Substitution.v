@@ -764,6 +764,21 @@ Section DeBruijn.
     admit.
   Admitted.
 
+  Lemma subst_shift_lift_shift:
+    forall i j k,
+    k <= i ->
+    subst_comp (subst_lift i) (subst_upn k (subst_lift j)) ~ subst_lift (j + i).
+  Proof.
+    intros i j k ? l x.
+    unfold inst.
+    apply traverse_ext; simpl; intros p n ?.
+    destruct (le_gt_dec p n).
+    - rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - reflexivity.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -817,6 +832,7 @@ Global Hint Rewrite subst_lift_comp5 using lia: sigma.
 Global Hint Rewrite subst_lift_comp6 using lia: sigma.
 Global Hint Rewrite subst_shift_shift: sigma.
 Global Hint Rewrite subst_lift_lift: sigma.
+Global Hint Rewrite subst_shift_lift_shift using lia: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -1079,15 +1095,14 @@ Section Tests.
   Qed.
 
   Goal
+    (* Lifting simplification. *)
     forall x i j k l,
     k <= l + j ->
     l <= k ->
-    (* Lifting simplification. *)
     lift i k (lift j l x) = lift (i + j) l x.
   Proof.
     intros.
-    (* It seems there are missing rules to make this one work... *)
-    admit.
-  Admitted.
+    now sigma.
+  Qed.
 
 End Tests.
