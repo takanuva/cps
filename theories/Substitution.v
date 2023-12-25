@@ -343,10 +343,44 @@ Section DeBruijn.
         do 2 rewrite traverse_var.
         now simplify decidable equality.
     (* Case: composition. *)
-    - admit.
+    - (* We just need to split the occurrences to use the hypotheses. *)
+      do 2 rewrite subst_lift_unfold.
+      replace j with ((j - k) + k) at 1 by lia.
+      rewrite <- subst_inst_lift.
+      unfold inst.
+      do 2 rewrite traverse_fun.
+      apply traverse_ext; simpl; intros l n ?.
+      destruct (le_gt_dec l n).
+      + remember (j - k + l) as m.
+        (* Will we be performing the substitution or...? *)
+        destruct (le_gt_dec m n).
+        * (* There's a long way to go, but these are fine. *)
+          rewrite traverse_var.
+          simplify decidable equality.
+          fold (lift_fun i) (lift i).
+          fold (inst s2).
+          rewrite IHs2 by lia.
+          f_equal; try lia.
+          do 2 rewrite <- traverse_var.
+          fold (inst s1).
+          rewrite IHs1 by lia.
+          f_equal; try lia.
+          unfold lift, lift_fun.
+          rewrite traverse_var.
+          (* Finally! *)
+          now simplify decidable equality.
+        * (* Just lifting for now. *)
+          do 2 rewrite traverse_var.
+          now simplify decidable equality.
+      + (* Nothing at all! *)
+        do 2 rewrite traverse_var.
+        now simplify decidable equality.
     (* Case: entering a binder. *)
-    - admit.
-  Admitted.
+    - (* We can just adjust the distance and use the inductive hypothesis. *)
+      do 2 rewrite subst_inst_lift.
+      rewrite IHs by lia.
+      f_equal; lia.
+  Qed.
 
   Lemma subst_comp_clos:
     forall s t k j x,
