@@ -49,7 +49,12 @@ Section DeBruijn.
     var:
       nat -> X;
     traverse:
-      (nat -> nat -> X) -> nat -> X -> X;
+      (nat -> nat -> X) -> nat -> X -> X
+  }.
+
+  Context `{db: deBruijn}.
+
+  Class deBruijnLaws: Type := {
     traverse_var:
       forall f k n,
       traverse f k (var n) = f k n;
@@ -68,7 +73,7 @@ Section DeBruijn.
         traverse (fun i n => traverse f (i + k - j) (g i n)) j x
   }.
 
-  Context `{db: deBruijn}.
+  Context `{db_laws: deBruijnLaws}.
 
   Definition lift_fun i k n :=
     if le_gt_dec k n then
@@ -785,6 +790,8 @@ End DeBruijn.
 
 (* *)
 
+Arguments deBruijn X: clear implicits.
+Arguments deBruijnLaws X: clear implicits.
 Arguments substitution {X}.
 Arguments subst_ids {X}.
 Arguments subst_lift {X}.
@@ -797,48 +804,56 @@ Arguments subst_app {X}.
 
 Create HintDb sigma.
 
+Ltac sigma_solver :=
+  match goal with
+  | |- deBruijnLaws _ _ =>
+    eassumption
+  | _ =>
+    lia
+  end.
+
 (* *)
 
 Global Hint Rewrite subst_lift_unfold: sigma.
 Global Hint Rewrite subst_ids_simpl: sigma.
-Global Hint Rewrite subst_bvar using lia: sigma.
-Global Hint Rewrite subst_fvar_cons using lia: sigma.
-Global Hint Rewrite subst_rvar_cons using lia: sigma.
-Global Hint Rewrite subst_var_shift1 using lia: sigma.
+Global Hint Rewrite subst_bvar using sigma_solver: sigma.
+Global Hint Rewrite subst_fvar_cons using sigma_solver: sigma.
+Global Hint Rewrite subst_rvar_cons using sigma_solver: sigma.
+Global Hint Rewrite subst_var_shift1 using sigma_solver: sigma.
 Global Hint Rewrite subst_inst_lift: sigma.
 Global Hint Rewrite subst_comp_clos: sigma.
-Global Hint Rewrite subst_var_shift2 using lia: sigma.
-Global Hint Rewrite subst_fvar_lift2 using lia: sigma.
+Global Hint Rewrite subst_var_shift2 using sigma_solver: sigma.
+Global Hint Rewrite subst_fvar_lift2 using sigma_solver: sigma.
 
 (* *)
 
-Global Hint Rewrite subst_shift_zero using lia: sigma.
-Global Hint Rewrite subst_lift_zero using lia: sigma.
-Global Hint Rewrite subst_var_shift using lia: sigma.
-Global Hint Rewrite subst_shift_cons using lia: sigma.
+Global Hint Rewrite subst_shift_zero using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_zero using sigma_solver: sigma.
+Global Hint Rewrite subst_var_shift using sigma_solver: sigma.
+Global Hint Rewrite subst_shift_cons using sigma_solver: sigma.
 Global Hint Rewrite subst_id_left: sigma.
 Global Hint Rewrite subst_id_right: sigma.
 Global Hint Rewrite subst_comp_assoc: sigma.
 Global Hint Rewrite subst_comp_cons_map: sigma.
-Global Hint Rewrite subst_cons_simpl using lia: sigma.
+Global Hint Rewrite subst_cons_simpl using sigma_solver: sigma.
 Global Hint Rewrite subst_comp_shift1: sigma.
 Global Hint Rewrite subst_comp_shift2: sigma.
-Global Hint Rewrite subst_lift_cons using lia: sigma.
-Global Hint Rewrite subst_lift_comp1 using lia: sigma.
-Global Hint Rewrite subst_lift_comp2 using lia: sigma.
-Global Hint Rewrite subst_lift_comp3 using lia: sigma.
-Global Hint Rewrite subst_lift_comp4 using lia: sigma.
-Global Hint Rewrite subst_lift_comp5 using lia: sigma.
-Global Hint Rewrite subst_lift_comp6 using lia: sigma.
+Global Hint Rewrite subst_lift_cons using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp1 using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp2 using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp3 using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp4 using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp5 using sigma_solver: sigma.
+Global Hint Rewrite subst_lift_comp6 using sigma_solver: sigma.
 Global Hint Rewrite subst_shift_shift: sigma.
 Global Hint Rewrite subst_lift_lift: sigma.
-Global Hint Rewrite subst_shift_lift_shift using lia: sigma.
+Global Hint Rewrite subst_shift_lift_shift using sigma_solver: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
 Global Hint Rewrite Nat.sub_0_r: sigma.
 Global Hint Rewrite Nat.add_0_r: sigma.
-Global Hint Rewrite Nat.add_sub_assoc using lia: sigma.
+Global Hint Rewrite Nat.add_sub_assoc using sigma_solver: sigma.
 Global Hint Rewrite <- plus_n_Sm: sigma.
 
 (* *)
@@ -867,7 +882,7 @@ Section Tests.
      and Strong Calculi" paper. *)
 
   Variable X: Set.
-  Context `{db: deBruijn X}.
+  Context `{db_laws: deBruijnLaws X}.
 
   Implicit Types x y z: X.
   Implicit Types s t u: @substitution X.
