@@ -184,18 +184,6 @@ Section DeBruijn.
     auto.
   Qed.
 
-  Lemma subst_lift_inst_commute:
-    forall x s i k j,
-    k <= j ->
-    lift i k (inst s j x) = inst s (i + j) (lift i k x).
-  Proof.
-    intros.
-    rewrite subst_lift_unfold.
-    unfold inst.
-    (* Huh... we need to generalize the extensionality law. TODO: do it. *)
-    admit.
-  Admitted.
-
   (* ---------------------------------------------------------------------- *)
 
   Lemma subst_ids_simpl:
@@ -280,6 +268,85 @@ Section DeBruijn.
     - f_equal; lia.
     - now rewrite inst_fun_bvar by lia.
   Qed.
+
+  Lemma lift_lift_permutation:
+    forall x i j k l,
+    k <= l ->
+    lift i k (lift j l x) = lift j (i + l) (lift i k x).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma lift_lift_simplification:
+    forall x i j k l,
+    k <= l + j ->
+    l <= k ->
+    lift i k (lift j l x) = lift (i + j) l x.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_lift_inst_commute:
+    forall s x i k j,
+    k <= j ->
+    lift i k (inst s j x) = inst s (i + j) (lift i k x).
+  Proof.
+    (* By induction on the kind of substitution we're doing. *)
+    induction s; intros.
+    (* Case: identity. *)
+    - (* Identity can't change a thing. *)
+      now do 2 rewrite subst_ids_simpl.
+    (* Case: lifting. *)
+    - (* We'll just need to merge these lifts, both of them. *)
+      apply lift_lift_permutation.
+      lia.
+    (* Case: consing. *)
+    - do 2 rewrite subst_lift_unfold.
+      replace j with ((j - k) + k) at 1 by lia.
+      rewrite <- subst_inst_lift.
+      unfold inst.
+      do 2 rewrite traverse_fun.
+      apply traverse_ext; simpl; intros l n ?.
+      (* Are we in scope for any change at all? *)
+      destruct (le_gt_dec l n).
+      + (* Some change... *)
+        remember (j - k + l) as m.
+        (* Will we be performing the substitution or...? *)
+        destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+        * (* We're too big, so follow by inductive hypothesis... *)
+          rewrite traverse_var.
+          simplify decidable equality.
+          fold (lift_fun i) (lift i).
+          do 2 rewrite <- traverse_var.
+          fold (inst s).
+          replace (l + k - k) with l by lia.
+          rewrite IHs by lia.
+          unfold lift, lift_fun.
+          rewrite traverse_var.
+          simplify decidable equality.
+          replace (i + (n - 1)) with (i + n - 1) by lia.
+          replace (l + (i + j) - k) with (i + m) by lia.
+          reflexivity.
+        * (* We're doing the substitution now, then lifting... *)
+          rewrite traverse_var.
+          subst; simplify decidable equality.
+          fold (lift_fun i) (lift i).
+          (* Of course, we can simplify these lifts! *)
+          rewrite lift_lift_simplification by lia.
+          f_equal; lia.
+        * (* We're just lifting... *)
+          rewrite traverse_var.
+          simplify decidable equality.
+          rewrite traverse_var.
+          now simplify decidable equality.
+      + (* No change whatsoever. *)
+        do 2 rewrite traverse_var.
+        now simplify decidable equality.
+    (* Case: composition. *)
+    - admit.
+    (* Case: entering a binder. *)
+    - admit.
+  Admitted.
 
   Lemma subst_comp_clos:
     forall s t k j x,
@@ -926,6 +993,7 @@ Section Tests.
   (* We can also check some rules from the original de Bruijn implementation! *)
 
   Goal
+    (* Substitution and lifting commutation. *)
     forall x s i k j,
     k <= j ->
     lift i k (inst s j x) = inst s (i + j) (lift i k x).
@@ -933,5 +1001,27 @@ Section Tests.
     intros.
     now sigma.
   Qed.
+
+  Goal
+    (* Lifting permutation. *)
+    forall x i j k l,
+    k <= l ->
+    lift i k (lift j l x) = lift j (i + l) (lift i k x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x i j k l,
+    k <= l + j ->
+    l <= k ->
+    (* Lifting simplification. *)
+    lift i k (lift j l x) = lift (i + j) l x.
+  Proof.
+    intros.
+    (* It seems there are missing rules to make this one work... *)
+    admit.
+  Admitted.
 
 End Tests.
