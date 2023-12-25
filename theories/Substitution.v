@@ -274,8 +274,30 @@ Section DeBruijn.
     k <= l ->
     lift i k (lift j l x) = lift j (i + l) (lift i k x).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    do 4 rewrite subst_lift_unfold.
+    replace l with ((l - k) + k) at 1 by lia.
+    rewrite <- subst_inst_lift.
+    unfold inst.
+    do 2 rewrite traverse_fun.
+    apply traverse_ext; simpl; intros p n ?.
+    destruct (le_gt_dec p n).
+    - remember (l - k + p) as m.
+      rewrite traverse_var.
+      destruct (le_gt_dec m n).
+      + rewrite traverse_var; simpl.
+        simplify decidable equality.
+        f_equal; lia.
+      + rewrite traverse_var; simpl.
+        now simplify decidable equality.
+    - remember (l - k + p) as m.
+      rewrite traverse_var.
+      destruct (le_gt_dec m n).
+      + rewrite traverse_var; simpl.
+        now simplify decidable equality.
+      + rewrite traverse_var; simpl.
+        now simplify decidable equality.
+  Qed.
 
   Lemma lift_lift_simplification:
     forall x i j k l,
@@ -283,8 +305,18 @@ Section DeBruijn.
     l <= k ->
     lift i k (lift j l x) = lift (i + j) l x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    do 3 rewrite subst_lift_unfold.
+    unfold inst.
+    rewrite traverse_fun.
+    apply traverse_ext; simpl; intros p n ?.
+    destruct (le_gt_dec p n).
+    - rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - rewrite traverse_var.
+      now simplify decidable equality.
+  Qed.
 
   Lemma subst_lift_inst_commute:
     forall s x i k j,
