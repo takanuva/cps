@@ -389,6 +389,71 @@ Section DeBruijn.
       f_equal; lia.
   Qed.
 
+  (* TODO: rename me. This is probably not enough to keep confluence! *)
+
+  Lemma baz:
+    forall s i k n,
+    k <= n ->
+    subst_comp s (subst_lift i) k (var n) =
+      s (i + k) (var (i + n)).
+  Proof.
+    intros.
+    (* TODO: this can be greatly simplified by adding a few lemmas... *)
+    unfold inst.
+    do 2 rewrite traverse_var.
+    generalize dependent k.
+    generalize dependent i.
+    generalize dependent n.
+    destruct s; simpl; intros.
+    - simplify decidable equality.
+      rewrite traverse_var.
+      now simplify decidable equality.
+    - simplify decidable equality.
+      rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - destruct (Nat.eq_dec k n).
+      + simplify decidable equality.
+        fold (lift_fun i) (lift i).
+        now rewrite lift_lift_simplification by lia.
+      + simplify decidable equality.
+        replace (i + n - 1) with (i + (n - 1)) by lia.
+        fold (lift_fun i) (lift i).
+        do 2 rewrite <- traverse_var.
+        fold (inst s).
+        rewrite subst_lift_inst_commute by lia.
+        f_equal.
+        unfold lift, lift_fun.
+        rewrite traverse_var.
+        now simplify decidable equality.
+    - simplify decidable equality.
+      fold (lift_fun i) (lift i).
+      fold (inst s2).
+      rewrite subst_lift_inst_commute by lia.
+      do 2 rewrite <- traverse_var.
+      fold (inst s1).
+      rewrite subst_lift_inst_commute by lia.
+      do 2 f_equal.
+      unfold lift, lift_fun.
+      rewrite traverse_var.
+      now simplify decidable equality.
+    - simplify decidable equality.
+      rename i0 into j.
+      replace (i + (j + k)) with (j + (i + k)) by lia.
+      destruct (le_gt_dec (i + k) n).
+      + fold (lift_fun j) (lift j).
+        do 2 rewrite <- traverse_var.
+        fold (inst s).
+        rewrite subst_lift_inst_commute by lia.
+        f_equal.
+        unfold lift, lift_fun.
+        rewrite traverse_var.
+        now simplify decidable equality.
+      + do 2 rewrite inst_fun_bvar by lia.
+        rewrite traverse_var.
+        now simplify decidable equality.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
   (* BVar (additional!): n[s]^k = n if k > n *)
@@ -526,8 +591,36 @@ Section DeBruijn.
       subst_comp s (subst_comp (subst_lift i) t) k (var (n - i)).
   Proof.
     intros.
-    admit.
-  Admitted.
+    unfold inst.
+    do 2 rewrite traverse_var; simpl.
+    destruct (le_gt_dec k n).
+    - simplify decidable equality.
+      replace n with (i + (n - i)) at 1 by lia.
+      rewrite <- traverse_var.
+      fold (inst s).
+      rewrite <- baz by lia.
+      unfold inst.
+      rewrite <- traverse_var.
+      do 2 rewrite traverse_fun.
+      apply traverse_ext; intros j m ?.
+      simpl.
+      (* Kinda tricky in here! *)
+      destruct (le_gt_dec j m).
+      + replace (j + k - k) with j by lia.
+        rewrite traverse_fun.
+        apply traverse_ext; intros p o ?.
+        destruct (le_gt_dec p o).
+        * f_equal; lia.
+        * rewrite traverse_var.
+          now rewrite inst_fun_bvar by lia.
+      + rewrite inst_fun_bvar by lia.
+        do 2 rewrite traverse_var.
+        rewrite inst_fun_bvar by lia.
+        now simplify decidable equality.
+    - simplify decidable equality.
+      (* We note in here that i must be zero! *)
+      f_equal; lia.
+  Qed.
 
   (* Clos: x[s][t] = x[s o t] *)
   Lemma subst_Clos:
@@ -551,16 +644,6 @@ Section DeBruijn.
     - rewrite traverse_var.
       now rewrite inst_fun_bvar by lia.
   Qed.
-
-  (* TODO: rename me. This is probably not enough to keep confluence! *)
-
-  Lemma baz:
-    forall s i k n,
-    subst_comp s (subst_lift i) k (var n) =
-      s (i + k) (var (i + n)).
-  Proof.
-    admit.
-  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -734,8 +817,23 @@ Section DeBruijn.
     subst_comp (subst_lift i) (subst_upn j s) ~
       subst_comp (subst_lift (i - j)) (subst_comp s (subst_lift j)).
   Proof.
-    admit.
-  Admitted.
+    intros i j s ? k x.
+    unfold inst.
+    apply traverse_ext; simpl; intros l n ?.
+    destruct (le_gt_dec l n).
+    - fold (lift_fun j) (lift j).
+      do 2 rewrite traverse_var.
+      simplify decidable equality.
+      do 2 rewrite <- traverse_var.
+      fold (inst s).
+      rewrite subst_lift_inst_commute by lia.
+      f_equal.
+      unfold lift, lift_fun.
+      rewrite traverse_var.
+      simplify decidable equality.
+      f_equal; lia.
+    - reflexivity.
+  Qed.
 
   Lemma subst_ShiftLift1B:
     forall i j s,
@@ -743,8 +841,23 @@ Section DeBruijn.
     subst_comp (subst_lift i) (subst_upn j s) ~
       subst_comp (subst_upn (j - i) s) (subst_lift i).
   Proof.
-    admit.
-  Admitted.
+    intros i j s ? k x.
+    unfold inst.
+    apply traverse_ext; simpl; intros l n ?.
+    destruct (le_gt_dec l n).
+    - fold (lift_fun i) (lift i).
+      rewrite traverse_var.
+      simplify decidable equality.
+      do 2 rewrite <- traverse_var.
+      fold (inst s).
+      rewrite subst_lift_inst_commute by lia.
+      f_equal.
+      + lia.
+      + unfold lift, lift_fun.
+        rewrite traverse_var.
+        now simplify decidable equality.
+    - reflexivity.
+  Qed.
 
   (* ShiftLift2: S o (U(s) o t) ~ s o S o t, variants A and B *)
   Lemma subst_ShiftLift2A:
@@ -754,8 +867,29 @@ Section DeBruijn.
       subst_comp (subst_lift (i - j)) (subst_comp s
         (subst_comp (subst_lift j) t)).
   Proof.
-    admit.
-  Admitted.
+    intros i j s ? k x.
+    unfold inst.
+    apply traverse_ext; simpl; intros l n ?.
+    destruct (le_gt_dec l n).
+    - do 2 rewrite traverse_var.
+      simplify decidable equality.
+      replace (i + n) with (j + (i - j + n)) by lia.
+      do 2 rewrite <- traverse_var.
+      fold (inst s).
+      rewrite <- baz by lia.
+      unfold inst; simpl.
+      do 2 rewrite traverse_fun.
+      do 2 rewrite traverse_var.
+      simplify decidable equality.
+      replace (l + l - l) with l by lia.
+      rewrite traverse_fun.
+      apply traverse_ext; intros p m ?.
+      destruct (le_gt_dec p m).
+      + f_equal; lia.
+      + rewrite traverse_var.
+        now rewrite inst_fun_bvar by lia.
+    - reflexivity.
+  Qed.
 
   Lemma subst_ShiftLift2B:
     forall i j s t,
@@ -763,7 +897,19 @@ Section DeBruijn.
     subst_comp (subst_lift i) (subst_comp (subst_upn j s) t) ~
       subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) t).
   Proof.
-    admit.
+    intros i j s t ? k x.
+    unfold inst.
+    apply traverse_ext; simpl; intros l n ?.
+    destruct (le_gt_dec l n).
+    - rewrite traverse_var.
+      simplify decidable equality.
+      destruct (le_gt_dec (j + l) (i + n)).
+      + admit.
+      + do 2 rewrite inst_fun_bvar by lia.
+        do 2 rewrite traverse_var.
+        simplify decidable equality.
+        now rewrite traverse_var.
+    - reflexivity.
   Admitted.
 
   (* Lift1: U(s) o U(t) ~ U(s o t), variants A and B *)
@@ -773,8 +919,22 @@ Section DeBruijn.
     subst_comp (subst_upn k s) (subst_upn j t) ~
       subst_upn j (subst_comp (subst_upn (k - j) s) t).
   Proof.
-    admit.
-  Admitted.
+    intros s t k j ? l x.
+    unfold inst.
+    apply traverse_ext; simpl; intros p n ?.
+    destruct (le_gt_dec p n).
+    - destruct (le_gt_dec (j + p) n).
+      + replace (k - j + (j + p)) with (k + p) by lia.
+        fold (inst t).
+        rewrite <- subst_inst_lift.
+        (* Not easy to spot, but... *)
+        reflexivity.
+      + rewrite inst_fun_bvar by lia.
+        rewrite traverse_var.
+        simplify decidable equality.
+        now rewrite inst_fun_bvar by lia.
+    - reflexivity.
+  Qed.
 
   Lemma subst_Lift1B:
     forall s t k j,
@@ -782,8 +942,29 @@ Section DeBruijn.
     subst_comp (subst_upn k s) (subst_upn j t) ~
       subst_upn k (subst_comp s (subst_upn (j - k) t)).
   Proof.
-    admit.
-  Admitted.
+    intros s t k j ? l x.
+    unfold inst.
+    apply traverse_ext; simpl; intros p n ?.
+    destruct (le_gt_dec p n).
+    - destruct (le_gt_dec (k + p) n).
+      + replace ((fun k0 n0 =>
+          if le_gt_dec k0 n0
+          then inst_fun t (j - k + k0) n0
+          else var n0)) with (inst_fun (subst_upn (j - k) t)) by auto.
+        fold (inst (subst_upn (j - k) t)).
+        rewrite <- subst_inst_lift.
+        unfold inst; simpl.
+        apply traverse_ext; intros q m ?.
+        destruct (le_gt_dec (k + q) m).
+        * simplify decidable equality.
+          f_equal; lia.
+        * now rewrite inst_fun_bvar by lia.
+      + rewrite inst_fun_bvar by lia.
+        rewrite traverse_var.
+        simplify decidable equality.
+        now rewrite inst_fun_bvar by lia.
+    - reflexivity.
+  Qed.
 
   (* Lift2: U(s) o (U(t) o u) ~ U(s o t) o u, variants A and B *)
   Lemma subst_Lift2A:
@@ -817,7 +998,21 @@ Section DeBruijn.
     simpl.
     destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
     - simplify decidable equality.
-      admit.
+      destruct (le_gt_dec (n + j) m).
+      + replace (n + j) with (1 + (n - 1 + j)) by lia.
+        replace m with (1 + (m - 1)) at 1 by lia.
+        rewrite <- traverse_var.
+        fold (inst s).
+        rewrite <- baz by lia.
+        unfold inst.
+        rewrite traverse_var.
+        simpl.
+        simplify decidable equality.
+        rewrite traverse_fun.
+        admit.
+      + do 2 rewrite inst_fun_bvar by lia.
+        do 2 rewrite traverse_var.
+        now simplify decidable equality.
     - simplify decidable equality.
       rewrite inst_fun_bvar by lia.
       rewrite traverse_var.
@@ -859,8 +1054,6 @@ End DeBruijn.
 
 (* *)
 
-Arguments deBruijn: clear implicits.
-Arguments deBruijnLaws: clear implicits.
 Arguments substitution {X}.
 Arguments subst_ids {X}.
 Arguments subst_lift {X}.
