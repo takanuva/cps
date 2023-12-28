@@ -45,6 +45,11 @@ Section DeBruijn.
   Definition subst_app (xs: list X) (s: substitution): substitution :=
     fold_right subst_cons s xs.
 
+  (* TODO: turn this into a definition afterwards. *)
+
+  Local Notation subst_drop i s :=
+    (subst_comp (subst_lift i) s).
+
   Class deBruijn: Type := {
     var:
       nat -> X;
@@ -108,6 +113,9 @@ Section DeBruijn.
     traverse (inst_fun s).
 
   Global Coercion inst: substitution >-> Funclass.
+
+  Definition subst (y: X): nat -> X -> X :=
+    inst (subst_cons y subst_ids).
 
   Definition subst_equiv (s: substitution) (t: substitution): Prop :=
     forall k x,
@@ -183,15 +191,24 @@ Section DeBruijn.
 
   Lemma subst_lift_unfold:
     forall i k x,
-    lift i k x = inst (subst_lift i) k x.
+    lift i k x = subst_lift i k x.
   Proof.
     (* We have intensional equality between lift i and inst (subst_lift i)! *)
     auto.
   Qed.
 
+  Lemma subst_subst_unfold:
+    forall y k x,
+    subst y k x = subst_cons y subst_ids k x.
+  Proof.
+    (* This is by definition, but we need a way to unfold it. *)
+    auto.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
-  Lemma subst_ids_simpl:
+  (* Id: x[I] = x *)
+  Lemma subst_Id:
     forall k x,
     subst_ids k x = x.
   Proof.
@@ -203,31 +220,11 @@ Section DeBruijn.
       now destruct (le_gt_dec j n).
   Qed.
 
-  Lemma inst_fun_bvar:
-    forall s k n,
-    n < k ->
-    inst_fun s k n = var n.
-  Proof.
-    intros.
-    destruct s; simpl;
-    now simplify decidable equality.
-  Qed.
-
-  Lemma subst_bvar:
-    forall s k n,
-    n < k ->
-    s k (var n) = var n.
-  Proof.
-    intros.
-    unfold inst.
-    rewrite traverse_var.
-    now rewrite inst_fun_bvar.
-  Qed.
-
-  Lemma subst_fvar_cons:
-    forall s k n x,
+  (* FVarCons: 0[y, s] = y *)
+  Lemma subst_FVarCons:
+    forall s k n y,
     k = n ->
-    subst_cons x s k (var n) = subst_lift k 0 x.
+    subst_cons y s k (var n) = subst_lift k 0 y.
   Proof.
     intros; subst.
     unfold inst at 1.
@@ -235,10 +232,11 @@ Section DeBruijn.
     now simplify decidable equality.
   Qed.
 
-  Lemma subst_rvar_cons:
-    forall s x k n,
+  (* RVarCons: (1+n)[y, s] = n[s] *)
+  Lemma subst_RVarCons:
+    forall s y k n,
     n > k ->
-    subst_cons x s k (var n) = s k (var (n - 1)).
+    subst_cons y s k (var n) = s k (var (n - 1)).
   Proof.
     intros.
     unfold inst.
@@ -246,7 +244,8 @@ Section DeBruijn.
     now simplify decidable equality.
   Qed.
 
-  Lemma subst_var_shift1:
+  (* VarShift1: n[S] = 1+n *)
+  Lemma subst_VarShift1:
     forall i n k,
     n >= k ->
     subst_lift i k (var n) = var (i + n).
@@ -257,174 +256,71 @@ Section DeBruijn.
     now simplify decidable equality.
   Qed.
 
-  Lemma subst_inst_lift:
-    forall n s k x,
-    subst_upn n s k x = s (n + k) x.
+  (* VarShift2: n[S o s] = (1+n)[s] *)
+  Lemma subst_VarShift2:
+    forall s i n k,
+    n >= k ->
+    subst_comp (subst_lift i) s k (var n) = s k (var (i + n)).
   Proof.
     intros.
     unfold inst.
-    rewrite <- traverse_ids with (x := x) (k := n + k) at 1.
-    rewrite traverse_fun.
-    apply traverse_ext.
-    intros j m ?.
     rewrite traverse_var; simpl.
-    (* Oh well... *)
-    destruct (le_gt_dec (j + k - (n + k)) m).
-    - f_equal; lia.
-    - now rewrite inst_fun_bvar by lia.
+    now simplify decidable equality.
   Qed.
 
-  Lemma lift_lift_permutation:
-    forall x i j k l,
-    k <= l ->
-    lift i k (lift j l x) = lift j (i + l) (lift i k x).
+  (* FVarLift1: 0[U(s)] = 0 *)
+  Lemma subst_FVarLift1:
+    forall n k i s,
+    i + k > n ->
+    subst_upn i s k (var n) = var n.
+  Proof.
+    admit.
+  Admitted.
+
+  (* TODO FVarLift2: 0[U(s) o t] = 0[t] *)
+  Lemma subst_FVarLift2:
+    forall s t k i n,
+    i + k > n ->
+    subst_comp (subst_upn i s) t k (var n) = t k (var n).
   Proof.
     intros.
-    do 4 rewrite subst_lift_unfold.
-    replace l with ((l - k) + k) at 1 by lia.
-    rewrite <- subst_inst_lift.
     unfold inst.
-    do 2 rewrite traverse_fun.
-    apply traverse_ext; simpl; intros p n ?.
-    destruct (le_gt_dec p n).
-    - remember (l - k + p) as m.
-      rewrite traverse_var.
-      destruct (le_gt_dec m n).
-      + rewrite traverse_var; simpl.
-        simplify decidable equality.
-        f_equal; lia.
-      + rewrite traverse_var; simpl.
-        now simplify decidable equality.
-    - remember (l - k + p) as m.
-      rewrite traverse_var.
-      destruct (le_gt_dec m n).
-      + rewrite traverse_var; simpl.
-        now simplify decidable equality.
-      + rewrite traverse_var; simpl.
-        now simplify decidable equality.
-  Qed.
+    rewrite traverse_var; simpl.
+    destruct (le_gt_dec k n).
+    - (* now rewrite inst_fun_bvar by lia. *)
+      admit.
+    - (* rewrite traverse_var.
+      now rewrite inst_fun_bvar by lia. *)
+      admit.
+  Admitted.
 
-  Lemma lift_lift_simplification:
-    forall x i j k l,
-    k <= l + j ->
-    l <= k ->
-    lift i k (lift j l x) = lift (i + j) l x.
+  (* RVarLift1: (1+n)[U(s)] = n[s o S] *)
+  Lemma subst_RVarLift1:
+    forall i k s n,
+    i + k <= n ->
+    subst_upn i s k (var n) = subst_comp s (subst_lift i) k (var (n - i)).
   Proof.
-    intros.
-    do 3 rewrite subst_lift_unfold.
-    unfold inst.
-    rewrite traverse_fun.
-    apply traverse_ext; simpl; intros p n ?.
-    destruct (le_gt_dec p n).
-    - rewrite traverse_var.
-      simplify decidable equality.
-      f_equal; lia.
-    - rewrite traverse_var.
-      now simplify decidable equality.
-  Qed.
+    admit.
+  Admitted.
 
-  Lemma subst_lift_inst_commute:
-    forall s x i k j,
-    k <= j ->
-    lift i k (inst s j x) = inst s (i + j) (lift i k x).
+  (* RVarLift2: (1+n)[U(s) o t] = n[s o S o t] *)
+  Lemma subst_RVarLift2:
+    forall i k s t n,
+    i + k <= n ->
+    subst_comp (subst_upn i s) t k (var n) =
+      subst_comp s (subst_comp (subst_lift i) t) k (var (n - i)).
   Proof.
-    (* By induction on the kind of substitution we're doing. *)
-    induction s; intros.
-    (* Case: identity. *)
-    - (* Identity can't change a thing. *)
-      now do 2 rewrite subst_ids_simpl.
-    (* Case: lifting. *)
-    - (* We'll just need to merge these lifts, both of them. *)
-      apply lift_lift_permutation.
-      lia.
-    (* Case: consing. *)
-    - do 2 rewrite subst_lift_unfold.
-      replace j with ((j - k) + k) at 1 by lia.
-      rewrite <- subst_inst_lift.
-      unfold inst.
-      do 2 rewrite traverse_fun.
-      apply traverse_ext; simpl; intros l n ?.
-      (* Are we in scope for any change at all? *)
-      destruct (le_gt_dec l n).
-      + (* Some change... *)
-        remember (j - k + l) as m.
-        (* Will we be performing the substitution or...? *)
-        destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
-        * (* We're too big, so follow by inductive hypothesis... *)
-          rewrite traverse_var.
-          simplify decidable equality.
-          fold (lift_fun i) (lift i).
-          do 2 rewrite <- traverse_var.
-          fold (inst s).
-          replace (l + k - k) with l by lia.
-          rewrite IHs by lia.
-          unfold lift, lift_fun.
-          rewrite traverse_var.
-          simplify decidable equality.
-          replace (i + (n - 1)) with (i + n - 1) by lia.
-          replace (l + (i + j) - k) with (i + m) by lia.
-          reflexivity.
-        * (* We're doing the substitution now, then lifting... *)
-          rewrite traverse_var.
-          subst; simplify decidable equality.
-          fold (lift_fun i) (lift i).
-          (* Of course, we can simplify these lifts! *)
-          rewrite lift_lift_simplification by lia.
-          f_equal; lia.
-        * (* We're just lifting... *)
-          rewrite traverse_var.
-          simplify decidable equality.
-          rewrite traverse_var.
-          now simplify decidable equality.
-      + (* No change whatsoever. *)
-        do 2 rewrite traverse_var.
-        now simplify decidable equality.
-    (* Case: composition. *)
-    - (* We just need to split the occurrences to use the hypotheses. *)
-      do 2 rewrite subst_lift_unfold.
-      replace j with ((j - k) + k) at 1 by lia.
-      rewrite <- subst_inst_lift.
-      unfold inst.
-      do 2 rewrite traverse_fun.
-      apply traverse_ext; simpl; intros l n ?.
-      destruct (le_gt_dec l n).
-      + remember (j - k + l) as m.
-        (* Will we be performing the substitution or...? *)
-        destruct (le_gt_dec m n).
-        * (* There's a long way to go, but these are fine. *)
-          rewrite traverse_var.
-          simplify decidable equality.
-          fold (lift_fun i) (lift i).
-          fold (inst s2).
-          rewrite IHs2 by lia.
-          f_equal; try lia.
-          do 2 rewrite <- traverse_var.
-          fold (inst s1).
-          rewrite IHs1 by lia.
-          f_equal; try lia.
-          unfold lift, lift_fun.
-          rewrite traverse_var.
-          (* Finally! *)
-          now simplify decidable equality.
-        * (* Just lifting for now. *)
-          do 2 rewrite traverse_var.
-          now simplify decidable equality.
-      + (* Nothing at all! *)
-        do 2 rewrite traverse_var.
-        now simplify decidable equality.
-    (* Case: entering a binder. *)
-    - (* We can just adjust the distance and use the inductive hypothesis. *)
-      do 2 rewrite subst_inst_lift.
-      rewrite IHs by lia.
-      f_equal; lia.
-  Qed.
+    admit.
+  Admitted.
 
-  Lemma subst_comp_clos:
+  (* Clos: x[s][t] = x[s o t] *)
+  Lemma subst_Clos:
     forall s t k j x,
     t j (s k x) = subst_comp (subst_upn k s) (subst_upn j t) 0 x.
   Proof.
     intros.
     replace k with (k + 0) at 1 by lia.
+    (*
     rewrite <- subst_inst_lift.
     unfold inst.
     rewrite traverse_fun.
@@ -439,48 +335,49 @@ Section DeBruijn.
       reflexivity.
     - rewrite traverse_var.
       now rewrite inst_fun_bvar by lia.
-  Qed.
+    *)
+  Admitted.
 
-  Lemma subst_var_shift2:
-    forall s i n k,
-    n >= k ->
-    subst_comp (subst_lift i) s k (var n) = s k (var (i + n)).
+  Lemma foo:
+    forall s k n,
+    k > n ->
+    s k (var n) = var n.
   Proof.
-    intros.
-    unfold inst.
-    rewrite traverse_var; simpl.
-    now simplify decidable equality.
-  Qed.
+    admit.
+  Admitted.
 
-  Lemma subst_fvar_lift2:
-    forall s t k i n,
-    i + k > n ->
-    subst_comp (subst_upn i s) t k (var n) = t k (var n).
+  Lemma bar:
+    forall i k s x,
+    subst_upn i s k x = s (i + k) x.
   Proof.
-    intros.
-    unfold inst.
-    rewrite traverse_var; simpl.
-    destruct (le_gt_dec k n).
-    - now rewrite inst_fun_bvar by lia.
-    - rewrite traverse_var.
-      now rewrite inst_fun_bvar by lia.
-  Qed.
+    admit.
+  Admitted.
+
+  Lemma baz:
+    forall s i k n,
+    subst_comp s (subst_lift i) k (var n) =
+      s (i + k) (var (i + n)).
+  Proof.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
   Local Notation "s ~ t" := (subst_equiv s t) (at level 70, no associativity).
 
-  Lemma subst_shift_zero:
+  (* ShiftZero (additional!): S^0 ~ I *)
+  Lemma subst_ShiftZero:
     forall n,
     n = 0 ->
     subst_lift n ~ subst_ids.
   Proof.
     intros n ? k x; subst.
-    unfold inst.
-    now apply traverse_ext.
+    (* Intensionally equal! *)
+    reflexivity.
   Qed.
 
-  Lemma subst_lift_zero:
+  (* LiftZero (additional!): U^0(s) ~ s *)
+  Lemma subst_LiftZero:
     forall n s,
     n = 0 ->
     subst_upn n s ~ s.
@@ -491,14 +388,15 @@ Section DeBruijn.
     simpl; intros.
     destruct (le_gt_dec j n).
     - reflexivity.
-    - now rewrite inst_fun_bvar.
-  Qed.
+    - (* now rewrite inst_fun_bvar by lia. *)
+      admit.
+  Admitted.
 
-  (* Notice the generalization in the following rule! *)
-
-  Lemma subst_var_shift:
+  (* VarShift: (0, S) ~ I *)
+  Lemma subst_VarShift:
     forall n i,
     i = 1 + n ->
+    (* Nice generalization! *)
     subst_cons (var n) (subst_lift i) ~ subst_lift n.
   Proof.
     intros n i ? k x; subst.
@@ -516,7 +414,8 @@ Section DeBruijn.
     - now simplify decidable equality.
   Qed.
 
-  Lemma subst_shift_cons:
+  (* ShiftCons: S o (y, s) ~ s *)
+  Lemma subst_ShiftCons:
     forall i y s,
     i > 0 ->
     subst_comp (subst_lift i) (subst_cons y s) ~
@@ -538,7 +437,8 @@ Section DeBruijn.
     - now simplify decidable equality.
   Qed.
 
-  Lemma subst_id_left:
+  (* IdL: I o s ~ s *)
+  Lemma subst_IdL:
     forall s,
     subst_comp subst_ids s ~ s.
   Proof.
@@ -548,10 +448,12 @@ Section DeBruijn.
     simpl; intros.
     destruct (le_gt_dec j n).
     - now rewrite traverse_var.
-    - now rewrite inst_fun_bvar.
-  Qed.
+    - (* now rewrite inst_fun_bvar. *)
+      admit.
+  Admitted.
 
-  Lemma subst_id_right:
+  (* IdR: s o I ~ s *)
+  Lemma subst_IdR:
     forall s,
     subst_comp s subst_ids ~ s.
   Proof.
@@ -564,10 +466,12 @@ Section DeBruijn.
       + now rewrite traverse_ids.
       + intros i m ?.
         now destruct (le_gt_dec i m).
-    - now rewrite inst_fun_bvar.
-  Qed.
+    - (* now rewrite inst_fun_bvar. *)
+      admit.
+  Admitted.
 
-  Lemma subst_comp_assoc:
+  (* AssEnv: (s o t) o u ~ s o (t o u) *)
+  Lemma subst_AssEnv:
     forall s t u,
     subst_comp (subst_comp s t) u ~ subst_comp s (subst_comp t u).
   Proof.
@@ -581,13 +485,15 @@ Section DeBruijn.
       intros i m ?.
       destruct (le_gt_dec i m).
       + now replace (i + j - j) with i by lia.
-      + rewrite inst_fun_bvar by lia.
+      + (* rewrite inst_fun_bvar by lia.
         rewrite traverse_var.
-        now rewrite inst_fun_bvar by lia.
+        now rewrite inst_fun_bvar by lia. *)
+        admit.
     - reflexivity.
-  Qed.
+  Admitted.
 
-  Lemma subst_comp_cons_map:
+  (* TODO MapEnv: (y, s) o t ~ (y[t], s o t) *)
+  Lemma subst_MapEnv:
     forall y s t,
     subst_comp (subst_cons y s) t ~ subst_cons (t 0 y) (subst_comp s t).
   Proof.
@@ -598,15 +504,20 @@ Section DeBruijn.
     - now simplify decidable equality.
     - simplify decidable equality.
       replace (traverse (inst_fun t)) with (inst t) by auto.
+      (*
       rewrite subst_lift_inst_commute by lia.
       f_equal; lia.
+      *)
+      admit.
     - now simplify decidable equality.
-  Qed.
+  Admitted.
 
-  Lemma subst_cons_simpl:
+  (* SCons: (0[s], S o s) ~ s *)
+  Lemma subst_SCons:
     forall s k n m,
     k = 0 ->
     m = 1 + n ->
+    (* We want to simplify a drop! Notice k has to be 0 to avoid lifting. *)
     subst_cons (s k (var n)) (subst_comp (subst_lift m) s) ~
       subst_comp (subst_lift n) s.
   Proof.
@@ -619,52 +530,96 @@ Section DeBruijn.
       repeat f_equal; lia.
     - simplify decidable equality.
       replace (traverse (inst_fun s)) with (inst s) by auto.
+      (*
       rewrite subst_lift_inst_commute by lia.
       unfold lift; rewrite traverse_var.
       unfold lift_fun; simpl.
       replace (j + 0) with j by lia.
       do 2 f_equal; lia.
-    - now simplify decidable equality.
-  Qed.
-
-  (* This goes on the opposite direction than the confluent sigma calculus! *)
-
-  Lemma subst_comp_shift1:
-    forall s i,
-    subst_comp s (subst_lift i) ~ subst_comp (subst_lift i) (subst_upn i s).
-  Proof.
-    intros s i k x.
-    unfold inst.
-    apply traverse_ext; intros.
-    simpl.
-    destruct (le_gt_dec j n).
-    - rewrite traverse_var.
-      simplify decidable equality.
-      rewrite <- traverse_var.
-      fold (lift_fun i) (lift i) (inst s).
-      rewrite subst_lift_inst_commute by lia.
-      rewrite subst_lift_unfold.
-      rewrite subst_var_shift1 by lia.
-      unfold inst; now rewrite traverse_var.
-    - reflexivity.
-  Qed.
-
-  Lemma subst_comp_shift2:
-    forall s t i,
-    subst_comp s (subst_comp (subst_lift i) t) ~
-      subst_comp (subst_lift i) (subst_comp (subst_upn i s) t).
-  Proof.
-    intros s t i k x.
-    unfold inst.
-    apply traverse_ext; intros.
-    simpl.
-    destruct (le_gt_dec j n).
-    - (* Hm... *)
+      *)
       admit.
-    - reflexivity.
+    - now simplify decidable equality.
   Admitted.
 
-  Lemma subst_lift_cons:
+  (* ShiftLift1: S o U(s) ~ s o S, variants A and B *)
+  Lemma subst_ShiftLift1A:
+    forall i j s,
+    i >= j ->
+    subst_comp (subst_lift i) (subst_upn j s) ~
+      subst_comp (subst_lift (i - j)) (subst_comp s (subst_lift j)).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_ShiftLift1B:
+    forall i j s,
+    i <= j ->
+    subst_comp (subst_lift i) (subst_upn j s) ~
+      subst_comp (subst_upn (j - i) s) (subst_lift i).
+  Proof.
+    admit.
+  Admitted.
+
+  (* ShiftLift2: S o (U(s) o t) ~ s o S o t, variants A and B *)
+  Lemma subst_ShiftLift2A:
+    forall i j s t,
+    i >= j ->
+    subst_comp (subst_lift i) (subst_comp (subst_upn j s) t) ~
+      subst_comp (subst_lift (i - j)) (subst_comp s
+        (subst_comp (subst_lift j) t)).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_ShiftLift2B:
+    forall i j s t,
+    i <= j ->
+    subst_comp (subst_lift i) (subst_comp (subst_upn j s) t) ~
+      subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) t).
+  Proof.
+    admit.
+  Admitted.
+
+  (* Lift1: U(s) o U(t) ~ U(s o t), variants A and B *)
+  Lemma subst_Lift1A:
+    forall s t k j,
+    k >= j ->
+    subst_comp (subst_upn k s) (subst_upn j t) ~
+      subst_upn j (subst_comp (subst_upn (k - j) s) t).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_Lift1B:
+    forall s t k j,
+    j >= k ->
+    subst_comp (subst_upn k s) (subst_upn j t) ~
+      subst_upn k (subst_comp s (subst_upn (j - k) t)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* TODO Lift2: U(s) o (U(t) o u) ~ U(s o t) o u, variants A and B *)
+  Lemma subst_Lift2A:
+    forall s t u k j,
+    k >= j ->
+    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
+      subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_Lift2B:
+    forall s t u k j,
+    j >= k ->
+    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
+      subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u.
+  Proof.
+    admit.
+  Admitted.
+
+  (* LiftEnv: U(s) o (y, t) ~ (y, s o t) *)
+  Lemma subst_LiftEnv:
     forall n s y t,
     n > 0 ->
     subst_comp (subst_upn n s) (subst_cons y t) ~
@@ -678,111 +633,29 @@ Section DeBruijn.
     - simplify decidable equality.
       admit.
     - simplify decidable equality.
+      (*
       rewrite inst_fun_bvar by lia.
       rewrite traverse_var.
-      now simplify decidable equality.
+      now simplify decidable equality. *)
+      admit.
     - now simplify decidable equality.
   Admitted.
 
-  Lemma subst_lift_comp1:
-    forall s t k j,
-    k = j ->
-    subst_comp (subst_upn k s) (subst_upn j t) ~
-      subst_upn j (subst_comp (subst_upn (k - j) s) t).
-  Proof.
-    intros s t k _ () j x.
-    unfold inst.
-    apply traverse_ext; intros l n ?.
-    simpl.
-    destruct (le_gt_dec l n).
-    - replace (k - k + (k + l)) with (k + l) by lia.
-      destruct (le_gt_dec (k + l) n).
-      + replace (traverse (inst_fun t)) with (inst t) by auto.
-        rewrite <- subst_inst_lift.
-        unfold inst.
-        apply traverse_ext; intros p m ?.
-        simpl.
-        now destruct (le_gt_dec p m).
-      + rewrite inst_fun_bvar by lia.
-        rewrite traverse_var.
-        rewrite inst_fun_bvar by lia.
-        now simplify decidable equality.
-    - reflexivity.
-  Qed.
-
-  Lemma subst_lift_comp2:
-    forall s t k j,
-    k >= j ->
-    subst_comp (subst_upn k s) (subst_upn j t) ~
-      subst_upn j (subst_comp (subst_upn (k - j) s) t).
+  (* LiftId: U(I) ~ I *)
+  Lemma subst_LiftId:
+    forall i,
+    subst_upn i subst_ids ~ subst_ids.
   Proof.
     admit.
   Admitted.
 
-  Lemma subst_lift_comp3:
-    forall s t k j,
-    j >= k ->
-    subst_comp (subst_upn k s) (subst_upn j t) ~
-      subst_upn k (subst_comp s (subst_upn (j - k) t)).
+  (* ShiftShift (additional!): S^i o S^j = S^(i + j) *)
+  Lemma subst_ShiftShift:
+    forall i j,
+    subst_comp (subst_lift i) (subst_lift j) ~ subst_lift (i + j).
   Proof.
     admit.
   Admitted.
-
-  Lemma subst_lift_comp4:
-    forall s t u k j,
-    k = j ->
-    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
-      subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u.
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_lift_comp5:
-    forall s t u k j,
-    k >= j ->
-    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
-      subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u.
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_lift_comp6:
-    forall s t u k j,
-    j >= k ->
-    subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u) ~
-      subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u.
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_shift_shift:
-    forall s i j,
-    subst_comp (subst_lift i) (subst_lift j) ~ (subst_lift (i + j)).
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_lift_lift:
-    forall s k j,
-    subst_upn k (subst_upn j s) ~ subst_upn (k + j) s.
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_shift_lift_shift:
-    forall i j k,
-    k <= i ->
-    subst_comp (subst_lift i) (subst_upn k (subst_lift j)) ~ subst_lift (j + i).
-  Proof.
-    intros i j k ? l x.
-    unfold inst.
-    apply traverse_ext; simpl; intros p n ?.
-    destruct (le_gt_dec p n).
-    - rewrite traverse_var.
-      simplify decidable equality.
-      f_equal; lia.
-    - reflexivity.
-  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -790,8 +663,8 @@ End DeBruijn.
 
 (* *)
 
-Arguments deBruijn X: clear implicits.
-Arguments deBruijnLaws X: clear implicits.
+Arguments deBruijn: clear implicits.
+Arguments deBruijnLaws: clear implicits.
 Arguments substitution {X}.
 Arguments subst_ids {X}.
 Arguments subst_lift {X}.
@@ -806,67 +679,78 @@ Create HintDb sigma.
 
 Ltac sigma_solver :=
   match goal with
-  | |- deBruijnLaws _ _ =>
-    eassumption
-  | _ =>
+  | |- @deBruijnLaws _ _ =>
+    typeclasses eauto
+  | |- ?G =>
     lia
   end.
 
 (* *)
 
 Global Hint Rewrite subst_lift_unfold: sigma.
-Global Hint Rewrite subst_ids_simpl: sigma.
-Global Hint Rewrite subst_bvar using sigma_solver: sigma.
-Global Hint Rewrite subst_fvar_cons using sigma_solver: sigma.
-Global Hint Rewrite subst_rvar_cons using sigma_solver: sigma.
-Global Hint Rewrite subst_var_shift1 using sigma_solver: sigma.
-Global Hint Rewrite subst_inst_lift: sigma.
-Global Hint Rewrite subst_comp_clos: sigma.
-Global Hint Rewrite subst_var_shift2 using sigma_solver: sigma.
-Global Hint Rewrite subst_fvar_lift2 using sigma_solver: sigma.
+Global Hint Rewrite subst_subst_unfold: sigma.
 
-(* *)
+Global Hint Rewrite subst_Id using sigma_solver: sigma.
+Global Hint Rewrite subst_FVarCons using sigma_solver: sigma.
+Global Hint Rewrite subst_RVarCons using sigma_solver: sigma.
+Global Hint Rewrite subst_VarShift1 using sigma_solver: sigma.
+Global Hint Rewrite subst_VarShift2 using sigma_solver: sigma.
+Global Hint Rewrite subst_FVarLift1 using sigma_solver: sigma.
+Global Hint Rewrite subst_FVarLift2 using sigma_solver: sigma.
+Global Hint Rewrite subst_RVarLift1 using sigma_solver: sigma.
+Global Hint Rewrite subst_RVarLift2 using sigma_solver: sigma.
+Global Hint Rewrite subst_Clos using sigma_solver: sigma.
+Global Hint Rewrite foo using sigma_solver: sigma.
+Global Hint Rewrite bar using sigma_solver: sigma.
+Global Hint Rewrite baz using sigma_solver: sigma.
 
-Global Hint Rewrite subst_shift_zero using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_zero using sigma_solver: sigma.
-Global Hint Rewrite subst_var_shift using sigma_solver: sigma.
-Global Hint Rewrite subst_shift_cons using sigma_solver: sigma.
-Global Hint Rewrite subst_id_left: sigma.
-Global Hint Rewrite subst_id_right: sigma.
-Global Hint Rewrite subst_comp_assoc: sigma.
-Global Hint Rewrite subst_comp_cons_map: sigma.
-Global Hint Rewrite subst_cons_simpl using sigma_solver: sigma.
-Global Hint Rewrite subst_comp_shift1: sigma.
-Global Hint Rewrite subst_comp_shift2: sigma.
-Global Hint Rewrite subst_lift_cons using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp1 using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp2 using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp3 using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp4 using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp5 using sigma_solver: sigma.
-Global Hint Rewrite subst_lift_comp6 using sigma_solver: sigma.
-Global Hint Rewrite subst_shift_shift: sigma.
-Global Hint Rewrite subst_lift_lift: sigma.
-Global Hint Rewrite subst_shift_lift_shift using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftZero using sigma_solver: sigma.
+Global Hint Rewrite subst_LiftZero using sigma_solver: sigma.
+Global Hint Rewrite subst_VarShift using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftCons using sigma_solver: sigma.
+Global Hint Rewrite subst_IdL using sigma_solver: sigma.
+Global Hint Rewrite subst_IdR using sigma_solver: sigma.
+Global Hint Rewrite subst_AssEnv using sigma_solver: sigma.
+Global Hint Rewrite subst_MapEnv using sigma_solver: sigma.
+Global Hint Rewrite subst_SCons using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftLift1A using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftLift1B using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftLift2A using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftLift2B using sigma_solver: sigma.
+Global Hint Rewrite subst_Lift1A using sigma_solver: sigma.
+Global Hint Rewrite subst_Lift1B using sigma_solver: sigma.
+Global Hint Rewrite subst_Lift2A using sigma_solver: sigma.
+Global Hint Rewrite subst_Lift2B using sigma_solver: sigma.
+Global Hint Rewrite subst_LiftEnv using sigma_solver: sigma.
+Global Hint Rewrite subst_LiftId using sigma_solver: sigma.
+Global Hint Rewrite subst_ShiftShift using sigma_solver: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
-Global Hint Rewrite Nat.sub_0_r: sigma.
-Global Hint Rewrite Nat.add_0_r: sigma.
-Global Hint Rewrite Nat.add_sub_assoc using sigma_solver: sigma.
-Global Hint Rewrite <- plus_n_Sm: sigma.
+Create HintDb sigma_cleanup.
+
+Lemma minus_Sn_Sm:
+  forall n m,
+  S n - S m = n - m.
+Proof.
+  auto.
+Qed.
+
+Global Hint Rewrite Nat.sub_0_r: sigma_cleanup.
+Global Hint Rewrite Nat.add_0_r: sigma_cleanup.
+Global Hint Rewrite Nat.add_0_l: sigma_cleanup.
+Global Hint Rewrite Nat.add_sub_assoc using lia: sigma_cleanup.
+Global Hint Rewrite <- plus_n_Sm: sigma_cleanup.
+Global Hint Rewrite plus_Sn_m: sigma_cleanup.
+Global Hint Rewrite minus_Sn_Sm: sigma_cleanup.
 
 (* *)
 
 Ltac sigma :=
-  rewrite_strat
-    (topdown
-      (choice
-        (hints sigma)
-        (* TODO: we want to restrict the context in those... somehow... *)
-        (progress eval simpl var)
-        (progress eval simpl plus)
-        (progress eval simpl minus))).
+  (* TODO: is it possible to fold var in here...? *)
+  (rewrite_strat topdown (hints sigma));
+  (* TODO: we want to restrict the context in those... somehow... *)
+  (rewrite_strat try topdown (hints sigma_cleanup)).
 
 (* -------------------------------------------------------------------------- *)
 
@@ -896,6 +780,7 @@ Section Tests.
     (* FVarCons: 0[y, s] = y *)
     subst_cons y s 0 (var 0) = y.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -904,6 +789,7 @@ Section Tests.
     (* RVarCons: (1+n)[y, s] = n[s] *)
     subst_cons y s 0 (var (1 + n)) = s 0 (var n).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -912,6 +798,7 @@ Section Tests.
     (* VarShift1: n[S] = 1+n *)
     subst_lift 1 0 (var n) = var (1 + n).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -920,6 +807,7 @@ Section Tests.
     (* Id: x[I] = x *)
     subst_ids 0 x = x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -928,6 +816,7 @@ Section Tests.
     (* Clos: x[s][t] = x[s o t] *)
     t 0 (s 0 x) = subst_comp s t 0 x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -936,6 +825,7 @@ Section Tests.
     (* VarShift: (0, S) ~ I *)
     subst_cons (var 0) (subst_lift 1) k x = x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -944,6 +834,7 @@ Section Tests.
     (* ShiftCons: S o (y, s) ~ s *)
     subst_comp (subst_lift 1) (subst_cons y s) k x = s k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -952,6 +843,7 @@ Section Tests.
     (* IdL: I o s ~ s *)
     subst_comp subst_ids s k x = s k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -960,6 +852,7 @@ Section Tests.
     (* IdR: s o I ~ s *)
     subst_comp s subst_ids k x = s k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -968,6 +861,7 @@ Section Tests.
     (* AssEnv: (s o t) o u ~ s o (t o u) *)
     subst_comp (subst_comp s t) u k x = subst_comp s (subst_comp t u) k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -976,6 +870,7 @@ Section Tests.
     (* MapEnv: (y, s) o t ~ (y[t], s o t) *)
     subst_comp (subst_cons y s) t k x = subst_cons (t 0 y) (subst_comp s t) k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -984,6 +879,7 @@ Section Tests.
     (* SCons: (0[s], S o s) ~ s *)
     subst_cons (s 0 (var 0)) (subst_comp (subst_lift 1) s) k x = s k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -997,6 +893,7 @@ Section Tests.
     (* VarShift2: n[S o s] = (1+n)[s] *)
     subst_comp (subst_lift 1) s 0 (var n) = s 0 (var (1 + n)).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1005,6 +902,7 @@ Section Tests.
     (* FVarLift1: 0[U(s)] = 0 *)
     subst_upn 1 s 0 (var 0) = var 0.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1013,6 +911,7 @@ Section Tests.
     (* FVarLift2: 0[U(s) o t] = 0[t] *)
     subst_comp (subst_upn 1 s) t 0 (var 0) = t 0 (var 0).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1021,6 +920,7 @@ Section Tests.
     (* RVarLift1: (1+n)[U(s)] = n[s o S] *)
     subst_upn 1 s 0 (var (1 + n)) = subst_comp s (subst_lift 1) 0 (var n).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1030,6 +930,7 @@ Section Tests.
     subst_comp (subst_upn 1 s) t 0 (var (1 + n)) =
       subst_comp s (subst_comp (subst_lift 1) t) 0 (var n).
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1039,7 +940,7 @@ Section Tests.
     subst_comp (subst_lift 1) (subst_upn 1 s) k x =
       subst_comp s (subst_lift 1) k x.
   Proof.
-    (* We go in the opposite direction! *)
+    intros.
     now sigma.
   Qed.
 
@@ -1049,6 +950,7 @@ Section Tests.
     subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t) k x =
       subst_comp s (subst_comp (subst_lift 1) t) k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1058,6 +960,7 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_upn 1 t) k x =
       subst_upn 1 (subst_comp s t) k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1067,6 +970,7 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u) k x =
       subst_comp (subst_upn 1 (subst_comp s t)) u k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1076,6 +980,7 @@ Section Tests.
     subst_comp (subst_upn 1 s) (subst_cons y t) k x =
       subst_cons y (subst_comp s t) k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
@@ -1084,13 +989,32 @@ Section Tests.
     (* LiftId: U(I) ~ I *)
     subst_upn 1 subst_ids k x = subst_ids k x.
   Proof.
+    intros.
     now sigma.
   Qed.
 
-  (* We can also check some rules from the original de Bruijn implementation! *)
+  (* We can also check some rules from the original de Bruijn implementation!
+     These rules are used in the "Coq in Coq" paper I was originally following,
+     but they can be found in older papers such as Huet's "Residual Theory in
+     lambda-calculus". *)
+
+  Local Ltac equal_modulo_arith :=
+    (* TODO: do we want this to be global...? *)
+    reflexivity || assumption || lia || (f_equal; equal_modulo_arith).
+
+  Local Hint Extern 0 => equal_modulo_arith: core.
 
   Goal
-    (* Substitution and lifting commutation. *)
+    (* Lifting by zero is a no-op. *)
+    forall k x,
+    lift 0 k x = x.
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    (* Instantiation and lifting commutation. *)
     forall x s i k j,
     k <= j ->
     lift i k (inst s j x) = inst s (i + j) (lift i k x).
@@ -1115,6 +1039,34 @@ Section Tests.
     k <= l + j ->
     l <= k ->
     lift i k (lift j l x) = lift (i + j) l x.
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    (* Simplification of substitution and lifting. *)
+    forall x y i p k,
+    p <= i + k ->
+    k <= p ->
+    subst y p (lift (1 + i) k x) = lift i k x.
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall i x y p k,
+    lift i (p + k) (subst y p x) = subst (lift i k y) p (lift i (1 + p + k) x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x y z p k,
+    subst y (p + k) (subst z p x) =
+      subst (subst y k z) p (subst y (1 + p + k) x).
   Proof.
     intros.
     now sigma.
