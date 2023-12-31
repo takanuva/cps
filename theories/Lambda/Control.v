@@ -108,7 +108,7 @@ End Control.
 
 Section CBV.
 
-  Require Import Local.Lambda.CallByValue.
+  Require Import Local.Lambda.PlotkinCBV.
 
   Definition cbv_typing g c t :=
     TypeSystem.typing (N [cbv_type t] :: cbv_env g) c void.
@@ -370,7 +370,7 @@ End CBV.
 
 Section CBN.
 
-  Require Import Local.Lambda.CallByName.
+  Require Import Local.Lambda.PlotkinCBN.
 
   Definition cbn_typing g c t :=
     TypeSystem.typing (cbn_type t :: cbn_env g) c void.

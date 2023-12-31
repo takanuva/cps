@@ -8,7 +8,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Export Local.Lambda.Calculus.
-Require Export Local.Lambda.CallByValue.
+Require Export Local.Lambda.PlotkinCBV.
 
 (* The following comes from Sabry and Felleisen's "Reasoning About Programs in
    Continuation-Passing Style"... this is the set of A-reductions, which extends
