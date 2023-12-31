@@ -353,6 +353,16 @@ Proof.
       f_equal; eapply IHa1; eauto.
 Qed.
 
+Lemma residuals_apply_parameters:
+  forall xs g c1 c2 c3,
+  residuals (skip (length xs) g) c1 c2 c3 ->
+  residuals g (redexes_apply_parameters xs 0 c1)
+              (redexes_apply_parameters xs 0 c2)
+              (redexes_apply_parameters xs 0 c3).
+Proof.
+  admit.
+Admitted.
+
 Lemma compatible_residuals:
   forall g a b c,
   residuals g a b c ->
@@ -402,28 +412,48 @@ Fixpoint drop {T} (n: nat) (xs: list T) :=
 
 (* -------------------------------------------------------------------------- *)
 
-Goal
+Lemma residuals_sanity:
   forall k a b g,
   item (Some (a, b)) g k ->
   forall c h,
   item (Some (a, c)) h k ->
   forall q,
   sanity g h q ->
-  exists d,
-  residuals (skip a (drop (S k) q)) b c d.
+  exists2 d,
+  residuals (skip a (drop (S k) q)) b c d & item (Some (a, d)) q k.
 Proof.
   induction k; intros.
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
     simpl; exists q.
-    assumption.
+    + assumption.
+    + constructor.
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
-    + eapply IHk; eauto.
-    + eapply IHk; eauto.
+    + edestruct IHk with (b := b) (c := c) as (d, ?, ?); eauto with cps.
+    + edestruct IHk with (b := b) (c := c) as (d, ?, ?); eauto with cps.
 Qed.
+
+Lemma foobar:
+  forall g h q,
+  sanity g h q ->
+  forall xs k b1 b2,
+  item (Some (length xs, b1)) g k ->
+  item (Some (length xs, b2)) h k ->
+  forall c,
+  residuals q
+       (redexes_apply_parameters xs 0
+          (redexes_lift (S k) (length xs) b1))
+       (redexes_apply_parameters xs 0
+          (redexes_lift (S k) (length xs) b2)) c ->
+  exists2 b3,
+    c = redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) b3) &
+    item (Some (length xs, b3)) q k.
+Proof.
+  admit.
+Admitted.
 
 Lemma cube:
   forall g a r b,
@@ -480,16 +510,35 @@ Proof.
   - dependent destruction H.
     dependent destruction H1.
     dependent destruction H2.
-    assert (residuals (skip (length xs) (drop (S k0) g2)) c0 c1 c2) by admit.
-    admit.
+    eapply residuals_sanity in H4 as (c2', ?, ?); eauto.
+    assert (c2' = c2); subst.
+    + eapply item_unique in H1; eauto.
+      now dependent destruction H1.
+    + apply residuals_apply_parameters.
+      admit.
   (* Case: (mark, jump). *)
   - dependent destruction H0.
     dependent destruction H1.
-    admit.
+    eapply foobar in H2 as (b3, ?, ?).
+    + subst.
+      now constructor.
+    + exact H3.
+    + assumption.
+    + assumption.
   (* Case: (mark, mark). *)
   - dependent destruction H0.
     dependent destruction H2.
-    admit.
+    eapply foobar in H3 as (c4, ?, ?).
+    + subst.
+      apply residuals_apply_parameters.
+      eapply residuals_sanity in H5 as (c4', ?, ?); eauto.
+      assert (c4' = c4); subst.
+      * eapply item_unique in H6; eauto.
+        now dependent destruction H6.
+      * admit.
+    + exact H4.
+    + assumption.
+    + assumption.
   (* Case: (bind, bind). *)
   - dependent destruction H1.
     dependent destruction H4.
