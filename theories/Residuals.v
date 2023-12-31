@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
@@ -840,3 +841,53 @@ Proof.
         simpl in H2.
         admit.
 Admitted.
+
+Inductive partial_reduction: relation redexes :=
+  | partial_reduction_mk:
+    forall r s t,
+    redexes_count t > 0 ->
+    subset t r ->
+    residuals [] r t s ->
+    partial_reduction r s.
+
+Lemma partial_reduction_reduces_weight:
+  forall r s,
+  partial_reduction r s ->
+  forall g,
+  redexes_weight g s < redexes_weight g r.
+Proof.
+  intros until 1.
+  dependent destruction H.
+  induction H1; intros h.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - admit.
+  - simpl in H |- *.
+    admit.
+Admitted.
+
+Theorem finite_development:
+  forall r,
+  SN partial_reduction r.
+Proof.
+  intros.
+  remember (redexes_weight [] r) as n.
+  generalize dependent r.
+  induction n using lt_wf_ind; intros.
+  (* For any partial reduction, we reduce the weight. *)
+  constructor; intros s ?.
+  apply H with (redexes_weight [] s); subst; auto.
+  now apply partial_reduction_reduces_weight.
+Qed.
