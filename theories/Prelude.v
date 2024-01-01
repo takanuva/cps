@@ -218,6 +218,22 @@ Proof.
   apply insert_app with (ts := [x]).
 Qed.
 
+Lemma insert_app_assoc:
+  forall {T} k xs g h,
+  length g >= k ->
+  @insert T xs k g ++ h = @insert T xs k (g ++ h).
+Proof.
+  induction k; simpl; intros.
+  - now rewrite app_assoc.
+  - destruct g; simpl.
+    + simpl in H.
+      lia.
+    + simpl in H.
+      f_equal.
+      apply IHk.
+      lia.
+Qed.
+
 Lemma item_insert_ge:
   forall {T} ts m g h,
   @insert T ts m g = h ->

@@ -255,10 +255,8 @@ Global Hint Unfold residuals_env: cps.
 
 (* TODO: I might use skip in the machine semantics file as well. *)
 
-Definition skip {T} n xs: list (option T) :=
-  repeat None n ++ xs.
-
-Global Hint Unfold skip: cps.
+Local Notation skip n k xs :=
+  (insert (repeat None n) k xs).
 
 Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
   | residuals_type:
@@ -298,7 +296,7 @@ Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
   | residuals_bind:
     forall g b1 b2 b3 ts c1 c2 c3,
     residuals (Some (length ts, c3) :: g) b1 b2 b3 ->
-    residuals (skip (length ts) g) c1 c2 c3 ->
+    residuals (skip (length ts) 0 g) c1 c2 c3 ->
     residuals g
       (redexes_bind b1 ts c1)
       (redexes_bind b2 ts c2)
@@ -355,7 +353,7 @@ Qed.
 
 Lemma residuals_apply_parameters:
   forall xs g c1 c2 c3,
-  residuals (skip (length xs) g) c1 c2 c3 ->
+  residuals (skip (length xs) 0 g) c1 c2 c3 ->
   residuals g (redexes_apply_parameters xs 0 c1)
               (redexes_apply_parameters xs 0 c2)
               (redexes_apply_parameters xs 0 c3).
@@ -379,7 +377,7 @@ Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
   | sanity_cons:
     forall a r rs p ps q qs,
     sanity rs ps qs ->
-    residuals (skip a qs) r p q ->
+    residuals (skip a 0 qs) r p q ->
     sanity (Some (a, r) :: rs) (Some (a, p) :: ps) (Some (a, q) :: qs)
   | sanity_none:
     forall rs ps qs,
@@ -391,7 +389,7 @@ Local Hint Constructors sanity: cps.
 Lemma sanity_skip:
   forall a rs ps qs,
   sanity rs ps qs ->
-  sanity (skip a rs) (skip a ps) (skip a qs).
+  sanity (skip a 0 rs) (skip a 0 ps) (skip a 0 qs).
 Proof.
   unfold skip.
   induction a; simpl; intros.
@@ -420,7 +418,7 @@ Lemma residuals_sanity:
   forall q,
   sanity g h q ->
   exists2 d,
-  residuals (skip a (drop (S k) q)) b c d & item (Some (a, d)) q k.
+  residuals (skip a 0 (drop (S k) q)) b c d & item (Some (a, d)) q k.
 Proof.
   induction k; intros.
   - dependent destruction H.
@@ -640,16 +638,6 @@ Proof.
   induction c; simpl; lia.
 Qed.
 
-Lemma skip_app_assoc:
-  forall {T} a g h,
-  @skip T a (g ++ h) = (@skip T a g) ++ h.
-Proof.
-  unfold skip.
-  induction a; simpl; intros.
-  - reflexivity.
-  - f_equal; auto.
-Qed.
-
 Lemma residuals_tail:
   forall g b r c,
   residuals g b r c ->
@@ -669,7 +657,7 @@ Proof.
     assumption.
   - constructor.
     + apply IHresiduals1.
-    + rewrite skip_app_assoc.
+    + rewrite <- insert_app_assoc by lia.
       apply IHresiduals2.
 Qed.
 
@@ -842,7 +830,7 @@ Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
     | None => 0
     end
   | redexes_bind b ts c =>
-    let n := redexes_weight (skip (length ts) g) c in
+    let n := redexes_weight (skip (length ts) 0 g) c in
     redexes_weight (Some n :: g) b + n
   | _ =>
     0
@@ -858,7 +846,7 @@ Goal
     redexes_weight g (redexes_bind (h (redexes_jump true k xs)) ts c).
 Proof.
   intros; simpl.
-  remember (redexes_weight (skip (length ts) g) c) as n.
+  remember (redexes_weight (skip (length ts) 0 g) c) as n.
   apply Nat.add_lt_mono_r.
   rename g into g'.
   remember (Some n :: g') as g.
@@ -870,16 +858,19 @@ Proof.
     split; auto with cps.
   - clear H0 Heqg.
     generalize dependent g.
-    induction h; simpl; intros.
+    induction h; intros.
     + rewrite Nat.sub_0_r in H2, H3.
+      (* simpl.
       erewrite nth_item; eauto; simpl.
       assert (g' = drop (S k) g).
       * destruct g; auto.
       * clear H1 H2 H3.
         rewrite H0 in Heqn; clear H0.
         (* Well, this should be true! Beware of high-order terms, though! *)
-        admit.
-    + apply Nat.add_lt_mono_r.
+        admit. *)
+      admit.
+    + (* simpl.
+      apply Nat.add_lt_mono_r.
       simpl in H1; destruct k; try lia.
       apply IHh.
       * lia.
@@ -888,7 +879,9 @@ Proof.
         constructor; auto.
       * (* Ok, fair enough... *)
         simpl in H2.
-        admit.
+        admit. *)
+      admit.
+    + admit.
 Admitted.
 
 Inductive partial_reduction: relation redexes :=
