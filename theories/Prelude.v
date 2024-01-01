@@ -191,60 +191,71 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive insert {T}: T -> nat -> relation (list T) :=
-  | insert_head:
-    forall t xs,
-    insert t 0 xs (t :: xs)
-  | insert_tail:
-    forall t n x xs1 xs2,
-    insert t n xs1 xs2 ->
-    insert t (S n) (x :: xs1) (x :: xs2).
+Fixpoint insert {T} (xs: list T) (k: nat) (ys: list T): list T :=
+  match k with
+  | 0 => xs ++ ys
+  | S k =>
+    match ys with
+    | [] => insert xs k []
+    | y :: ys => y :: insert xs k ys
+    end
+  end.
 
 Lemma insert_app:
-  forall {T} i t n g h,
-  @insert T t n g h ->
-  @insert T t (length i + n) (i ++ g) (i ++ h).
+  forall {T} ts xs n g,
+  ts ++ @insert T xs n g = @insert T xs (length ts + n) (ts ++ g).
 Proof.
-  induction i; simpl; intros.
-  - assumption.
-  - constructor.
-    apply IHi; auto.
+  induction ts; simpl; intros.
+  - reflexivity.
+  - now rewrite IHts.
+Qed.
+
+Lemma insert_cons:
+  forall {T} x xs n g,
+  x :: @insert T xs n g = @insert T xs (1 + n) (x :: g).
+Proof.
+  intros.
+  apply insert_app with (ts := [x]).
 Qed.
 
 Lemma item_insert_ge:
-  forall {T} t m g h,
-  @insert T t m g h ->
+  forall {T} ts m g h,
+  @insert T ts m g = h ->
   forall n u,
   n >= m ->
   @item T u g n ->
-  @item T u h (1 + n).
+  @item T u h (length ts + n).
 Proof.
-  induction 1; intros.
-  - constructor.
-    assumption.
-  - constructor.
-    destruct n0; try lia.
-    dependent destruction H1.
-    apply IHinsert; auto with arith.
+  induction m; simpl; intros.
+  - subst.
+    rewrite Nat.add_comm.
+    now apply item_insert_head.
+  - destruct g.
+    + inversion H1.
+    + subst.
+      destruct n; try lia.
+      dependent destruction H1.
+      rewrite <- plus_n_Sm.
+      constructor.
+      eapply IHm; eauto with arith.
 Qed.
 
 Lemma item_insert_lt:
-  forall {T} t m g h,
-  @insert T t m g h ->
+  forall {T} ts m g h,
+  @insert T ts m g = h ->
   forall n u,
   n < m ->
   @item T u g n ->
   @item T u h n.
 Proof.
-  induction 1; intros.
-  - inversion H.
-  - destruct n0.
-    + dependent destruction H1.
+  induction m; simpl; intros.
+  - inversion H0.
+  - destruct n.
+    + dependent destruction H1; subst.
       constructor.
-    + rename n0 into m.
-      dependent destruction H1.
+    + dependent destruction H1; subst.
       constructor.
-      apply IHinsert; auto with arith.
+      eapply IHm; eauto with arith.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -299,21 +310,6 @@ Inductive join {T}: nat -> relation (list T) :=
     forall n x xs1 xs2,
     join n xs1 xs2 ->
     join (S n) (x :: xs1) (x :: xs2).
-
-Goal
-  forall T n xs1 xs2,
-  @join T n xs1 xs2 ->
-  exists t,
-  @insert T t n xs2 xs1.
-Proof.
-  induction 1.
-  - exists x.
-    constructor.
-  - destruct IHjoin as (t, ?).
-    exists t.
-    constructor.
-    assumption.
-Qed.
 
 Lemma join_app:
   forall {T} n g h i,

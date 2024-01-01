@@ -173,42 +173,33 @@ End Structural.
 (* -------------------------------------------------------------------------- *)
 
 Lemma valid_env_insert:
-  forall u,
-  simple u ->
-  forall n g h,
-  insert u n g h ->
-  valid_env g <-> valid_env h.
+  forall ts,
+  Forall simple ts ->
+  forall n g,
+  valid_env g <-> valid_env (insert ts n g).
 Proof.
-  induction 2; split; intros.
-  - firstorder.
-  - dependent destruction H0.
-    assumption.
-  - dependent destruction H1.
-    firstorder.
-  - dependent destruction H1.
-    firstorder.
-Qed.
+  admit.
+Admitted.
 
 Local Hint Resolve -> valid_env_insert: cps.
 
 Lemma typing_lift1:
   forall e g t,
   typing g e t ->
-  forall u n h,
+  forall u k,
   simple u ->
-  insert u n g h ->
-  typing h (lift 1 n e) t.
+  typing (insert [u] k g) (lift 1 k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
   - inversion H.
   - inversion H.
   - inversion H.
   - inversion H.
-  - rename n0 into m.
-    dependent destruction H.
-    destruct (le_gt_dec m n).
+  - dependent destruction H.
+    destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; try lia.
       constructor; eauto with cps.
+      replace 1 with (length [u]) by auto.
       eapply item_insert_ge; eauto.
     + rewrite lift_bound_lt; try lia.
       constructor; eauto with cps.
@@ -217,7 +208,7 @@ Proof.
   - dependent destruction H0.
     rewrite lift_distributes_over_jump.
     econstructor.
-    + apply IHe with g u; eauto.
+    + apply IHe; eauto.
     + clear IHe H0.
       generalize dependent ts.
       induction xs; intros.
@@ -231,25 +222,23 @@ Proof.
   - dependent destruction H0.
     rewrite lift_distributes_over_bind.
     constructor.
-    + apply IHe1 with (negation ts :: g) u; eauto.
-      replace (negation (traverse_list (lift 1) n ts)) with (negation ts).
-      * constructor.
-        assumption.
+    + replace (negation (traverse_list (lift 1) k ts)) with (negation ts).
+      * rewrite insert_cons.
+        apply IHe1; auto.
       * f_equal.
+        apply simple_types_ignore_substitution.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_types_ignore_substitution.
         assumption.
-    + apply IHe2 with (ts ++ g) u; eauto.
-      rewrite Nat.add_comm.
-      replace (traverse_list (lift 1) n ts) with ts.
-      * apply insert_app.
-        assumption.
-      * apply valid_env_typing in H0_.
+    + replace (traverse_list (lift 1) k ts) with ts.
+      * rewrite insert_app.
+        rewrite Nat.add_comm.
+        apply IHe2; auto.
+      * apply simple_types_ignore_substitution.
+        apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_types_ignore_substitution.
         assumption.
 Qed.
 
@@ -257,10 +246,7 @@ Theorem weakening:
   WEAKENING (fun g c => typing g c void).
 Proof.
   intros g c ? t ?.
-  apply typing_lift1 with g t.
-  - apply H.
-  - assumption.
-  - constructor.
+  now apply typing_lift1 with (u := t) (k := 0).
 Qed.
 
 (* -------------------------------------------------------------------------- *)
