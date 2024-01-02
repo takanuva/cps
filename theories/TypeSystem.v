@@ -175,8 +175,9 @@ End Structural.
 Lemma valid_env_insert:
   forall ts,
   Forall simple ts ->
-  forall n g,
-  valid_env g <-> valid_env (insert ts n g).
+  forall n g h,
+  insert ts n g h ->
+  valid_env g <-> valid_env h.
 Proof.
   admit.
 Admitted.
@@ -188,7 +189,9 @@ Lemma typing_lift1:
   typing g e t ->
   forall u k,
   simple u ->
-  typing (insert [u] k g) (lift 1 k e) t.
+  forall h,
+  insert [u] k g h ->
+  typing h (lift 1 k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
   - inversion H.
@@ -208,7 +211,7 @@ Proof.
   - dependent destruction H0.
     rewrite lift_distributes_over_jump.
     econstructor.
-    + apply IHe; eauto.
+    + eapply IHe; eauto.
     + clear IHe H0.
       generalize dependent ts.
       induction xs; intros.
@@ -223,8 +226,8 @@ Proof.
     rewrite lift_distributes_over_bind.
     constructor.
     + replace (negation (traverse_list (lift 1) k ts)) with (negation ts).
-      * rewrite insert_cons.
-        apply IHe1; auto.
+      * eapply IHe1; eauto.
+        now constructor.
       * f_equal.
         apply simple_types_ignore_substitution.
         apply valid_env_typing in H0_.
@@ -232,9 +235,9 @@ Proof.
         dependent destruction H0.
         assumption.
     + replace (traverse_list (lift 1) k ts) with ts.
-      * rewrite insert_app.
+      * eapply IHe2; eauto.
         rewrite Nat.add_comm.
-        apply IHe2; auto.
+        now apply insert_app.
       * apply simple_types_ignore_substitution.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
@@ -246,7 +249,8 @@ Theorem weakening:
   WEAKENING (fun g c => typing g c void).
 Proof.
   intros g c ? t ?.
-  now apply typing_lift1 with (u := t) (k := 0).
+  eapply typing_lift1; eauto.
+  constructor.
 Qed.
 
 (* -------------------------------------------------------------------------- *)

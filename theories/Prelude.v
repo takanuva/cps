@@ -191,96 +191,60 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Fixpoint insert {T} (xs: list T) (k: nat) (ys: list T): list T :=
-  match k with
-  | 0 => xs ++ ys
-  | S k =>
-    match ys with
-    | [] => insert xs k []
-    | y :: ys => y :: insert xs k ys
-    end
-  end.
+Inductive insert {T}: list T -> nat -> relation (list T) :=
+  | insert_head:
+    forall ts xs,
+    insert ts 0 xs (ts ++ xs)
+  | insert_tail:
+    forall ts n x xs1 xs2,
+    insert ts n xs1 xs2 ->
+    insert ts (S n) (x :: xs1) (x :: xs2).
 
 Lemma insert_app:
-  forall {T} ts xs n g,
-  ts ++ @insert T xs n g = @insert T xs (length ts + n) (ts ++ g).
+  forall {T} ts k g h,
+  @insert T ts k g h ->
+  forall xs,
+  @insert T ts (length xs + k) (xs ++ g) (xs ++ h).
 Proof.
-  induction ts; simpl; intros.
-  - reflexivity.
-  - now rewrite IHts.
-Qed.
-
-Lemma insert_cons:
-  forall {T} x xs n g,
-  x :: @insert T xs n g = @insert T xs (1 + n) (x :: g).
-Proof.
-  intros.
-  apply insert_app with (ts := [x]).
-Qed.
-
-Lemma insert_nil:
-  forall {T} xs n,
-  @insert T xs n [] = xs.
-Proof.
-  induction n; simpl.
-  - now rewrite app_nil_r.
+  induction xs; simpl; intros.
   - assumption.
-Qed.
-
-Lemma insert_app_assoc:
-  forall {T} k xs g h,
-  length g >= k ->
-  @insert T xs k g ++ h = @insert T xs k (g ++ h).
-Proof.
-  induction k; simpl; intros.
-  - now rewrite app_assoc.
-  - destruct g; simpl.
-    + simpl in H.
-      lia.
-    + simpl in H.
-      f_equal.
-      apply IHk.
-      lia.
+  - now constructor.
 Qed.
 
 Lemma item_insert_ge:
   forall {T} ts m g h,
-  @insert T ts m g = h ->
+  @insert T ts m g h ->
   forall n u,
   n >= m ->
   @item T u g n ->
   @item T u h (length ts + n).
 Proof.
-  induction m; simpl; intros.
-  - subst.
-    rewrite Nat.add_comm.
-    now apply item_insert_head.
-  - destruct g.
-    + inversion H1.
-    + subst.
-      destruct n; try lia.
-      dependent destruction H1.
-      rewrite <- plus_n_Sm.
-      constructor.
-      eapply IHm; eauto with arith.
+  setoid_rewrite Nat.add_comm.
+  induction 1; intros.
+  - apply item_insert_head.
+    assumption.
+  - destruct n0 as [| m ]; try lia.
+    dependent destruction H1.
+    simpl; constructor.
+    apply IHinsert; auto with arith.
 Qed.
 
 Lemma item_insert_lt:
   forall {T} ts m g h,
-  @insert T ts m g = h ->
+  @insert T ts m g h ->
   forall n u,
   n < m ->
   @item T u g n ->
   @item T u h n.
 Proof.
-  induction m; simpl; intros.
-  - inversion H0.
-  - destruct n.
-    + dependent destruction H1; subst.
+  induction 1; intros.
+  - inversion H.
+  - destruct n0 as [| m ].
+    + dependent destruction H1.
       constructor.
-    + dependent destruction H1; subst.
+    + dependent destruction H1.
       constructor.
-      eapply IHm; eauto with arith.
+      apply IHinsert; auto with arith.
 Qed.
 
 (* -------------------------------------------------------------------------- *)

@@ -253,10 +253,8 @@ Definition residuals_env: Set :=
 
 Global Hint Unfold residuals_env: cps.
 
-(* TODO: I might use skip in the machine semantics file as well. *)
-
-Local Notation skip n k xs :=
-  (insert (repeat None n) k xs).
+Local Notation blank n :=
+  (repeat None n).
 
 Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
   | residuals_type:
@@ -296,7 +294,7 @@ Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
   | residuals_bind:
     forall g b1 b2 b3 ts c1 c2 c3,
     residuals (Some (length ts, c3) :: g) b1 b2 b3 ->
-    residuals (skip (length ts) 0 g) c1 c2 c3 ->
+    residuals (blank (length ts) ++ g) c1 c2 c3 ->
     residuals g
       (redexes_bind b1 ts c1)
       (redexes_bind b2 ts c2)
@@ -345,10 +343,10 @@ Proof.
       reflexivity.
   - dependent destruction H.
     dependent destruction H1.
-    assert (c3 = c4).
+    assert (c3 = c4); subst.
     + eapply IHa2; eauto.
-    + dependent destruction H1.
-      f_equal; eapply IHa1; eauto.
+    + f_equal.
+      eapply IHa1; eauto.
 Qed.
 
 Lemma compatible_residuals:
@@ -367,7 +365,7 @@ Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
   | sanity_cons:
     forall a r rs p ps q qs,
     sanity rs ps qs ->
-    residuals (skip a 0 qs) r p q ->
+    residuals (blank a ++ qs) r p q ->
     sanity (Some (a, r) :: rs) (Some (a, p) :: ps) (Some (a, q) :: qs)
   | sanity_none:
     forall rs ps qs,
@@ -376,18 +374,17 @@ Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
 
 Local Hint Constructors sanity: cps.
 
-Lemma sanity_skip:
+Lemma sanity_blank:
   forall a rs ps qs,
   sanity rs ps qs ->
-  sanity (skip a 0 rs) (skip a 0 ps) (skip a 0 qs).
+  sanity (blank a ++ rs) (blank a ++ ps) (blank a ++ qs).
 Proof.
-  unfold skip.
   induction a; simpl; intros.
   - assumption.
   - auto with cps.
 Qed.
 
-Local Hint Resolve sanity_skip: cps.
+Local Hint Resolve sanity_blank: cps.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -408,7 +405,7 @@ Lemma residuals_sanity:
   forall q,
   sanity g h q ->
   exists2 d,
-  residuals (skip a 0 (drop (S k) q)) b c d & item (Some (a, d)) q k.
+  residuals (blank a ++ (drop (S k) q)) b c d & item (Some (a, d)) q k.
 Proof.
   induction k; intros.
   - dependent destruction H.
@@ -449,13 +446,25 @@ Proof.
   admit.
 Admitted.
 
+Lemma redexes_apply_parameters_distributes_over_itself:
+  forall a b c k,
+  redexes_apply_parameters c k (redexes_apply_parameters b 0 a) =
+    redexes_apply_parameters (map (apply_parameters c k) b) 0
+      (redexes_apply_parameters c (S k) a).
+Proof.
+  admit.
+Admitted.
+
 Local Lemma technical1:
-  forall {T} (t: T) k a g n,
-  item (Some t) (skip a k g) n ->
+  forall {T} (t: T) k a g h,
+  insert (blank a) k g h ->
+  forall n,
+  item (Some t) h n ->
   k <= n ->
   a + k <= n.
 Proof.
-  induction k; intros.
+  intros until 1.
+  dependent induction H; intros.
   - clear H0; rewrite Nat.add_0_r.
     generalize dependent n.
     induction a; simpl; intros.
@@ -463,37 +472,23 @@ Proof.
     + dependent destruction H.
       specialize (IHa n H).
       lia.
-  - destruct n; try lia.
-    destruct g.
-    + exfalso.
-      rewrite insert_nil in H.
-      (* Ugly proof for something obvious. TODO: make some item_repeat lemma? *)
-      apply nth_item with (y := None) in H.
-      clear k IHk H0.
-      destruct a; try discriminate.
-      simpl in H.
-      generalize dependent a.
-      induction n; intros.
-      * destruct a; discriminate.
-      * destruct a; try discriminate.
-        simpl in H.
-        firstorder.
-    + dependent destruction H.
-      specialize (IHk a g n H).
+  - destruct n0 as [| m ]; try lia.
+    dependent destruction H0.
+    assert (a + n <= m).
+    + eapply IHinsert; eauto.
       lia.
+    + lia.
 Qed.
 
 Lemma residuals_apply_parameters:
-  forall xs k g c1 c2 c3,
-  residuals (skip (length xs) k g) c1 c2 c3 ->
+  forall h c1 c2 c3,
+  residuals h c1 c2 c3 ->
+  forall xs k g,
+  insert (blank (length xs)) k g h ->
   residuals g (redexes_apply_parameters xs k c1)
     (redexes_apply_parameters xs k c2) (redexes_apply_parameters xs k c3).
 Proof.
-  intros.
-  remember (skip (length xs) k g) as h.
-  generalize dependent g.
-  generalize dependent k.
-  induction H; intros.
+  induction 1; intros.
   - admit.
   - admit.
   - admit.
@@ -502,7 +497,7 @@ Proof.
   - admit.
   - do 2 rewrite redexes_apply_parameters_distributes_over_jump.
     constructor.
-  - rename xs into ys, xs0 into xs, k into n, k0 into k, g into h, g0 into g.
+  - rename xs0 into ys, k into n, k0 into k, g into h, g0 into g.
     do 2 rewrite redexes_apply_parameters_distributes_over_jump.
     (* For this case to work we have to make sure the substitution on the marked
        jump results in a variable again, otherwise there won't be a constructor
@@ -514,9 +509,23 @@ Proof.
     destruct (le_gt_dec k n).
     + (* If it was already bound, it means it can't be replaced now. *)
       assert (length ys + k <= n).
-      * subst.
-        eapply technical1; eauto.
+      * eapply technical1; eauto.
       * rewrite apply_parameters_bound_gt by assumption.
+        rewrite redexes_apply_parameters_distributes_over_itself.
+        (* (* Test! *)
+        evar (d: redexes).
+        replace (redexes_apply_parameters ys 
+          (S k) (redexes_lift (S n) (length xs) c)) with ?d.
+        constructor.
+        rewrite map_length.
+        admit.
+        rewrite map_length.
+        replace (S (n - length ys)) with (S n - length ys) by lia.
+        (*
+          forall e y i p k,
+          p <= i + k ->
+          k <= p -> subst y p (lift (S i) k e) = lift i k e.
+        *) *)
         admit.
     + rewrite apply_parameters_bound_lt by assumption.
       admit.
@@ -584,7 +593,9 @@ Proof.
     assert (c2' = c2) by eauto with cps; subst.
     (* This is a cool case! You might wanna read the comments in the following
        auxiliary lemma as it's tricky in the higher-order de Bruijn version. *)
-    eapply residuals_apply_parameters.
+    eapply residuals_apply_parameters with (h := blank (length xs) ++ g2);
+      (* TODO: fix this. *)
+      [| constructor ].
     admit.
   (* Case: (mark, jump). *)
   - dependent destruction H0.
@@ -656,7 +667,7 @@ Lemma compatible_env_skip:
   forall g h,
   Forall2 compatible_env g h ->
   forall n,
-  Forall2 compatible_env (skip n 0 g) (skip n 0 h).
+  Forall2 compatible_env (blank n ++ g) (blank n ++ h).
 Proof.
   induction n; simpl; intros.
   - assumption.
@@ -828,7 +839,7 @@ Proof.
     assumption.
   - constructor.
     + apply IHresiduals1.
-    + rewrite <- insert_app_assoc by lia.
+    + rewrite app_assoc.
       apply IHresiduals2.
 Qed.
 
@@ -1001,7 +1012,7 @@ Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
     | None => 0
     end
   | redexes_bind b ts c =>
-    let n := redexes_weight (skip (length ts) 0 g) c in
+    let n := redexes_weight (blank (length ts) ++ g) c in
     redexes_weight (Some n :: g) b + n
   | _ =>
     0
@@ -1017,7 +1028,7 @@ Goal
     redexes_weight g (redexes_bind (h (redexes_jump true k xs)) ts c).
 Proof.
   intros; simpl.
-  remember (redexes_weight (skip (length ts) 0 g) c) as n.
+  remember (redexes_weight (blank (length ts) ++ g) c) as n.
   apply Nat.add_lt_mono_r.
   rename g into g'.
   remember (Some n :: g') as g.
