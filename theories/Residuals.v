@@ -351,16 +351,6 @@ Proof.
       f_equal; eapply IHa1; eauto.
 Qed.
 
-Lemma residuals_apply_parameters:
-  forall xs g c1 c2 c3,
-  residuals (skip (length xs) 0 g) c1 c2 c3 ->
-  residuals g (redexes_apply_parameters xs 0 c1)
-              (redexes_apply_parameters xs 0 c2)
-              (redexes_apply_parameters xs 0 c3).
-Proof.
-  admit.
-Admitted.
-
 Lemma compatible_residuals:
   forall g a b c,
   residuals g a b c ->
@@ -434,24 +424,106 @@ Proof.
     + edestruct IHk with (b := b) (c := c) as (d, ?, ?); eauto with cps.
 Qed.
 
-Lemma foobar:
-  forall g h q,
-  sanity g h q ->
-  forall xs k b1 b2,
-  item (Some (length xs, b1)) g k ->
-  item (Some (length xs, b2)) h k ->
-  forall c,
-  residuals q
-       (redexes_apply_parameters xs 0
-          (redexes_lift (S k) (length xs) b1))
-       (redexes_apply_parameters xs 0
-          (redexes_lift (S k) (length xs) b2)) c ->
-  exists2 b3,
-    c = redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) b3) &
-    item (Some (length xs, b3)) q k.
+Local Lemma residuals_env_item_aux:
+  forall a b c k (g: residuals_env),
+  item (Some (a, b)) g k ->
+  item (Some (a, c)) g k ->
+  b = c.
+Proof.
+  intros.
+  assert (Some (a, b) = Some (a, c)).
+  - eapply item_unique; eauto.
+  - now dependent destruction H1.
+Qed.
+
+Local Hint Resolve residuals_env_item_aux: cps.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma redexes_apply_parameters_distributes_over_jump:
+  forall ys k r x xs,
+  redexes_apply_parameters ys k (redexes_jump r x xs) =
+  redexes_jump r (apply_parameters ys k x)
+    (map (apply_parameters ys k) xs).
 Proof.
   admit.
 Admitted.
+
+Local Lemma technical1:
+  forall {T} (t: T) k a g n,
+  item (Some t) (skip a k g) n ->
+  k <= n ->
+  a + k <= n.
+Proof.
+  induction k; intros.
+  - clear H0; rewrite Nat.add_0_r.
+    generalize dependent n.
+    induction a; simpl; intros.
+    + lia.
+    + dependent destruction H.
+      specialize (IHa n H).
+      lia.
+  - destruct n; try lia.
+    destruct g.
+    + exfalso.
+      rewrite insert_nil in H.
+      (* Ugly proof for something obvious. TODO: make some item_repeat lemma? *)
+      apply nth_item with (y := None) in H.
+      clear k IHk H0.
+      destruct a; try discriminate.
+      simpl in H.
+      generalize dependent a.
+      induction n; intros.
+      * destruct a; discriminate.
+      * destruct a; try discriminate.
+        simpl in H.
+        firstorder.
+    + dependent destruction H.
+      specialize (IHk a g n H).
+      lia.
+Qed.
+
+Lemma residuals_apply_parameters:
+  forall xs k g c1 c2 c3,
+  residuals (skip (length xs) k g) c1 c2 c3 ->
+  residuals g (redexes_apply_parameters xs k c1)
+    (redexes_apply_parameters xs k c2) (redexes_apply_parameters xs k c3).
+Proof.
+  intros.
+  remember (skip (length xs) k g) as h.
+  generalize dependent g.
+  generalize dependent k.
+  induction H; intros.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - do 2 rewrite redexes_apply_parameters_distributes_over_jump.
+    constructor.
+  - rename xs into ys, xs0 into xs, k into n, k0 into k, g into h, g0 into g.
+    do 2 rewrite redexes_apply_parameters_distributes_over_jump.
+    (* For this case to work we have to make sure the substitution on the marked
+       jump results in a variable again, otherwise there won't be a constructor
+       for this. This is the case: our hypothesis guarantees that the jump isn't
+       performed to one of the parameters, i.e., it's not performed on one of
+       the variables that we are substituting in here. So, two cases: either
+       it was already bound from the start, or we bound it during the induction
+       process. *)
+    destruct (le_gt_dec k n).
+    + (* If it was already bound, it means it can't be replaced now. *)
+      assert (length ys + k <= n).
+      * subst.
+        eapply technical1; eauto.
+      * rewrite apply_parameters_bound_gt by assumption.
+        admit.
+    + rewrite apply_parameters_bound_lt by assumption.
+      admit.
+  - admit.
+Admitted.
+
+(* -------------------------------------------------------------------------- *)
 
 Lemma cube:
   forall g a r b,
@@ -509,34 +581,19 @@ Proof.
     dependent destruction H1.
     dependent destruction H2.
     eapply residuals_sanity in H4 as (c2', ?, ?); eauto.
-    assert (c2' = c2); subst.
-    + eapply item_unique in H1; eauto.
-      now dependent destruction H1.
-    + apply residuals_apply_parameters.
-      admit.
+    assert (c2' = c2) by eauto with cps; subst.
+    (* This is a cool case! You might wanna read the comments in the following
+       auxiliary lemma as it's tricky in the higher-order de Bruijn version. *)
+    eapply residuals_apply_parameters.
+    admit.
   (* Case: (mark, jump). *)
   - dependent destruction H0.
     dependent destruction H1.
-    eapply foobar in H2 as (b3, ?, ?).
-    + subst.
-      now constructor.
-    + exact H3.
-    + assumption.
-    + assumption.
+    admit.
   (* Case: (mark, mark). *)
   - dependent destruction H0.
     dependent destruction H2.
-    eapply foobar in H3 as (c4, ?, ?).
-    + subst.
-      apply residuals_apply_parameters.
-      eapply residuals_sanity in H5 as (c4', ?, ?); eauto.
-      assert (c4' = c4); subst.
-      * eapply item_unique in H6; eauto.
-        now dependent destruction H6.
-      * admit.
-    + exact H4.
-    + assumption.
-    + assumption.
+    admit.
   (* Case: (bind, bind). *)
   - dependent destruction H1.
     dependent destruction H4.
@@ -546,14 +603,115 @@ Proof.
     eauto 11 with cps.
 Admitted.
 
+Inductive compatible_env: relation (option (nat * redexes)) :=
+  | compatible_env_some:
+    forall r s n,
+    compatible r s ->
+    compatible_env (Some (n, r)) (Some (n, s))
+  | compatible_env_none:
+    compatible_env None None.
+
+Lemma compatible_env_inversion:
+  forall a b k g,
+  item (Some (a, b)) g k ->
+  forall h,
+  Forall2 compatible_env g h ->
+  exists2 c,
+  item (Some (a, c)) h k & compatible b c.
+Proof.
+  induction k; simpl; intros.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H.
+    exists s.
+    + constructor.
+    + assumption.
+  - dependent destruction H.
+    dependent destruction H0.
+    edestruct IHk.
+    + eassumption.
+    + eassumption.
+    + exists x.
+      * constructor.
+        assumption.
+      * assumption.
+Qed.
+
+Lemma compatible_env_refl:
+  forall g,
+  Forall2 compatible_env g g.
+Proof.
+  induction g; simpl; intros.
+  - constructor.
+  - constructor.
+    + destruct a.
+      * destruct p.
+        constructor.
+        apply compatible_refl.
+      * constructor.
+    + assumption.
+Qed.
+
+Lemma compatible_env_skip:
+  forall g h,
+  Forall2 compatible_env g h ->
+  forall n,
+  Forall2 compatible_env (skip n 0 g) (skip n 0 h).
+Proof.
+  induction n; simpl; intros.
+  - assumption.
+  - constructor.
+    + constructor.
+    + assumption.
+Qed.
+
+Lemma compatible_residuals_result:
+  forall g r b1 c1,
+  residuals g b1 r c1 ->
+  forall h,
+  Forall2 compatible_env g h ->
+  forall b2 c2,
+  residuals h b2 r c2 ->
+  compatible c1 c2.
+Proof.
+  induction 1; inversion_clear 2.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - eapply compatible_env_inversion in H0 as (d, ?, ?); eauto.
+    assert (c0 = d) by eauto with cps; subst.
+    admit.
+  - assert (compatible c3 c6).
+    + eapply IHresiduals2.
+      * apply compatible_env_skip.
+        eassumption.
+      * eassumption.
+    + assert (compatible b3 b6).
+      * eapply IHresiduals1.
+        (* TODO: refactor... *)
+        constructor.
+        constructor.
+        eassumption.
+        eassumption.
+        eassumption.
+      * constructor; auto.
+Admitted.
+
+Local Hint Resolve compatible_residuals_result: cps.
+
 Lemma residuals_compatible:
   forall g a r b,
   residuals g a r b ->
   forall p,
   compatible a p ->
+  forall h,
+  Forall2 compatible_env g h ->
   exists pr,
-  (* Not the same g, but compatible with it! *)
-  residuals g p r pr.
+  residuals h p r pr.
 Proof.
   induction 1; intros.
   - dependent destruction H.
@@ -571,9 +729,18 @@ Proof.
   - dependent destruction H.
     eauto with cps.
   - dependent destruction H0.
-    eauto with cps.
+    eapply compatible_env_inversion in H1 as (d, ?, ?); eauto.
+    eexists.
+    constructor.
+    eassumption.
   - dependent destruction H1.
-    admit.
+    edestruct IHresiduals2 as (c5, ?).
+    + eassumption.
+    + apply compatible_env_refl.
+    + edestruct IHresiduals1 as (b5, ?).
+      * eassumption.
+      * constructor; eauto.
+        constructor.
 Admitted.
 
 Global Hint Resolve residuals_compatible: cps.
@@ -596,8 +763,12 @@ Theorem paving:
   paving_result b c r p.
 Proof.
   intros.
-  assert (exists pr, residuals [] p r pr) as (pr, ?); eauto with cps.
-  assert (exists rp, residuals [] r p rp) as (rp, ?); eauto with cps.
+  (* Since both a\r and a\p exist, these are all compatible. As such, we also
+     know that r\p and p\r must exist. *)
+  assert (exists pr, residuals [] p r pr) as (pr, ?) by eauto with cps.
+  assert (exists rp, residuals [] r p rp) as (rp, ?) by eauto with cps.
+  (* As a\r = b and p\r = pr both reduce the same redexes (marked in r), they
+     must be compatible themselves. As such, we know (a\r)\(p\r) is defined. *)
   assert (exists d, residuals [] b pr d) as (d, ?).
   admit.
   apply paving_result_mk with pr rp d.

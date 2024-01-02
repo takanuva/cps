@@ -218,6 +218,15 @@ Proof.
   apply insert_app with (ts := [x]).
 Qed.
 
+Lemma insert_nil:
+  forall {T} xs n,
+  @insert T xs n [] = xs.
+Proof.
+  induction n; simpl.
+  - now rewrite app_nil_r.
+  - assumption.
+Qed.
+
 Lemma insert_app_assoc:
   forall {T} k xs g h,
   length g >= k ->
