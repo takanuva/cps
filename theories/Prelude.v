@@ -219,10 +219,33 @@ Lemma item_insert_ge:
   @item T u g n ->
   @item T u h (length ts + n).
 Proof.
-  setoid_rewrite Nat.add_comm.
-  induction 1; intros.
+  intros.
+  rewrite Nat.add_comm.
+  generalize dependent n.
+  induction H; intros.
   - apply item_insert_head.
     assumption.
+  - destruct n0 as [| m ]; try lia.
+    dependent destruction H1.
+    simpl; constructor.
+    apply IHinsert; auto with arith.
+Qed.
+
+Lemma item_insert_ge_rev:
+  forall {T} ts m g h,
+  @insert T ts m g h ->
+  forall n u,
+  n >= m ->
+  @item T u h (length ts + n) ->
+  @item T u g n.
+Proof.
+  intros.
+  rewrite Nat.add_comm in H1.
+  generalize dependent n.
+  induction H; intros.
+  - apply item_ignore_head in H1.
+    + now replace (n + length ts - length ts) with n in H1 by lia.
+    + lia.
   - destruct n0 as [| m ]; try lia.
     dependent destruction H1.
     simpl; constructor.

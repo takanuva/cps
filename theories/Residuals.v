@@ -443,23 +443,50 @@ Lemma redexes_apply_parameters_distributes_over_jump:
   redexes_jump r (apply_parameters ys k x)
     (map (apply_parameters ys k) xs).
 Proof.
-  admit.
-Admitted.
+  induction ys; simpl; intros.
+  - now rewrite map_id.
+  - rewrite IHys; simpl.
+    f_equal.
+    now rewrite map_map.
+Qed.
+
+Lemma redexes_apply_parameters_distributes_over_bind:
+  forall ys k b ts c,
+  redexes_apply_parameters ys k (redexes_bind b ts c) =
+    redexes_bind (redexes_apply_parameters ys (S k) b)
+      (traverse_list (apply_parameters ys) k ts)
+      (redexes_apply_parameters ys (k + length ts) c).
+Proof.
+  induction ys; simpl; intros.
+  - f_equal; induction ts; auto.
+    simpl; f_equal.
+    assumption.
+  - rewrite IHys; clear IHys; simpl.
+    rewrite traverse_list_length.
+    f_equal.
+    induction ts; auto.
+    simpl.
+    repeat rewrite traverse_list_length.
+    f_equal; auto.
+    do 2 f_equal; lia.
+Qed.
 
 Lemma redexes_apply_parameters_distributes_over_itself:
-  forall a b c k,
-  redexes_apply_parameters c k (redexes_apply_parameters b 0 a) =
-    redexes_apply_parameters (map (apply_parameters c k) b) 0
-      (redexes_apply_parameters c (S k) a).
+  forall b xs ys k,
+  redexes_apply_parameters xs k (redexes_apply_parameters ys 0 b) =
+    redexes_apply_parameters (map (apply_parameters xs k) ys) 0
+      (redexes_apply_parameters xs (length ys + k) b).
 Proof.
+  (* It would be certainly easier to do this with the sigma calculus machinery,
+     but I'll come to this one later. *)
   admit.
 Admitted.
 
 Local Lemma technical1:
-  forall {T} (t: T) k a g h,
+  forall {T} k a g h,
   insert (blank a) k g h ->
-  forall n,
-  item (Some t) h n ->
+  forall t n,
+  item (@Some T t) h n ->
   k <= n ->
   a + k <= n.
 Proof.
@@ -511,23 +538,23 @@ Proof.
       assert (length ys + k <= n).
       * eapply technical1; eauto.
       * rewrite apply_parameters_bound_gt by assumption.
+        (* We have to adjust the term a bit. *)
         rewrite redexes_apply_parameters_distributes_over_itself.
-        (* (* Test! *)
-        evar (d: redexes).
-        replace (redexes_apply_parameters ys 
-          (S k) (redexes_lift (S n) (length xs) c)) with ?d.
+        (* TODO: fix me. *)
+        replace (redexes_apply_parameters ys (length xs + k) (redexes_lift (S n)
+          (length xs) c)) with (redexes_lift (S (n - length ys))
+            (length (map (apply_parameters ys k) xs)) c) by admit.
+        (* Now we can make the residual by performing this redex. *)
         constructor.
+        (* We already have this item! *)
         rewrite map_length.
-        admit.
-        rewrite map_length.
-        replace (S (n - length ys)) with (S n - length ys) by lia.
-        (*
-          forall e y i p k,
-          p <= i + k ->
-          k <= p -> subst y p (lift (S i) k e) = lift i k e.
-        *) *)
-        admit.
-    + rewrite apply_parameters_bound_lt by assumption.
+        eapply item_insert_ge_rev; eauto; try lia.
+        rewrite repeat_length.
+        now replace (length ys + (n - length ys)) with n by lia.
+    + (* The jump is to a newly bound variable, we can just reproduce it. *)
+      rewrite apply_parameters_bound_lt by assumption.
+      (* Adjust the term a bit... *)
+      rewrite redexes_apply_parameters_distributes_over_itself.
       admit.
   - admit.
 Admitted.
