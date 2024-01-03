@@ -559,6 +559,15 @@ Proof.
   - admit.
 Admitted.
 
+Lemma residuals_lift:
+  forall k i g c1 c2 c3,
+  residuals (blank k ++ drop i g) c1 c2 c3 ->
+  residuals (blank k ++ g) (redexes_lift i k c1) (redexes_lift i k c2)
+    (redexes_lift i k c3).
+Proof.
+  admit.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 Lemma cube:
@@ -620,26 +629,52 @@ Proof.
     assert (c2' = c2) by eauto with cps; subst.
     (* This is a cool case! You might wanna read the comments in the following
        auxiliary lemma as it's tricky in the higher-order de Bruijn version. *)
-    eapply residuals_apply_parameters with (h := blank (length xs) ++ g2);
-      (* TODO: fix this. *)
-      [| constructor ].
-    admit.
+    eapply residuals_apply_parameters with (h := blank (length xs) ++ g2).
+    + apply residuals_lift.
+      assumption.
+    + constructor.
   (* Case: (mark, jump). *)
   - dependent destruction H0.
     dependent destruction H1.
-    admit.
+    (* Follows the same reasoning as above to conclude that d must respect the
+       structure, allowing a redex to be performed. *)
+    eapply residuals_sanity in H3 as (c2, ?, ?); eauto.
+    apply residuals_lift in H1.
+    eapply residuals_apply_parameters with (k := 0) (g := q) (xs := xs) in H1.
+    + replace d with (redexes_apply_parameters xs 0 (redexes_lift (S k)
+        (length xs) c2)).
+      * now constructor.
+      * eapply residuals_is_unique; eauto.
+    + constructor.
   (* Case: (mark, mark). *)
   - dependent destruction H0.
     dependent destruction H2.
-    admit.
+    (* Hah, in here we have to mix the two cases above! We find out d, then we
+       go and show that we arrive at it as well by using our sanity lemmas. *)
+    eapply residuals_sanity in H4 as (c4, ?, ?); eauto.
+    apply residuals_lift in H4.
+    eapply residuals_apply_parameters with (k := 0) (g := q) (xs := xs) in H4.
+    + replace d with (redexes_apply_parameters xs 0 (redexes_lift (S k)
+        (length xs) c4)).
+      * (* Sigh... TODO: refactor me, please? *)
+        eapply residuals_sanity in H5 as (c4', ?, ?); eauto.
+        assert (c4' = c4) by eauto with cps; subst.
+        eapply residuals_apply_parameters with (h := blank (length xs) ++ q).
+        apply residuals_lift.
+        assumption.
+        constructor.
+      * eapply residuals_is_unique; eauto.
+    + constructor.
   (* Case: (bind, bind). *)
-  - dependent destruction H1.
+  - (* After case analysis, we just have to use the inductive hypotheses to show
+       that the reductions will happen on both sides of a bind. *)
+    dependent destruction H1.
     dependent destruction H4.
     dependent destruction H5.
     (* A bit of a hard search in here, but straightforward in paper by using our
        inductive hypotheses! *)
     eauto 11 with cps.
-Admitted.
+Qed.
 
 Inductive compatible_env: relation (option (nat * redexes)) :=
   | compatible_env_some:
