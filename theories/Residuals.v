@@ -671,10 +671,11 @@ Proof.
     dependent destruction H1.
     dependent destruction H4.
     dependent destruction H5.
-    (* A bit of a hard search in here, but straightforward in paper by using our
-       inductive hypotheses! *)
+    (* A bit of a hard search in here, but straightforward in paper. *)
     eauto 11 with cps.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
 
 Inductive compatible_env: relation (option (nat * redexes)) :=
   | compatible_env_some:
@@ -809,12 +810,18 @@ Proof.
   - dependent destruction H1.
     edestruct IHresiduals2 as (c5, ?).
     + eassumption.
-    + apply compatible_env_refl.
+    + apply compatible_env_skip.
+      eassumption.
     + edestruct IHresiduals1 as (b5, ?).
       * eassumption.
       * constructor; eauto.
         constructor.
-Admitted.
+        eapply compatible_residuals_result; eauto.
+        apply compatible_env_skip.
+        assumption.
+      * eexists.
+        constructor; eauto.
+Qed.
 
 Global Hint Resolve residuals_compatible: cps.
 
@@ -836,19 +843,28 @@ Theorem paving:
   paving_result b c r p.
 Proof.
   intros.
-  (* Since both a\r and a\p exist, these are all compatible. As such, we also
-     know that r\p and p\r must exist. *)
+  (* Since both a\r and a\p are defined, these are all compatible. As such, we
+     also know that r\p and p\r must be defined. *)
   assert (exists pr, residuals [] p r pr) as (pr, ?) by eauto with cps.
   assert (exists rp, residuals [] r p rp) as (rp, ?) by eauto with cps.
-  (* As a\r = b and p\r = pr both reduce the same redexes (marked in r), they
-     must be compatible themselves. As such, we know (a\r)\(p\r) is defined. *)
+  (* As both r\p and p\r are defined, we know that both must be regular (in the
+     sense of Huet): they only contain marks in valid places. Then, as both a\r
+     and p\r reduce only the redexes that are marked in r, they are compatible
+     and so (a\r)\(p\r) must be defined as well. *)
   assert (exists d, residuals [] b pr d) as (d, ?).
+  (* TODO: Hmm... *)
+  eapply residuals_compatible with (a := pr).
   admit.
+  eauto with cps.
+  constructor.
+  (* Thus we can create the desired result. *)
   apply paving_result_mk with pr rp d.
   - assumption.
   - assumption.
   - assumption.
-  - apply cube with [] a r b [] p [] [] pr; auto with cps.
+  - (* The last item, (a\p)\(r\p), should also be defined and, by the cube lemma
+       it must be the same as (a\r)\(p\r) as expected. *)
+    apply cube with [] a r b [] p [] [] pr; auto with cps.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
