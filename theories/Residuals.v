@@ -374,7 +374,7 @@ Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
 
 Local Hint Constructors sanity: cps.
 
-Lemma sanity_blank:
+Lemma sanity_skip:
   forall a rs ps qs,
   sanity rs ps qs ->
   sanity (blank a ++ rs) (blank a ++ ps) (blank a ++ qs).
@@ -384,7 +384,7 @@ Proof.
   - auto with cps.
 Qed.
 
-Local Hint Resolve sanity_blank: cps.
+Local Hint Resolve sanity_skip: cps.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -726,6 +726,20 @@ Proof.
     + assumption.
 Qed.
 
+Lemma compatible_env_sym:
+  forall g h,
+  Forall2 compatible_env g h ->
+  Forall2 compatible_env h g.
+Proof.
+  induction 1; simpl; intros.
+  - constructor.
+  - constructor; auto.
+    dependent destruction H.
+    + constructor.
+      now apply compatible_sym.
+    + constructor.
+Qed.
+
 Lemma compatible_env_skip:
   forall g h,
   Forall2 compatible_env g h ->
@@ -777,30 +791,46 @@ Admitted.
 
 Local Hint Resolve compatible_residuals_result: cps.
 
+Definition regular: redexes -> Prop :=
+  fun r =>
+    exists a b,
+    residuals [] a r b.
+
+Local Hint Unfold regular: cps.
+
 Lemma residuals_compatible:
-  forall g a r b,
-  residuals g a r b ->
+  forall r,
+  regular r ->
   forall p,
-  compatible a p ->
-  forall h,
-  Forall2 compatible_env g h ->
+  compatible r p ->
   exists pr,
-  residuals h p r pr.
+  residuals [] p r pr.
 Proof.
-  induction 1; intros.
-  - dependent destruction H.
+  intros.
+  (* We gotta generalize our induction a bit. *)
+  destruct H as (a, (b, ?)).
+  cut (Forall2 compatible_env [] []); eauto with cps.
+  generalize dependent H.
+  generalize (@nil (option (nat * redexes))) at 3 4 as h.
+  generalize (@nil (option (nat * redexes))) as g.
+  intros until 1.
+  generalize dependent h.
+  generalize dependent p.
+  (* There we go; now we can proceed. *)
+  induction H; intros.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
-  - dependent destruction H.
+  - dependent destruction H0.
     eauto with cps.
   - dependent destruction H0.
     eapply compatible_env_inversion in H1 as (d, ?, ?); eauto.
@@ -825,6 +855,76 @@ Qed.
 
 Global Hint Resolve residuals_compatible: cps.
 
+Lemma generalized_regularity_preservation:
+  forall g a b c,
+  residuals g a b c ->
+  forall h r s,
+  residuals h r a s ->
+  forall q,
+  sanity g g q ->
+  exists d, residuals q c c d.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - (* Did a mark this redex? *)
+    dependent destruction H.
+    + (* It didn't, so we don't have to do anything now. *)
+      eauto with cps.
+    + (* It did, so we'll repeat it now. *)
+      rename g0 into h, k0 into n, r0 into r.
+      (* Ok, we need an additional hypothesis... *)
+      admit.
+  - (* Here we have contracted the redex, so it doesn't matter if it was marked
+       in a or not. *)
+    clear H0.
+    edestruct residuals_sanity as (d, ?, ?); eauto.
+    apply residuals_lift in H0.
+    eapply residuals_apply_parameters in H0.
+    + eexists.
+      eassumption.
+    + constructor.
+  - (* Use the inductive hypotheses to construct the resulting term. *)
+    dependent destruction H1.
+    rename g0 into h, b0 into b4, c0 into c4.
+    edestruct IHresiduals2 as (c6, ?).
+    + eassumption.
+    + apply sanity_skip.
+      eassumption.
+    + edestruct IHresiduals1 as (b6, ?).
+      * eassumption.
+      * constructor; eauto.
+      * (* There we go! *)
+        eauto with cps.
+Admitted.
+
+(* TODO: join with the above...? *)
+
+Lemma regularity_preservation:
+  forall a,
+  regular a ->
+  forall b c,
+  residuals [] a b c ->
+  regular c.
+Proof.
+  intros.
+  exists c.
+  destruct H as (r, (s, ?)).
+  eapply generalized_regularity_preservation with (a := a); eauto with cps.
+Qed.
+
+Global Hint Resolve regularity_preservation: cps.
+
 Inductive paving_result b c r p: Prop :=
   | paving_result_mk
     (pr: redexes)
@@ -845,18 +945,13 @@ Proof.
   intros.
   (* Since both a\r and a\p are defined, these are all compatible. As such, we
      also know that r\p and p\r must be defined. *)
-  assert (exists pr, residuals [] p r pr) as (pr, ?) by eauto with cps.
-  assert (exists rp, residuals [] r p rp) as (rp, ?) by eauto with cps.
+  assert (exists pr, residuals [] p r pr) as (pr, ?) by eauto 9 with cps.
+  assert (exists rp, residuals [] r p rp) as (rp, ?) by eauto 9 with cps.
   (* As both r\p and p\r are defined, we know that both must be regular (in the
      sense of Huet): they only contain marks in valid places. Then, as both a\r
      and p\r reduce only the redexes that are marked in r, they are compatible
      and so (a\r)\(p\r) must be defined as well. *)
-  assert (exists d, residuals [] b pr d) as (d, ?).
-  (* TODO: Hmm... *)
-  eapply residuals_compatible with (a := pr).
-  admit.
-  eauto with cps.
-  constructor.
+  assert (exists d, residuals [] b pr d) as (d, ?) by eauto 7 with cps.
   (* Thus we can create the desired result. *)
   apply paving_result_mk with pr rp d.
   - assumption.
@@ -865,7 +960,7 @@ Proof.
   - (* The last item, (a\p)\(r\p), should also be defined and, by the cube lemma
        it must be the same as (a\r)\(p\r) as expected. *)
     apply cube with [] a r b [] p [] [] pr; auto with cps.
-Admitted.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 (* -------------------------------------------------------------------------- *)
