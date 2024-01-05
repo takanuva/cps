@@ -6,7 +6,6 @@ Require Import Lia.
 Require Import Arith.
 Require Import Relations.
 Require Import Equality.
-Require Import Program.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
@@ -1220,6 +1219,31 @@ Qed.
 
 Local Hint Resolve redexes_weight_count_skip: cps.
 
+Lemma redexes_weight_count_inversion:
+  forall k a c g,
+  item (Some (a, c)) g k ->
+  forall h,
+  redexes_weight_count g h ->
+  exists2 n,
+  item (Some n) h k & n = redexes_weight (blank a ++ drop (S k) h) c.
+Proof.
+  intros until 1.
+  dependent induction H; intros.
+  - dependent destruction H.
+    eexists; eauto with cps.
+  - dependent destruction H0.
+    + edestruct IHitem.
+      * eassumption.
+      * eexists; auto.
+        constructor.
+        now subst.
+    + edestruct IHitem.
+      * eassumption.
+      * eexists; auto.
+        constructor.
+        now subst.
+Qed.
+
 Lemma development_reduces_weight:
   forall t r,
   subset t r ->
@@ -1239,8 +1263,11 @@ Proof.
   - inversion H0.
   - inversion H0.
   - destruct r.
-    + clear H0.
-      dependent destruction H.
+    + dependent destruction H.
+      clear H0; rename k0 into k.
+      eapply redexes_weight_count_inversion in H1 as (n, ?, ?); eauto.
+      simpl; erewrite nth_item; eauto; simpl.
+      (* Clearly we're dropping by 1 in here. *)
       admit.
     + inversion H0.
   - dependent destruction H1.
