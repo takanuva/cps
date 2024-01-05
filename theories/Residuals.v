@@ -398,25 +398,25 @@ Fixpoint drop {T} (n: nat) (xs: list T) :=
 (* -------------------------------------------------------------------------- *)
 
 Lemma residuals_sanity:
-  forall k a b g,
-  item (Some (a, b)) g k ->
-  forall c h,
-  item (Some (a, c)) h k ->
-  forall q,
+  forall k g h q,
   sanity g h q ->
+  forall a b,
+  item (Some (a, b)) g k ->
+  forall c,
+  item (Some (a, c)) h k ->
   exists2 d,
   residuals (blank a ++ (drop (S k) q)) b c d & item (Some (a, d)) q k.
 Proof.
   induction k; intros.
-  - dependent destruction H.
-    dependent destruction H0.
+  - dependent destruction H0.
     dependent destruction H1.
+    dependent destruction H.
     simpl; exists q.
     + assumption.
     + constructor.
-  - dependent destruction H.
-    dependent destruction H0.
+  - dependent destruction H0.
     dependent destruction H1.
+    dependent destruction H.
     + edestruct IHk with (b := b) (c := c) as (d, ?, ?); eauto with cps.
     + edestruct IHk with (b := b) (c := c) as (d, ?, ?); eauto with cps.
 Qed.
@@ -1116,17 +1116,19 @@ Inductive subset: relation redexes :=
     subset c1 c2 ->
     subset (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
 
+Global Hint Constructors subset: cps.
+
 Lemma partial_development:
-  forall g r s x,
-  residuals g r s x ->
-  forall t,
+  forall t s,
   subset t s ->
-  forall h y,
-  residuals h r t y ->
-  forall i z,
-  residuals i s t z ->
-  sanity h i g ->
-  residuals g y z x.
+  forall g1 r rs,
+  residuals g1 r s rs ->
+  forall g2 rt,
+  residuals g2 r t rt ->
+  forall g3 st,
+  residuals g3 s t st ->
+  sanity g2 g3 g1 ->
+  residuals g1 rt st rs.
 Proof.
   induction 1; intros.
   - dependent destruction H.
@@ -1157,25 +1159,27 @@ Proof.
     dependent destruction H0.
     dependent destruction H1.
     constructor.
-  - dependent destruction H0.
-    rename r into r1, r0 into r2.
-    dependent destruction H1.
-    + dependent destruction H2.
-      constructor.
-      assumption.
-    + dependent destruction H2.
-      rename g0 into h, g1 into i.
-      rename c into c3, c0 into c1, c1 into c2.
-      admit.
+  - dependent destruction H.
+    dependent destruction H0.
+    + dependent destruction H1.
+      now constructor.
+    + dependent destruction H1.
+      edestruct residuals_sanity as (c', ?, ?); eauto.
+      assert (c' = c) by eauto with cps; subst.
+      eapply residuals_apply_parameters.
+      * apply residuals_lift.
+        eassumption.
+      * constructor.
   - dependent destruction H1.
     dependent destruction H2.
     dependent destruction H3.
-    rename g0 into h, g1 into i.
     (* Nice automation in here! *)
     constructor; eauto with cps.
-Admitted.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
+
+(*
 
 Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
   match r with
@@ -1288,3 +1292,5 @@ Proof.
   apply H with (redexes_weight [] s); subst; auto.
   now apply partial_reduction_reduces_weight.
 Qed.
+
+*)
