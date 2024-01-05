@@ -772,22 +772,20 @@ Proof.
   - constructor.
   - eapply compatible_env_inversion in H0 as (d, ?, ?); eauto.
     assert (c0 = d) by eauto with cps; subst.
-    admit.
+    apply compatible_apply_parameters.
+    apply compatible_lift.
+    assumption.
   - assert (compatible c3 c6).
     + eapply IHresiduals2.
       * apply compatible_env_skip.
         eassumption.
       * eassumption.
     + assert (compatible b3 b6).
-      * eapply IHresiduals1.
-        (* TODO: refactor... *)
-        constructor.
-        constructor.
-        eassumption.
-        eassumption.
-        eassumption.
+      * eapply IHresiduals1; eauto.
+        constructor; auto.
+        now constructor.
       * constructor; auto.
-Admitted.
+Qed.
 
 Local Hint Resolve compatible_residuals_result: cps.
 
