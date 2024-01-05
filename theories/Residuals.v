@@ -6,6 +6,7 @@ Require Import Lia.
 Require Import Arith.
 Require Import Relations.
 Require Import Equality.
+Require Import Program.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
@@ -422,13 +423,13 @@ Proof.
 Qed.
 
 Local Lemma residuals_env_item_aux:
-  forall a b c k (g: residuals_env),
-  item (Some (a, b)) g k ->
-  item (Some (a, c)) g k ->
+  forall a1 a2 b c k (g: residuals_env),
+  item (Some (a1, b)) g k ->
+  item (Some (a2, c)) g k ->
   b = c.
 Proof.
   intros.
-  assert (Some (a, b) = Some (a, c)).
+  assert (Some (a1, b) = Some (a2, c)).
   - eapply item_unique; eauto.
   - now dependent destruction H1.
 Qed.
@@ -1179,8 +1180,6 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-(*
-
 Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
   match r with
   | redexes_jump true (bound k) xs =>
@@ -1195,102 +1194,106 @@ Fixpoint redexes_weight (g: list (option nat)) (r: redexes): nat :=
     0
   end.
 
-(* Contracting a redex, any redex, should reduce the count! *)
+Inductive redexes_weight_count: residuals_env -> list (option nat) -> Prop :=
+  | redexes_weight_count_nil:
+    redexes_weight_count [] []
+  | redexes_weight_count_cons:
+    forall g h a c,
+    redexes_weight_count g h ->
+    redexes_weight_count (Some (a, c) :: g)
+      (Some (redexes_weight (blank a ++ h) c) :: h)
+  | redexes_weight_count_none:
+    forall g h,
+    redexes_weight_count g h ->
+    redexes_weight_count (None :: g) (None :: h).
 
-Goal
-  forall h k xs ts c g,
-  length xs = length ts ->
-  k = redexes_context_bvars h ->
-  redexes_weight g (redexes_bind (h (RAP xs k c)) ts c) <
-    redexes_weight g (redexes_bind (h (redexes_jump true k xs)) ts c).
+Local Hint Constructors redexes_weight_count: cps.
+
+Lemma redexes_weight_count_skip:
+  forall g h,
+  redexes_weight_count g h ->
+  forall a,
+  redexes_weight_count (blank a ++ g) (blank a ++ h).
 Proof.
-  intros; simpl.
-  remember (redexes_weight (blank (length ts) ++ g) c) as n.
-  apply Nat.add_lt_mono_r.
-  rename g into g'.
-  remember (Some n :: g') as g.
-  assert (k >= redexes_context_bvars h) by lia.
-  assert (item (Some n) g (k - redexes_context_bvars h) /\
-          g' = drop (1 + (k - redexes_context_bvars h)) g) as (?, ?).
-  - rewrite <- H0, Heqg.
-    replace (k - k) with 0; try lia.
-    split; auto with cps.
-  - clear H0 Heqg.
-    generalize dependent g.
-    induction h; intros.
-    + rewrite Nat.sub_0_r in H2, H3.
-      (* simpl.
-      erewrite nth_item; eauto; simpl.
-      assert (g' = drop (S k) g).
-      * destruct g; auto.
-      * clear H1 H2 H3.
-        rewrite H0 in Heqn; clear H0.
-        (* Well, this should be true! Beware of high-order terms, though! *)
-        admit. *)
+  induction a; simpl; auto with cps.
+Qed.
+
+Local Hint Resolve redexes_weight_count_skip: cps.
+
+Lemma development_reduces_weight:
+  forall t r,
+  subset t r ->
+  forall g s,
+  residuals g r t s ->
+  redexes_count t > 0 ->
+  forall h,
+  redexes_weight_count g h ->
+  redexes_weight h s < redexes_weight h r.
+Proof.
+  induction 1; intros.
+  - inversion H0.
+  - inversion H0.
+  - inversion H0.
+  - inversion H0.
+  - inversion H0.
+  - inversion H0.
+  - inversion H0.
+  - destruct r.
+    + clear H0.
+      dependent destruction H.
       admit.
-    + (* simpl.
-      apply Nat.add_lt_mono_r.
-      simpl in H1; destruct k; try lia.
-      apply IHh.
-      * lia.
-      * replace (S k - redexes_context_bvars h) with
-          (S (k - redexes_context_bvars h)); try lia.
-        constructor; auto.
-      * (* Ok, fair enough... *)
-        simpl in H2.
-        admit. *)
-      admit.
-    + admit.
+    + inversion H0.
+  - dependent destruction H1.
+    destruct (le_gt_dec (redexes_count b1) 0);
+    destruct (le_gt_dec (redexes_count c1) 0);
+    simpl.
+    + exfalso; simpl in H2.
+      lia.
+    + assert (b4 = b2) by admit; subst.
+      set (q := blank (length ts) ++ h).
+      set (v1 := Some (redexes_weight q c4) :: h).
+      set (v2 := Some (redexes_weight q c2) :: h).
+      assert (redexes_weight v1 b2 <= redexes_weight v2 b2) by admit.
+      assert (redexes_weight q c4 < redexes_weight q c2) by eauto with cps.
+      lia.
+    + assert (c4 = c2) by admit; subst.
+      set (q := blank (length ts) ++ h).
+      set (v := Some (redexes_weight q c2) :: h).
+      assert (redexes_weight v b4 < redexes_weight v b2) by eauto with cps.
+      lia.
+    + set (q := blank (length ts) ++ h).
+      assert (redexes_weight q c4 < redexes_weight q c2) by eauto with cps.
+      set (v1 := Some (redexes_weight q c4) :: h).
+      set (v2 := Some (redexes_weight q c2) :: h).
+      assert (redexes_weight v1 b4 < redexes_weight v2 b2) by admit.
+      lia.
 Admitted.
 
-Inductive partial_reduction: relation redexes :=
-  | partial_reduction_mk:
+(* TODO: use this in the partial_development lemma above...? ALSO... TODO: we
+   need to be more strict with the names. Technically, development reduces all
+   the redexes, partial development reduces some (this definition!) and full
+   development reduces all the possible ones. *)
+
+Inductive development: relation redexes :=
+  | development_mk:
     forall r s t,
     redexes_count t > 0 ->
     subset t r ->
     residuals [] r t s ->
-    partial_reduction r s.
-
-Lemma partial_reduction_reduces_weight:
-  forall r s,
-  partial_reduction r s ->
-  forall g,
-  redexes_weight g s < redexes_weight g r.
-Proof.
-  intros until 1.
-  dependent destruction H.
-  induction H1; intros h.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - exfalso.
-    inversion H.
-  - admit.
-  - simpl in H |- *.
-    admit.
-Admitted.
+    development r s.
 
 Theorem finite_development:
   forall r,
-  SN partial_reduction r.
+  SN development r.
 Proof.
   intros.
   remember (redexes_weight [] r) as n.
   generalize dependent r.
   induction n using lt_wf_ind; intros.
-  (* For any partial reduction, we reduce the weight. *)
+  (* For any partial development, we strictly reduce the weight. *)
   constructor; intros s ?.
-  apply H with (redexes_weight [] s); subst; auto.
-  now apply partial_reduction_reduces_weight.
+  apply H with (redexes_weight [] s); subst.
+  - destruct H0.
+    apply development_reduces_weight with t []; auto with cps.
+  - reflexivity.
 Qed.
-
-*)
