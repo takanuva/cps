@@ -203,7 +203,8 @@ Qed.
 (* This property is mentioned in Yoshida's paper for the pi-calculus, using the
    same reduction relation as we are. The proof dates back to Church, who first
    showed it, but she (on lemma B.3) refers to Barendregt's textbook (page 293,
-   lemma 11.3.1), which contains his own version of the proof. *)
+   lemma 11.3.1), which contains his own version of the proof. We follow it in
+   spirit. *)
 
 Lemma backwards_parallel_preservation:
   forall c,
@@ -213,52 +214,58 @@ Lemma backwards_parallel_preservation:
 Proof.
   (* We follow by induction both on the maximal reduction length for c, as well
      as the maximal length for development in b. *)
-  induction 1; intros.
-  (* Some housekeeping... TODO: we should have SN_ind, right? *)
+  induction 1 using SN_ind; intros.
   rename x into c.
-  fold (SN parallel) in H.
-  unfold transp in H, H0.
-  destruct H1 as (r, ?, ?).
-  (* TODO: We should have the maximum development length in here! *)
-  remember (redexes_count r) as n.
+  destruct H0 as (r, ?, ?).
+  remember (redexes_weight [] r) as n.
   generalize dependent r.
   generalize dependent b.
   induction n using lt_wf_ind; intros.
   dependent destruction Heqn.
   (* Now we can check the next move! *)
-  constructor; intros d (s, ?, ?).
+  constructor; intros d (p, ?, ?).
   fold (SN parallel).
-  (* So, since parallel reduction has the weak diamond property... *)
-  destruct parallel_is_joinable with b c d as (e, ?, ?); eauto with cps.
-  destruct H6; destruct H7.
-  (* Case: r and s are unrelated. *)
-  - (* We need to "move" in both directions. We follow by our first inductive
-       hypothesis. *)
-    rename y into e.
-    apply H0 with e; auto.
-  (* Case: r is a strict subset of s. *)
+  (* So, since parallel reduction is defined in terms of residuals, we can use
+     the paving lemma to join back the reductions that lead to c and d. *)
+  destruct paving with (mark b) r (mark c) p (mark d); eauto.
+  (* As c has no marks (or d, of course), so the result shouldn't as well. *)
+  assert (exists e, d0 = mark e) as (e, ?) by admit; subst.
+  (* We proceed by case analysis on the number of marks in rp and pr. *)
+  destruct (le_gt_dec (redexes_count rp) 0) as [ ?H | ?H ];
+  destruct (le_gt_dec (redexes_count pr) 0) as [ ?H | ?H ].
+  (* Case: r and p are the same. *)
+  - (* We have reached a point where the terms were joined back, thus all the
+       missing redexes were contracted. Since neither path requires any work,
+       we conclude that c = d and we are done by our inductive hypothesis. *)
+    assert (c = e) by admit; subst.
+    assert (d = e) by admit; subst.
+    assumption.
+  (* Case: r is a strict subset of p. *)
   - (* Here c can move to d. So we performed all the missing redexes and a few
-       more! As our hypothesis says that c is SN, we can finish already. *)
-    apply H; auto.
-  (* Case: s is a strict subset of r. *)
-  - (* Here we are performing some, but not all, of the missing redexes. We
-       proceed by our second inductive hypothesis, as it will now need less work
-       to develop all the missing redexes. *)
-    rename y into e.
-    destruct H6 as (t, ?, ?).
-    apply H1 with (redexes_count t) t; auto.
-    (* TODO: As stated above, we gotta fix the right number in here. Well, if we
-       had started with a single jump, we could argue that this is indeed true
-       if we kept the invariant that r can only mark jumps to the same variable,
-       but as we'll probably need to reason about development length in order to
-       prove finite development (in any order), this also works. *)
-    admit.
-  (* Case: r and s are the same. *)
-  - (* Now we have reached a point where the terms were joined back, all the
-       missing redexes were contracted, and we proceed with our induction
-       hypothesis alone. *)
-    constructor.
-    exact H.
+       more! As our hypothesis says that c is SN, we can finish already by doing
+       the additional redexes alone. *)
+    assert (e = d) by admit; subst.
+    apply H; unfold transp.
+    eauto with cps.
+  (* Case: p is a strict subset of r. *)
+  - (* Here we are performing some, but not all, of the missing redexes, and
+       nothing more. We proceed by our second inductive hypothesis, as we will
+       now need less work to develop all the missing redexes. We have enough
+       information to state that p is a subset of r. *)
+    assert (e = c) by admit; subst.
+    apply H0 with (redexes_weight [] rp) rp; auto.
+    (* Naturally, any partial development reduces the maximum number of steps
+       required to develop the term. *)
+    apply development_reduces_weight with p [].
+    + (* Clearly, from H6 and H11. *)
+      admit.
+    + eauto with cps.
+    + assumption.
+    + constructor.
+  (* Case: r and p are unrelated. *)
+  - (* We need to move in both directions. So we follow by our first inductive
+       hypothesis, as we're decreasing the maximum reduction length. *)
+    apply H2 with e; eauto with cps.
 Admitted.
 
 Theorem uniform_normalization:
