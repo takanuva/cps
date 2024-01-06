@@ -72,6 +72,25 @@ Proof.
   rewrite IHe1, IHe2; auto.
 Qed.
 
+Lemma mark_is_injective:
+  forall a b,
+  mark a = mark b ->
+  a = b.
+Proof.
+  induction a; intros.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; now inversion H.
+  - destruct b; simpl in H; inversion H.
+    f_equal; auto.
+Qed.
+
+Global Hint Resolve mark_is_injective: cps.
+
 Fixpoint redexes_lift i k e: redexes :=
   match e with
   | redexes_jump r f xs =>
@@ -348,6 +367,8 @@ Proof.
     + f_equal.
       eapply IHa1; eauto.
 Qed.
+
+Global Hint Resolve residuals_is_unique: cps.
 
 Lemma compatible_residuals:
   forall g a b c,
@@ -1014,6 +1035,28 @@ Proof.
       apply IHresiduals2.
 Qed.
 
+Lemma residuals_zero_marks:
+  forall g r s t,
+  residuals g r s t ->
+  redexes_count s = 0 ->
+  r = t.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - discriminate.
+  - f_equal.
+    + now rewrite IHresiduals1 by lia.
+    + now rewrite IHresiduals2 by lia.
+Qed.
+
+Global Hint Resolve residuals_zero_marks: cps.
+
 (* -------------------------------------------------------------------------- *)
 
 Inductive redexes_context: Set :=
@@ -1115,6 +1158,30 @@ Inductive subset: relation redexes :=
     subset (redexes_bind b1 ts c1) (redexes_bind b2 ts c2).
 
 Global Hint Constructors subset: cps.
+
+Lemma subset_residuals_zero_marks:
+  forall g r s t,
+  residuals g r s t ->
+  redexes_count t = 0 ->
+  subset r s.
+Proof.
+  induction 1; simpl; intros.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - destruct r.
+    + discriminate.
+    + constructor.
+  - constructor.
+  - constructor.
+    + apply IHresiduals1.
+      lia.
+    + apply IHresiduals2.
+      lia.
+Qed.
 
 Lemma partial_development:
   forall t s,

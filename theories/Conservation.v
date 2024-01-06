@@ -237,14 +237,14 @@ Proof.
   - (* We have reached a point where the terms were joined back, thus all the
        missing redexes were contracted. Since neither path requires any work,
        we conclude that c = d and we are done by our inductive hypothesis. *)
-    assert (c = e) by admit; subst.
-    assert (d = e) by admit; subst.
+    assert (c = e) by eauto with arith cps; subst.
+    assert (d = e) by eauto with arith cps; subst.
     assumption.
   (* Case: r is a strict subset of p. *)
   - (* Here c can move to d. So we performed all the missing redexes and a few
        more! As our hypothesis says that c is SN, we can finish already by doing
        the additional redexes alone. *)
-    assert (e = d) by admit; subst.
+    assert (d = e) by eauto with arith cps; subst.
     apply H; unfold transp.
     eauto with cps.
   (* Case: p is a strict subset of r. *)
@@ -252,13 +252,13 @@ Proof.
        nothing more. We proceed by our second inductive hypothesis, as we will
        now need less work to develop all the missing redexes. We have enough
        information to state that p is a subset of r. *)
-    assert (e = c) by admit; subst.
+    assert (c = e) by eauto with arith cps; subst.
     apply H0 with (redexes_weight [] rp) rp; auto.
     (* Naturally, any partial development reduces the maximum number of steps
        required to develop the term. *)
     apply development_reduces_weight with p [].
     + (* Clearly, from H6 and H11. *)
-      admit.
+      eapply subset_residuals_zero_marks; eauto with arith.
     + eauto with cps.
     + assumption.
     + constructor.
