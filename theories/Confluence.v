@@ -175,6 +175,11 @@ Lemma t_beta_parallel:
 Proof.
   intros.
   destruct H as (r, ?, ?).
+  generalize dependent a.
+  generalize dependent b.
+  (* Proceed by induction on the maximum development length. *)
+  induction (finite_development r) using SN_ind; intros.
+  rename s into H1.
   admit.
 Admitted.
 
@@ -212,8 +217,20 @@ Proof.
   - exact H.
   - exact H1.
   - exists (unmark d).
-    + admit.
-    + admit.
+    + destruct (le_gt_dec (redexes_count pr) 0).
+      * assert (mark y = d) by eauto with arith cps; subst.
+        rewrite unmark_mark_is_sound.
+        apply r_refl.
+      * constructor.
+        exists pr; auto.
+        admit.
+    + destruct (le_gt_dec (redexes_count rp) 0).
+      * assert (mark z = d) by eauto with arith cps; subst.
+        rewrite unmark_mark_is_sound.
+        apply r_refl.
+      * constructor.
+        exists rp; auto.
+        admit.
 Admitted.
 
 Lemma r_parallel_has_diamond:
