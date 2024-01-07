@@ -29,24 +29,12 @@ Inductive inner: relation pseudoterm :=
          ts c)
   | inner_gc:
     GC inner
-  (*| inner_eta:
-    (* It is important that this doesn't change the name in subject position at
-       the head of the term. *)
-    forall b ts h k xs j,
-    static h ->
-    (* TODO: we might have to tweak this definition a bit. *)
-    b = h (jump k xs) ->
-    k <> #h ->
-    inner
-      (bind b ts
-         (jump (lift (length ts) 0 j)
-            (low_sequence (length ts))))
-      (subst j 0 b) *)
   | inner_bind_left:
     LEFT inner
   | inner_bind_right:
     forall b ts c1 c2,
-    [c1 => c2] -> inner (bind b ts c1) (bind b ts c2).
+    [c1 => c2] ->
+    inner (bind b ts c1) (bind b ts c2).
 
 Lemma step_inner:
   inclusion inner step.
