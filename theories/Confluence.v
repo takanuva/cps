@@ -169,6 +169,63 @@ Qed.
 
 Global Hint Resolve parallel_beta: cps.
 
+(* TODO: should we move this to the residuals file...? *)
+
+Lemma subset_mark_unmark:
+  forall r,
+  subset (mark (unmark r)) r.
+Proof.
+  induction r; simpl; intros.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - destruct r.
+    + constructor.
+    + constructor.
+  - constructor; auto.
+Qed.
+
+(* TODO: this one too... *)
+
+Lemma redexes_pick:
+  forall r,
+  redexes_count r > 0 ->
+  { s | subset s r & redexes_count s = 1 }.
+Proof.
+  induction r; intros.
+  - exfalso; inversion H.
+  - exfalso; inversion H.
+  - exfalso; inversion H.
+  - exfalso; inversion H.
+  - exfalso; inversion H.
+  - exfalso; inversion H.
+  - destruct r.
+    + eexists (redexes_jump true f xs); eauto with cps.
+    + exfalso; inversion H.
+  - simpl in H.
+    (* Computationally, we'd rather pick the rightmost redex, because this is
+       the shortest path to develop a set of redexes. Still, this function is
+       quadratic on the size of the term while it could probably be done in a
+       linear way. Oh well... *)
+    destruct (le_gt_dec (redexes_count r2) 0).
+    + destruct IHr1; try lia.
+      exists (redexes_bind x ts (mark (unmark r2))).
+      * constructor; auto.
+        apply subset_mark_unmark.
+      * simpl.
+        rewrite redexes_count_mark.
+        lia.
+    + destruct IHr2; try lia.
+      exists (redexes_bind (mark (unmark r1)) ts x).
+      * constructor; auto.
+        apply subset_mark_unmark.
+      * simpl.
+        now rewrite redexes_count_mark.
+Qed.
+
 Lemma t_beta_parallel:
   forall a b,
   parallel a b -> t(beta) a b.
@@ -179,8 +236,44 @@ Proof.
   generalize dependent b.
   (* Proceed by induction on the maximum development length. *)
   induction (finite_development r) using SN_ind; intros.
-  rename s into H1.
+  rename s into H1, x into r.
+  (* We can pick any redex now. *)
+  destruct redexes_pick with r as (s, ?H, ?H); auto.
+  (* TODO: this is but a sketch!!! *)
+  assert (exists rs, residuals [] r s rs) as (rs, ?).
+  apply residuals_compatible.
+  apply regular_subset with r.
+  exists (mark a), (mark b).
+  assumption.
+  assumption.
+  eauto with cps.
+  assert (exists c', residuals [] (mark a) s c') as (c', ?).
+  apply residuals_compatible.
+  exists r, rs; auto.
+  eauto with cps.
+  assert (exists c, c' = mark c) as (c, ?) by admit; subst.
+  assert (residuals [] (mark c) rs (mark b)).
+  eapply partial_development.
+  exact H3.
+  exact H.
+  exact H6.
+  exact H5.
+  constructor.
+  destruct (le_gt_dec (redexes_count rs) 0).
+  assert (c = b) by eauto with arith cps; subst.
+  (* By H4 and H6. *)
   admit.
+  apply t_trans with c.
+  (* By H4 and H6. *)
+  admit.
+  apply H2 with rs.
+  apply t_step.
+  constructor 1 with s.
+  lia.
+  assumption.
+  assumption.
+  assumption.
+  assumption.
 Admitted.
 
 Global Hint Resolve t_beta_parallel: cps.

@@ -1183,6 +1183,30 @@ Proof.
       lia.
 Qed.
 
+Global Hint Resolve subset_residuals_zero_marks: cps.
+
+Lemma compatible_subset:
+  forall r s,
+  subset r s ->
+  compatible r s.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+Global Hint Resolve compatible_subset: cps.
+
+Lemma regular_subset:
+  forall r,
+  regular r ->
+  forall s,
+  subset s r ->
+  regular s.
+Proof.
+  admit.
+Admitted.
+
+Global Hint Resolve regular_subset: cps.
+
 Lemma partial_development:
   forall t s,
   subset t s ->
