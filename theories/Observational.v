@@ -330,7 +330,7 @@ Qed.
    w.r.t. star, such that forall a =>* b there's a standard sequence from a to
    b, then it'll reach the correct head position using only head steps. *)
 
-Local Lemma subst_backwards_preserves_convergence_gc:
+Goal
   forall c y k p,
   not_free p c ->
   converges (subst y p c) (p + k) ->
@@ -442,11 +442,6 @@ Proof.
         constructor; auto.
       * dependent destruction x; simpl.
         constructor; auto.
-  - intros.
-    constructor.
-    eapply subst_backwards_preserves_convergence_gc with (p := 0).
-    + assumption.
-    + eassumption.
   - intros.
     dependent destruction H0.
     constructor; auto.

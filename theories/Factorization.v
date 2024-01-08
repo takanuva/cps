@@ -27,19 +27,25 @@ Inductive inner: relation pseudoterm :=
       (bind
          (h (apply_parameters xs 0 (lift (S #h) (length ts) c)))
          ts c)
-  | inner_gc:
-    GC inner
   | inner_bind_left:
     LEFT inner
   | inner_bind_right:
     forall b ts c1 c2,
-    [c1 => c2] ->
+    beta c1 c2 ->
     inner (bind b ts c1) (bind b ts c2).
+
+Lemma beta_inner:
+  inclusion inner beta.
+Proof.
+  induction 1; auto with cps.
+Qed.
+
+Global Hint Resolve beta_inner: cps.
 
 Lemma step_inner:
   inclusion inner step.
 Proof.
-  induction 1; auto with cps.
+  auto with cps.
 Qed.
 
 Global Hint Resolve step_inner: cps.
@@ -85,7 +91,19 @@ Proof.
         exists v; eauto with cps.
 Qed.
 
-Axiom parallel_inner: relation pseudoterm.
+Inductive leftmost_unmarked: redexes -> Prop :=
+  | leftmost_unmarked_jump:
+    forall k xs,
+    leftmost_unmarked (redexes_jump false k xs)
+  | leftmost_unmarked_bind:
+    forall b ts c,
+    leftmost_unmarked b ->
+    leftmost_unmarked (redexes_bind b ts c).
+
+Definition parallel_inner: relation pseudoterm :=
+  fun b c =>
+    exists2 r,
+    residuals [] (mark b) r (mark c) & leftmost_unmarked r.
 
 Conjecture inner_parallel_inner:
   inclusion inner parallel_inner.
