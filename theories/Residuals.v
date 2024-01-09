@@ -393,7 +393,7 @@ Inductive sanity: residuals_env -> residuals_env -> residuals_env -> Prop :=
     sanity rs ps qs ->
     sanity (None :: rs) (None :: ps) (None :: qs).
 
-Local Hint Constructors sanity: cps.
+Global Hint Constructors sanity: cps.
 
 Lemma sanity_skip:
   forall a rs ps qs,
@@ -405,7 +405,7 @@ Proof.
   - auto with cps.
 Qed.
 
-Local Hint Resolve sanity_skip: cps.
+Global Hint Resolve sanity_skip: cps.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -815,7 +815,7 @@ Definition regular: redexes -> Prop :=
     exists a b,
     residuals [] a r b.
 
-Local Hint Unfold regular: cps.
+Global Hint Unfold regular: cps.
 
 Lemma residuals_compatible:
   forall r,
@@ -874,7 +874,7 @@ Qed.
 
 Global Hint Resolve residuals_compatible: cps.
 
-Lemma generalized_regularity_preservation:
+Local Lemma generalized_regularity_preservation:
   forall g a b c,
   residuals g a b c ->
   forall h r s,
@@ -1195,6 +1195,43 @@ Qed.
 
 Global Hint Resolve compatible_subset: cps.
 
+Local Lemma generalized_regular_subset:
+  forall s r,
+  subset s r ->
+  forall g a b,
+  residuals g a r b ->
+  forall h,
+  exists c, residuals h a s c.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    eauto with cps.
+  - dependent destruction H.
+    destruct r.
+    + eexists.
+      constructor.
+      (* We clearly need another hypothesis. *)
+      admit.
+    + eexists.
+      constructor.
+  - dependent destruction H1.
+    edestruct IHsubset2 as (c5, ?); eauto.
+    edestruct IHsubset1 as (b5, ?); eauto.
+    eexists; eauto with cps.
+Admitted.
+
 Lemma regular_subset:
   forall r,
   regular r ->
@@ -1202,8 +1239,10 @@ Lemma regular_subset:
   subset s r ->
   regular s.
 Proof.
-  admit.
-Admitted.
+  destruct 1 as (a, (b, ?)); intros.
+  exists a.
+  eapply generalized_regular_subset; eauto.
+Qed.
 
 Global Hint Resolve regular_subset: cps.
 

@@ -226,6 +226,18 @@ Proof.
         now rewrite redexes_count_mark.
 Qed.
 
+Lemma beta_residuals:
+  forall r,
+  redexes_count r = 1 ->
+  forall a b,
+  residuals [] (mark a) r (mark b) ->
+  beta a b.
+Proof.
+  admit.
+Admitted.
+
+Global Hint Resolve beta_residuals: cps.
+
 Lemma t_beta_parallel:
   forall a b,
   parallel a b -> t(beta) a b.
@@ -239,41 +251,30 @@ Proof.
   rename s into H1, x into r.
   (* We can pick any redex now. *)
   destruct redexes_pick with r as (s, ?H, ?H); auto.
-  (* TODO: this is but a sketch!!! *)
-  assert (exists rs, residuals [] r s rs) as (rs, ?).
-  apply residuals_compatible.
-  apply regular_subset with r.
-  exists (mark a), (mark b).
-  assumption.
-  assumption.
-  eauto with cps.
-  assert (exists c', residuals [] (mark a) s c') as (c', ?).
-  apply residuals_compatible.
-  exists r, rs; auto.
-  eauto with cps.
+  (* Since s is a subset of r, we can reduce it on r. *)
+  assert (exists rs, residuals [] r s rs) as (rs, ?) by eauto 7 with cps.
+  (* Similarly, it's compatible with a, thus we may reduce it on a. *)
+  assert (exists c', residuals [] (mark a) s c') as (c', ?) by eauto 9 with cps.
+  (* Since a has no marks, c can't possibly have marks as well. *)
   assert (exists c, c' = mark c) as (c, ?) by admit; subst.
+  (* Now, since we've reduced just s from a to c, we can reduce the remainder
+     and go to b by the partial development lemma. *)
   assert (residuals [] (mark c) rs (mark b)).
-  eapply partial_development.
-  exact H3.
-  exact H.
-  exact H6.
-  exact H5.
-  constructor.
-  destruct (le_gt_dec (redexes_count rs) 0).
-  assert (c = b) by eauto with arith cps; subst.
-  (* By H4 and H6. *)
-  admit.
-  apply t_trans with c.
-  (* By H4 and H6. *)
-  admit.
-  apply H2 with rs.
-  apply t_step.
-  constructor 1 with s.
-  lia.
-  assumption.
-  assumption.
-  assumption.
-  assumption.
+  - eapply partial_development; eauto with cps.
+  - (* As s has a single mark, we can go from a to c by performing a jump. *)
+    assert (beta a c) by eauto with cps.
+    (* Is this everything, or are there any more steps in rs? *)
+    destruct (le_gt_dec (redexes_count rs) 0).
+    + (* We need a single step to finish. *)
+      assert (c = b) by eauto with arith cps; subst.
+      now constructor.
+    + (* There's at least one more step, which we reduce by using the inductive
+         hypothesis. *)
+      apply t_trans with c.
+      * now constructor.
+      * assert (redexes_count s > 0) by lia.
+        apply H2 with rs; eauto with cps.
+        constructor; now constructor 1 with s.
 Admitted.
 
 Global Hint Resolve t_beta_parallel: cps.
