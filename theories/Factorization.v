@@ -91,19 +91,37 @@ Proof.
         exists v; eauto with cps.
 Qed.
 
-Inductive leftmost_unmarked: redexes -> Prop :=
-  | leftmost_unmarked_jump:
-    forall k xs,
-    leftmost_unmarked (redexes_jump false k xs)
-  | leftmost_unmarked_bind:
-    forall b ts c,
-    leftmost_unmarked b ->
-    leftmost_unmarked (redexes_bind b ts c).
+Inductive leftmost_marked: bool -> redexes -> Prop :=
+  | leftmost_marked_type:
+    leftmost_marked false redexes_type
+  | leftmost_marked_prop:
+    leftmost_marked false redexes_prop
+  | leftmost_marked_base:
+    leftmost_marked false redexes_base
+  | leftmost_marked_void:
+    leftmost_marked false redexes_void
+  | leftmost_marked_bound:
+    forall n,
+    leftmost_marked false (redexes_bound n)
+  | leftmost_marked_negation:
+    forall ts,
+    leftmost_marked false (redexes_negation ts)
+  | leftmost_marked_jump:
+    forall r k xs,
+    leftmost_marked r (redexes_jump r k xs)
+  | leftmost_marked_bind:
+    forall r b ts c,
+    leftmost_marked r b ->
+    leftmost_marked r (redexes_bind b ts c).
+
+(* Notice that we are not assuming that parallel inner reduction has at least
+   one mark as we do in the standard parallel reduction, mostly because there's
+   no need to. We could, of course, do it anyways. *)
 
 Definition parallel_inner: relation pseudoterm :=
   fun b c =>
     exists2 r,
-    residuals [] (mark b) r (mark c) & leftmost_unmarked r.
+    residuals [] (mark b) r (mark c) & leftmost_marked false r.
 
 Conjecture inner_parallel_inner:
   inclusion inner parallel_inner.
