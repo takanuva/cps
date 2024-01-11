@@ -1026,11 +1026,20 @@ Qed.
 
 Global Hint Resolve step_longjmp: cps.
 
+Lemma beta_head:
+  forall a b,
+  head a b -> beta a b.
+Proof.
+  destruct 1; auto with cps.
+Qed.
+
+Global Hint Resolve beta_head: cps.
+
 Lemma step_head:
   forall a b,
   head a b -> [a => b].
 Proof.
-  destruct 1; auto with cps.
+  auto with cps.
 Qed.
 
 Global Hint Resolve step_head: cps.

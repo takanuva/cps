@@ -123,13 +123,19 @@ Definition parallel_inner: relation pseudoterm :=
     exists2 r,
     residuals [] (mark b) r (mark c) & leftmost_marked false r.
 
-Conjecture inner_parallel_inner:
+Lemma inner_parallel_inner:
   inclusion inner parallel_inner.
+Proof.
+  admit.
+Admitted.
 
 Local Hint Resolve inner_parallel_inner: cps.
 
-Conjecture parallel_inner_rt_inner:
+Lemma parallel_inner_rt_inner:
   inclusion parallel_inner rt(inner).
+Proof.
+  admit.
+Admitted.
 
 Local Hint Resolve parallel_inner_rt_inner: cps.
 
@@ -139,60 +145,56 @@ Proof.
   split; induction 1; eauto with cps.
 Qed.
 
-Conjecture merge:
+Lemma macro_merge:
   inclusion (comp parallel_inner head) parallel.
+Proof.
+  admit.
+Admitted.
 
-(* This lemma will need to perform induction on the number of consecutive head
-   jumps in a redex. If the redex is regular, this may be calculated, but it'll
-   be somewhat annoying to formalize. *)
-
-Conjecture split:
+Lemma macro_split:
   inclusion parallel (comp rt(head) parallel_inner).
+Proof.
+  admit.
+Admitted.
+
+(* TODO: move and generalize this (Accattoli's method) to the abstract rewriting
+   file, and then just use it here. *)
 
 Theorem factorization:
-  inclusion star (comp rt(head) rt(inner)).
+  inclusion rt(beta) (comp rt(head) rt(inner)).
 Proof.
   assert (inclusion rt(union head parallel_inner)
     (comp rt(head) rt(parallel_inner))).
   - apply local_postponement.
     unfold inclusion; intros.
-    destruct split with x y as (z, ?, ?).
-    + apply merge; auto.
+    destruct macro_split with x y as (z, ?, ?).
+    + apply macro_merge; auto.
     + exists z; auto with cps.
   - unfold inclusion; intros.
     destruct H with x y as (z, ?, ?).
     + clear H.
       (* Relexive and transitive cases are trivial. *)
       induction H0; eauto with cps.
-      (* TODO: fix me!
-
-      (* Though we usually would argue that a step is either essential or not,
-         this is not the case here due to eta reduction: there are cases in
-         which a step should be split into a head reduction followed by an inner
-         reduction. So we take another route here by using [split]. *)
-      apply parallel_step in H.
-      apply split in H.
+      apply parallel_beta in H.
+      apply macro_split in H.
       destruct H as (z, ?, ?).
-      (* Now, this is clearly true. *)
       apply rt_trans with z.
       * clear H0 y.
         induction H; eauto with cps.
       * auto with cps.
-      *)
-      admit.
     + apply rt_inner_and_rt_parallel_inner_are_equivalent in H2.
       eauto with cps.
-Admitted.
+Qed.
 
-Corollary star_characterization:
-  same_relation star (comp rt(head) rt(inner)).
+Corollary rt_beta_characterization:
+  same_relation rt(beta) (comp rt(head) rt(inner)).
 Proof.
   split.
   - apply factorization.
   - intros x z ?.
     (* Clearly true. *)
     destruct H as (y, ?, ?).
-    apply star_trans with y.
+    apply rt_trans with y.
     + clear H0 z.
       induction H; eauto with cps.
     + clear H x.

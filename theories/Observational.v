@@ -16,6 +16,7 @@ Require Import Local.Reduction.
 Require Import Local.Confluence.
 Require Import Local.Factorization.
 Require Import Local.Structural.
+Require Import Local.Shrinking.
 
 (** ** Observational theory *)
 
@@ -330,7 +331,7 @@ Qed.
    w.r.t. star, such that forall a =>* b there's a standard sequence from a to
    b, then it'll reach the correct head position using only head steps. *)
 
-Goal
+Lemma gc_backwards_preserves_convergence:
   forall c y k p,
   not_free p c ->
   converges (subst y p c) (p + k) ->
@@ -419,6 +420,35 @@ Proof.
     + assumption.
 Qed.
 
+Lemma smol_backwards_preserves_convergence:
+  forall a b,
+  smol a b ->
+  forall k,
+  converges b k -> converges a k.
+Proof.
+  induction 1; intros.
+  - constructor.
+    eapply gc_backwards_preserves_convergence with (p := 0).
+    + assumption.
+    + eassumption.
+  - dependent destruction H0.
+    constructor; auto.
+  - dependent destruction H0.
+    constructor; auto.
+Qed.
+
+Lemma rt_smol_backwards_preserves_convergence:
+  forall a b,
+  rt(smol) a b ->
+  forall k,
+  converges b k -> converges a k.
+Proof.
+  induction 1; intros.
+  - eapply smol_backwards_preserves_convergence; eauto.
+  - assumption.
+  - firstorder.
+Qed.
+
 Lemma inner_backwards_preserves_convergence:
   forall a b,
   inner a b ->
@@ -468,15 +498,18 @@ Theorem weak_convergence_characterization:
 Proof.
   split; intros.
   - destruct H as (c, ?, ?).
-    apply factorization in H.
-    destruct H as (b, ?, ?).
+    (* We have to postpone all the shrinking steps first... *)
+    assert (exists2 d, rt(beta) a d & rt(smol) d c) as (d, ?, ?) by admit.
+    apply factorization in H1.
+    destruct H1 as (b, ?, ?).
     exists b; auto.
-    apply rt_inner_backwards_preserves_convergence with c; auto.
+    apply rt_inner_backwards_preserves_convergence with d; auto.
+    eapply rt_smol_backwards_preserves_convergence with c; auto.
   - destruct H as (b, ?, ?).
     exists b; auto.
     clear H0.
     induction H; eauto with cps.
-Qed.
+Admitted.
 
 (** ** Barbed relations *)
 
