@@ -114,6 +114,21 @@ Inductive leftmost_marked: bool -> redexes -> Prop :=
     leftmost_marked r b ->
     leftmost_marked r (redexes_bind b ts c).
 
+Lemma leftmost_marked_mark:
+  forall b,
+  leftmost_marked false (mark b).
+Proof.
+  induction b; simpl.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - now constructor.
+Qed.
+
 (* Notice that we are not assuming that parallel inner reduction has at least
    one mark as we do in the standard parallel reduction, mostly because there's
    no need to. We could, of course, do it anyways. *)
@@ -126,8 +141,44 @@ Definition parallel_inner: relation pseudoterm :=
 Lemma inner_parallel_inner:
   inclusion inner parallel_inner.
 Proof.
-  admit.
-Admitted.
+  induction 1.
+  - (* Very similar to the [parallel_beta] lemma! *)
+    exists (redexes_bind (mark_context h (redexes_jump true #h xs)) ts
+      (mark c)); simpl.
+    + constructor.
+      * do 2 rewrite <- mark_context_is_sound; simpl.
+        apply residuals_mark_context.
+        rewrite mark_apply_parameters_is_sound.
+        rewrite mark_lift_is_sound.
+        rewrite <- H0.
+        constructor.
+        rewrite <- residuals_context_to_env_length.
+        apply item_insert_head with (k := 0).
+        constructor.
+      * apply residuals_term.
+    + (* Clearly true, as h is nonstatic! *)
+      constructor; clear c.
+      generalize (redexes_jump true #h xs) as c; intros.
+      clear H0 xs ts.
+      induction H using nonstatic_ind; simpl; intros.
+      * constructor.
+        apply leftmost_marked_mark.
+      * now constructor.
+  - destruct IHinner as (r, ?, ?).
+    exists (redexes_bind r ts (mark c)); simpl.
+    + constructor.
+      * now apply residuals_tail with (g := []).
+      * rewrite app_nil_r.
+        apply residuals_term.
+    + now constructor.
+  - apply parallel_beta in H as (r, ?, ?).
+    exists (redexes_bind (mark b) ts r); simpl.
+    + constructor.
+      * apply residuals_term.
+      * now apply residuals_tail with (g := []).
+    + constructor.
+      apply leftmost_marked_mark.
+Qed.
 
 Local Hint Resolve inner_parallel_inner: cps.
 
@@ -173,7 +224,6 @@ Proof.
   - unfold inclusion; intros.
     destruct H with x y as (z, ?, ?).
     + clear H.
-      (* Relexive and transitive cases are trivial. *)
       induction H0; eauto with cps.
       apply parallel_beta in H.
       apply macro_split in H.
