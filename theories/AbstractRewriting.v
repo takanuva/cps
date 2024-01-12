@@ -1719,6 +1719,52 @@ Section Postponement.
   Variable R: relation T.
   Variable S: relation T.
 
+  Hypothesis local_inclusion:
+    inclusion (comp S R) (comp rt(R) r(S)).
+
+  (* Hindley's local postponement lemma. *)
+
+  Lemma local_postponement:
+    inclusion rt(union R S) (comp rt(R) rt(S)).
+  Proof.
+    intros.
+    (* Let us slightly change our hypothesis. *)
+    assert (inclusion (comp S rt(R)) (comp rt(R) r(S))).
+    - unfold inclusion; intros.
+      rename y into z.
+      destruct H as (y, ?, ?).
+      generalize dependent x.
+      (* For some reason I can't use clos_refl_trans_ind_right... *)
+      apply clos_rt_rt1n_iff in H0.
+      induction H0; intros w ?.
+      + exists w; auto with cps.
+      + apply clos_rt_rt1n_iff in H0.
+        destruct local_inclusion with w y as (v, ?, ?); eauto with cps.
+        destruct H3.
+        * destruct IHclos_refl_trans_1n with v as (u, ?, ?); auto.
+          exists u; eauto with cps.
+        * exists z; eauto with cps.
+    - (* Now we can proceed into the proof. *)
+      intros x y ?.
+      (* Same thing as above! *)
+      apply clos_rt_rt1n_iff in H0.
+      induction H0.
+      + exists x; auto with cps.
+      + apply clos_rt_rt1n_iff in H1.
+        destruct H0.
+        * destruct IHclos_refl_trans_1n as (w, ?, ?).
+          exists w; eauto with cps.
+        * destruct IHclos_refl_trans_1n as (w, ?, ?).
+          destruct H with x w as (v, ?, ?); eauto with cps.
+          apply clos_r_clos_rt in H5.
+          exists v; eauto with cps.
+  Qed.
+
+  (*
+
+  (* TODO: review the following! Seems like a special case of the above, of
+     course. *)
+
   Local Notation U := (union R S).
 
   Definition postpones: Prop :=
@@ -1787,6 +1833,8 @@ Section Postponement.
       + eapply H2; eauto with cps.
     - apply H3; eauto with cps.
   Qed.
+
+  *)
 
 End Postponement.
 
