@@ -1057,6 +1057,28 @@ Qed.
 
 Global Hint Resolve residuals_zero_marks: cps.
 
+Lemma mark_unmark_is_sound:
+  forall r,
+  redexes_count r = 0 ->
+  r = mark (unmark r).
+Proof.
+  induction r; simpl; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - now destruct r.
+  - f_equal.
+    + apply IHr1.
+      lia.
+    + apply IHr2.
+      lia.
+Qed.
+
+Global Hint Resolve mark_unmark_is_sound: cps.
+
 (* -------------------------------------------------------------------------- *)
 
 Inductive redexes_context: Set :=
