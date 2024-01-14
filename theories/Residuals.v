@@ -1012,6 +1012,8 @@ Proof.
   induction c; simpl; lia.
 Qed.
 
+Global Hint Resolve redexes_count_mark: cps.
+
 Lemma residuals_tail:
   forall g b r c,
   residuals g b r c ->
@@ -1056,6 +1058,17 @@ Proof.
 Qed.
 
 Global Hint Resolve residuals_zero_marks: cps.
+
+Lemma residuals_unmarked_preserve_no_marks:
+  forall r s t,
+  residuals [] r s t ->
+  redexes_count r = 0 ->
+  redexes_count t = 0.
+Proof.
+  admit.
+Admitted.
+
+Global Hint Resolve residuals_unmarked_preserve_no_marks: cps.
 
 Lemma mark_unmark_is_sound:
   forall r,

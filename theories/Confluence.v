@@ -254,28 +254,28 @@ Proof.
   (* Since s is a subset of r, we can reduce it on r. *)
   assert (exists rs, residuals [] r s rs) as (rs, ?) by eauto 7 with cps.
   (* Similarly, it's compatible with a, thus we may reduce it on a. *)
-  assert (exists c', residuals [] (mark a) s c') as (c', ?) by eauto 9 with cps.
+  assert (exists c, residuals [] (mark a) s c) as (c, ?) by eauto 9 with cps.
   (* Since a has no marks, c can't possibly have marks as well. *)
-  assert (exists c, c' = mark c) as (c, ?) by admit; subst.
+  rewrite mark_unmark_is_sound with c in H6 by eauto with cps.
   (* Now, since we've reduced just s from a to c, we can reduce the remainder
      and go to b by the partial development lemma. *)
-  assert (residuals [] (mark c) rs (mark b)).
+  assert (residuals [] (mark (unmark c)) rs (mark b)).
   - eapply partial_development; eauto with cps.
   - (* As s has a single mark, we can go from a to c by performing a jump. *)
-    assert (beta a c) by eauto with cps.
+    assert (beta a (unmark c)) by eauto with cps.
     (* Is this everything, or are there any more steps in rs? *)
     destruct (le_gt_dec (redexes_count rs) 0).
     + (* We need a single step to finish. *)
-      assert (c = b) by eauto with arith cps; subst.
+      assert (unmark c = b) by eauto with arith cps; subst.
       now constructor.
     + (* There's at least one more step, which we reduce by using the inductive
          hypothesis. *)
-      apply t_trans with c.
+      apply t_trans with (unmark c).
       * now constructor.
       * assert (redexes_count s > 0) by lia.
         apply H2 with rs; eauto with cps.
         constructor; now constructor 1 with s.
-Admitted.
+Qed.
 
 Global Hint Resolve t_beta_parallel: cps.
 
