@@ -317,15 +317,15 @@ Proof.
         apply r_refl.
       * constructor.
         exists pr; auto.
-        admit.
+        now rewrite <- mark_unmark_is_sound by eauto with cps.
     + destruct (le_gt_dec (redexes_count rp) 0).
       * assert (mark z = d) by eauto with arith cps; subst.
         rewrite unmark_mark_is_sound.
         apply r_refl.
       * constructor.
         exists rp; auto.
-        admit.
-Admitted.
+        now rewrite <- mark_unmark_is_sound by eauto with cps.
+Qed.
 
 Lemma r_parallel_has_diamond:
   diamond r(parallel).
