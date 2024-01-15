@@ -226,14 +226,69 @@ Proof.
         now rewrite redexes_count_mark.
 Qed.
 
+Lemma residuals_context_to_env_compose:
+  forall h r,
+  residuals_context_to_env (compose_context h r) =
+    residuals_context_to_env r ++ residuals_context_to_env h.
+Proof.
+  induction h; simpl; intros.
+  - now rewrite app_nil_r.
+  - rewrite IHh.
+    now rewrite app_assoc.
+  - rewrite IHh.
+    now rewrite app_assoc.
+Qed.
+
 Lemma beta_residuals:
   forall r,
   redexes_count r = 1 ->
-  forall a b,
-  residuals [] (mark a) r (mark b) ->
-  beta a b.
+  forall a b h,
+  residuals (residuals_context_to_env h) (mark a) r (mark b) ->
+  beta (h a) (h b).
 Proof.
-  admit.
+  (* Follow by induction, looking for the marked jump while building up the
+     context around it. *)
+  induction r; simpl; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - destruct r.
+    + clear H.
+      dependent destruction H0.
+      (* Looks like enough info! *)
+      admit.
+    + inversion H.
+  - dependent destruction H0.
+    destruct a; try discriminate.
+    dependent destruction x0.
+    destruct b; try discriminate.
+    dependent destruction x.
+    (* Is r2 unmarked? *)
+    destruct (Nat.eq_dec (redexes_count r2) 0).
+    + (* If so, our mark is in r1, proceed there. *)
+      assert (a2 = b2) by eauto with cps; subst.
+      rename b1 into a2, b2 into b.
+      replace (bind a1 ts b) with (context_left context_hole ts b a1) by auto.
+      replace (bind a2 ts b) with (context_left context_hole ts b a2) by auto.
+      do 2 rewrite <- compose_context_is_sound.
+      apply IHr1.
+      * lia.
+      * rewrite residuals_context_to_env_compose.
+        assumption.
+    + (* Our mark is is in r2, proceed looking there. *)
+      assert (redexes_count r1 = 0) by lia.
+      assert (a1 = b1) by eauto with cps; subst.
+      rename b1 into a, a2 into b1.
+      replace (bind a ts b1) with (context_right a ts context_hole b1) by auto.
+      replace (bind a ts b2) with (context_right a ts context_hole b2) by auto.
+      do 2 rewrite <- compose_context_is_sound.
+      apply IHr2.
+      * lia.
+      * rewrite residuals_context_to_env_compose.
+        assumption.
 Admitted.
 
 Global Hint Resolve beta_residuals: cps.
@@ -262,7 +317,8 @@ Proof.
   assert (residuals [] (mark (unmark c)) rs (mark b)).
   - eapply partial_development; eauto with cps.
   - (* As s has a single mark, we can go from a to c by performing a jump. *)
-    assert (beta a (unmark c)) by eauto with cps.
+    assert (beta (context_hole a) (context_hole (unmark c))) by eauto with cps.
+    simpl in H8.
     (* Is this everything, or are there any more steps in rs? *)
     destruct (le_gt_dec (redexes_count rs) 0).
     + (* We need a single step to finish. *)
