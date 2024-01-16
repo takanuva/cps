@@ -292,15 +292,54 @@ Qed.
 
 Lemma beta_residuals_ctxjmp:
   forall h k xs c,
-  item (Some (length xs, c))
-      (residuals_context_to_env h) k ->
-beta (h (jump k xs))
-  (h
-     (apply_parameters xs 0
-        (lift (S k) (length xs) (unmark c)))).
+  item (Some (length xs, c)) (residuals_context_to_env h) k ->
+  beta (h (jump k xs)) (h (apply_parameters xs 0
+    (lift (S k) (length xs) (unmark c)))).
 Proof.
-  admit.
-Admitted.
+  induction h; simpl; intros.
+  (* Case: hole. *)
+  - (* We have to finish before we reach a hole. *)
+    exfalso.
+    inversion H.
+  (* Case: left. *)
+  - (* Is the jump happening right now? *)
+    destruct (Nat.eq_dec k #h); subst.
+    + (* Yes, we can apply the substitution immediately and finish. *)
+      apply item_ignore_head in H.
+      * rewrite residuals_context_to_env_length in H.
+        replace (#h - #h) with 0 in H by lia.
+        dependent destruction H.
+        rewrite unmark_mark_is_sound.
+        rewrite x.
+        now constructor.
+      * rewrite residuals_context_to_env_length.
+        auto.
+    + (* Not yet. We can follow by induction. *)
+      constructor.
+      apply IHh.
+      eapply item_ignore_tail; eauto.
+      (* We know it can't be the last item! *)
+      destruct (le_gt_dec (length (residuals_context_to_env h)) k).
+      * exfalso.
+        apply item_valid_index in H.
+        rewrite app_length in H; simpl in H.
+        rewrite residuals_context_to_env_length in H, l.
+        lia.
+      * assumption.
+  (* Case: right. *)
+  - (* The jump clearly can't happen right now, because it is on the right hand
+       side of a bind. Follow by induction. *)
+    constructor.
+    apply IHh.
+    eapply item_ignore_tail; eauto.
+    (* This clearly has to be the case. *)
+    destruct (le_gt_dec (length (residuals_context_to_env h)) k).
+    + exfalso.
+      apply item_ignore_head in H; auto.
+      apply item_repeat in H.
+      discriminate.
+    + assumption.
+Qed.
 
 Lemma beta_residuals:
   forall r,
