@@ -239,6 +239,69 @@ Proof.
     now rewrite app_assoc.
 Qed.
 
+Lemma unmark_lift:
+  forall r i k,
+  unmark (redexes_lift i k r) = lift i k (unmark r).
+Proof.
+  induction r; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    now rewrite unmark_mark_is_sound.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    rewrite lift_distributes_over_bind.
+    f_equal.
+    + apply IHr1.
+    + apply IHr2.
+Qed.
+
+Lemma unmark_subst:
+  forall r y k,
+  unmark (redexes_subst y k r) = subst y k (unmark r).
+Proof.
+  induction r; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    now rewrite unmark_mark_is_sound.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    rewrite subst_distributes_over_bind.
+    f_equal.
+    + apply IHr1.
+    + apply IHr2.
+Qed.
+
+Lemma unmark_apply_parameters:
+  forall xs k r,
+  unmark (redexes_apply_parameters xs k r) =
+    apply_parameters xs k (unmark r).
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - rewrite unmark_subst.
+    now rewrite IHxs.
+Qed.
+
+Lemma beta_residuals_ctxjmp:
+  forall h k xs c,
+  item (Some (length xs, c))
+      (residuals_context_to_env h) k ->
+beta (h (jump k xs))
+  (h
+     (apply_parameters xs 0
+        (lift (S k) (length xs) (unmark c)))).
+Proof.
+  admit.
+Admitted.
+
 Lemma beta_residuals:
   forall r,
   redexes_count r = 1 ->
@@ -255,11 +318,21 @@ Proof.
   - inversion H.
   - inversion H.
   - inversion H.
-  - destruct r.
-    + clear H.
+  - (* Is this jump marked? *)
+    destruct r.
+    + (* It is, so we found the jump-redex we want to perform... *)
+      clear H.
+      (* From the residuals, we can get the info we need. *)
       dependent destruction H0.
-      (* Looks like enough info! *)
-      admit.
+      destruct a; try discriminate.
+      dependent destruction x0.
+      rewrite <- unmark_mark_is_sound with b.
+      rewrite <- x; clear x.
+      rewrite unmark_apply_parameters.
+      rewrite unmark_lift.
+      (* We can now use our context, which was being used by the residuals, to
+         find the proper subcontext for the jump. *)
+      now apply beta_residuals_ctxjmp.
     + inversion H.
   - dependent destruction H0.
     destruct a; try discriminate.
@@ -289,7 +362,7 @@ Proof.
       * lia.
       * rewrite residuals_context_to_env_compose.
         assumption.
-Admitted.
+Qed.
 
 Global Hint Resolve beta_residuals: cps.
 
