@@ -22,7 +22,6 @@ Notation const T x :=
   (fun _: T => x).
 
 Definition equi: relation pseudoterm :=
-  (* TODO: we need the definition of strong bisimilarity! *)
   strong_bisimilarity (const unit parallel).
 
 Global Hint Unfold equi: cps.
@@ -108,12 +107,22 @@ Section Technique.
     SN (modulo R equi) c.
   Proof.
     apply modulo_bisimulation_strong_normalization; try split.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-  Admitted.
+    - apply strong_bisimilarity_refl.
+    - apply strong_bisimilarity_trans.
+    - apply strong_bisimilarity_sym.
+    - destruct 1 as (X, (?, ?), ?); intros.
+      destruct H with a b c; auto.
+      exists x.
+      + assumption.
+      + exists X; auto.
+        split; auto.
+    - destruct 1 as (X, (?, ?), ?); intros.
+      destruct H0 with a b c; auto.
+      exists x.
+      + assumption.
+      + exists X; auto.
+        split; auto.
+  Qed.
 
   Local Lemma strong_normalization_module_relation:
     forall T,
@@ -173,29 +182,11 @@ Goal
 Proof.
   intros.
   apply beta_and_parallel_SN_coincide in H.
-  apply strong_normalization_module_equi with (S := equi) in H.
-  - apply SN_subset with (R := modulo parallel equi).
-    + clear H c; intros b e (c, (d, (?, (?, ?)))).
-      exists c, d; eauto with cps.
-    + assumption.
-  - (* Why is Coq asking for the diagrams from us if we didn't use them? *)
-    clear H c.
-    intros x y ? z ?.
-    destruct H0 as (S, (?, ?), ?).
-    destruct H0 with x z y as (w, ?, ?); try easy.
-    exists w.
-    + apply rt_step.
-      exists S; try split; auto.
-    + assumption.
-  - (* That's strange... *)
-    clear H c.
-    intros x y ? z ?.
-    destruct H0 as (S, (?, ?), ?).
-    destruct H1 with x z y as (w, ?, ?); try easy.
-    exists w.
-    + apply rt_step.
-      exists S; try split; auto.
-    + assumption.
+  apply strong_normalization_module_equi in H.
+  apply SN_subset with (R := modulo parallel equi).
+  - clear H c; intros b e (c, (d, (?, (?, ?)))).
+    exists c, d; eauto with cps.
+  - assumption.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
