@@ -1812,7 +1812,7 @@ Section Union.
 
   Local Notation U := (union R S).
 
-  Lemma union_split:
+  Lemma reordering_split:
     inclusion rt(U) (comp rt(R) rt(S)).
   Proof.
     intros x y ?.

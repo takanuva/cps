@@ -517,7 +517,7 @@ Section Properties.
   Theorem shrinking_may_be_postponed:
     inclusion rt(union beta R) (comp rt(beta) rt(R)).
   Proof.
-    apply union_split.
+    apply reordering_split.
     apply local_reordering.
     now apply shrinking_reordering.
   Qed.
