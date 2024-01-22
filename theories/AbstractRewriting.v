@@ -1812,6 +1812,24 @@ Section Union.
 
   Local Notation U := (union R S).
 
+  Lemma union_split:
+    inclusion rt(U) (comp rt(R) rt(S)).
+  Proof.
+    intros x y ?.
+    apply clos_rt_rt1n_iff in H.
+    induction H; intros.
+    - exists x; eauto with cps.
+    - destruct IHclos_refl_trans_1n as (w, ?, ?).
+      destruct H.
+      + eauto with cps.
+      + apply rt_characterization in H1.
+        destruct H1.
+        * destruct reordering with x y0 as (w, ?, ?); eauto with cps.
+          exists w; eauto with cps.
+          now apply clos_t_clos_rt.
+        * exists x; eauto with cps.
+  Qed.
+
   Lemma union_reordering:
     inclusion (comp rt(U) t(R)) (comp t(R) rt(S)).
   Proof.

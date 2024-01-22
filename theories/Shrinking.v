@@ -24,6 +24,7 @@ Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_commutation:
     commutes rt(beta) rt(R);
   shrinking_reordering:
+    (* TODO: this doesn't have to be beta, any parallel reduction will work! *)
     reorders beta R
 }.
 
@@ -511,6 +512,14 @@ Section Properties.
       assumption.
     - apply shrinking_commutation.
       assumption.
+  Qed.
+
+  Theorem shrinking_may_be_postponed:
+    inclusion rt(union beta R) (comp rt(beta) rt(R)).
+  Proof.
+    apply union_split.
+    apply local_reordering.
+    now apply shrinking_reordering.
   Qed.
 
   Theorem shrinking_preserves_strong_normalization:
