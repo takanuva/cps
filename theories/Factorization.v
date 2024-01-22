@@ -176,7 +176,7 @@ Proof.
   assert (inclusion rt(union head parallel_inner)
     (comp rt(head) rt(parallel_inner))).
   - apply local_postponement.
-    unfold inclusion; intros.
+    unfold postpones, inclusion; intros.
     destruct macro_split with x y as (z, ?, ?).
     + apply macro_merge; auto.
     + exists z; auto with cps.

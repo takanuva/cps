@@ -24,11 +24,8 @@ Record shrinking (R: relation pseudoterm): Prop := {
     confluent R;
   shrinking_commutation:
     commutes rt(beta) rt(R);
-  shrinking_postponement:
-    (* TODO: should we fix this to be the parallel reduction??? *)
-    exists2 S,
-    inclusion beta S /\ inclusion S t(beta) &
-      inclusion (comp R S) (comp S rt(R))
+  shrinking_reordering:
+    reorders beta R
 }.
 
 Lemma smol_decreases_in_size:
@@ -481,7 +478,7 @@ Proof.
   - apply smol_is_confluent.
   (* Case: commutation. *)
   - apply beta_and_smol_commute.
-  (* Case: postponement. *)
+  (* Case: reordering. *)
   - admit.
 Admitted.
 
@@ -503,15 +500,26 @@ Section Properties.
       assumption.
   Qed.
 
+  Theorem shrinking_termination:
+    forall b,
+    SN R b.
+  Proof.
+    admit.
+  Admitted.
+
   Theorem shrinking_preserves_strong_normalization:
     forall c,
     SN beta c <-> SN (union beta R) c.
   Proof.
     split; intros.
-    - admit.
+    - apply reordering_union_preserves_sn.
+      + apply local_reordering.
+        now apply shrinking_reordering.
+      + apply shrinking_termination.
+      + assumption.
     - induction H using SN_ind.
       constructor; intros.
       apply H2; auto with cps.
-  Admitted.
+  Qed.
 
 End Properties.

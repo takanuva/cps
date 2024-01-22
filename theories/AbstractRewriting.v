@@ -1719,8 +1719,10 @@ Section Postponement.
   Variable R: relation T.
   Variable S: relation T.
 
-  Hypothesis local_inclusion:
+  Definition postpones: Prop :=
     inclusion (comp S R) (comp rt(R) r(S)).
+
+  Hypothesis local_inclusion: postpones.
 
   (* Hindley's local postponement lemma. *)
 
@@ -1760,61 +1762,76 @@ Section Postponement.
           exists v; eauto with cps.
   Qed.
 
-  (*
+End Postponement.
 
-  (* TODO: review the following! Seems like a special case of the above, of
-     course. *)
+Section Reordering.
+
+  Variable T: Type.
+
+  Variable R: relation T.
+  Variable S: relation T.
+
+  Definition reorders: Prop :=
+    inclusion (comp S R) (comp R rt(S)).
+
+  Hypothesis local_inclusion: reorders.
+
+  (* This is very similar to Hindley's lemma... has this been used before? *)
+
+  Lemma local_reordering:
+    inclusion (comp rt(S) t(R)) (comp t(R) rt(S)).
+  Proof.
+    assert (inclusion (comp rt(S) R) (comp R rt(S))).
+    - intros x z (y, ?, ?).
+      generalize dependent z.
+      apply clos_rt_rt1n_iff in H.
+      induction H; intros.
+      + eauto with cps.
+      + destruct IHclos_refl_trans_1n with z0; auto.
+        destruct local_inclusion with x x0; eauto with cps.
+    - intros x z (y, ?, ?).
+      generalize dependent x.
+      apply clos_trans_t1n_iff in H1.
+      induction H1; intros.
+      + destruct H with x0 y as (w, ?, ?); eauto with cps.
+      + destruct H with x0 y as (w, ?, ?); eauto with cps.
+        destruct IHclos_trans_1n with w; eauto with cps.
+  Qed.
+
+End Reordering.
+
+Section Union.
+
+  Variable T: Type.
+
+  Variable R: relation T.
+  Variable S: relation T.
+
+  Hypothesis reordering:
+    inclusion (comp rt(S) t(R)) (comp t(R) rt(S)).
 
   Local Notation U := (union R S).
 
-  Definition postpones: Prop :=
-    diagram R (transp S) rt(transp S) t(R).
-
-  Hypothesis postponement: postpones.
-
-  Local Lemma inclusion1:
-    inclusion t(R) rt(U).
-  Proof.
-    induction 1; eauto with cps.
-  Qed.
-
-  Local Hint Resolve inclusion1: cps.
-
-  Local Lemma inclusion2:
-    inclusion rt(S) rt(U).
-  Proof.
-    induction 1; eauto with cps.
-  Qed.
-
-  Local Hint Resolve inclusion2: cps.
-
-  Local Lemma postponement_move:
-    inclusion (comp rt(U) R) (comp t(R) rt(U)).
+  Lemma union_reordering:
+    inclusion (comp rt(U) t(R)) (comp t(R) rt(S)).
   Proof.
     intros x z (y, ?, ?).
     generalize dependent z.
     apply clos_rt_rt1n_iff in H.
     induction H; intros.
-    - exists z; auto with cps.
-    - clear H0.
-      edestruct IHclos_refl_trans_1n as (w, ?, ?); eauto.
-      clear IHclos_refl_trans_1n H1.
-      destruct H.
-      + exists w; eauto with cps.
-      + assert (comp R rt(U) y w) as (?, ?, ?).
-        * apply clos_trans_t1n_iff in H0.
-          destruct H0; eauto with cps.
-          apply clos_trans_t1n_iff in H1.
-          exists y0; eauto with cps.
-        * edestruct postponement; eauto.
-          apply clos_rt_transp_permute in H4.
-          exists x1; eauto with cps.
+    - exists z; eauto with cps.
+    - destruct H.
+      + destruct IHclos_refl_trans_1n with z0 as (w, ?, ?); eauto with cps.
+      + destruct IHclos_refl_trans_1n with z0 as (w, ?, ?); eauto with cps.
+        destruct reordering with x w; eauto with cps.
   Qed.
 
   Hypothesis S_is_SN:
     forall x, SN S x.
 
-  Goal
+  (* TODO: we might wanna join with the results about modulo relations below! *)
+
+  Lemma reordering_union_preserves_sn:
     forall x,
     SN R x ->
     SN U x.
@@ -1828,15 +1845,15 @@ Section Postponement.
     induction S_is_SN with y using SN_ind.
     constructor; fold (SN U).
     destruct 1.
-    - destruct postponement_move with x y as (z, ?, ?).
+    - destruct union_reordering with x y as (z, ?, ?).
       + exists x0; auto with cps.
       + eapply H2; eauto with cps.
+        clear H0 H2 H1 H3 H H4 s x x0.
+        induction H5; eauto with cps.
     - apply H3; eauto with cps.
   Qed.
 
-  *)
-
-End Postponement.
+End Union.
 
 Section Modulo.
 
