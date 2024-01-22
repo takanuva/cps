@@ -14,10 +14,9 @@ Require Import Local.Equational.
 Require Import Local.Reduction.
 
 Record shrinking (R: relation pseudoterm): Prop := {
-  shrinking_decrease:
-    exists f,
-    forall b c,
-    R b c -> f c < f b;
+  shrinking_termination:
+    forall c,
+    SN R c;
   shrinking_soundness:
     inclusion R sema;
   shrinking_confluence:
@@ -39,6 +38,21 @@ Proof.
     assumption.
   - lia.
   - lia.
+Qed.
+
+Lemma smol_is_strongly_normalizing:
+  forall b,
+  SN smol b.
+Proof.
+  intros.
+  remember (size b) as n.
+  generalize dependent b.
+  induction n using lt_wf_ind; intros.
+  constructor; intros c ?.
+  apply H with (size c).
+  - rewrite Heqn.
+    now apply smol_decreases_in_size.
+  - reflexivity.
 Qed.
 
 Lemma smol_is_sound:
@@ -469,9 +483,8 @@ Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
   constructor.
-  (* Case: decreasing. *)
-  - exists size.
-    apply smol_decreases_in_size.
+  (* Case: termination. *)
+  - apply smol_is_strongly_normalizing.
   (* Case: soundness. *)
   - apply smol_is_sound.
   (* Case: confluence. *)
@@ -500,13 +513,6 @@ Section Properties.
       assumption.
   Qed.
 
-  Theorem shrinking_termination:
-    forall b,
-    SN R b.
-  Proof.
-    admit.
-  Admitted.
-
   Theorem shrinking_preserves_strong_normalization:
     forall c,
     SN beta c <-> SN (union beta R) c.
@@ -515,7 +521,7 @@ Section Properties.
     - apply reordering_union_preserves_sn.
       + apply local_reordering.
         now apply shrinking_reordering.
-      + apply shrinking_termination.
+      + now apply shrinking_termination.
       + assumption.
     - induction H using SN_ind.
       constructor; intros.
