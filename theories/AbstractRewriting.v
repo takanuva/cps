@@ -1720,14 +1720,14 @@ Section Postponement.
   Variable S: relation T.
 
   Definition postpones: Prop :=
-    inclusion (comp S R) (comp rt(R) r(S)).
+    inclusion rt(union R S) (comp rt(R) rt(S)).
 
-  Hypothesis local_inclusion: postpones.
+  Hypothesis local_inclusion: inclusion (comp S R) (comp rt(R) r(S)).
 
   (* Hindley's local postponement lemma. *)
 
   Lemma local_postponement:
-    inclusion rt(union R S) (comp rt(R) rt(S)).
+    postpones.
   Proof.
     intros.
     (* Let us slightly change our hypothesis. *)
@@ -1772,14 +1772,14 @@ Section Reordering.
   Variable S: relation T.
 
   Definition reorders: Prop :=
-    inclusion (comp S R) (comp R rt(S)).
+    inclusion (comp rt(S) t(R)) (comp t(R) rt(S)).
 
-  Hypothesis local_inclusion: reorders.
+  Hypothesis local_inclusion: inclusion (comp S R) (comp R rt(S)).
 
   (* This is very similar to Hindley's lemma... has this been used before? *)
 
   Lemma local_reordering:
-    inclusion (comp rt(S) t(R)) (comp t(R) rt(S)).
+    reorders.
   Proof.
     assert (inclusion (comp rt(S) R) (comp R rt(S))).
     - intros x z (y, ?, ?).
@@ -1808,7 +1808,7 @@ Section Union.
   Variable S: relation T.
 
   Hypothesis reordering:
-    inclusion (comp rt(S) t(R)) (comp t(R) rt(S)).
+    reorders R S.
 
   Local Notation U := (union R S).
 

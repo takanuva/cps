@@ -518,7 +518,6 @@ Section Properties.
     inclusion rt(union beta R) (comp rt(beta) rt(R)).
   Proof.
     apply reordering_split.
-    apply local_reordering.
     now apply shrinking_reordering.
   Qed.
 
@@ -528,8 +527,7 @@ Section Properties.
   Proof.
     split; intros.
     - apply reordering_union_preserves_sn.
-      + apply local_reordering.
-        now apply shrinking_reordering.
+      + now apply shrinking_reordering.
       + now apply shrinking_termination.
       + assumption.
     - induction H using SN_ind.
