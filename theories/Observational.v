@@ -498,18 +498,18 @@ Theorem weak_convergence_characterization:
 Proof.
   split; intros.
   - destruct H as (c, ?, ?).
-    (* We have to postpone all the shrinking steps first... *)
-    assert (exists2 d, rt(beta) a d & rt(smol) d c) as (d, ?, ?) by admit.
-    apply factorization in H1.
-    destruct H1 as (b, ?, ?).
-    exists b; auto.
-    apply rt_inner_backwards_preserves_convergence with d; auto.
-    eapply rt_smol_backwards_preserves_convergence with c; auto.
+    apply star_characterization in H.
+    apply shrinking_may_be_postponed in H as (d, ?, ?).
+    + apply factorization in H as (b, ?, ?).
+      exists b; auto.
+      apply rt_inner_backwards_preserves_convergence with d; auto.
+      eapply rt_smol_backwards_preserves_convergence with c; auto.
+    + apply smol_is_shrinking.
   - destruct H as (b, ?, ?).
     exists b; auto.
     clear H0.
     induction H; eauto with cps.
-Admitted.
+Qed.
 
 (** ** Barbed relations *)
 

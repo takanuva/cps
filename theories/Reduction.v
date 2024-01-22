@@ -831,6 +831,20 @@ Qed.
 
 Global Hint Resolve star_apply_parameters: cps.
 
+Lemma star_characterization:
+  same_relation star rt(union beta smol).
+Proof.
+  split; induction 1.
+  - apply rt_step.
+    now apply step_characterization.
+  - auto with cps.
+  - eauto with cps.
+  - apply rt_step.
+    now apply step_characterization.
+  - auto with cps.
+  - eauto with cps.
+Qed.
+
 (** ** Reduction convertibility *)
 
 Notation conv := rst(step).
