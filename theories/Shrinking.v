@@ -24,7 +24,6 @@ Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_commutation:
     commutes rt(beta) rt(R);
   shrinking_reordering:
-    (* TODO: this doesn't have to be beta, any parallel reduction will work! *)
     reorders beta R
 }.
 
@@ -35,8 +34,8 @@ Lemma smol_decreases_in_size:
 Proof.
   intros.
   induction H; simpl.
-  - rewrite remove_binding_size; try lia.
-    assumption.
+  - rewrite remove_binding_size by auto.
+    lia.
   - lia.
   - lia.
 Qed.
@@ -515,9 +514,9 @@ Section Properties.
   Qed.
 
   Theorem shrinking_may_be_postponed:
-    inclusion rt(union beta R) (comp rt(beta) rt(R)).
+    postpones beta R.
   Proof.
-    apply reordering_split.
+    apply reordering_implies_postponement.
     now apply shrinking_reordering.
   Qed.
 
@@ -526,7 +525,7 @@ Section Properties.
     SN beta c <-> SN (union beta R) c.
   Proof.
     split; intros.
-    - apply reordering_union_preserves_sn.
+    - apply reordering_preserves_sn.
       + now apply shrinking_reordering.
       + now apply shrinking_termination.
       + assumption.

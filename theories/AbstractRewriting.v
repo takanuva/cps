@@ -1798,22 +1798,11 @@ Section Reordering.
         destruct IHclos_trans_1n with w; eauto with cps.
   Qed.
 
-End Reordering.
-
-Section Union.
-
-  Variable T: Type.
-
-  Variable R: relation T.
-  Variable S: relation T.
-
   Hypothesis reordering:
-    reorders R S.
+    reorders.
 
-  Local Notation U := (union R S).
-
-  Lemma reordering_split:
-    inclusion rt(U) (comp rt(R) rt(S)).
+  Lemma reordering_implies_postponement:
+    postpones R S.
   Proof.
     intros x y ?.
     apply clos_rt_rt1n_iff in H.
@@ -1830,48 +1819,35 @@ Section Union.
         * exists x; eauto with cps.
   Qed.
 
-  Lemma union_reordering:
-    inclusion (comp rt(U) t(R)) (comp t(R) rt(S)).
-  Proof.
-    intros x z (y, ?, ?).
-    generalize dependent z.
-    apply clos_rt_rt1n_iff in H.
-    induction H; intros.
-    - exists z; eauto with cps.
-    - destruct H.
-      + destruct IHclos_refl_trans_1n with z0 as (w, ?, ?); eauto with cps.
-      + destruct IHclos_refl_trans_1n with z0 as (w, ?, ?); eauto with cps.
-        destruct reordering with x w; eauto with cps.
-  Qed.
-
   Hypothesis S_is_SN:
     forall x, SN S x.
 
-  (* TODO: we might wanna join with the results about modulo relations below! *)
+  Local Notation U := (union R S).
 
-  Lemma reordering_union_preserves_sn:
+  Lemma reordering_preserves_sn:
     forall x,
     SN R x ->
     SN U x.
   Proof.
     intros.
     (* Generalize the induction a bit. *)
-    assert (exists2 y, SN R y & rt(U) y x) as (y, ?, ?); eauto with cps.
+    assert (exists2 y, SN R y & rt(U) y x) as (y, ?, ?) by eauto with cps.
     clear H; generalize dependent x.
     (* There we go. *)
     induction H0 using SN_ind; intros y ?.
     induction S_is_SN with y using SN_ind.
     constructor; fold (SN U).
     destruct 1.
-    - destruct union_reordering with x y as (z, ?, ?).
-      + exists x0; auto with cps.
-      + eapply H2; eauto with cps.
-        clear H0 H2 H1 H3 H H4 s x x0.
-        induction H5; eauto with cps.
+    - apply reordering_implies_postponement in H1 as (z, ?, ?).
+      destruct reordering with z y as (w, ?, ?); eauto with cps.
+      apply H2 with w.
+      + now apply clos_rt_t with z.
+      + clear H0 H2 H1 H3 H H4 H5 s x x0 z.
+        induction H6; eauto with cps.
     - apply H3; eauto with cps.
   Qed.
 
-End Union.
+End Reordering.
 
 Section Modulo.
 
