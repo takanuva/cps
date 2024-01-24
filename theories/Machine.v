@@ -13,28 +13,6 @@ Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.Observational.
 
-(*
-Goal
-  forall j a (s r: list pseudoterm),
-  j >= a ->
-  (if le_gt_dec (length s) (length r) then
-     j - a + (length r - length s)
-   else
-     j - a - (length s - length r)) =
-  (* Of course... *)
-  j - a + length r - length s.
-Proof.
-  intros.
-  generalize (length s).
-  generalize (length r).
-  clear s r.
-  intros n m.
-  destruct (le_gt_dec m n).
-  lia.
-  lia.
-Qed.
-*)
-
 (* A runtime value, which is either a continuation closure, a suspended
    computation, or undefined. *)
 
@@ -1163,6 +1141,57 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
+
+(*
+Axiom heap_depth: heap -> nat.
+
+Compute fun r s => ltof heap heap_depth s r.
+
+Definition aaa r (f: forall s, heap_depth s < heap_depth r -> context) :=
+  context_hole.
+
+Check
+  fun p  =>
+    let wf := well_founded_ltof _ heap_depth in
+    Fix wf _ aaa p.
+*)
+
+Axiom heap_to_context: heap -> context.
+
+Coercion heap_to_context: heap >-> context.
+
+(* Soundness! *)
+
+Goal
+  forall c r,
+  big (c, r) ->
+  exists n,
+  eval (r c) n.
+Proof.
+  intros.
+  remember (c, r) as p.
+  generalize dependent r.
+  generalize dependent c.
+  induction H; intros.
+  - dependent destruction Heqp.
+    rename r0 into r.
+    admit.
+  - dependent destruction Heqp.
+    rename r0 into r.
+    specialize (IHbig _ _ eq_refl) as (n, ?).
+    exists n.
+    admit.
+  - dependent destruction Heqp.
+    rename r0 into r.
+    specialize (IHbig _ _ eq_refl) as (n, ?).
+    exists n.
+    simpl in H0.
+    admit.
+  - dependent destruction Heqp.
+    rename r0 into r.
+    specialize (IHbig _ _ eq_refl) as (n, ?).
+    admit.
+Admitted.
 
 Lemma big_implies_head_evaluation:
   forall c,

@@ -722,7 +722,20 @@ Lemma adequacy_if:
   cbn_terminates e.
 Proof.
   intros.
-  admit.
+  (* We proceed by induction on the number of head steps until normal form. *)
+  apply cps_terminates_implies_sn_head in H1.
+  assert (exists2 c, [b =>* c] & cbn_cps e c) as (c, ?, ?) by eauto with cps.
+  clear H0.
+  generalize dependent c.
+  generalize dependent e.
+  induction H1 using SN_ind; intros.
+  (* Do we still have a redex? *)
+  destruct cbn_is_decidable with e as [ ?H | (f, ?H) ].
+  - (* No more redexes, so we are done. *)
+    exists e; eauto with cps.
+    now apply closed_normal_cbn_implies_value.
+  - rename x into b.
+    admit.
 Admitted.
 
 Theorem adequacy:
