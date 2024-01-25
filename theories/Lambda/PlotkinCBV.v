@@ -37,6 +37,8 @@ Inductive cbv: relation term :=
     cbv x1 x2 ->
     cbv (application f x1) (application f x2).
 
+Local Hint Constructors cbv: cps.
+
 Lemma full_cbv:
   inclusion cbv full.
 Proof.
@@ -82,6 +84,53 @@ Proof.
       apply cbv_implies_nonvalue in H1.
       auto with cps.
     + f_equal; auto.
+Qed.
+
+Lemma cbv_is_decidable:
+  forall e,
+  { normal cbv e } + { exists f, cbv e f }.
+Proof.
+  induction e; simpl.
+  - left.
+    inversion 1.
+  - left.
+    inversion 1.
+  - destruct e1.
+    + clear IHe1.
+      destruct IHe2.
+      * left.
+        (* TODO: damn OCD... *)
+        inversion_clear 1; [ easy | firstorder ].
+      * right.
+        destruct e as (x, ?).
+        exists (application n x).
+        constructor 3; auto.
+        constructor.
+    + destruct value_dec with e2.
+      * right; eexists.
+        now constructor.
+      * destruct IHe2.
+        (* TODO: refactor me, please? *)
+        left.
+        inversion_clear 1.
+        contradiction.
+        inversion H0.
+        firstorder.
+        right.
+        destruct e as (x, ?).
+        eexists.
+        constructor 3.
+        constructor.
+        eassumption.
+    + destruct IHe1.
+      * left; intros x ?.
+        dependent destruction H.
+        (* TODO: refactor... *)
+        firstorder.
+        inversion H.
+      * right.
+        destruct e as (x, ?).
+        eexists; eauto with cps.
 Qed.
 
 (* TODO: fix typing on the following! *)

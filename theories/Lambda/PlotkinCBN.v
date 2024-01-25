@@ -52,6 +52,8 @@ Inductive cbn: relation term :=
     cbn x1 x2 ->
     cbn (application f x1) (application f x2).
 
+Local Hint Constructors cbn: cps.
+
 Lemma full_cbn:
   inclusion cbn full.
 Proof.
@@ -112,15 +114,12 @@ Proof.
     + clear IHe1.
       destruct IHe2.
       * left.
-        inversion_clear 1.
-        (* TODO: refactor me... *)
-        inversion H0.
-        firstorder.
+        (* TODO: damn OCD... *)
+        inversion_clear 1; [ easy | firstorder ].
       * right.
         destruct e as (x, ?).
-        eexists.
-        constructor 3.
-        eassumption.
+        exists (application n x).
+        now constructor 3.
     + right; eexists.
       constructor.
     + destruct IHe1.
@@ -129,9 +128,7 @@ Proof.
         firstorder.
       * right.
         destruct e as (x, ?).
-        eexists.
-        constructor.
-        eassumption.
+        eexists; eauto with cps.
 Qed.
 
 Lemma cbn_whr_iff:
@@ -735,6 +732,7 @@ Proof.
     exists e; eauto with cps.
     now apply closed_normal_cbn_implies_value.
   - rename x into b.
+    assert (exists d, cbn_cps f d) as (d, ?) by eauto with cps.
     admit.
 Admitted.
 
