@@ -162,15 +162,15 @@ Lemma closed_normal_cbn_implies_value:
   value e.
 Proof.
   intros.
-  destruct value_dec with e.
+  destruct value_dec with e as [ ?H | ?H ].
   - assumption.
   - exfalso.
     induction e.
-    + apply n.
+    + apply H1.
       constructor.
-    + apply n.
+    + apply H1.
       constructor.
-    + clear IHe2 n.
+    + clear IHe2 H1.
       destruct e1.
       * specialize (H n).
         dependent destruction H.

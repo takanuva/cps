@@ -133,6 +133,54 @@ Proof.
         eexists; eauto with cps.
 Qed.
 
+Lemma closed_normal_cbv_implies_value:
+  forall e,
+  closed e ->
+  normal cbv e ->
+  value e.
+Proof.
+  intros.
+  destruct value_dec with e as [ ?H | ?H ].
+  - assumption.
+  - exfalso.
+    induction e.
+    + apply H1.
+      constructor.
+    + apply H1.
+      constructor.
+    + clear H1.
+      destruct e1.
+      * specialize (H n).
+        dependent destruction H.
+        dependent destruction H.
+        contradiction.
+      * eapply H0.
+        constructor.
+        destruct value_dec with e2 as [ ?H | ?H ]; auto.
+        exfalso.
+        apply IHe2.
+        (* TODO: refactor me, please... *)
+        intros n.
+        specialize (H n).
+        now dependent destruction H.
+        intros x ?.
+        eapply H0.
+        constructor 3; eauto.
+        constructor.
+        assumption.
+      * apply IHe1.
+        (* TODO: refactor... *)
+        intro.
+        specialize (H n).
+        dependent destruction H.
+        assumption.
+        intros x ?.
+        eapply H0.
+        constructor.
+        eassumption.
+        inversion 1.
+Qed.
+
 (* TODO: fix typing on the following! *)
 
 Local Notation VAR n :=
