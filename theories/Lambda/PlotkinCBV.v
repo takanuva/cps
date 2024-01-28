@@ -301,13 +301,71 @@ Qed.
 
 Local Hint Resolve cbv_cps_lift_inversion: cps.
 
-(* -------------------------------------------------------------------------- *)
-
-(* TODO: Add stuff about free variables in here! *)
-
-(* -------------------------------------------------------------------------- *)
-
-(* TODO: Add lemma about administrative redexes in here! *)
+Lemma cbv_cps_not_free:
+  forall e c,
+  cbv_cps e c ->
+  forall n,
+  not_free n e <-> CPS.not_free (S n) c.
+Proof.
+  induction 1; split; intros.
+  - dependent destruction H.
+    rename n0 into m.
+    constructor.
+    + constructor; lia.
+    + do 2 constructor; lia.
+  - dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H0.
+    rename n0 into m.
+    constructor; lia.
+  - constructor; simpl.
+    + constructor.
+      * constructor; lia.
+      * do 2 constructor; lia.
+    + do 3 constructor.
+    + dependent destruction H0.
+      apply IHcbv_cps; try lia.
+      replace (S n) with (n + 1) in H0; try lia.
+      apply not_free_lift with (k := 1) in H0.
+      replace (n + 1 + 1) with (2 + n) in H0; try lia.
+      assumption.
+  - constructor.
+    dependent destruction H0.
+    simpl in H0_0.
+    apply IHcbv_cps in H0_0; auto.
+    replace (S (S n)) with (n + 1 + 1) in H0_0; try lia.
+    apply not_free_lift in H0_0.
+    replace (n + 1) with (1 + n) in H0_0; try lia.
+    assumption.
+  - dependent destruction H1.
+    constructor; simpl.
+    + apply IHcbv_cps1; auto.
+      replace (S n) with (n + 1 + 0); try lia.
+      apply not_free_lift.
+      rewrite Nat.add_comm.
+      assumption.
+    + do 2 constructor.
+    + repeat (simpl; try constructor; try lia).
+      simpl; eapply IHcbv_cps2; auto.
+      replace (S (S n)) with (n + 2 + 0); try lia.
+      apply not_free_lift.
+      rewrite Nat.add_comm.
+      assumption.
+  - dependent destruction H1.
+    dependent destruction H1_0.
+    simpl in H2, H1_0_1, H1_0_2.
+    constructor.
+    + apply IHcbv_cps1 in H1_; auto.
+      replace (S n) with (n + 1 + 0) in H1_; try lia.
+      apply not_free_lift in H1_.
+      rewrite Nat.add_comm in H1_.
+      assumption.
+    + apply IHcbv_cps2 in H1_0_1; auto.
+      replace (S (S n)) with (n + 2 + 0) in H1_0_1; try lia.
+      apply not_free_lift in H1_0_1.
+      rewrite Nat.add_comm in H1_0_1.
+      assumption.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
