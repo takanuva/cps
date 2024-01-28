@@ -287,6 +287,20 @@ Qed.
 
 Local Hint Resolve cbv_cps_is_total: cps.
 
+Lemma cbv_cps_lift_inversion:
+  forall i k e b,
+  cbv_cps (lift i k e) b ->
+  exists2 c,
+  cbv_cps e c & b = CPS.lift i (S k) c.
+Proof.
+  intros.
+  assert (exists c, cbv_cps e c) as (c, ?).
+  - eauto with cps.
+  - eauto with cps.
+Qed.
+
+Local Hint Resolve cbv_cps_lift_inversion: cps.
+
 (* -------------------------------------------------------------------------- *)
 
 (* TODO: Add stuff about free variables in here! *)
