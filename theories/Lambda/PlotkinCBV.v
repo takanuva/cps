@@ -195,7 +195,7 @@ Local Notation APP b c :=
   (* [e f] = [e] { k<f> = [f] { k<v> = f<v, k> } } *)
   (bind b [void] (bind c [void] (jump 1 [CPS.bound 2; CPS.bound 0]))).
 
-(* TODO: these lifts could be moved from source to target! *)
+(* TODO: these lifts should be moved from source to target! *)
 
 Inductive cbv_cps: term -> pseudoterm -> Prop :=
   | cbv_cps_bound:
@@ -210,6 +210,8 @@ Inductive cbv_cps: term -> pseudoterm -> Prop :=
     cbv_cps (lift 1 0 f) b ->
     cbv_cps (lift 2 0 x) c ->
     cbv_cps (application f x) (APP b c).
+
+Local Hint Constructors cbv_cps: cps.
 
 Lemma cbv_cps_is_a_function:
   forall e c1,
@@ -267,21 +269,23 @@ Proof.
       apply IHcbv_cps2; lia.
 Qed.
 
-Lemma cbv_cps_is_compositional:
-  forall c1 c2,
-  [c1 ~~ c2] ->
-  forall e1 e2,
-  not_free 0 e1 ->
-  not_free 0 e2 ->
-  cbv_cps e1 c1 ->
-  cbv_cps e2 c2 ->
-  forall (h: context) c3 c4,
-  cbv_cps (h e1) c3 ->
-  cbv_cps (h e2) c4 ->
-  [c3 ~~ c4].
+Local Hint Resolve cbv_cps_lift: cps.
+
+Lemma cbv_cps_is_total:
+  forall e,
+  exists c,
+  cbv_cps e c.
 Proof.
-  admit.
-Admitted.
+  induction e.
+  - eauto with cps.
+  - destruct IHe as (c, ?).
+    eauto with cps.
+  - destruct IHe1 as (b, ?).
+    destruct IHe2 as (c, ?).
+    eauto with cps.
+Qed.
+
+Local Hint Resolve cbv_cps_is_total: cps.
 
 (* -------------------------------------------------------------------------- *)
 

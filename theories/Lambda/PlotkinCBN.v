@@ -205,7 +205,7 @@ Local Notation APP b c :=
   (* [e f] = [e] { k<f> = f<v, k> { v<k> = [f] } } *)
   (bind b [void] (bind (jump 1 [CPS.bound 2; CPS.bound 0]) [void] c)).
 
-(* TODO: these lifts could be moved from source to target! *)
+(* TODO: these lifts should be moved from source to target! *)
 
 Inductive cbn_cps: term -> pseudoterm -> Prop :=
   | cbn_cps_bound:
