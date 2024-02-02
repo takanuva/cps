@@ -1083,6 +1083,42 @@ Qed.
 
 Local Hint Resolve cbv_cps_is_compositional: cps.
 
+Definition cbv_equivalent e f: Prop :=
+  forall h: context,
+  closed (h e) ->
+  closed (h f) ->
+  cbv_terminates (h e) <-> cbv_terminates (h f).
+
+Corollary denotational_soundness:
+  forall e b,
+  cbv_cps e b ->
+  forall f c,
+  cbv_cps f c ->
+  [b ~~ c] -> cbv_equivalent e f.
+Proof.
+  split; intros.
+  - assert (exists b', cbv_cps (h e) b') as (b', ?); auto with cps.
+    assert (exists c', cbv_cps (h f) c') as (c', ?); auto with cps.
+    apply adequacy with c'.
+    + assumption.
+    + assumption.
+    + apply adequacy with (h e) b' in H4.
+      * assert [b' ~~ c']; eauto 2 with cps.
+        apply cps_terminates_barb with b'; auto.
+      * assumption.
+      * assumption.
+  - assert (exists b', cbv_cps (h e) b') as (b', ?); auto with cps.
+    assert (exists c', cbv_cps (h f) c') as (c', ?); auto with cps.
+    apply adequacy with b'.
+    + assumption.
+    + assumption.
+    + apply adequacy with (h f) c' in H4.
+      * assert [b' ~~ c']; eauto 2 with cps.
+        apply cps_terminates_barb with c'; auto with cps.
+      * assumption.
+      * assumption.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Fixpoint cbv_type (t: type): pseudoterm :=
