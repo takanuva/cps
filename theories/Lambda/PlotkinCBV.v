@@ -652,12 +652,64 @@ Local Lemma technical2:
   forall n b,
   weakly_converges
     (bind (jump 0 [CPS.bound (S (S n))]) [void]
-       (bind (CPS.lift 2 1 b) [void]
-          (jump 1 [CPS.bound 2; CPS.bound 0])))
-    (1 + n).
+      (bind
+        (CPS.lift 2 1 (bind (jump 1 [CPS.bound 0])
+          [void; void] (CPS.lift 1 2 b)))
+        [void] (jump 1 [CPS.bound 2; CPS.bound 0]))) (1 + n).
 Proof.
-  admit.
-Admitted.
+  intros.
+  (* Here our term is of the form:
+
+       k<x> { k<f> = k<f> { f<x, k> = [e] } { k<v> = f<v, k> } }
+
+     This will reduce to:
+
+       k<f> { f<x, k> = [e] } { k<v> = x<v, k> } ...
+
+     Then to:
+
+       x<f, k> { f<x, k> = [e] } { k<v> = x<v, k> } ...
+
+     Which will then halt at x.
+  *)
+  eexists; [ eapply star_trans |].
+  - replace (jump 0 [CPS.bound (S (S n))]) with
+      (Context.context_hole (jump 0 [CPS.bound (S (S n))])) by auto.
+    apply star_ctxjmp.
+    reflexivity.
+  - simpl.
+    apply star_bind_left.
+    rewrite lift_distributes_over_bind; simpl.
+    rewrite Metatheory.lift_lift_simplification by lia; simpl.
+    rewrite subst_distributes_over_bind; simpl.
+    rewrite subst_lift_simplification by lia.
+    rewrite lift_distributes_over_bind; simpl.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt by lia.
+    rewrite lift_bound_lt by lia.
+    replace (Syntax.subst (CPS.bound (S (S n))) 0 (Syntax.lift 1 1 void))
+      with void by now compute.
+    replace (Syntax.lift 2 2 void) with void by now compute.
+    replace (Syntax.lift 2 1 void) with void by now compute.
+    rewrite Metatheory.lift_lift_simplification by lia; simpl.
+    rewrite lift_distributes_over_jump; simpl.
+    rewrite lift_bound_lt by lia.
+    rewrite lift_bound_ge by lia; simpl.
+    rewrite lift_bound_lt by lia; simpl.
+    rewrite subst_distributes_over_jump; simpl.
+    rewrite subst_bound_eq by lia.
+    rewrite lift_bound_ge by lia; simpl.
+    rewrite subst_bound_gt by lia; simpl.
+    rewrite subst_bound_lt by lia; simpl.
+    set (c := (jump (S (S (S n))) [CPS.bound 2; CPS.bound 0])).
+    replace (bind (jump 1 [CPS.bound 0]) [void; void] (Syntax.lift 3 2 b)) with
+      (context_left Context.context_hole [void; void] (Syntax.lift 3 2 b)
+      (jump 1 [CPS.bound 0])) by auto.
+    apply star_ctxjmp.
+    reflexivity.
+  - simpl.
+    do 4 constructor.
+Qed.
 
 Lemma termination_nonvalue:
   forall e,
@@ -693,7 +745,9 @@ Proof.
         inversion_clear 1.
         inversion_clear H1.
         contradiction.
-      * exists n.
+      * dependent destruction H.
+        apply cbv_cps_lift_inversion in H as (c, ?, ?); subst.
+        exists n.
         (* TODO: refactor...? *)
         apply technical2.
         inversion_clear 1.
