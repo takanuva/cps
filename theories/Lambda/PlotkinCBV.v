@@ -754,6 +754,50 @@ Proof.
     + now rewrite subst_bound_gt by lia.
 Qed.
 
+Local Lemma technical4:
+  forall b c k,
+  weakly_converges c (1 + k) ->
+  weakly_converges
+    (bind (bind (jump 1 [CPS.bound 0]) [void; void] b)
+       [void]
+       (bind (CPS.lift 2 1 c) [void]
+          (jump 1 [CPS.bound 2; CPS.bound 0])))
+    (1 + k).
+Proof.
+  intros.
+  (* Here our term is of the form:
+
+       k<f> { f<x, k> = [e] } { k<f> = [f] { k<v> = f<v, k> } }
+
+     And we know that [f] halts to a free variable y. This will reduce to:
+
+       [f] { k<v> = f<v, k> } { f<x, k> = [e] } { ... }
+
+     Immediately we know that this halts to y due to the renaming conventions.
+   *)
+   destruct H as (d, ?, ?).
+   eexists; [ eapply star_trans |].
+   - apply star_bind_right.
+     apply star_bind_left.
+     apply star_lift.
+     eassumption.
+   - replace (bind (jump 1 [CPS.bound 0]) [void; void] b) with
+       (context_left Context.context_hole [void; void] b (jump 1 [CPS.bound 0]))
+       by auto.
+     apply star_ctxjmp.
+     reflexivity.
+   - simpl.
+     do 2 constructor.
+     rewrite lift_distributes_over_bind.
+     rewrite Metatheory.lift_lift_simplification by lia; simpl.
+     rewrite subst_distributes_over_bind; simpl.
+     rewrite subst_lift_simplification by lia.
+     constructor.
+     eapply converges_lift.
+     + eassumption.
+     + now rewrite lift_bound_ge by lia.
+Qed.
+
 Lemma termination_nonvalue:
   forall e,
   ~value e ->
@@ -763,7 +807,8 @@ Lemma termination_nonvalue:
   exists2 k,
   weakly_converges c (1 + k) & free k e.
 Proof.
-  (* This one is way more annoying than the CBN one... *)
+  (* This one is way more annoying than the CBN one... however, we still follow
+     by case analysis. *)
   induction e; intros.
   - exfalso.
     apply H.
@@ -778,7 +823,8 @@ Proof.
       dependent destruction H1_.
       apply cbv_cps_lift_inversion in H1_0 as (b, ?, ?); subst.
       destruct e2.
-      * dependent destruction H.
+      * (* In here, the expression is like x y. *)
+        dependent destruction H.
         rewrite lift_distributes_over_jump; simpl.
         rewrite lift_bound_lt by lia.
         rewrite lift_bound_ge by lia; simpl.
@@ -788,7 +834,8 @@ Proof.
         inversion_clear 1.
         inversion_clear H1.
         contradiction.
-      * dependent destruction H.
+      * (* In here, the expression is like x (\y.e). *)
+        dependent destruction H.
         apply cbv_cps_lift_inversion in H as (c, ?, ?); subst.
         exists n.
         (* TODO: refactor...? *)
@@ -796,7 +843,8 @@ Proof.
         inversion_clear 1.
         inversion_clear H2.
         contradiction.
-      * (* This follows by the inductive hypothesis. TODO: refactor... *)
+      * (* In here, the expression is like x (e f). This thus follows by the
+           inductive hypothesis. TODO: refactor... *)
         destruct IHe2 with b as (k, ?, ?).
         inversion 1.
         intros e3 ?H.
@@ -809,8 +857,30 @@ Proof.
         now apply technical3.
         inversion_clear 1.
         contradiction.
-    + admit.
-    + admit.
+    + (* In here, the expression is like (\x.e) f. So, the only way this is not
+         a redex is if f is not a value (and can't become one). So this will
+         follow directly by the inductive hypothesis. *)
+      clear IHe1.
+      dependent destruction H1.
+      apply cbv_cps_lift_inversion in H1_0 as (d, ?, ?); subst.
+      destruct IHe2 with d as (k, ?, ?).
+      * intros ?.
+        apply H0 with (subst e2 0 e1).
+        now constructor.
+      * intros e3 ?.
+        apply H0 with (application (abstraction t e1) e3).
+        constructor 3; auto with cps.
+      * assumption.
+      * exists k.
+        (* TODO: refactor... *)
+        dependent destruction H1_.
+        now apply technical4.
+        inversion_clear 1.
+        contradiction.
+    + (* In here, the expression is like (e f) g. So this clearly follows by
+         the inductive hypothesis on the left. *)
+      clear IHe2.
+      admit.
 Admitted.
 
 Lemma termination:
