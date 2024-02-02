@@ -462,7 +462,7 @@ Lemma cbn_simulates_beta:
   forall t e x b c,
   cbn_cps (application (abstraction t e) x) b ->
   cbn_cps (subst x 0 e) c ->
-  [b =>* c].
+  comp t(head) rt(step) b c.
 Proof.
   intros.
   do 2 dependent destruction H.
@@ -476,38 +476,79 @@ Proof.
   admit.
 Admitted.
 
+(* TODO: move me! *)
+
+Lemma t_head_bind_left:
+  LEFT t(head).
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
+(* TODO: move me! *)
+
+Lemma head_lift:
+  forall b c,
+  head b c ->
+  forall i k,
+  head (CPS.lift i k b) (CPS.lift i k c).
+Proof.
+  admit.
+Admitted.
+
+(* TODO: move me! *)
+
+Lemma t_head_lift:
+  forall b c,
+  t(head) b c ->
+  forall i k,
+  t(head) (CPS.lift i k b) (CPS.lift i k c).
+Proof.
+  induction 1; intros.
+  - apply t_step.
+    now apply head_lift.
+  - now apply t_trans with (CPS.lift i k y).
+Qed.
+
+(* TODO: move me! *)
+
+Lemma star_t_head:
+  inclusion t(head) star.
+Proof.
+  induction 1; eauto with cps.
+Qed.
+
 Lemma cbn_simulates_cbn:
-  forall e f,
+  forall e,
+  closed e ->
+  forall f,
   cbn e f ->
   forall b c,
   cbn_cps e b ->
   cbn_cps f c ->
-  [b =>* c].
+  comp t(head) rt(step) b c.
 Proof.
-  induction 1; intros.
+  intros until 2.
+  apply cbn_whr_iff in H0; auto.
+  induction H0; intros.
   - rename b into e, b0 into b.
     now apply cbn_simulates_beta with t e x.
-  - dependent destruction H0.
-    dependent destruction H1.
+  - dependent destruction H1.
+    dependent destruction H2.
     assert (c0 = c); eauto 2 with cps.
-    clear H0_0 H1_0; subst.
-    apply cbn_cps_lift_inversion in H0_ as (c1, ?, ?).
-    apply cbn_cps_lift_inversion in H1_ as (c2, ?, ?).
-    specialize IHcbn with c1 c2; subst.
-    apply star_bind_left.
-    apply star_lift.
-    now apply IHcbn.
-  - dependent destruction H0.
-    dependent destruction H1.
-    assert (b0 = b); eauto 2 with cps.
-    clear H0_ H1_; subst.
-    apply cbn_cps_lift_inversion in H0_0 as (b1, ?, ?).
-    apply cbn_cps_lift_inversion in H1_0 as (b2, ?, ?).
-    specialize IHcbn with b1 b2; subst.
-    apply star_bind_right.
-    apply star_bind_right.
-    apply star_lift.
-    now apply IHcbn.
+    clear H1_0 H2_0; subst.
+    apply cbn_cps_lift_inversion in H1_ as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H2_ as (c3, ?, ?).
+    subst.
+    destruct IHwhr with c1 c3 as (c2, ?, ?); auto.
+    + intro.
+      specialize (H n).
+      now dependent destruction H.
+    + eexists.
+      * apply t_head_bind_left.
+        apply t_head_lift.
+        eassumption.
+      * apply star_bind_left.
+        now apply star_lift.
 Qed.
 
 Lemma cbn_simulation:
@@ -518,39 +559,47 @@ Lemma cbn_simulation:
   cbn_cps f c ->
   [b =>* c].
 Proof.
-  intros until 1.
-  apply full_characterization in H.
-  induction H; intros.
-  - now apply cbn_simulates_cbn with e f.
+  induction 1; intros.
+  (* Case: full_beta. *)
+  - rename b into e, b0 into b.
+    destruct cbn_simulates_beta with t e x b c as (d, ?, ?).
+    + assumption.
+    + assumption.
+    + apply star_trans with d.
+      * now apply star_t_head.
+      * assumption.
+  (* Case: full_abs. *)
   - dependent destruction H0.
     dependent destruction H1.
     apply cbn_cps_lift_inversion in H0 as (c1, ?, ?).
     apply cbn_cps_lift_inversion in H1 as (c2, ?, ?).
-    specialize IHcompatible with c1 c2; subst.
+    specialize IHfull with c1 c2; subst.
     apply star_bind_right.
     apply star_lift.
-    now apply IHcompatible.
+    now apply IHfull.
+  (* Case: full_app1. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (c0 = c); eauto 2 with cps.
     clear H0_0 H1_0; subst.
     apply cbn_cps_lift_inversion in H0_ as (c1, ?, ?).
     apply cbn_cps_lift_inversion in H1_ as (c2, ?, ?).
-    specialize IHcompatible with c1 c2; subst.
+    specialize IHfull with c1 c2; subst.
     apply star_bind_left.
     apply star_lift.
-    now apply IHcompatible.
+    now apply IHfull.
+  (* Case: full_app2. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (b0 = b); eauto 2 with cps.
     clear H0_ H1_; subst.
     apply cbn_cps_lift_inversion in H0_0 as (b1, ?, ?).
     apply cbn_cps_lift_inversion in H1_0 as (b2, ?, ?).
-    specialize IHcompatible with b1 b2; subst.
+    specialize IHfull with b1 b2; subst.
     apply star_bind_right.
     apply star_bind_right.
     apply star_lift.
-    now apply IHcompatible.
+    now apply IHfull.
 Qed.
 
 Lemma termination_nonvalue:
