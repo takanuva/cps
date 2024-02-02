@@ -664,11 +664,11 @@ Proof.
 
      This will reduce to:
 
-       k<f> { f<x, k> = [e] } { k<v> = x<v, k> } ...
+       k<f> { f<x, k> = [e] } { k<v> = x<v, k> } { ... }
 
      Then to:
 
-       x<f, k> { f<x, k> = [e] } { k<v> = x<v, k> } ...
+       x<f, k> { f<x, k> = [e] } { k<v> = x<v, k> } { ... }
 
      Which will then halt at x.
   *)
@@ -709,6 +709,49 @@ Proof.
     reflexivity.
   - simpl.
     do 4 constructor.
+Qed.
+
+Local Lemma technical3:
+  forall b k n,
+  weakly_converges b (1 + k) ->
+  weakly_converges
+    (bind (jump 0 [CPS.bound (S (S n))]) [void]
+       (bind (CPS.lift 2 1 b) [void]
+          (jump 1 [CPS.bound 2; CPS.bound 0])))
+    (1 + k).
+Proof.
+  intros.
+  (* Here our term is of the form:
+
+      k<x> { k<f> = [e] { k<v> = f<v, k> } }
+
+     Where we know that [e] halts at some variable free y. This reduces to:
+
+       [e] { k<v> = x<v, k> } { ... }
+
+     Which we know, by the renaming conventions, will still jump to y.
+   *)
+  destruct H as (c, ?, ?).
+  eexists; [ eapply star_trans |].
+  - apply star_bind_right.
+    apply star_bind_left.
+    apply star_lift.
+    eassumption.
+  - replace (jump 0 [CPS.bound (S (S n))]) with
+      (Context.context_hole (jump 0 [CPS.bound (S (S n))])) by auto.
+    apply star_ctxjmp.
+    reflexivity.
+  - constructor; simpl.
+    rewrite lift_distributes_over_bind.
+    rewrite subst_distributes_over_bind.
+    constructor.
+    rewrite Metatheory.lift_lift_simplification by lia; simpl.
+    eapply converges_subst.
+    + eapply converges_lift.
+      * eassumption.
+      * rewrite lift_bound_ge by lia; simpl.
+        reflexivity.
+    + now rewrite subst_bound_gt by lia.
 Qed.
 
 Lemma termination_nonvalue:
@@ -753,7 +796,19 @@ Proof.
         inversion_clear 1.
         inversion_clear H2.
         contradiction.
-      * admit.
+      * (* This follows by the inductive hypothesis. TODO: refactor... *)
+        destruct IHe2 with b as (k, ?, ?).
+        inversion 1.
+        intros e3 ?H.
+        apply H0 with (application n e3).
+        constructor 3.
+        constructor.
+        assumption.
+        assumption.
+        exists k.
+        now apply technical3.
+        inversion_clear 1.
+        contradiction.
     + admit.
     + admit.
 Admitted.
