@@ -1011,6 +1011,29 @@ Proof.
         admit.
 Admitted.
 
+Lemma adequacy_if:
+  forall e,
+  closed e ->
+  forall b,
+  cbv_cps e b ->
+  cps_terminates b ->
+  cbv_terminates e.
+Proof.
+  admit.
+Admitted.
+
+Theorem adequacy:
+  forall e,
+  closed e ->
+  forall c,
+  cbv_cps e c ->
+  cbv_terminates e <-> cps_terminates c.
+Proof.
+  split; intros.
+  - apply adequacy_only_if with e; auto.
+  - apply adequacy_if with c; auto.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Fixpoint cbv_type (t: type): pseudoterm :=
