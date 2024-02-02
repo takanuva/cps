@@ -587,20 +587,6 @@ Proof.
     now apply IHcompatible.
 Qed.
 
-Lemma termination_value:
-  forall e,
-  value e ->
-  forall c,
-  cbv_cps e c ->
-  converges c 0.
-Proof.
-  destruct 1; intros.
-  - dependent destruction H.
-    constructor.
-  - dependent destruction H.
-    do 2 constructor.
-Qed.
-
 Local Lemma technical1:
   forall n m,
   weakly_converges
@@ -798,6 +784,35 @@ Proof.
      + now rewrite lift_bound_ge by lia.
 Qed.
 
+Local Lemma technical5:
+  forall b c k,
+  weakly_converges b (1 + k) ->
+  weakly_converges
+    (bind (CPS.lift 1 1 b) [void]
+       (bind c [void]
+          (jump 1 [CPS.bound 2; CPS.bound 0])))
+    (1 + k).
+Proof.
+  intros.
+  (* Here our term is simply of the form:
+
+       [e f](k) = [e] { k<f> = [f] { k<v> = f<v, k> } }
+
+     And we know that [e] halts to a free variable y. Thus we know that by the
+     renaming conventions we will reduce to y after applying just the steps that
+     [e] requires to get there.
+   *)
+  destruct H as (d, ?, ?).
+  eexists.
+  - apply star_bind_left.
+    apply star_lift.
+    eassumption.
+  - constructor.
+    eapply converges_lift.
+    + eassumption.
+    + now rewrite lift_bound_ge by lia.
+Qed.
+
 Lemma termination_nonvalue:
   forall e,
   ~value e ->
@@ -880,8 +895,20 @@ Proof.
     + (* In here, the expression is like (e f) g. So this clearly follows by
          the inductive hypothesis on the left. *)
       clear IHe2.
-      admit.
-Admitted.
+      dependent destruction H1.
+      apply cbv_cps_lift_inversion in H1_ as (d, ?, ?); subst.
+      destruct IHe1 with d as (k, ?, ?).
+      * inversion 1.
+      * intros e3 ?.
+        apply H0 with (application e3 e2).
+        now constructor 2.
+      * assumption.
+      * exists k.
+        (* TODO: refactor... *)
+        now apply technical5.
+        inversion_clear 1.
+        contradiction.
+Qed.
 
 Lemma termination:
   forall e,
@@ -895,7 +922,11 @@ Proof.
   destruct value_dec with e as [ ?H | ?H ].
   - exists 0, c.
     + apply star_refl.
-    + now apply termination_value with e.
+    + destruct H1.
+      * dependent destruction H0.
+        constructor.
+      * dependent destruction H0.
+        do 2 constructor.
   - destruct termination_nonvalue with e c as (k, ?, ?).
     + assumption.
     + assumption.
