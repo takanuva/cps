@@ -467,12 +467,24 @@ Proof.
   intros.
   do 2 dependent destruction H.
   rewrite lift_lift_simplification in H; auto.
-  apply cbn_cps_lift_inversion in H.
-  destruct H as (b1, ?, ?).
-  apply cbn_cps_lift_inversion in H0.
-  destruct H0 as (b2, ?, ?).
+  apply cbn_cps_lift_inversion in H as (b1, ?, ?).
+  apply cbn_cps_lift_inversion in H0 as (b2, ?, ?).
   subst; simpl.
-  (* As above. TODO: probably should move the comments in here. *)
+  (* At this point, our term stands as:
+
+       k<f> { f<x, k> = [b1] } { k<f> = f<v, k> { v<k> = [b2] } }
+
+     We'll perform two head redexes and two garbage collection steps, resulting
+     in the following term:
+
+       [b1] { x<k> = [b2] }
+
+     At this point, we'll proceed to show that the substitution holds. In the
+     de Bruijn setting, we notice that [b1] and [b2] both have their variables
+     adjusted and got a fresh variable at the closest position. To make up for
+     this transformation, [b1] has the closest two variables switched (so 0 is
+     the x and 1 is the current continuation), and [b2] has a fresh variable at
+     position 1 (the current continuation for [b1]). *)
   admit.
 Admitted.
 
