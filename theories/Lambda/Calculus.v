@@ -414,6 +414,66 @@ Proof.
     assumption.
 Qed.
 
+Inductive free_count: nat -> nat -> term -> Prop :=
+  | free_count_match:
+    forall n,
+    free_count 1 n n
+  | free_count_mismatch:
+    forall n m,
+    n <> m ->
+    free_count 0 n m
+  | free_count_abstraction:
+    forall i t b n,
+    free_count i (S n) b ->
+    free_count i n (abstraction t b)
+  | free_count_application:
+    forall i j f x n,
+    free_count i n f ->
+    free_count j n x ->
+    free_count (i + j) n (application f x).
+
+Goal
+  forall n e,
+  not_free n e <-> free_count 0 n e.
+Proof.
+  split; intros.
+  - induction H.
+    + now constructor.
+    + now constructor.
+    + replace 0 with (0 + 0) by auto.
+      now constructor.
+  - dependent induction H.
+    + now constructor.
+    + constructor.
+      now apply IHfree_count.
+    + assert (i = 0) by lia; subst.
+      assert (j = 0) by lia; subst.
+      constructor.
+      * now apply IHfree_count1.
+      * now apply IHfree_count2.
+Qed.
+
+Lemma free_count_is_decidable:
+  forall e n,
+  exists k,
+  free_count k n e.
+Proof.
+  induction e; intros.
+  + rename n0 into m.
+    destruct (Nat.eq_dec m n) as [ ?H | ?H ]; subst.
+    * exists 1.
+      constructor.
+    * exists 0.
+      now constructor.
+  + destruct IHe with (S n) as (k, ?).
+    exists k.
+    now constructor.
+  + destruct IHe1 with n as (k, ?).
+    destruct IHe2 with n as (j, ?).
+    exists (k + j).
+    now constructor.
+Qed.
+
 (* Full beta reduction relation. TODO: consider eta? *)
 
 Inductive full: relation term :=
