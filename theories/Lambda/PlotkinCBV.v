@@ -953,6 +953,31 @@ Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
+Definition cbv_terminates (e: term): Prop :=
+  exists2 v,
+  value v & rt(cbv) e v.
+
+Lemma sn_cbv_terminates:
+  forall e,
+  cbv_terminates e -> SN cbv e.
+Proof.
+  intros.
+  destruct H as (v, ?, ?).
+  apply clos_rt_rt1n in H0.
+  induction H0.
+  - rename x into e.
+    constructor; intros f ?.
+    exfalso.
+    eapply cbv_implies_nonvalue with e f; auto.
+  - clear H1.
+    constructor; intros w ?.
+    assert (y = w).
+    + apply cbv_is_a_function with x; auto.
+    + subst; firstorder.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Fixpoint cbv_type (t: type): pseudoterm :=
   match t with
   | base =>
