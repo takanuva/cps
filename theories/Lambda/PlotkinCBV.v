@@ -668,7 +668,7 @@ Proof.
     rewrite lift_distributes_over_bind; simpl.
     rewrite Metatheory.lift_lift_simplification by lia; simpl.
     rewrite subst_distributes_over_bind; simpl.
-    rewrite subst_lift_simplification by lia.
+    rewrite Metatheory.subst_lift_simplification by lia.
     rewrite lift_distributes_over_bind; simpl.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt by lia.
@@ -777,7 +777,7 @@ Proof.
      rewrite lift_distributes_over_bind.
      rewrite Metatheory.lift_lift_simplification by lia; simpl.
      rewrite subst_distributes_over_bind; simpl.
-     rewrite subst_lift_simplification by lia.
+     rewrite Metatheory.subst_lift_simplification by lia.
      constructor.
      eapply converges_lift.
      + eassumption.

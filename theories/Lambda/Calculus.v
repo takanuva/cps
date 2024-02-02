@@ -73,8 +73,15 @@ Fixpoint subst (p: term) (k: nat) (q: term): term :=
     application (subst p k f) (subst p k x)
   end.
 
+Lemma lift_zero_e_equals_e:
+  forall e k,
+  lift 0 k e = e.
+Proof.
+  admit.
+Admitted.
+
 Lemma lift_lift_permutation:
-  forall e (i j k l : nat),
+  forall e i j k l,
   k <= l ->
   lift i k (lift j l e) =
     lift j (i + l) (lift i k e).
@@ -101,7 +108,7 @@ Proof.
 Qed.
 
 Lemma lift_lift_simplification:
-  forall e (i j k l : nat),
+  forall e i j k l,
   k <= l + j ->
   l <= k ->
   lift i k (lift j l e) =
@@ -118,6 +125,16 @@ Proof.
     + apply IHe1; lia.
     + apply IHe2; lia.
 Qed.
+
+Lemma subst_lift_simplification:
+  forall e y i p k,
+  p <= i + k ->
+  k <= p ->
+  subst y p (lift (S i) k e) =
+  lift i k e.
+Proof.
+  admit.
+Admitted.
 
 Fixpoint size (e: term): nat :=
   match e with
@@ -432,7 +449,7 @@ Inductive free_count: nat -> nat -> term -> Prop :=
     free_count j n x ->
     free_count (i + j) n (application f x).
 
-Goal
+Lemma not_free_count_zero_iff:
   forall n e,
   not_free n e <-> free_count 0 n e.
 Proof.

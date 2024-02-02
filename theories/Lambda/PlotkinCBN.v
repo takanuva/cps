@@ -458,11 +458,51 @@ Qed.
 
 *)
 
+(* TODO: move me above. *)
+
+Local Notation SUBST b1 b2 :=
+  (bind (switch_bindings 0 b1) [void] (CPS.lift 1 1 b2)).
+
+Lemma cbn_simulates_substitution:
+  forall e b1,
+  cbn_cps e b1 ->
+  forall x b2,
+  cbn_cps x b2 ->
+  forall c,
+  cbn_cps (subst x 0 e) c ->
+  [SUBST b1 b2 =>* c].
+Proof.
+  intros e.
+  destruct free_count_is_decidable with e 0 as (k, ?).
+  induction k; intros.
+  (* Case: zero. *)
+  - (* Our term has the form [b1] { x<k> = [b2] }, where x doesn't appear free
+       in [b1]. Thus we just have to apply a single garbage collection step. *)
+    apply not_free_count_zero_iff in H.
+    replace c with (remove_binding 0 (switch_bindings 0 b1)).
+    + apply star_step.
+      apply step_gc.
+      apply cbn_cps_not_free with e b1 0 in H; auto.
+      (* Clearly... *)
+      admit.
+    + assert (exists f, e = lift 1 0 f) as (f, ?) by admit; subst.
+      rewrite subst_lift_simplification in H2 by lia.
+      rewrite lift_zero_e_equals_e in H2.
+      apply cbn_cps_lift_inversion in H0 as (b, ?, ?); subst.
+      assert (b = c) by eauto with cps; subst.
+      unfold remove_binding, switch_bindings.
+      rewrite Metatheory.lift_lift_simplification by lia; simpl.
+      (* Sigma agrees this is true! *)
+      admit.
+  (* Case: succ. *)
+  - admit.
+Admitted.
+
 Lemma cbn_simulates_beta:
   forall t e x b c,
   cbn_cps (application (abstraction t e) x) b ->
   cbn_cps (subst x 0 e) c ->
-  comp t(head) rt(step) b c.
+  comp t(head) star b c.
 Proof.
   intros.
   do 2 dependent destruction H.
