@@ -492,41 +492,35 @@ Proof.
   (* Case: full_abs. *)
   - dependent destruction H0.
     dependent destruction H1.
-    apply cbn_cps_lift_inversion in H0.
-    destruct H0 as (c1, ?, ?).
-    apply cbn_cps_lift_inversion in H1.
-    destruct H1 as (c2, ?, ?).
+    apply cbn_cps_lift_inversion in H0 as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H1 as (c2, ?, ?).
     specialize IHfull with c1 c2; subst.
     apply star_bind_right.
     apply star_lift.
-    firstorder.
+    now apply IHfull.
   (* Case: full_app1. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (c0 = c); eauto 2 with cps.
     clear H0_0 H1_0; subst.
-    apply cbn_cps_lift_inversion in H0_.
-    destruct H0_ as (c1, ?, ?).
-    apply cbn_cps_lift_inversion in H1_.
-    destruct H1_ as (c2, ?, ?).
+    apply cbn_cps_lift_inversion in H0_ as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_ as (c2, ?, ?).
     specialize IHfull with c1 c2; subst.
     apply star_bind_left.
     apply star_lift.
-    firstorder.
+    now apply IHfull.
   (* Case: full_app2. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (b0 = b); eauto 2 with cps.
     clear H0_ H1_; subst.
-    apply cbn_cps_lift_inversion in H0_0.
-    destruct H0_0 as (b1, ?, ?).
-    apply cbn_cps_lift_inversion in H1_0.
-    destruct H1_0 as (b2, ?, ?).
+    apply cbn_cps_lift_inversion in H0_0 as (b1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_0 as (b2, ?, ?).
     specialize IHfull with b1 b2; subst.
     apply star_bind_right.
     apply star_bind_right.
     apply star_lift.
-    firstorder.
+    now apply IHfull.
 Qed.
 
 Lemma termination_nonvalue:
@@ -587,9 +581,9 @@ Lemma termination:
   converges c k.
 Proof.
   intros.
-  destruct value_dec with e.
+  destruct value_dec with e as [ ?H | ?H ].
   (* Case: e is a value. *)
-  - destruct v.
+  - destruct H1.
     + (* If this is a free variable, we converge to it. *)
       dependent destruction H0.
       exists (S n).
@@ -599,13 +593,13 @@ Proof.
       eexists 0.
       do 2 constructor.
   (* Case: e is not a value. *)
-  - edestruct termination_nonvalue.
-    + eassumption.
+  - destruct termination_nonvalue with e c.
+    + assumption.
     + intros f ?.
       apply H with f.
       apply cbn_whr.
       assumption.
-    + eassumption.
+    + assumption.
     + exists (1 + x).
       assumption.
 Qed.

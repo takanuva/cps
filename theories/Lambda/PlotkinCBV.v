@@ -527,27 +527,23 @@ Proof.
     dependent destruction H1.
     assert (c0 = c) by eauto with cps.
     clear H1_0; subst.
-    apply cbv_cps_lift_inversion in H0_.
-    destruct H0_ as (b1, ?, ?).
-    apply cbv_cps_lift_inversion in H1_.
-    destruct H1_ as (b2, ?, ?).
+    apply cbv_cps_lift_inversion in H0_ as (b1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_ as (b2, ?, ?).
     specialize (IHcbv b1 b2); subst.
     apply rt_R_bind_left.
     apply rt_R_lift.
-    firstorder.
+    now apply IHcbv.
   - dependent destruction H1.
     dependent destruction H2.
     assert (b0 = b) by eauto with cps.
     clear H1_; subst.
-    apply cbv_cps_lift_inversion in H1_0.
-    destruct H1_0 as (c1, ?, ?).
-    apply cbv_cps_lift_inversion in H2_0.
-    destruct H2_0 as (c2, ?, ?).
+    apply cbv_cps_lift_inversion in H1_0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H2_0 as (c2, ?, ?).
     specialize (IHcbv c1 c2); subst.
     apply rt_R_bind_right.
     apply rt_R_bind_left.
     apply rt_R_lift.
-    firstorder.
+    now apply IHcbv.
 Qed.
 
 Lemma cbv_simulation:
@@ -562,39 +558,171 @@ Proof.
   - now apply cbv_simulates_cbv with e f.
   - dependent destruction H0.
     dependent destruction H1.
-    apply cbv_cps_lift_inversion in H0.
-    destruct H0 as (c1, ?, ?).
-    apply cbv_cps_lift_inversion in H1.
-    destruct H1 as (c2, ?, ?).
+    apply cbv_cps_lift_inversion in H0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H1 as (c2, ?, ?).
     specialize (IHcompatible c1 c2); subst.
     apply rt_R_bind_right.
     apply rt_R_lift.
-    firstorder.
+    now apply IHcompatible.
   - dependent destruction H0.
     dependent destruction H1.
     assert (c0 = c) by eauto with cps.
     clear H1_0; subst.
-    apply cbv_cps_lift_inversion in H0_.
-    destruct H0_ as (b1, ?, ?).
-    apply cbv_cps_lift_inversion in H1_.
-    destruct H1_ as (b2, ?, ?).
+    apply cbv_cps_lift_inversion in H0_ as (b1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_ as (b2, ?, ?).
     specialize (IHcompatible b1 b2); subst.
     apply rt_R_bind_left.
     apply rt_R_lift.
-    firstorder.
+    now apply IHcompatible.
   - dependent destruction H0.
     dependent destruction H1.
     assert (b0 = b) by eauto with cps.
     clear H0_; subst.
-    apply cbv_cps_lift_inversion in H0_0.
-    destruct H0_0 as (c1, ?, ?).
-    apply cbv_cps_lift_inversion in H1_0.
-    destruct H1_0 as (c2, ?, ?).
+    apply cbv_cps_lift_inversion in H0_0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_0 as (c2, ?, ?).
     specialize (IHcompatible c1 c2); subst.
     apply rt_R_bind_right.
     apply rt_R_bind_left.
     apply rt_R_lift.
-    firstorder.
+    now apply IHcompatible.
+Qed.
+
+Lemma termination_value:
+  forall e,
+  value e ->
+  forall c,
+  cbv_cps e c ->
+  converges c 0.
+Proof.
+  destruct 1; intros.
+  - dependent destruction H.
+    constructor.
+  - dependent destruction H.
+    do 2 constructor.
+Qed.
+
+Local Lemma technical1:
+  forall n m,
+  weakly_converges
+    (bind (jump 0 [CPS.bound (2 + n)]) [void]
+       (bind (jump 0 [CPS.bound (3 + m)]) [void]
+          (jump 1 [CPS.bound 2; CPS.bound 0])))
+    (1 + n).
+Proof.
+  intros.
+  (* Here our term is of the form:
+
+       k<x> { k<f> = k<y> { k<v> = f<v, k> } }
+
+     This will reduce to:
+
+       k<y> { k<v> = x<v, k> } { k<f> = k<y> { k<v> = f<v, k> } }
+
+     Then to:
+
+      x<y, k> { k<v> = x<v, k> } { k<f> = k<y> { k<v> = f<v, k> } }
+
+     Which will then halt at x.
+  *)
+  eexists; [ eapply star_trans |].
+  - (* TODO: we need to automate this... *)
+    set (c := jump 1 [CPS.bound 2; CPS.bound 0]).
+    set (b := bind (jump 0 [CPS.bound (3 + m)]) [void] c).
+    replace (bind (jump 0 [CPS.bound (2 + n)]) [void] b) with
+      (context_left Context.context_hole [void] b (jump 0 [CPS.bound (2 + n)]))
+      by auto.
+    apply star_ctxjmp.
+    reflexivity.
+  - (* TODO: not the best way, but hopefully I'll replace this by sigma. *)
+    compute.
+    set (b := jump 1 [CPS.bound 2; CPS.bound 0]).
+    set (c := bind (jump 0 [CPS.bound (S (S (S m)))]) [void] b).
+    set (d := jump (S (S (S n))) [CPS.bound 2; CPS.bound 0]).
+    apply star_bind_left.
+    replace (jump 0 [CPS.bound (S (S (S m)))]) with
+      (Context.context_hole (jump 0 [CPS.bound (S (S (S m)))])) by auto.
+    apply star_ctxjmp.
+    reflexivity.
+  - (* TODO: ditto... *)
+    compute.
+    do 3 constructor.
+Qed.
+
+Local Lemma technical2:
+  forall n b,
+  weakly_converges
+    (bind (jump 0 [CPS.bound (S (S n))]) [void]
+       (bind (CPS.lift 2 1 b) [void]
+          (jump 1 [CPS.bound 2; CPS.bound 0])))
+    (1 + n).
+Proof.
+  admit.
+Admitted.
+
+Lemma termination_nonvalue:
+  forall e,
+  ~value e ->
+  normal cbv e ->
+  forall c,
+  cbv_cps e c ->
+  exists2 k,
+  weakly_converges c (1 + k) & free k e.
+Proof.
+  (* This one is way more annoying than the CBN one... *)
+  induction e; intros.
+  - exfalso.
+    apply H.
+    constructor.
+  - exfalso.
+    apply H.
+    constructor.
+  - clear H.
+    destruct e1.
+    + clear IHe1.
+      dependent destruction H1.
+      dependent destruction H1_.
+      apply cbv_cps_lift_inversion in H1_0 as (b, ?, ?); subst.
+      destruct e2.
+      * dependent destruction H.
+        rewrite lift_distributes_over_jump; simpl.
+        rewrite lift_bound_lt by lia.
+        rewrite lift_bound_ge by lia; simpl.
+        exists n.
+        (* TODO: refactor, please? *)
+        apply technical1.
+        inversion_clear 1.
+        inversion_clear H1.
+        contradiction.
+      * exists n.
+        (* TODO: refactor...? *)
+        apply technical2.
+        inversion_clear 1.
+        inversion_clear H2.
+        contradiction.
+      * admit.
+    + admit.
+    + admit.
+Admitted.
+
+Lemma termination:
+  forall e,
+  normal cbv e ->
+  forall c,
+  cbv_cps e c ->
+  exists k,
+  weakly_converges c k.
+Proof.
+  intros.
+  destruct value_dec with e as [ ?H | ?H ].
+  - exists 0, c.
+    + apply star_refl.
+    + now apply termination_value with e.
+  - destruct termination_nonvalue with e c as (k, ?, ?).
+    + assumption.
+    + assumption.
+    + assumption.
+    + exists (1 + k).
+      assumption.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
