@@ -976,6 +976,41 @@ Proof.
     + subst; firstorder.
 Qed.
 
+Lemma adequacy_only_if:
+  forall e,
+  closed e ->
+  forall c,
+  cbv_cps e c ->
+  cbv_terminates e ->
+  cps_terminates c.
+Proof.
+  intros.
+  generalize dependent c.
+  apply sn_cbv_terminates in H1.
+  induction H1 using SN_ind.
+  destruct cbv_is_decidable with x; intros.
+  - rename x into e; clear H1 H2.
+    destruct termination with e c as (k, ?).
+    + assumption.
+    + assumption.
+    + now exists k.
+  - rename c into b.
+    destruct e as (y, ?).
+    assert (exists c, cbv_cps y c) as (c, ?); eauto with cps.
+    assert (rt(R) b c).
+    + apply cbv_simulation with x y; auto.
+      now constructor.
+    + destruct H2 with y c as (k, ?).
+      * apply t_step.
+        assumption.
+      * (* Reduction can't introduce free variables! *)
+        admit.
+      * assumption.
+      * (* Of course, as R is contained in the equational theory... then this
+           will follow by bisimulation. *)
+        admit.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 Fixpoint cbv_type (t: type): pseudoterm :=
