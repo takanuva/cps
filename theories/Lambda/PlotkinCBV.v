@@ -15,6 +15,9 @@ Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Observational.
 Require Import Local.Conservation.
+(* TODO: will we need this one...? *)
+Require Import Local.Structural.
+Require Import Local.Shrinking.
 Require Export Local.Lambda.Calculus.
 
 Include Lambda.Calculus.
@@ -451,6 +454,113 @@ Qed.
 
 *)
 
+Axiom R: relation pseudoterm.
+
+Conjecture R_bind_left:
+  LEFT R.
+
+Conjecture R_bind_right:
+  RIGHT R.
+
+Conjecture R_lift:
+  forall b c,
+  R b c ->
+  forall i k,
+  R (CPS.lift i k b) (CPS.lift i k c).
+
+Lemma rt_R_bind_left:
+  LEFT rt(R).
+Proof.
+  induction 1.
+  - apply rt_step.
+    now apply R_bind_left.
+  - apply rt_refl.
+  - now apply rt_trans with (bind y ts c).
+Qed.
+
+Lemma rt_R_bind_right:
+  RIGHT rt(R).
+Proof.
+  induction 1.
+  - apply rt_step.
+    now apply R_bind_right.
+  - apply rt_refl.
+  - now apply rt_trans with (bind b ts y).
+Qed.
+
+Lemma rt_R_lift:
+  forall b c,
+  rt(R) b c ->
+  forall i k,
+  rt(R) (CPS.lift i k b) (CPS.lift i k c).
+Proof.
+  induction 1; intros.
+  - apply rt_step.
+    now apply R_lift.
+  - apply rt_refl.
+  - now apply rt_trans with (CPS.lift i k y).
+Qed.
+
+Lemma cbv_simulates_betav:
+  forall t e x b c,
+  value x ->
+  cbv_cps (application (abstraction t e) x) b ->
+  cbv_cps (subst x 0 e) c ->
+  rt(R) b c.
+Proof.
+  (* This should follow the description above. *)
+  admit.
+Admitted.
+
+Lemma cbv_simulates_cbv:
+  forall e f,
+  cbv e f ->
+  forall b c,
+  cbv_cps e b ->
+  cbv_cps f c ->
+  rt(R) b c.
+Proof.
+  induction 1; intros.
+  - rename b into e, b0 into b.
+    now apply cbv_simulates_betav with t e x.
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (c0 = c) by eauto with cps.
+    clear H1_0; subst.
+    apply cbv_cps_lift_inversion in H0_.
+    destruct H0_ as (b1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_.
+    destruct H1_ as (b2, ?, ?).
+    specialize (IHcbv b1 b2); subst.
+    apply rt_R_bind_left.
+    apply rt_R_lift.
+    firstorder.
+  - dependent destruction H1.
+    dependent destruction H2.
+    assert (b0 = b) by eauto with cps.
+    clear H1_; subst.
+    apply cbv_cps_lift_inversion in H1_0.
+    destruct H1_0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H2_0.
+    destruct H2_0 as (c2, ?, ?).
+    specialize (IHcbv c1 c2); subst.
+    apply rt_R_bind_right.
+    apply rt_R_bind_left.
+    apply rt_R_lift.
+    firstorder.
+Qed.
+
+Lemma cbv_simulation:
+  forall e f,
+  full e f ->
+  forall b c,
+  cbv_cps e b ->
+  cbv_cps f c ->
+  rt(R) b c.
+Proof.
+  admit.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 Fixpoint cbv_type (t: type): pseudoterm :=
@@ -474,7 +584,7 @@ Definition cbv_env (g: env): list pseudoterm :=
 
                             +------------+
      [x] K = K(x)          \|/           |
-     [\x.e] K = K(f) { f<x, k> = [e] (\z.k z) }
+     [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) }
      [e1 e2] K = [e1] (\z1.
                    [e2] (\z2.
                     z1<z2, k> { k<v> = K(v) }))
