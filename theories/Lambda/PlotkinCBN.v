@@ -517,6 +517,8 @@ Proof.
   induction 1; eauto with cps.
 Qed.
 
+Global Hint Resolve star_t_head: cps.
+
 Lemma cbn_simulates_cbn:
   forall e,
   closed e ->
@@ -775,7 +777,36 @@ Proof.
     now apply closed_normal_cbn_implies_value.
   - rename x into b.
     assert (exists d, cbn_cps f d) as (d, ?) by eauto with cps.
-    admit.
+    assert (comp t(head) star c d) as (x, ?, ?) by
+      now apply cbn_simulates_cbn with e f.
+    (* Ok, here's the catch! By H1, we know that a head step has to change what
+       is in head position of a term. We can check that b =>* d and apply the
+       factorization lemma. Since inner reduction can't ever change the head of
+       a term, then this means that, in this case, head reduction is essential
+       and in order to go from b to d we can indeed start with a positive number
+       of head steps. *)
+    assert [b =>* d] by eauto with cps.
+    apply star_characterization in H8.
+    apply shrinking_may_be_postponed in H8 as (z, ?, ?).
+    + apply factorization in H8 as (y, ?, ?).
+      apply rt_characterization in H8.
+      destruct H8.
+      * edestruct H2 with y f d as (g, ?, ?).
+        (* TODO: refactor, please... *)
+        assumption.
+        (* Sure, from H and H4, reduction can't introduce free variables. *)
+        admit.
+        eauto with cps.
+        (* Clearly, from H9 and H10. *)
+        admit.
+        assumption.
+        (* Now we can terminate! *)
+        exists g; eauto with cps.
+      * exfalso.
+        (* Ok, H6 implies that b and d have different heads, and from H9 and H10
+           we have that they are the same. So we have a contradiction here. *)
+        admit.
+    + exact smol_is_shrinking.
 Admitted.
 
 Theorem adequacy:
