@@ -55,7 +55,7 @@ Inductive cbn: relation term :=
 
 Local Hint Constructors cbn: cps.
 
-Goal
+Lemma full_characterization:
   same_relation full (compatible cbn).
 Proof.
   split; induction 1.
@@ -476,6 +476,40 @@ Proof.
   admit.
 Admitted.
 
+Lemma cbn_simulates_cbn:
+  forall e f,
+  cbn e f ->
+  forall b c,
+  cbn_cps e b ->
+  cbn_cps f c ->
+  [b =>* c].
+Proof.
+  induction 1; intros.
+  - rename b into e, b0 into b.
+    now apply cbn_simulates_beta with t e x.
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (c0 = c); eauto 2 with cps.
+    clear H0_0 H1_0; subst.
+    apply cbn_cps_lift_inversion in H0_ as (c1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_ as (c2, ?, ?).
+    specialize IHcbn with c1 c2; subst.
+    apply star_bind_left.
+    apply star_lift.
+    now apply IHcbn.
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (b0 = b); eauto 2 with cps.
+    clear H0_ H1_; subst.
+    apply cbn_cps_lift_inversion in H0_0 as (b1, ?, ?).
+    apply cbn_cps_lift_inversion in H1_0 as (b2, ?, ?).
+    specialize IHcbn with b1 b2; subst.
+    apply star_bind_right.
+    apply star_bind_right.
+    apply star_lift.
+    now apply IHcbn.
+Qed.
+
 Lemma cbn_simulation:
   forall e f,
   full e f ->
@@ -484,43 +518,39 @@ Lemma cbn_simulation:
   cbn_cps f c ->
   [b =>* c].
 Proof.
-  induction 1; intros.
-  (* Case: full_beta. *)
-  - eapply cbn_simulates_beta.
-    + eassumption.
-    + assumption.
-  (* Case: full_abs. *)
+  intros until 1.
+  apply full_characterization in H.
+  induction H; intros.
+  - now apply cbn_simulates_cbn with e f.
   - dependent destruction H0.
     dependent destruction H1.
     apply cbn_cps_lift_inversion in H0 as (c1, ?, ?).
     apply cbn_cps_lift_inversion in H1 as (c2, ?, ?).
-    specialize IHfull with c1 c2; subst.
+    specialize IHcompatible with c1 c2; subst.
     apply star_bind_right.
     apply star_lift.
-    now apply IHfull.
-  (* Case: full_app1. *)
+    now apply IHcompatible.
   - dependent destruction H0.
     dependent destruction H1.
     assert (c0 = c); eauto 2 with cps.
     clear H0_0 H1_0; subst.
     apply cbn_cps_lift_inversion in H0_ as (c1, ?, ?).
     apply cbn_cps_lift_inversion in H1_ as (c2, ?, ?).
-    specialize IHfull with c1 c2; subst.
+    specialize IHcompatible with c1 c2; subst.
     apply star_bind_left.
     apply star_lift.
-    now apply IHfull.
-  (* Case: full_app2. *)
+    now apply IHcompatible.
   - dependent destruction H0.
     dependent destruction H1.
     assert (b0 = b); eauto 2 with cps.
     clear H0_ H1_; subst.
     apply cbn_cps_lift_inversion in H0_0 as (b1, ?, ?).
     apply cbn_cps_lift_inversion in H1_0 as (b2, ?, ?).
-    specialize IHfull with b1 b2; subst.
+    specialize IHcompatible with b1 b2; subst.
     apply star_bind_right.
     apply star_bind_right.
     apply star_lift.
-    now apply IHfull.
+    now apply IHcompatible.
 Qed.
 
 Lemma termination_nonvalue:
