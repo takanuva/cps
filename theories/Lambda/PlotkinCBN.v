@@ -1017,8 +1017,7 @@ Proof.
     + eauto with cps.
     + inversion 1.
   - dependent destruction H0.
-    apply cbn_cps_lift_inversion in H0.
-    destruct H0; subst; rename x0 into b.
+    apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
     admit.
 Admitted.
 

@@ -1121,6 +1121,41 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma lambda_sn_implies_beta_normal_form:
+  forall e,
+  SN full e ->
+  forall b,
+  cbv_cps e b -> WN beta b.
+Proof.
+  induction 1 using SN_ind; intros.
+  destruct x.
+  - clear H2.
+    dependent destruction H0.
+    eexists.
+    + eauto with cps.
+    + inversion 1.
+  - dependent destruction H0.
+    apply cbv_cps_lift_inversion in H0 as (c, ?, ?); subst.
+    admit.
+Admitted.
+
+Theorem preservation_of_strong_normalization:
+  forall e,
+  SN full e ->
+  forall b,
+  cbv_cps e b -> SN step b.
+Proof.
+  intros.
+  apply SN_subset with (union beta smol).
+  - apply step_characterization.
+  - apply shrinking_preserves_strong_normalization.
+    + apply smol_is_shrinking.
+    + apply uniform_normalization.
+      apply lambda_sn_implies_beta_normal_form with e; auto.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Fixpoint cbv_type (t: type): pseudoterm :=
   match t with
   | base =>
