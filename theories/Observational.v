@@ -35,6 +35,9 @@ Definition weakly_converges a n: Prop :=
 
 Global Hint Unfold weakly_converges: cps.
 
+Notation cps_terminates c :=
+  (exists k, weakly_converges c k).
+
 Lemma convergence_is_unique:
   forall e n,
   converges e n ->
@@ -511,6 +514,30 @@ Proof.
     induction H; eauto with cps.
 Qed.
 
+(* -------------------------------------------------------------------------- *)
+
+Lemma cps_terminates_implies_sn_head:
+  forall b,
+  cps_terminates b -> SN head b.
+Proof.
+  intros.
+  destruct H as (k, ?).
+  apply weak_convergence_characterization in H.
+  destruct H as (c, ?, ?).
+  apply clos_rt_rt1n_iff in H.
+  induction H.
+  - constructor; intros.
+    exfalso.
+    apply convergence_implies_head_normal_form in H0.
+    firstorder.
+  - constructor; intros w ?.
+    assert (w = y).
+    + eapply head_is_a_function; eauto.
+    + subst.
+      apply IHclos_refl_trans_1n.
+      assumption.
+Qed.
+
 (** ** Barbed relations *)
 
 Notation barb := (barbed_congruence head converges apply_context).
@@ -717,6 +744,19 @@ Proof.
     + apply weak_convergence_characterization in H2.
       destruct H1; auto.
       exists x; auto with cps.
+Qed.
+
+Lemma cps_terminates_barb:
+  forall b,
+  cps_terminates b ->
+  forall c,
+  [b ~~ c] ->
+  cps_terminates c.
+Proof.
+  intros.
+  destruct H as (k, ?).
+  exists k.
+  now apply barb_weak_convergence with b.
 Qed.
 
 (* -------------------------------------------------------------------------- *)

@@ -616,55 +616,6 @@ Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
-(* TODO: move this! *)
-
-Notation cps_terminates c :=
-  (exists k, weakly_converges c k).
-
-Lemma cps_terminates_implies_sn_head:
-  forall b,
-  cps_terminates b -> SN head b.
-Proof.
-  intros.
-  destruct H as (k, ?).
-  apply weak_convergence_characterization in H.
-  destruct H as (c, ?, ?).
-  apply clos_rt_rt1n_iff in H.
-  induction H.
-  - constructor; intros.
-    exfalso.
-    apply convergence_implies_head_normal_form in H0.
-    firstorder.
-  - constructor; intros w ?.
-    assert (w = y).
-    + eapply head_is_a_function; eauto.
-    + subst.
-      apply IHclos_refl_trans_1n.
-      assumption.
-Qed.
-
-Lemma cps_terminates_barb:
-  forall b,
-  cps_terminates b ->
-  forall c,
-  [b ~~ c] ->
-  cps_terminates c.
-Proof.
-  intros.
-  destruct H as (k, (b', ?, ?)).
-  assert [b' ~~ c].
-  - eapply barb_trans.
-    + apply barb_sym.
-      apply barb_conv.
-      apply conv_star.
-      eassumption.
-    + assumption.
-  - destruct barb_weak_convergence with b' c k; auto.
-    destruct H3; eauto with cps.
-Qed.
-
-(* --------------------------- *)
-
 Definition cbn_terminates (e: term): Prop :=
   exists2 v,
   value v & rt(cbn) e v.
