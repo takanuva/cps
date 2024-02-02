@@ -935,6 +935,22 @@ Proof.
       assumption.
 Qed.
 
+Lemma normal_form_preservation:
+  forall e,
+  normal (compatible cbv) e ->
+  forall c,
+  cbv_cps e c ->
+  SN step c.
+Proof.
+  intros.
+  apply SN_subset with (union beta smol).
+  - apply step_characterization.
+  - apply shrinking_preserves_strong_normalization.
+    + exact smol_is_shrinking.
+    + apply uniform_normalization.
+      admit.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 Fixpoint cbv_type (t: type): pseudoterm :=
