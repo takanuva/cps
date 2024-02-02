@@ -55,6 +55,23 @@ Inductive cbn: relation term :=
 
 Local Hint Constructors cbn: cps.
 
+Goal
+  same_relation full (compatible cbn).
+Proof.
+  split; induction 1.
+  - do 2 constructor.
+  - now constructor 2.
+  - now constructor 3.
+  - now constructor 4.
+  - induction H.
+    + constructor.
+    + now constructor 3.
+    + now constructor 4.
+  - now constructor 2.
+  - now constructor 3.
+  - now constructor 4.
+Qed.
+
 Lemma full_cbn:
   inclusion cbn full.
 Proof.

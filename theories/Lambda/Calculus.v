@@ -560,6 +560,25 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Inductive compatible (R: relation term): relation term :=
+  | compatible_step:
+    forall e f,
+    R e f -> compatible R e f
+  | compatible_abs:
+    forall t b1 b2,
+    compatible R b1 b2 ->
+    compatible R (abstraction t b1) (abstraction t b2)
+  | compatible_app1:
+    forall f1 f2 x,
+    compatible R f1 f2 ->
+    compatible R (application f1 x) (application f2 x)
+  | compatible_app2:
+    forall f x1 x2,
+    compatible R x1 x2 ->
+    compatible R (application f x1) (application f x2).
+
+(* -------------------------------------------------------------------------- *)
+
 Definition env: Set :=
   list type.
 
