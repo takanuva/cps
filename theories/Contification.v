@@ -28,7 +28,7 @@ Require Import Local.Observational.
 *)
 
 Definition CONTI (R: relation pseudoterm): Prop :=
-  forall h n (ts us: list pseudoterm) (b c: pseudoterm),
+  forall h n (ts us: list pseudoterm) (b1 b2 c: pseudoterm),
   not_free_context 0 h ->
   drop n ts us ->
   (* Of course this definition is still wrong. *)
@@ -42,14 +42,23 @@ Inductive cont: relation pseudoterm :=
   | cont_bind_right:
     RIGHT cont.
 
-Lemma sema_cont:
-  inclusion cont sema.
+Lemma conv_cont:
+  inclusion cont conv.
 Proof.
   induction 1.
   - admit.
-  - now apply sema_bind_left.
-  - now apply sema_bind_right.
+  - now apply conv_bind_left.
+  - now apply conv_bind_right.
 Admitted.
+
+Lemma sema_cont:
+  inclusion cont sema.
+Proof.
+  intros b c ?.
+  apply sema_conv.
+  apply conv_cont.
+  assumption.
+Qed.
 
 Lemma barb_cont:
   inclusion cont barb.
@@ -68,21 +77,21 @@ Theorem contification_is_sound:
 Proof.
   intros.
   apply barb_cont in H.
+  (* TODO: rewrite this, as this fact should be stated somewhere. *)
   assert [h b ~~ h c].
-  - (* TODO: should we turn this into a lemma? *)
-    induction h; simpl.
+  - induction h; simpl.
     + assumption.
     + now apply barb_bind_left.
     + now apply barb_bind_right.
   - split; intros.
     + apply big_implies_head_evaluation in H1 as (k, ?).
       apply weak_convergence_characterization in H1.
-      apply head_evaluation_implies_big with k.
+      apply machine_correctness; exists k.
       apply weak_convergence_characterization.
       now apply barb_weak_convergence with (h b).
     + apply big_implies_head_evaluation in H1 as (k, ?).
       apply weak_convergence_characterization in H1.
-      apply head_evaluation_implies_big with k.
+      apply machine_correctness; exists k.
       apply weak_convergence_characterization.
       now apply barb_weak_convergence with (h c).
 Qed.

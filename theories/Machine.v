@@ -1201,3 +1201,20 @@ Lemma big_implies_head_evaluation:
 Proof.
   admit.
 Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+Theorem machine_correctness:
+  forall c,
+  big (c, []) <-> (exists n, eval c n).
+Proof.
+  split; intros.
+  - now apply big_implies_head_evaluation.
+  - destruct H as (n, ?).
+    now apply head_evaluation_implies_big with n.
+Qed.
+
+Definition machine_equiv: relation pseudoterm :=
+  fun b c =>
+    forall h: context,
+    big (h b, []) <-> big (h c, []).
