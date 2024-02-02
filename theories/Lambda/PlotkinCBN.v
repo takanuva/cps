@@ -729,10 +729,8 @@ Proof.
     subst; assumption.
   - dependent destruction H2.
     dependent destruction H3.
-    apply cbn_cps_lift_inversion in H2.
-    apply cbn_cps_lift_inversion in H3.
-    destruct H2 as (d1, ?, ?).
-    destruct H3 as (d2, ?, ?).
+    apply cbn_cps_lift_inversion in H2 as (d1, ?, ?).
+    apply cbn_cps_lift_inversion in H3 as (d2, ?, ?).
     subst.
     apply barb_bind_right.
     apply barb_lift.
@@ -741,10 +739,8 @@ Proof.
     dependent destruction H3.
     assert (c0 = c); eauto 2 with cps.
     subst; clear H2_0 H3_0.
-    apply cbn_cps_lift_inversion in H2_.
-    apply cbn_cps_lift_inversion in H3_.
-    destruct H2_ as (d1, ?, ?).
-    destruct H3_ as (d2, ?, ?).
+    apply cbn_cps_lift_inversion in H2_ as (d1, ?, ?).
+    apply cbn_cps_lift_inversion in H3_ as (d2, ?, ?).
     subst.
     apply barb_bind_left.
     apply barb_lift.
@@ -753,10 +749,8 @@ Proof.
     dependent destruction H3.
     assert (b0 = b); eauto 2 with cps.
     subst; clear H2_ H3_.
-    apply cbn_cps_lift_inversion in H2_0.
-    apply cbn_cps_lift_inversion in H3_0.
-    destruct H2_0 as (d1, ?, ?).
-    destruct H3_0 as (d2, ?, ?).
+    apply cbn_cps_lift_inversion in H2_0 as (d1, ?, ?).
+    apply cbn_cps_lift_inversion in H3_0 as (d2, ?, ?).
     subst.
     apply barb_bind_right.
     apply barb_bind_right.

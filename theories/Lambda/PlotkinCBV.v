@@ -1036,6 +1036,55 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Lemma cbv_cps_is_compositional:
+  forall b1 b2 e1 e2,
+  cbv_cps e1 b1 ->
+  cbv_cps e2 b2 ->
+  [b1 ~~ b2] ->
+  forall (h: context) c1 c2,
+  cbv_cps (h e1) c1 ->
+  cbv_cps (h e2) c2 ->
+  [c1 ~~ c2].
+Proof.
+  induction h; simpl; intros.
+  - assert (b1 = c1); eauto 2 with cps.
+    assert (b2 = c2); eauto 2 with cps.
+    subst; assumption.
+  - dependent destruction H2.
+    dependent destruction H3.
+    apply cbv_cps_lift_inversion in H2 as (d1, ?, ?).
+    apply cbv_cps_lift_inversion in H3 as (d2, ?, ?).
+    subst.
+    apply barb_bind_right.
+    apply barb_lift.
+    apply IHh; auto.
+  - dependent destruction H2.
+    dependent destruction H3.
+    assert (c0 = c); eauto 2 with cps.
+    subst; clear H2_0 H3_0.
+    apply cbv_cps_lift_inversion in H2_ as (d1, ?, ?).
+    apply cbv_cps_lift_inversion in H3_ as (d2, ?, ?).
+    subst.
+    apply barb_bind_left.
+    apply barb_lift.
+    apply IHh; auto.
+  - dependent destruction H2.
+    dependent destruction H3.
+    assert (b0 = b); eauto 2 with cps.
+    subst; clear H2_ H3_.
+    apply cbv_cps_lift_inversion in H2_0 as (d1, ?, ?).
+    apply cbv_cps_lift_inversion in H3_0 as (d2, ?, ?).
+    subst.
+    apply barb_bind_right.
+    apply barb_bind_left.
+    apply barb_lift.
+    apply IHh; auto.
+Qed.
+
+Local Hint Resolve cbv_cps_is_compositional: cps.
+
+(* -------------------------------------------------------------------------- *)
+
 Fixpoint cbv_type (t: type): pseudoterm :=
   match t with
   | base =>
