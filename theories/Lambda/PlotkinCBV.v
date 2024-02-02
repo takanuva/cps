@@ -552,14 +552,50 @@ Qed.
 
 Lemma cbv_simulation:
   forall e f,
-  full e f ->
+  compatible cbv e f ->
   forall b c,
   cbv_cps e b ->
   cbv_cps f c ->
   rt(R) b c.
 Proof.
-  admit.
-Admitted.
+  induction 1; intros.
+  - now apply cbv_simulates_cbv with e f.
+  - dependent destruction H0.
+    dependent destruction H1.
+    apply cbv_cps_lift_inversion in H0.
+    destruct H0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H1.
+    destruct H1 as (c2, ?, ?).
+    specialize (IHcompatible c1 c2); subst.
+    apply rt_R_bind_right.
+    apply rt_R_lift.
+    firstorder.
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (c0 = c) by eauto with cps.
+    clear H1_0; subst.
+    apply cbv_cps_lift_inversion in H0_.
+    destruct H0_ as (b1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_.
+    destruct H1_ as (b2, ?, ?).
+    specialize (IHcompatible b1 b2); subst.
+    apply rt_R_bind_left.
+    apply rt_R_lift.
+    firstorder.
+  - dependent destruction H0.
+    dependent destruction H1.
+    assert (b0 = b) by eauto with cps.
+    clear H0_; subst.
+    apply cbv_cps_lift_inversion in H0_0.
+    destruct H0_0 as (c1, ?, ?).
+    apply cbv_cps_lift_inversion in H1_0.
+    destruct H1_0 as (c2, ?, ?).
+    specialize (IHcompatible c1 c2); subst.
+    apply rt_R_bind_right.
+    apply rt_R_bind_left.
+    apply rt_R_lift.
+    firstorder.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
