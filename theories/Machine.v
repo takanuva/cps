@@ -1255,39 +1255,29 @@ Proof.
   now simpl in H.
 Qed.
 
-Lemma machine_equiv_is_reduction_closed:
-  reduction_closed head machine_equiv.
+Lemma machine_equiv_preserves_observational_equivalence:
+  forall b c,
+  machine_equiv b c ->
+  forall h,
+  observational_equivalence head converges (h b) (h c).
 Proof.
   admit.
 Admitted.
-
-Lemma machine_equiv_is_barb_preserving:
-  barb_preserving head converges machine_equiv.
-Proof.
-  admit.
-Admitted.
-
-Lemma machine_equiv_is_a_barbed_simulation:
-  barbed_simulation head converges machine_equiv.
-Proof.
-  split.
-  - apply machine_equiv_is_reduction_closed.
-  - apply machine_equiv_is_barb_preserving.
-Qed.
 
 Theorem machine_equiv_characterization:
   same_relation machine_equiv barb.
 Proof.
   split; intros b c ?.
   - intros h.
-    exists machine_equiv.
-    + clear H h b c.
-      apply symmetric_barbed_simulation_is_bisimulation.
-      * exact machine_equiv_is_a_barbed_simulation.
-      * exact machine_equiv_sym.
-    + intros r.
-      specialize (H (compose_context r h)).
-      now do 2 rewrite compose_context_is_sound in H.
+    exists (observational_equivalence head converges).
+    + apply observational_equivalence_is_a_barbed_bisimulation.
+      * (* Clearly, as head is deterministic! *)
+        admit.
+      * clear H h b c.
+        intros b c ? k ?.
+        (* Well, if b converges, then b = c and we're done. *)
+        admit.
+    + now apply machine_equiv_preserves_observational_equivalence.
   - intros h; split; intros.
     + apply machine_correctness in H0 as (k, ?).
       apply weak_convergence_characterization in H0.
