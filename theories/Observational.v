@@ -817,6 +817,7 @@ Proof.
     by auto.
   apply head_longjmp; auto with cps.
 Qed.
+
 Lemma omega_diverges:
   diverges omega.
 Proof.
@@ -890,6 +891,8 @@ Lemma diverges_lift:
   forall i k,
   diverges (lift i k b).
 Proof.
+  intros b ? i k ?.
+  apply H; clear H.
   admit.
 Admitted.
 
@@ -899,6 +902,8 @@ Lemma diverges_subst:
   forall y k,
   diverges (subst y k b).
 Proof.
+  intros b ? y k ?.
+  apply H; clear H.
   admit.
 Admitted.
 
@@ -925,8 +930,36 @@ Lemma diverges_static_context:
   diverges b -> diverges (h b).
 Proof.
   intros h ? b ? ?.
-  apply H0; auto.
-  admit.
+  apply H0; clear H0.
+  (* Clearly, when h b reduces, this will happen either in b alone, which we can
+     reproduce, or it will something from h (or, of course, it will halt at the
+     same point as b itself exactly). This means that the reduction path for b
+     will be exactly a prefix of the path for h b. As h b terminates, we will
+     follow by induction on the reduction length for head reduction. *)
+  assert (SN head (h b)) by now apply cps_terminates_implies_sn_head.
+  remember (h b) as x.
+  generalize dependent b.
+  induction H0 using SN_ind; intros; subst.
+  (* Do we still have a head redex in b alone? *)
+  destruct head_is_decidable with b as [ ?H | (c, ?H) ].
+  - (* If we don't, and since h b doesn't get stuck, this means that b alone
+       isn't stuck either, and it has to converge to some continuation. We have
+       now to properly find which one it is. *)
+    clear H2 H0.
+    (* We can remember, of course, that divergence is a syntactic property and
+       is thus decidable. Either b converges to some k, or it doesn't converge
+       at all, which is an absurd. *)
+    admit.
+  - (* If we have a head redex in b, we'll reduce the same redex at h b, and we
+       can keep going by the inductive hypothesis. *)
+    destruct H2 with (h c) c as (k, (c', ?, ?)).
+    + apply t_step.
+      now apply head_static_context.
+    + assert [h b ~~ h c] by admit.
+      now apply cps_terminates_barb with (h b).
+    + reflexivity.
+    + exists k, c'; auto.
+      apply star_trans with c; auto with cps.
 Admitted.
 
 (* From Merro's paper, proposition 5.1.(3). *)
@@ -975,7 +1008,8 @@ Proof.
     + (* Well, this is obviously the case, since it is deterministic. Didn't add
        this proof yet though... *)
       admit.
-    + (* TODO: move to a proper lemma? *)
+    + (* TODO: move to a proper lemma? We *do* use this in the machine semantics
+         file in order to show equivalence of observational equalities... *)
       clear H H0 b c h.
       intros b c ? k ?.
       eauto with cps.

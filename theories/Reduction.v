@@ -1001,6 +1001,20 @@ Qed.
 
 Global Hint Resolve head_bind_left: cps.
 
+Lemma head_static_context:
+  forall h,
+  static h ->
+  forall b c,
+  head b c -> head (h b) (h c).
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - apply head_bind_left.
+    now apply IHstatic.
+Qed.
+
+Global Hint Resolve head_static_context: cps.
+
 Lemma rt_head_bind_left:
   LEFT rt(head).
 Proof.
@@ -1008,6 +1022,17 @@ Proof.
 Qed.
 
 Global Hint Resolve rt_head_bind_left: cps.
+
+Lemma rt_head_static_context:
+  forall h,
+  static h ->
+  forall b c,
+  rt(head) b c -> rt(head) (h b) (h c).
+Proof.
+  induction 2; eauto with cps.
+Qed.
+
+Global Hint Resolve rt_head_static_context: cps.
 
 Lemma head_recjmp:
   RECJMP head.
