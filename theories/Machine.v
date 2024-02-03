@@ -1255,11 +1255,25 @@ Proof.
   now simpl in H.
 Qed.
 
-Lemma machine_equiv_is_a_barbed_simulation:
-  barbed_simulation head converges machine_equiv.
+Lemma machine_equiv_is_reduction_closed:
+  reduction_closed head machine_equiv.
 Proof.
   admit.
 Admitted.
+
+Lemma machine_equiv_is_barb_preserving:
+  barb_preserving head converges machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_is_a_barbed_simulation:
+  barbed_simulation head converges machine_equiv.
+Proof.
+  split.
+  - apply machine_equiv_is_reduction_closed.
+  - apply machine_equiv_is_barb_preserving.
+Qed.
 
 Theorem machine_equiv_characterization:
   same_relation machine_equiv barb.
