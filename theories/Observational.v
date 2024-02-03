@@ -711,14 +711,47 @@ Admitted.
 
 Global Hint Resolve barb_sema: cps.
 
+Corollary barb_head:
+  forall a b,
+  head a b -> [a ~~ b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve barb_head: cps.
+
+Corollary barb_beta:
+  forall a b,
+  beta a b -> [a ~~ b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve barb_beta: cps.
+
+Corollary barb_step:
+  forall a b,
+  [a => b] -> [a ~~ b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve barb_step: cps.
+
+Corollary barb_star:
+  forall a b,
+  [a =>* b] -> [a ~~ b].
+Proof.
+  auto with cps.
+Qed.
+
+Global Hint Resolve barb_star: cps.
+
 Corollary barb_conv:
   forall a b,
   [a <=> b] -> [a ~~ b].
 Proof.
-  intros.
-  apply barb_sema.
-  apply sema_conv.
-  assumption.
+  eauto with cps.
 Qed.
 
 Global Hint Resolve barb_conv: cps.
@@ -766,7 +799,31 @@ Qed.
    equivalent. *)
 
 Definition diverges (c: pseudoterm): Prop :=
-  ~WN head c.
+  ~cps_terminates c.
+
+Lemma diverges_step:
+  forall c,
+  diverges c ->
+  forall b,
+  step b c -> diverges b.
+Proof.
+  intros c ? b ? ?.
+  apply H; clear H.
+  destruct H1 as (k, ?).
+  apply barb_step in H0.
+  exists k.
+  now apply barb_weak_convergence with b.
+Qed.
+
+Lemma diverges_beta:
+  forall c,
+  diverges c ->
+  forall b,
+  beta b c -> diverges b.
+Proof.
+  intros.
+  apply diverges_step with c; auto with cps.
+Qed.
 
 Lemma diverges_head:
   forall c,
@@ -774,8 +831,9 @@ Lemma diverges_head:
   forall b,
   head b c -> diverges b.
 Proof.
-  admit.
-Admitted.
+  intros.
+  apply diverges_beta with c; auto with cps.
+Qed.
 
 Lemma diverges_rt_head:
   forall c,
