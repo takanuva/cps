@@ -1222,32 +1222,38 @@ Definition machine_equiv: relation pseudoterm :=
 Lemma machine_equiv_refl:
   reflexive machine_equiv.
 Proof.
-  admit.
-Admitted.
+  firstorder.
+Qed.
 
 Lemma machine_equiv_sym:
   symmetric machine_equiv.
 Proof.
-  admit.
-Admitted.
+  firstorder.
+Qed.
 
 Lemma machine_equiv_trans:
   transitive machine_equiv.
 Proof.
-  admit.
-Admitted.
+  firstorder.
+Qed.
 
 Lemma machine_equiv_bind_left:
   LEFT machine_equiv.
 Proof.
-  admit.
-Admitted.
+  intros b1 b2 ts c ? h.
+  specialize (H (compose_context h (context_left context_hole ts c))).
+  do 2 rewrite compose_context_is_sound in H.
+  now simpl in H.
+Qed.
 
 Lemma machine_equiv_bind_right:
-  LEFT machine_equiv.
+  RIGHT machine_equiv.
 Proof.
-  admit.
-Admitted.
+  intros b ts c1 c2 ? h.
+  specialize (H (compose_context h (context_right b ts context_hole))).
+  do 2 rewrite compose_context_is_sound in H.
+  now simpl in H.
+Qed.
 
 Lemma machine_equiv_is_a_barbed_simulation:
   barbed_simulation head converges machine_equiv.
@@ -1274,7 +1280,7 @@ Proof.
       apply machine_correctness; exists k.
       apply weak_convergence_characterization.
       apply barb_weak_convergence with (h b).
-      * (* Huh, clearly. *)
+      * (* Huh, clearly, as barbed congruence is, well, a congruence. *)
         admit.
       * assumption.
     + apply machine_correctness in H0 as (k, ?).
