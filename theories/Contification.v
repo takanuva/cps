@@ -42,23 +42,14 @@ Inductive cont: relation pseudoterm :=
   | cont_bind_right:
     RIGHT cont.
 
-Lemma conv_cont:
-  inclusion cont conv.
-Proof.
-  induction 1.
-  - admit.
-  - now apply conv_bind_left.
-  - now apply conv_bind_right.
-Admitted.
-
 Lemma sema_cont:
   inclusion cont sema.
 Proof.
-  intros b c ?.
-  apply sema_conv.
-  apply conv_cont.
-  assumption.
-Qed.
+  induction 1.
+  - admit.
+  - now apply sema_bind_left.
+  - now apply sema_bind_right.
+Admitted.
 
 Lemma barb_cont:
   inclusion cont barb.
@@ -72,26 +63,9 @@ Qed.
 Theorem contification_is_sound:
   forall b c,
   cont b c ->
-  forall h: context,
-  big (h b, []) <-> big (h c, []).
+  machine_equiv b c.
 Proof.
-  intros.
-  apply barb_cont in H.
-  (* TODO: rewrite this, as this fact should be stated somewhere. *)
-  assert [h b ~~ h c].
-  - induction h; simpl.
-    + assumption.
-    + now apply barb_bind_left.
-    + now apply barb_bind_right.
-  - split; intros.
-    + apply big_implies_head_evaluation in H1 as (k, ?).
-      apply weak_convergence_characterization in H1.
-      apply machine_correctness; exists k.
-      apply weak_convergence_characterization.
-      now apply barb_weak_convergence with (h b).
-    + apply big_implies_head_evaluation in H1 as (k, ?).
-      apply weak_convergence_characterization in H1.
-      apply machine_correctness; exists k.
-      apply weak_convergence_characterization.
-      now apply barb_weak_convergence with (h c).
+  intros b c ?.
+  apply machine_equiv_characterization.
+  now apply barb_cont.
 Qed.

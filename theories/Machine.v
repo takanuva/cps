@@ -1218,3 +1218,71 @@ Definition machine_equiv: relation pseudoterm :=
   fun b c =>
     forall h: context,
     big (h b, []) <-> big (h c, []).
+
+Lemma machine_equiv_refl:
+  reflexive machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_sym:
+  symmetric machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_trans:
+  transitive machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_bind_left:
+  LEFT machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_bind_right:
+  LEFT machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Lemma machine_equiv_is_a_barbed_simulation:
+  barbed_simulation head converges machine_equiv.
+Proof.
+  admit.
+Admitted.
+
+Theorem machine_equiv_characterization:
+  same_relation machine_equiv barb.
+Proof.
+  split; intros b c ?.
+  - intros h.
+    exists machine_equiv.
+    + clear H h b c.
+      apply symmetric_barbed_simulation_is_bisimulation.
+      * exact machine_equiv_is_a_barbed_simulation.
+      * exact machine_equiv_sym.
+    + intros r.
+      specialize (H (compose_context r h)).
+      now do 2 rewrite compose_context_is_sound in H.
+  - intros h; split; intros.
+    + apply machine_correctness in H0 as (k, ?).
+      apply weak_convergence_characterization in H0.
+      apply machine_correctness; exists k.
+      apply weak_convergence_characterization.
+      apply barb_weak_convergence with (h b).
+      * (* Huh, clearly. *)
+        admit.
+      * assumption.
+    + apply machine_correctness in H0 as (k, ?).
+      apply weak_convergence_characterization in H0.
+      apply machine_correctness; exists k.
+      apply weak_convergence_characterization.
+      apply barb_weak_convergence with (h c).
+      * (* Just as above. *)
+        admit.
+      * assumption.
+Admitted.
