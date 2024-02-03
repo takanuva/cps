@@ -801,6 +801,40 @@ Qed.
 Definition diverges (c: pseudoterm): Prop :=
   ~cps_terminates c.
 
+(* The term k<k> { k<k> = k<k> } is akin to the omega combinator in the lambda
+   calculus, i.e., it will have a single redex and will reduce to itself. Thus
+   it will trivially diverge. *)
+
+Definition omega: pseudoterm :=
+  bind (jump 0 [bound 0]) [void] (jump 0 [bound 0]).
+
+Lemma omega_reduces_to_itself:
+  head omega omega.
+Proof.
+  unfold omega at 1.
+  set (b := jump 0 [bound 0]).
+  replace (bind b [void] b) with (context_hole (bind (context_hole b) [void] b))
+    by auto.
+  apply head_longjmp; auto with cps.
+Qed.
+Lemma omega_diverges:
+  diverges omega.
+Proof.
+  intros ?.
+  (* The proof, of course, follows by assuming that it halts and deriving a
+     contradiction. As we're assuming that it terminates, it follows that head
+     reduction will be strongly normalizing. *)
+  apply cps_terminates_implies_sn_head in H.
+  (* We proceed by induction on the reduction length, as we always have a head
+     redex in here: omega reduces to itself. *)
+  remember omega as b.
+  induction H using SN_ind; subst.
+  apply H2 with omega; clear H2.
+  - apply t_step.
+    apply omega_reduces_to_itself.
+  - reflexivity.
+Qed.
+
 Lemma diverges_step:
   forall c,
   diverges c ->
@@ -891,23 +925,8 @@ Lemma diverges_static_context:
   diverges b -> diverges (h b).
 Proof.
   intros h ? b ? ?.
-  destruct H1 as (c, ?, ?).
-  apply clos_rt_rt1n_iff in H1.
-  dependent induction H1.
-  - destruct head_is_decidable with b as [ ? | (c, ?) ].
-    + apply H0.
-      exists b; auto with cps.
-    + apply H2 with (h c).
-      admit.
-  - clear H1.
-    destruct head_is_decidable with b as [ ? | (c, ?) ].
-    + apply H0.
-      exists b; auto with cps.
-    + assert (head (h b) (h c)) by admit.
-      assert (y = h c) by admit; subst.
-      eapply IHclos_refl_trans_1n with (b := c); eauto.
-      (* Of course... *)
-      admit.
+  apply H0; auto.
+  admit.
 Admitted.
 
 (* From Merro's paper, proposition 5.1.(3). *)
