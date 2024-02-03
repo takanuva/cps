@@ -1255,14 +1255,50 @@ Proof.
   now simpl in H.
 Qed.
 
+Lemma machine_semantics_preserves_barb:
+  forall b c,
+  machine_equiv b c ->
+  forall (h: context) k,
+  eval (h b) k ->
+  eval (h c) k.
+Proof.
+  intros.
+  (* Since h b halts, and b is machine equivalent to c, we know that c also has
+     to halt to some continuation. *)
+  assert (exists k, eval (h b) k) by eauto.
+  apply machine_correctness in H1.
+  apply H in H1.
+  apply machine_correctness in H1 as (j, ?).
+  (* Now, we have to show that k has to be the same as j. *)
+  destruct (Nat.eq_dec k j); subst.
+  - (* If they are the same, we are done. *)
+    assumption.
+  - (* If they aren't, we have a contradiction given that b and c should always
+       halt if and only if the other does for every possible context. *)
+    exfalso.
+    (* We have that h b will reduce to some b' such that it halts at a variable
+       k, and h c will reduce to some c' such that it halts at a variable j. *)
+    destruct H0 as (b', ?, ?).
+    destruct H1 as (c', ?, ?).
+    (* However, since k and j are not the same, b' and c' have, respectively,
+       k<xs> and j<ys> at their head positions. We can thus build a context r
+       such that r = [] { k<...> = f<> } { j<...> = O }, by using the right
+       arities for parameters and taking f to be fresh and O to be the looping
+       continuation (omega). We then can check that (r . h) b will still halt,
+       thus we know that (r . h) c should halt as well, but it will loop. *)
+    admit.
+Admitted.
+
 Lemma machine_equiv_preserves_observational_equivalence:
   forall b c,
   machine_equiv b c ->
-  forall h,
+  forall h: context,
   observational_equivalence head converges (h b) (h c).
 Proof.
-  admit.
-Admitted.
+  intros b c ? h k; split; intros.
+  - now apply machine_semantics_preserves_barb with b.
+  - now apply machine_semantics_preserves_barb with c.
+Qed.
 
 Theorem machine_equiv_characterization:
   same_relation machine_equiv barb.
