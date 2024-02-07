@@ -18,7 +18,159 @@ Require Import Local.Conservation.
 (* TODO: will we need this one...? *)
 Require Import Local.Structural.
 Require Import Local.Shrinking.
+(* Require Export Local.Lambda.Calculus. *)
+
+(* -------------------------------------------------------------------------- *)
+(* S K E T C H ! TODO: if correct, move to somewhere else, please. I'm tired. *)
+(* -------------------------------------------------------------------------- *)
+
+Inductive essential: relation pseudoterm :=
+  | essential_headjmp:
+    forall h xs ts c,
+    static h ->
+    length xs = length ts ->
+    essential (bind (h (jump #h xs)) ts c)
+      (bind (h (apply_parameters xs 0 (lift (S #h) (length ts) c))) ts c)
+  | essential_link:
+    forall h xs ts c1 c2,
+    static h ->
+    length xs = length ts ->
+    essential c1 c2 ->
+    essential (bind (h (jump #h xs)) ts c1) (bind (h (jump #h xs)) ts c2)
+  | essential_bind_left:
+    LEFT essential.
+
+Lemma essential_head:
+  inclusion head essential.
+Proof.
+  induction 1.
+  induction H0; simpl.
+  - now constructor.
+  - now apply essential_bind_left.
+Qed.
+
+Inductive essential_subterm: relation pseudoterm :=
+  | essential_subterm_head:
+    forall h xs ts b,
+    static h ->
+    length xs = length ts ->
+    essential_subterm b (bind (h (jump #h xs)) ts b)
+  | essential_subterm_copy:
+    forall h b c ts xs k y,
+    static h ->
+    length xs = length ts ->
+    head b y ->
+    c = apply_parameters xs k (lift (S #h) (length ts) y) ->
+    essential_subterm b (bind (h c) ts b).
+
+Lemma head_lift:
+  forall b c,
+  head b c ->
+  forall i k,
+  head (lift i k b) (lift i k c).
+Proof.
+  admit.
+Admitted.
+
+Lemma head_subst:
+  forall b c,
+  head b c ->
+  forall y k,
+  head (subst y k b) (subst y k c).
+Proof.
+  admit.
+Admitted.
+
+Lemma head_apply_parameters:
+  forall b c,
+  head b c ->
+  forall xs k,
+  head (apply_parameters xs k b) (apply_parameters xs k c).
+Proof.
+  induction xs; simpl; intros.
+  - assumption.
+  - apply head_subst.
+    apply IHxs.
+Qed.
+
+Lemma head_static_context:
+  forall h,
+  static h ->
+  forall b c,
+  head b c ->
+  head (h b) (h c).
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - apply head_bind_left.
+    now apply IHstatic.
+Qed.
+
+Lemma sn_head_essential_subterm:
+  forall b c,
+  essential_subterm b c ->
+  SN head c ->
+  SN head b.
+Proof.
+  intros.
+  (* Since we gotta move an essential subterm b into the head of c, which might
+     do some substitution and unlock some extra steps, we split this into two
+     steps. Notice that due to the nature of substitution, head steps that will
+     happen in b have to happen at c as well, all of them, so b has a subset of
+     head redexes from c, which we can always do by a bisimulation. *)
+  induction H0 using SN_ind.
+  constructor; intros.
+  fold (SN head); unfold transp in H1.
+  destruct H; subst.
+  - (* Step 1: get a smaller reduction length. *)
+    eapply H2.
+    + eapply t_trans.
+      * apply t_step.
+        apply head_longjmp with (r := context_hole) (h := h); auto with cps.
+      * simpl.
+        apply t_step.
+        apply head_bind_left.
+        apply head_static_context; auto.
+        apply head_apply_parameters.
+        apply head_lift.
+        eassumption.
+    + econstructor; eauto.
+    + assumption.
+  - (* Clearly, as head reduction is deterministic although I didn't prove this
+       annoying lemma yet... *)
+    assert (y0 = y) by admit; subst.
+    (* Step 2: keep a bisimulation to show that we'll match a prefix of the now
+       new head. *)
+    clear H2.
+    assert (SN head (apply_parameters xs k (lift (S #h) (length ts) y))).
+    + apply SN_preimage with (fun c => bind (h c) ts b); intros.
+      * apply head_bind_left.
+        now apply head_static_context.
+      * assumption.
+    + apply SN_preimage with (fun c => apply_parameters xs k
+        (lift (S #h) (length ts) c)); intros.
+      * apply head_apply_parameters.
+        now apply head_lift.
+      * assumption.
+Admitted.
+
+Lemma sn_essential_sn_head:
+  forall b,
+  SN head b ->
+  SN essential b.
+Proof.
+  intros.
+  induction H using SN_ind.
+  constructor; intros.
+  fold (SN essential); unfold transp in H0.
+  admit.
+Admitted.
+
 Require Export Local.Lambda.Calculus.
+
+(* -------------------------------------------------------------------------- *)
+(* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- *)
+(* -------------------------------------------------------------------------- *)
 
 Include Lambda.Calculus.
 Module CPS := Local.Syntax.
