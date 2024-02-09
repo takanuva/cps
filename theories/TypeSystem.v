@@ -184,14 +184,14 @@ Admitted.
 
 Local Hint Resolve -> valid_env_insert: cps.
 
-Lemma typing_lift1:
+Lemma typing_lift:
   forall e g t,
   typing g e t ->
-  forall u k,
-  simple u ->
+  forall us k,
+  valid_env us ->
   forall h,
-  insert [u] k g h ->
-  typing h (lift 1 k e) t.
+  insert us k g h ->
+  typing h (lift (length us) k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
   - inversion H.
@@ -202,7 +202,6 @@ Proof.
     destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; try lia.
       constructor; eauto with cps.
-      replace 1 with (length [u]) by auto.
       eapply item_insert_ge; eauto.
     + rewrite lift_bound_lt; try lia.
       constructor; eauto with cps.
@@ -225,7 +224,8 @@ Proof.
   - dependent destruction H0.
     rewrite lift_distributes_over_bind.
     constructor.
-    + replace (negation (traverse_list (lift 1) k ts)) with (negation ts).
+    + replace (negation (traverse_list (lift (length us)) k ts)) with
+        (negation ts).
       * eapply IHe1; eauto.
         now constructor.
       * f_equal.
@@ -234,7 +234,7 @@ Proof.
         dependent destruction H0_.
         dependent destruction H0.
         assumption.
-    + replace (traverse_list (lift 1) k ts) with ts.
+    + replace (traverse_list (lift (length us)) k ts) with ts.
       * eapply IHe2; eauto.
         rewrite Nat.add_comm.
         now apply insert_app.
@@ -249,8 +249,11 @@ Theorem weakening:
   WEAKENING (fun g c => typing g c void).
 Proof.
   intros g c ? t ?.
-  eapply typing_lift1; eauto.
-  constructor.
+  replace 1 with (length [t]) by auto.
+  apply typing_lift with g.
+  - assumption.
+  - auto.
+  - constructor.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
