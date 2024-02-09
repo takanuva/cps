@@ -16,6 +16,7 @@ Require Import Local.Observational.
 (* TODO: are we using this one...? *)
 Require Import Local.Conservation.
 Require Import Local.Shrinking.
+Require Import Local.TypeSystem.
 Require Export Local.Lambda.Calculus.
 
 Module CPS := Local.Syntax.
@@ -1126,3 +1127,68 @@ Proof.
         reflexivity.
     + assumption.
 Qed.
+
+Lemma cbn_type_association:
+  forall t g n,
+  item t g n ->
+  item (CPS.negation [cbn_type t]) (cbn_env g) n.
+Proof.
+  induction 1; simpl; intros.
+  - constructor.
+  - now constructor.
+Qed.
+
+Local Notation DN ts :=
+  (negation [negation ts]).
+
+Theorem type_preservation:
+  forall g e t,
+  typing g e t ->
+  forall c,
+  cbn_cps e c ->
+  TypeSystem.typing (cbn_type t :: cbn_env g) c void.
+Proof.
+  induction 1; simpl; intros.
+  (* Case: bound var. *)
+  - dependent destruction H0.
+    apply cbn_type_association in H.
+    constructor 2 with [cbn_type t].
+    + constructor.
+      * admit.
+      * now constructor.
+    + repeat try constructor.
+      * admit.
+      * admit.
+  (* Case: application. *)
+  - dependent destruction H0.
+    apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
+    constructor; simpl.
+    + econstructor.
+      * constructor.
+        { admit. }
+        { do 2 constructor. }
+      * (* Clearly, but the CPS translation is currently ignoring types... *)
+        admit.
+    + set (u := DN [cbn_type s; negation [cbn_type t]]).
+      eapply typing_lift with (us := [u]).
+      * admit.
+      * admit.
+      * do 2 constructor.
+        replace (u :: cbn_env g) with ([u] ++ cbn_env g) by auto.
+        constructor.
+  - dependent destruction H1.
+    apply cbn_cps_lift_inversion in H1_ as (b', ?, ?); subst.
+    apply cbn_cps_lift_inversion in H1_0 as (c', ?, ?); subst.
+    rename b' into b, c' into c.
+    constructor; simpl.
+    + eapply typing_lift with (us := [cbn_type s]).
+      * now apply IHtyping1.
+      * admit.
+      * admit.
+    + constructor; simpl.
+      * admit.
+      * eapply typing_lift with (us := [_; _]).
+        { now apply IHtyping2. }
+        { admit. }
+        { admit. }
+Admitted.
