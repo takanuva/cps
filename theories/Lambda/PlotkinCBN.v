@@ -1139,81 +1139,120 @@ Proof.
   - now constructor.
 Qed.
 
-Local Notation DN ts :=
-  (negation [negation ts]).
-
-Theorem cbn_type_preservation:
-  forall g e t,
-  typing g e t ->
-  forall c,
-  cbn_cps e c ->
-  TypeSystem.typing (cbn_type t :: cbn_env g) c void.
+Lemma simple_cbn_type:
+  forall t,
+  simple (cbn_type t).
 Proof.
-  induction 1; simpl; intros.
-  (* Case: bound var. *)
-  - dependent destruction H0.
-    apply cbn_type_association in H.
-    constructor 2 with [cbn_type t].
-    + constructor.
-      * admit.
-      * now constructor.
-    + repeat try constructor.
-      * admit.
-      * admit.
-  (* Case: application. *)
-  - dependent destruction H0.
-    apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
-    constructor; simpl.
-    + econstructor.
-      * constructor.
-        { admit. }
-        { do 2 constructor. }
-      * (* Clearly, but the CPS translation is currently ignoring types... *)
+  induction t; simpl.
+  - repeat constructor.
+  - now repeat constructor.
+Qed.
+
+Global Hint Resolve simple_cbn_type: cps.
+
+Lemma valid_env_cbn_env:
+  forall g,
+  valid_env (cbn_env g).
+Proof.
+  induction g; simpl.
+  - constructor.
+  - repeat constructor; auto with cps.
+Qed.
+
+Global Hint Resolve valid_env_cbn_env: cps.
+
+Section TypePreservation.
+
+  Local Notation N ts :=
+    (negation ts).
+
+  Local Notation DN ts :=
+    (N [N ts]).
+
+  (* To avoid complications while dealing with both untyped and typed terms, as
+     we have defined the CPS translation as a function into terms without the
+     proper type annotations, we will simply assume that a term that is untyped,
+     i.e., in which the binders are marked with void instead of a proper type,
+     can be typed if we add the type annotations required. TODO: how could we
+     properly fix this...? *)
+
+  Hypothesis ignore_void_typing:
+    forall g b ts c,
+    TypeSystem.typing g (bind b ts c) void ->
+    TypeSystem.typing g (bind b (repeat void (length ts)) c) void.
+
+  Theorem cbn_type_preservation:
+    forall g e t,
+    typing g e t ->
+    forall c,
+    cbn_cps e c ->
+    TypeSystem.typing (cbn_type t :: cbn_env g) c void.
+  Proof.
+    induction 1; simpl; intros.
+    (* Case: bound var. *)
+    - dependent destruction H0.
+      apply cbn_type_association in H.
+      constructor 2 with [cbn_type t].
+      + constructor.
+        * auto with cps.
+        * now constructor.
+      + do 2 constructor; auto with cps.
+    (* Case: abstraction. *)
+    - dependent destruction H0.
+      apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
+      apply ignore_void_typing with (ts := [cbn_type s; N [cbn_type t]]).
+      constructor; simpl.
+      + constructor 2 with [N [cbn_type s; N [cbn_type t]]].
+        * repeat constructor; auto with cps.
+        * repeat constructor; auto with cps.
+      + eapply typing_lift with (us := [DN [cbn_type s; N [cbn_type t]]]).
+        * now apply IHtyping.
+        * repeat constructor; auto with cps.
+        * repeat constructor.
+    (* Case: application. *)
+    - dependent destruction H1.
+      apply cbn_cps_lift_inversion in H1_ as (b', ?, ?); subst.
+      apply cbn_cps_lift_inversion in H1_0 as (c', ?, ?); subst.
+      rename b' into b, c' into c.
+      apply ignore_void_typing with (ts := [N [cbn_type s; N [cbn_type t]]]).
+      constructor; simpl.
+      + eapply typing_lift with (us := [cbn_type s]).
+        * now apply IHtyping1.
+        * auto with cps.
+        * repeat constructor.
+      + apply ignore_void_typing with (ts := [cbn_type t]).
+        constructor; simpl.
+        * repeat econstructor; auto with cps.
+        * eapply typing_lift with
+            (us := [N [cbn_type s; N [cbn_type t]]; cbn_type s]).
+          (* TODO: refactor me, will you? *)
+          now apply IHtyping2.
+          repeat constructor; auto with cps.
+          repeat constructor.
+  Qed.
+
+  Corollary cbn_strong_normalization:
+    forall g e t,
+    typing g e t ->
+    SN full e.
+  Proof.
+    intros.
+    assert (exists b, cbn_cps e b) as (b, ?) by eauto with cps.
+    apply cbn_type_preservation with (c := b) in H; auto.
+    apply strong_normalization in H.
+    generalize dependent e.
+    induction H using SN_ind; intros.
+    constructor; intros f ?.
+    assert (exists c, cbn_cps f c) as (c, ?) by eauto with cps.
+    apply H2 with c.
+    - (* TODO: Oops, simulation shouldn't be reflexive! *)
+      assert [x =>* c].
+      * now apply cbn_simulation with e f.
+      * apply rt_characterization in H4.
+        destruct H4; auto.
+        (* Can't happen! *)
         admit.
-    + set (u := DN [cbn_type s; negation [cbn_type t]]).
-      eapply typing_lift with (us := [u]).
-      * admit.
-      * admit.
-      * do 2 constructor.
-        replace (u :: cbn_env g) with ([u] ++ cbn_env g) by auto.
-        constructor.
-  - dependent destruction H1.
-    apply cbn_cps_lift_inversion in H1_ as (b', ?, ?); subst.
-    apply cbn_cps_lift_inversion in H1_0 as (c', ?, ?); subst.
-    rename b' into b, c' into c.
-    constructor; simpl.
-    + eapply typing_lift with (us := [cbn_type s]).
-      * now apply IHtyping1.
-      * admit.
-      * admit.
-    + constructor; simpl.
-      * admit.
-      * eapply typing_lift with (us := [_; _]).
-        { now apply IHtyping2. }
-        { admit. }
-        { admit. }
-Admitted.
+    - assumption.
+  Admitted.
 
-Corollary cbn_strong_normalization:
-  forall g e t,
-  typing g e t ->
-  SN full e.
-Proof.
-  intros.
-  assert (exists b, cbn_cps e b) as (b, ?) by eauto with cps.
-  apply cbn_type_preservation with (c := b) in H; auto.
-  apply strong_normalization in H.
-  generalize dependent e.
-  induction H using SN_ind; intros.
-  constructor; intros f ?.
-  assert (exists c, cbn_cps f c) as (c, ?) by eauto with cps.
-  apply H2 with c.
-  - (* TODO: Oops, simulation shouldn't be reflexive! *)
-    assert [x =>* c].
-    * now apply cbn_simulation with e f.
-    * apply rt_characterization in H4.
-      destruct H4; auto.
-      (* Can't happen! *)
-      admit.
-  - assumption.
-Admitted.
+End TypePreservation.
