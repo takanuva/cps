@@ -18,6 +18,8 @@ Require Import Local.Conservation.
 (* TODO: will we need this one...? *)
 Require Import Local.Structural.
 Require Import Local.Shrinking.
+Require Import Local.TypeSystem.
+Require Import Local.Normalization.
 (* Require Export Local.Lambda.Calculus. *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1318,6 +1320,96 @@ Fixpoint cbv_type (t: type): pseudoterm :=
 
 Definition cbv_env (g: env): list pseudoterm :=
   map (fun t => cbv_type t) g.
+
+Lemma cbv_type_association:
+  forall t g n,
+  item t g n ->
+  item (cbv_type t) (cbv_env g) n.
+Proof.
+  induction 1; simpl; intros.
+  - constructor.
+  - now constructor.
+Qed.
+
+Lemma simple_cbv_type:
+  forall t,
+  simple (cbv_type t).
+Proof.
+  induction t; simpl.
+  - repeat constructor.
+  - now repeat constructor.
+Qed.
+
+Global Hint Resolve simple_cbv_type: cps.
+
+Lemma valid_env_cbv_env:
+  forall g,
+  valid_env (cbv_env g).
+Proof.
+  induction g; simpl.
+  - constructor.
+  - repeat constructor; auto with cps.
+Qed.
+
+Global Hint Resolve valid_env_cbv_env: cps.
+
+Section TypePreservation.
+
+  Local Notation N ts :=
+    (negation ts).
+
+  Local Notation DN ts :=
+    (N [N ts]).
+
+  (* This has the same problem as CBN. In the CPS translation defined above, we
+     simply ignore types as to avoid carrying a context around and to keep it a
+     function, so in here we simply assume that if we don't have the correct
+     types at binders we can still type it anyways. To be fair, this is closer
+     to the Curry-style definition that Thielecke gave in his PhD thesis. TODO:
+     can we find an elegant solution to this? *)
+
+  Hypothesis ignore_void_typing:
+    forall g b ts c,
+    TypeSystem.typing g (bind b ts c) void ->
+    TypeSystem.typing g (bind b (repeat void (length ts)) c) void.
+
+  Theorem cbv_type_preservation:
+    forall g e t,
+    typing g e t ->
+    forall c,
+    cbv_cps e c ->
+    TypeSystem.typing (N [cbv_type t] :: cbv_env g) c void.
+  Proof.
+    admit.
+  Admitted.
+
+  Corollary cbv_strong_normalization:
+    forall g e t,
+    typing g e t ->
+    SN (compatible cbv) e.
+  Proof.
+    intros.
+    (* We could use the strong normalization for CBN to prove this, of course,
+       since the compatible closure of CBV reduction is contained within the
+       full beta reduction. However, we can still do this by using our own type
+       preservation and simulation results. So let's do that. *)
+    assert (exists b, cbv_cps e b) as (b, ?) by eauto with cps.
+    apply cbv_type_preservation with (c := b) in H; auto.
+    (* TODO: fix me! We need to use strong normalization for full reduction
+       modulo the structural equivalence in order to make this go through. *)
+    apply strong_normalization in H.
+    generalize dependent e.
+    induction H using SN_ind; intros.
+    constructor; intros f ?.
+    assert (exists c, cbv_cps f c) as (c, ?) by eauto with cps.
+    apply H2 with c.
+    - (* TODO: fix this once we set the proper relations in the simulation. *)
+      apply cbv_simulation with e f x c in H1; auto.
+      admit.
+    - assumption.
+  Admitted.
+
+End TypePreservation.
 
 (* -------------------------------------------------------------------------- *)
 
