@@ -17,6 +17,7 @@ Require Import Local.Observational.
 Require Import Local.Conservation.
 Require Import Local.Shrinking.
 Require Import Local.TypeSystem.
+Require Import Local.Normalization.
 Require Export Local.Lambda.Calculus.
 
 Module CPS := Local.Syntax.
@@ -216,13 +217,13 @@ Local Notation VAR n :=
   (* [x] = x<k> *)
   (jump (S n) [CPS.bound 0]).
 
-Local Notation ABS b :=
+Local Notation ABS b t1 t2 :=
   (* [\x.e] = k<f> { f<x, k> = [e] } *)
-  (bind (jump 1 [CPS.bound 0]) [void; void] b).
+  (bind (jump 1 [CPS.bound 0]) [t1; t2] b).
 
-Local Notation APP b c :=
+Local Notation APP b c t1 t2 :=
   (* [e f] = [e] { k<f> = f<v, k> { v<k> = [f] } } *)
-  (bind b [void] (bind (jump 1 [CPS.bound 2; CPS.bound 0]) [void] c)).
+  (bind b [t1] (bind (jump 1 [CPS.bound 2; CPS.bound 0]) [t2] c)).
 
 (* TODO: these lifts should be moved from source to target! *)
 
@@ -233,12 +234,12 @@ Inductive cbn_cps: term -> pseudoterm -> Prop :=
   | cbn_cps_abstraction:
     forall t e b,
     cbn_cps (lift 1 1 e) b ->
-    cbn_cps (abstraction t e) (ABS b)
+    cbn_cps (abstraction t e) (ABS b void void)
   | cbn_cps_application:
     forall f x b c,
     cbn_cps (lift 1 0 f) b ->
     cbn_cps (lift 2 0 x) c ->
-    cbn_cps (application f x) (APP b c).
+    cbn_cps (application f x) (APP b c void void).
 
 Local Hint Constructors cbn_cps: cps.
 
@@ -1141,7 +1142,7 @@ Qed.
 Local Notation DN ts :=
   (negation [negation ts]).
 
-Theorem type_preservation:
+Theorem cbn_type_preservation:
   forall g e t,
   typing g e t ->
   forall c,
@@ -1191,4 +1192,28 @@ Proof.
         { now apply IHtyping2. }
         { admit. }
         { admit. }
+Admitted.
+
+Corollary cbn_strong_normalization:
+  forall g e t,
+  typing g e t ->
+  SN full e.
+Proof.
+  intros.
+  assert (exists b, cbn_cps e b) as (b, ?) by eauto with cps.
+  apply cbn_type_preservation with (c := b) in H; auto.
+  apply strong_normalization in H.
+  generalize dependent e.
+  induction H using SN_ind; intros.
+  constructor; intros f ?.
+  assert (exists c, cbn_cps f c) as (c, ?) by eauto with cps.
+  apply H2 with c.
+  - (* TODO: Oops, simulation shouldn't be reflexive! *)
+    assert [x =>* c].
+    * now apply cbn_simulation with e f.
+    * apply rt_characterization in H4.
+      destruct H4; auto.
+      (* Can't happen! *)
+      admit.
+  - assumption.
 Admitted.
