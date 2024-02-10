@@ -1196,7 +1196,7 @@ Section TypePreservation.
       + constructor.
         * auto with cps.
         * now constructor.
-      + do 2 constructor; auto with cps.
+      + repeat constructor; auto with cps.
     (* Case: abstraction. *)
     - dependent destruction H0.
       apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.

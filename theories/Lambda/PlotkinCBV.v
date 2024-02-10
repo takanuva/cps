@@ -1380,8 +1380,48 @@ Section TypePreservation.
     cbv_cps e c ->
     TypeSystem.typing (N [cbv_type t] :: cbv_env g) c void.
   Proof.
-    admit.
-  Admitted.
+    induction 1; simpl; intros.
+    (* Case: bound var. *)
+    - dependent destruction H0.
+      apply cbv_type_association in H.
+      constructor 2 with [cbv_type t].
+      + constructor.
+        * repeat constructor; auto with cps.
+        * now constructor.
+      + repeat constructor; auto with cps.
+    (* Case: abstraction. *)
+    - dependent destruction H0.
+      apply cbv_cps_lift_inversion in H0 as (c, ?, ?); subst.
+      apply ignore_void_typing with (ts := [N [cbv_type s]; cbv_type t]).
+      constructor; simpl.
+      + constructor 2 with [N [N [cbv_type s]; cbv_type t]].
+        * repeat constructor; auto with cps.
+        * repeat constructor; auto with cps.
+      + eapply typing_lift with (us := [DN [N [cbv_type s]; cbv_type t]]).
+        * now apply IHtyping.
+        * repeat constructor; auto with cps.
+        * repeat constructor.
+    (* Case: application. *)
+    - dependent destruction H1.
+      apply cbv_cps_lift_inversion in H1_ as (b', ?, ?); subst.
+      apply cbv_cps_lift_inversion in H1_0 as (c', ?, ?); subst.
+      rename b' into b, c' into c.
+      apply ignore_void_typing with (ts := [N [N [cbv_type s]; cbv_type t]]).
+      constructor; simpl.
+      + eapply typing_lift with (us := [N [cbv_type s]]).
+        * now apply IHtyping1.
+        * repeat constructor; auto with cps.
+        * repeat constructor.
+      + eapply ignore_void_typing with (ts := [cbv_type t]).
+        constructor; simpl.
+        * eapply typing_lift with
+            (us := [N [N [cbv_type s]; cbv_type t]; N [cbv_type s]]).
+          (* TODO: refactor me, will you? *)
+          now apply IHtyping2.
+          repeat constructor; auto with cps.
+          repeat constructor.
+        * repeat econstructor; eauto with cps.
+  Qed.
 
   Corollary cbv_strong_normalization:
     forall g e t,
