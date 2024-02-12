@@ -179,8 +179,23 @@ Lemma valid_env_insert:
   insert ts n g h ->
   valid_env g <-> valid_env h.
 Proof.
-  admit.
-Admitted.
+  induction 2; split; intros.
+  - apply Forall_app.
+    now split.
+  - clear H.
+    induction ts; simpl in H0.
+    + assumption.
+    + dependent destruction H0.
+      now apply IHts.
+  - dependent destruction H1.
+    constructor.
+    + assumption.
+    + now apply IHinsert.
+  - dependent destruction H1.
+    constructor.
+    + assumption.
+    + now apply IHinsert.
+Qed.
 
 Local Hint Resolve -> valid_env_insert: cps.
 
