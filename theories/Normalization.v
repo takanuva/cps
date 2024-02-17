@@ -13,6 +13,7 @@ Require Import Local.Context.
 Require Import Local.AbstractRewriting.
 Require Import Local.Equational.
 Require Import Local.Reduction.
+Require Import Local.Observational.
 Require Import Local.TypeSystem.
 Require Import Local.Conservation.
 Require Import Local.Structural.
@@ -794,5 +795,13 @@ Proof.
   - apply strong_normalization with [].
     assumption.
   - (* It is closed, so it can't be normalizable! *)
-    admit.
+    induction H0 using SN_ind.
+    destruct progress with (@nil pseudoterm) x as [ (k, ?) | (y, ?) ]; auto.
+    + (* Can't converge if it's closed, right? *)
+      clear H0 H2.
+      admit.
+    + (* By progress, there's a step. *)
+      apply H2 with y.
+      * auto with cps.
+      * apply subject_reduction with x; auto with cps.
 Admitted.
