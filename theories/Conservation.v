@@ -259,23 +259,32 @@ Proof.
     apply H2 with e; eauto with cps.
 Admitted.
 
+Lemma sn_beta_backwards_step:
+  forall b c,
+  beta b c ->
+  SN beta c -> SN beta b.
+Proof.
+  intros.
+  apply beta_and_parallel_SN_coincide in H0.
+  apply beta_and_parallel_SN_coincide.
+  apply backwards_parallel_preservation with c.
+  - assumption.
+  - auto with cps.
+Qed.
+
 Theorem uniform_normalization:
   forall b,
   WN beta b <-> SN beta b.
 Proof.
   split; intros.
   (* Case: WN implies SN. *)
-  - apply beta_and_parallel_SN_coincide.
-    destruct H as (c, ?, ?).
+  - destruct H as (c, ?, ?).
     apply clos_rt_rt1n_iff in H.
     induction H.
     + constructor; intros.
       exfalso.
-      (* As we have a parallel step, we gotta have at least one regular step. *)
-      apply t_beta_parallel in H.
-      apply clos_trans_t1n_iff in H.
-      destruct H; firstorder.
-    + apply backwards_parallel_preservation with y; auto with cps.
+      now apply H0 with y.
+    + apply sn_beta_backwards_step with y; auto.
   (* Case: WN implies SN. *)
   - apply sn_implies_wn; auto.
     apply beta_is_decidable.
