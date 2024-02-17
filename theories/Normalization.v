@@ -16,6 +16,7 @@ Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 Require Import Local.Conservation.
 Require Import Local.Structural.
+Require Import Local.Shrinking.
 
 (** ** Normalization. *)
 
@@ -392,11 +393,20 @@ Qed.
 (* -------------------------------------------------------------------------- *)
 
 Lemma SN_L:
-  forall g c,
+  forall g,
+  valid_env g ->
+  forall c,
   L g c -> SN step c.
 Proof.
-  admit.
-Admitted.
+  intros.
+  apply SN_subset with (union beta smol).
+  - apply step_characterization.
+  - apply shrinking_preserves_strong_normalization.
+    + exact smol_is_shrinking.
+    + apply reducibility_normalization with g L.
+      * now apply L_is_reducible.
+      * assumption.
+Qed.
 
 Lemma switch_preserve_sumup:
   forall {T} f n g h,
@@ -771,8 +781,8 @@ Theorem strong_normalization:
 Proof.
   intros.
   apply SN_L with g.
-  apply fundamental.
-  assumption.
+  - now apply valid_env_typing with e void.
+  - now apply fundamental.
 Qed.
 
 Corollary consistency:
