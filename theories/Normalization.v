@@ -19,29 +19,7 @@ Require Import Local.Structural.
 
 (** ** Normalization. *)
 
-(*
-Lemma SN_unlift:
-  forall i k e,
-  SN step (lift i k e) -> SN step e.
-Proof.
-  intros.
-  apply SN_preimage with (lift i k); intros.
-  - apply step_lift; auto.
-  - assumption.
-Qed.
-
-Lemma SN_unsubst:
-  forall y k e,
-  SN step (subst y k e) -> SN step e.
-Proof.
-  intros.
-  apply SN_preimage with (subst y k); intros.
-  - apply step_subst; auto.
-  - assumption.
-Qed.
-*)
-
-Lemma SN_bind_left:
+(* Lemma SN_bind_left:
   forall b ts c,
   SN beta (bind b ts c) -> SN beta b.
 Proof.
@@ -55,7 +33,7 @@ Lemma SN_bind_right:
 Proof.
   intros.
   apply SN_preimage with (fun c => bind b ts c); auto with cps.
-Qed.
+Qed. *)
 
 Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
   fold_right Nat.add 0 (map f ts).
@@ -128,66 +106,8 @@ Proof.
   lia.
 Defined.
 
-(*
-
-(* A neutral term should not trigger a reduction interacting with its context.
-   So, e.g., in the lambda calculus, they are neither abstractions, which would
-   trigger a reduction with ([] x), nor <a, b>, which would trigger a reduction
-   with (pi1 []) or (pi2 []). Since the CPS calculus "works at a distance", we
-   need something that DOESN'T jump to a set of variables. Luckly, as we're only
-   dealing with static contexts, they appear in a row, and so this will work in
-   a de Bruijn setting. *)
-Inductive neutral: nat -> nat -> pseudoterm -> Prop :=
-  | neutral_jump:
-    forall k n f xs,
-    f < k \/ f >= k + n ->
-    neutral k n (jump f xs)
-  | neutral_bind:
-    forall k n b ts c,
-    neutral (S k) n b ->
-    neutral (k + length ts) n c ->
-    neutral k n (bind b ts c).
-
-Lemma neutral_weaken:
-  forall e p k n,
-  neutral p (k + n) e -> neutral (p + k) n e.
-Proof.
-  intros.
-  dependent induction H.
-  - constructor.
-    lia.
-  - rename k0 into p.
-    constructor; auto.
-    + apply IHneutral1; auto.
-    + replace (p + k + length ts) with (p + length ts + k); try lia.
-      apply IHneutral2; auto.
-Qed.
-
-Lemma neutral_context_invalid:
-  forall (h: context) k n xs,
-  n > 0 ->
-  ~neutral k n (h (jump (k + #h) xs)).
-Proof.
-  induction h; intros.
-  - simpl; intro.
-    dependent destruction H0.
-    lia.
-  - simpl; intro.
-    dependent destruction H0.
-    eapply IHh with (n := n) (k := S k); auto.
-    replace (S k + #h) with (k + S #h); try lia.
-    eassumption.
-  - simpl; intro.
-    dependent destruction H0.
-    eapply IHh with (n := n) (k := k + length ts); auto.
-    replace (k + length ts + #h) with (k + (#h + length ts)); try lia.
-    eassumption.
-Qed.
-
-*)
-
-Definition candidate: Type :=
-  pseudoterm -> Prop.
+Local Notation candidate :=
+  (pseudoterm -> Prop).
 
 Definition ARR ts (U V: candidate): candidate :=
   fun b =>
@@ -197,7 +117,7 @@ Definition ARR ts (U V: candidate): candidate :=
 Definition SUB (V: candidate): candidate :=
   fun b =>
     forall x,
-    V (bind (jump 0 [lift 1 0 x]) [void] b).
+    V (bind (jump 0 [lift 1 0 x]) [base] b).
 
 Definition L: env -> candidate :=
   Fix sumup_count_is_well_founded (fun _ => candidate) (fun t f =>
@@ -256,236 +176,6 @@ Proof.
       reflexivity.
 Qed.
 
-(* Lemma L_ind:
-  forall P: env -> pseudoterm -> Prop,
-  forall f1: (forall g e, SN step e -> P g e),
-  forall f2: (forall g e,
-              (forall x, P g (subst x 0 e)) ->
-              P (base :: g) e),
-  forall f3: (forall g b ts,
-              (forall c, L (ts ++ g) c ->
-               P (ts ++ g) c /\ P g (bind b ts c)) ->
-              P (negation ts :: g) b),
-  forall g e, L g e -> P g e.
-Proof.
-  intros until g.
-  remember (sumup count g) as k.
-  generalize dependent g.
-  induction k using lt_wf_ind; intros.
-  destruct g; intros.
-  - apply f1.
-    exact H0.
-  - destruct p.
-    + destruct H0.
-    + destruct H0.
-    + rewrite L_sub_composition in H0.
-      unfold SUB in H0.
-      apply f2; intros.
-      apply H with (sumup count g); auto.
-      rewrite Heqk.
-      apply count_sub; auto.
-    + destruct H0.
-    + destruct H0.
-    + rewrite L_arr_composition in H0.
-      unfold ARR in H0.
-      apply f3; intros.
-      split.
-      * apply H with (sumup count (ts ++ g)); auto.
-        rewrite Heqk; apply count_arg; auto.
-      * apply H with (sumup count g); auto.
-        rewrite Heqk; eapply count_ret; eauto.
-    + destruct H0.
-    + destruct H0.
-Qed. *)
-
-(*
-
-Record reducible g (P: candidate): Prop := {
-  cr1:
-    forall e,
-    P e -> SN step e;
-  cr2:
-    forall a b,
-    P a -> [a => b] -> P b;
-  cr3:
-    forall a,
-    (* Since the CPS calculus seems to be non-erasing, do we really need to
-       restrict ourselves to neutral terms here...? *)
-    neutral 0 g a -> (forall b, [a => b] -> P b) -> P a
-}.
-
-Lemma cr2_star:
-  forall g P,
-  reducible g P ->
-  forall a b,
-  P a -> [a =>* b] -> P b.
-Proof.
-  induction 3.
-  - apply cr2 with g x; auto.
-  - assumption.
-  - auto.
-Qed.
-
-Lemma cr4:
-  forall g P,
-  reducible g P ->
-  forall e,
-  normal step e -> neutral 0 g e -> P e.
-Proof.
-  intros.
-  apply cr3 with g; intros.
-  - assumption.
-  - assumption.
-  - exfalso.
-    firstorder.
-Qed.
-
-Lemma reducible_SN:
-  forall g,
-  reducible g (SN step).
-Proof.
-  constructor; intros.
-  - assumption.
-  - apply H.
-    assumption.
-  - constructor.
-    assumption.
-Qed.
-
-Definition free_jump (ts g: env): pseudoterm :=
-  jump (length ts + length g) (low_sequence (length ts)).
-
-Lemma reducible_isnt_empty:
-  forall R ts g,
-  reducible (length ts) R ->
-  exists2 c,
-  R c & cool ts g c.
-Proof.
-  intros.
-  exists (free_jump ts g).
-  - apply cr4 with (length ts).
-    + assumption.
-    + do 2 intro.
-      inversion H0.
-    + constructor.
-      lia.
-  - split.
-    + do 2 intro.
-      inversion H0.
-    + constructor.
-      lia.
-Qed.
-
-Lemma reducible_ARR:
-  forall g ts,
-  reducible (length g) (L g) ->
-  reducible (length ts) (L ts) ->
-  reducible (length (negation ts :: g)) (L (negation ts :: g)).
-Proof.
-  constructor; intros.
-  - rewrite L_composition in H1.
-    unfold ARR in H1.
-    destruct reducible_isnt_empty with (L ts) ts g as (c, ?, ?); auto.
-    (* As in the lambda calculus... but instead of a variable, a free jump. *)
-    apply SN_bind_left with ts c.
-    apply cr1 with (length g) (L g); auto.
-  - rewrite L_composition in H1 |- *.
-    unfold ARR in H1 |- *; intros.
-    apply cr2 with (length g) (bind a ts c); auto.
-    auto with cps.
-  - rewrite L_composition in H2 |- *.
-    unfold ARR in H2 |- *; intros.
-    destruct H3 as ((?, ?), ?).
-    (* No need to do induction over SN step c as in the lambda calculus: it's
-       already cool down in normal form! *)
-    apply cr3 with (length g); intros.
-    + assumption.
-    + (* NOW this seems correct to me! Check H1 and H4... *)
-      constructor; auto.
-      apply neutral_weaken with (p := 0); auto.
-    + dependent destruction H6.
-      * (* It is neutral, so we CAN'T have a redex here! *)
-        exfalso.
-        eapply neutral_context_invalid with
-          (k := 0) (n := S (length g)) (h := h); try lia.
-        eassumption.
-      * apply H2; firstorder.
-      * (* In the lambda calculus we'd use cr2 here. *)
-        exfalso.
-        firstorder.
-Qed.
-
-Lemma reducible_L:
-  forall g,
-  reducible (length g) (L g).
-Proof.
-  intros.
-  induction sumup_count_is_well_founded with g.
-  clear H; rename H0 into H; unfold ltof in H.
-  (* Ok, start wordering about the type... *)
-  destruct x; try exact reducible_SN.
-  - admit.
-  - destruct p; try exact reducible_SN.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-    + (* "Arrow types", in a way... *)
-      eapply reducible_ARR.
-      * apply H.
-        eapply count_ret; eauto.
-      * apply H.
-        eapply count_arg; eauto.
-    + admit.
-    + admit.
-Admitted.
-
-Lemma SN_L:
-  forall g e,
-  L g e -> SN step e.
-Proof.
-  intros.
-  apply cr1 with (length g) (L g); auto.
-  apply reducible_L.
-Qed.
-*)
-
-Goal
-  forall A B C,
-  let g :=
-    [negation A; base; negation B; negation C]
-  in L g void.
-Proof.
-  (* Lets see how things unfold... *)
-  intros.
-  unfold g.
-  rewrite L_arr_composition.
-  unfold ARR; intros.
-  rewrite L_sub_composition.
-  unfold SUB; intros.
-  rewrite L_arr_composition.
-  unfold ARR; intros.
-  rewrite L_arr_composition; intros.
-  unfold ARR; intros.
-  rename c into a, c0 into b, c1 into c.
-  unfold L.
-  rewrite Fix_eq.
-  - admit.
-  - admit.
-Admitted.
-
-Lemma SN_L:
-  forall g c,
-  L g c -> SN step c.
-Proof.
-  (* Showing that L implies strong normalization seems to be harder than it is
-     in the lambda calculus, as expected; perhaps we'll need a different set of
-     conditions than the ones used in it. TODO: consider doing what was done in
-     Yoshida's paper, as working with terms in normal form may be easier. *)
-  admit.
-Admitted.
-
 Lemma L_preservation:
   forall g,
   valid_env g ->
@@ -504,8 +194,8 @@ Proof.
       unfold SUB in H0 |- *; intros.
       eapply IHg; intros.
       * assumption.
-      * replace (bind (jump 0 [lift 1 0 x]) [void] c) with
-          (context_right (jump 0 [lift 1 0 x]) [void] context_hole c); auto.
+      * replace (bind (jump 0 [lift 1 0 x]) [base] c) with
+          (context_right (jump 0 [lift 1 0 x]) [base] context_hole c); auto.
         rewrite <- compose_context_is_sound.
         apply H1; intros.
         rewrite compose_context_is_sound; simpl.
@@ -522,6 +212,191 @@ Proof.
         apply H3, H4.
         assumption.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+(* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- *)
+(* -------------------------------------------------------------------------- *)
+
+Inductive reducibility (g: env) (R: env -> candidate): Prop := {
+  reducibility_weakening:
+    forall e,
+    R g e ->
+    forall t,
+    valid_env (t :: g) ->
+    R (t :: g) (lift 1 0 e);
+  (* reducibility_exchange:
+    EXCHANGE R;
+  reducibility_contraction:
+    CONTRACTION R; *)
+  reducibility_normalization:
+    forall c,
+    R g c -> SN beta c;
+  reducibility_nonempty:
+    exists c,
+    R g c
+}.
+
+Goal
+  forall ts,
+  valid_env ts ->
+  forall g b,
+  L (ts ++ g) b ->
+  exists h: context,
+  L g (h b).
+Proof.
+  intros ts.
+  remember (sumup count ts) as n.
+  generalize dependent ts.
+  induction n using lt_wf_ind.
+  destruct ts; simpl; intros; subst.
+  - clear H.
+    exists context_hole.
+    now simpl.
+  - dependent destruction H0.
+    dependent destruction H0.
+    + rewrite L_sub_composition in H2.
+      unfold SUB in H2.
+      (* Any variable, even fresh, will do it! *)
+      specialize (H2 0).
+      rewrite lift_bound_ge in H2 by lia; simpl in H2.
+      specialize (H (sumup count ts)).
+      edestruct H as (h, ?).
+      * now apply count_sub.
+      * reflexivity.
+      * assumption.
+      * eassumption.
+      * eexists (compose_context h (context_right _ _ context_hole)); simpl.
+        rewrite compose_context_is_sound; simpl.
+        eassumption.
+    + rename ts0 into us.
+      rewrite L_arr_composition in H2.
+      unfold ARR in H2.
+      (* Since sets are not empty... *)
+      assert (exists c, L (us ++ ts ++ g) c) as (c, ?) by admit.
+      specialize (H2 c H3).
+      specialize (H (sumup count ts)).
+      edestruct H as (h, ?).
+      * unfold sumup; simpl.
+        lia.
+      * reflexivity.
+      * assumption.
+      * eassumption.
+      * eexists (compose_context h (context_left context_hole _ _)); simpl.
+        rewrite compose_context_is_sound; simpl.
+        eassumption.
+Admitted.
+
+Section Reducibility.
+
+  Variable g: env.
+
+  Hypothesis H:
+    forall h,
+    valid_env h ->
+    sumup count h < sumup count g ->
+    reducibility h L.
+
+  Lemma L_weakening:
+    forall e,
+    L g e ->
+    forall t,
+    valid_env (t :: g) ->
+    L (t :: g) (lift 1 0 e).
+  Proof.
+    intros.
+    dependent destruction H1.
+    dependent destruction H1.
+    - rewrite L_sub_composition.
+      unfold SUB; intros.
+      apply L_preservation; auto; intros.
+      specialize (H1 e H0).
+      eapply sn_beta_backwards_step.
+      + apply beta_context.
+        apply beta_ctxjmp with (h := context_hole).
+        reflexivity.
+      + simpl.
+        rewrite lift_lift_simplification by lia.
+        rewrite subst_lift_simplification by lia.
+        admit.
+    - rewrite L_arr_composition.
+      unfold ARR; intros.
+      apply L_preservation; auto; intros.
+      admit.
+  Admitted.
+
+  Lemma L_is_normalizing:
+    forall e,
+    L g e ->
+    SN beta e.
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma L_is_nonempty:
+    valid_env g ->
+    exists c,
+    L g c.
+  Proof.
+    intros.
+    dependent destruction H0.
+    (* Case: empty context. *)
+    - (* On the empty context, we merely want terms to halt. This means that in
+         here there are no variables to which we may interact. So we just pick
+         a random free variable and perform a jump to it. As the environment
+         grows around it, we merely use alpha-equality to pick names such that
+         these jumps won't interact. In the de Bruijn setting, this is of course
+         done by lifting the "neutral" term. *)
+      exists (jump 0 []).
+      constructor; intros.
+      inversion H0.
+    (* Case: at least one type. *)
+    - assert (reducibility l L).
+      + apply H.
+        * assumption.
+        * unfold sumup.
+          destruct H0; simpl; lia.
+      + clear H.
+        edestruct reducibility_nonempty as (y, ?); eauto.
+        apply reducibility_weakening with (t := x) in H.
+        * now exists (lift 1 0 y).
+        * assumption.
+        * now repeat constructor.
+  Qed.
+
+End Reducibility.
+
+Lemma L_is_reducible:
+  forall g,
+  valid_env g ->
+  reducibility g L.
+Proof.
+  intro.
+  remember (sumup count g) as n.
+  generalize dependent g.
+  induction n using lt_wf_ind.
+  split; subst; intros.
+  - apply L_weakening; intros.
+    + now apply H with (m := sumup count h) (g := h).
+    + assumption.
+    + assumption.
+  - apply L_is_normalizing with g; intros.
+    + now apply H with (m := sumup count h) (g := h).
+    + assumption.
+  - apply L_is_nonempty; intros.
+    + now apply H with (m := sumup count h) (g := h).
+    + assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+(* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- *)
+(* -------------------------------------------------------------------------- *)
+
+Lemma SN_L:
+  forall g c,
+  L g c -> SN step c.
+Proof.
+  admit.
+Admitted.
 
 Lemma switch_preserve_sumup:
   forall {T} f n g h,
@@ -615,7 +490,7 @@ Proof.
     + constructor.
 Qed.
 
-Lemma L_weakening:
+(* Lemma L_weakening:
   forall g e,
   L g e ->
   forall t,
@@ -635,7 +510,7 @@ Proof.
     apply L_preservation; auto; intros.
     (* Follows from orthogonality for e and c. *)
     admit.
-Admitted.
+Admitted. *)
 
 Definition PRESERVES {T} (P: T -> Prop): relation T :=
   fun a b =>
@@ -780,7 +655,7 @@ Proof.
     admit.
 Admitted.
 
-Record reducible (P: candidate): Prop := {
+(* Record reducible (P: candidate): Prop := {
   cr1:
     forall e,
     P e -> SN beta e;
@@ -864,7 +739,7 @@ Proof.
       * admit.
     + admit.
     + admit.
-Admitted.
+Admitted. *)
 
 Lemma fundamental:
   forall e g,
