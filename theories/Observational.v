@@ -216,6 +216,21 @@ Proof.
   apply convergence_is_unique with c; auto.
 Qed.
 
+Lemma free_converges:
+  forall b k,
+  converges b k ->
+  free k b.
+Proof.
+  induction 1; intros.
+  - intros ?H.
+    dependent destruction H.
+    dependent destruction H.
+    contradiction.
+  - intros ?H; apply IHconverges.
+    dependent destruction H0.
+    assumption.
+Qed.
+
 Lemma converges_lift:
   forall e n,
   converges e n ->

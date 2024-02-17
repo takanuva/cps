@@ -799,7 +799,10 @@ Proof.
     destruct progress with (@nil pseudoterm) x as [ (k, ?) | (y, ?) ]; auto.
     + (* Can't converge if it's closed, right? *)
       clear H0 H2.
-      admit.
+      apply free_converges with x k.
+      * assumption.
+      * (* Of course! *)
+        admit.
     + (* By progress, there's a step. *)
       apply H2 with y.
       * auto with cps.
