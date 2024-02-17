@@ -140,6 +140,46 @@ Proof.
     + inversion H.
 Qed.
 
+Lemma not_free_typing:
+  forall b g t,
+  typing g b t ->
+  forall k,
+  k >= length g ->
+  not_free k b.
+Proof.
+  induction b using pseudoterm_deepind; intros.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - dependent destruction H.
+    apply item_valid_index in H0.
+    constructor.
+    lia.
+  - inversion H0.
+  - dependent destruction H0.
+    constructor.
+    + eapply IHb; eauto.
+    + clear H0 IHb.
+      generalize dependent ts.
+      induction H; intros.
+      * constructor.
+      * dependent destruction H1.
+        constructor; eauto.
+  - dependent destruction H0.
+    constructor.
+    + eapply IHb1; eauto.
+      simpl; lia.
+    + apply valid_env_typing in H0_.
+      dependent destruction H0_.
+      dependent destruction H0.
+      clear H IHb1 IHb2 H0_ H0_0 H1 b1 b2 g.
+      (* Of course, simple types never have free variables. *)
+      admit.
+    + eapply IHb2; eauto.
+      rewrite app_length; lia.
+Admitted.
+
 (* -------------------------------------------------------------------------- *)
 
 Section Structural.

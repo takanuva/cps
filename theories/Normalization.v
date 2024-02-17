@@ -802,9 +802,9 @@ Proof.
       apply free_converges with x k.
       * assumption.
       * (* Of course! *)
-        admit.
+        eapply not_free_typing; eauto with arith.
     + (* By progress, there's a step. *)
       apply H2 with y.
       * auto with cps.
       * apply subject_reduction with x; auto with cps.
-Admitted.
+Qed.
