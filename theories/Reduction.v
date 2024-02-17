@@ -74,6 +74,18 @@ Inductive beta: relation pseudoterm :=
 
 Global Hint Constructors beta: cps.
 
+Lemma beta_context:
+  forall b c,
+  beta b c ->
+  forall h: context,
+  beta (h b) (h c).
+Proof.
+  induction h; simpl; intros.
+  - assumption.
+  - now apply beta_bind_left.
+  - now apply beta_bind_right.
+Qed.
+
 Lemma beta_recjmp:
   RECJMP beta.
 Proof.
