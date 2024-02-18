@@ -111,6 +111,37 @@ Defined.
 Local Notation candidate :=
   (pseudoterm -> Prop).
 
+(*
+  We define a family of environment-indexed sets L which is inductively defined
+  over the number of type constructors in an environment (rather than a type as
+  usual). The idea is that we can build an elimination context with which a term
+  can interact, based on the channel names. Our definition is well-founded, but
+  follows as:
+
+           1) L [] =
+                { b | SN beta b }
+           2) L (negation ts :: g) =
+                { b | forall c, L (ts ++ g) c -> L g (b { k<ys> = c }) }
+           3) L (base :: g) =
+                { b | forall x, L g (k<x> { k<y> = b }) }
+
+  I.e., in (1), the empty environment states that the term is always strongly
+  normalizing but does not consider which continuations it can jump to. In (2),
+  we consider composition with a continuation type, saying that we will keep our
+  property of interest (here strong normalization) when our term is within an
+  elimination context for such continuation, namely C { k<ys> = c }, for any c
+  that is semantically valid. Since in (3) we consider base types, that have no
+  elimination context, we have to consider that instead the term is valid upon
+  any substitution of the variable, so it means that it does not use it for
+  anything in particular, exactly what we would expect for the base type. Notice
+  that, for any x (without loss of generality, different from k):
+
+                 G, y: base |- k<x> { k<y> = b }   ~~>   b[x/y]
+
+  ...requiring that this keeps the property of interest for any x ensures the
+  good use of the y variable.
+*)
+
 Definition ARR ts (U V: candidate): candidate :=
   fun b =>
     forall c,
