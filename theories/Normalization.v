@@ -401,12 +401,42 @@ Section Reducibility.
   Admitted.
 
   Lemma L_is_normalizing:
+    valid_env g ->
     forall e,
     L g e ->
     SN beta e.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    destruct H.
+    (* Case: empty context. *)
+    - (* This follows intensionally from H0. *)
+      assumption.
+    - destruct H.
+      (* Case: base type. *)
+      + rewrite L_sub_composition in H0.
+        unfold SUB in H0.
+        (* We are free to pick any fresh variable in this one. *)
+        specialize (H0 0).
+        apply reducibility_normalization in H0.
+        * set (b := (jump 0 [lift 1 0 0])).
+          apply SN_preimage with (fun c => bind b [base] c); auto with cps.
+        * apply IH; auto.
+      (* Case: negation type. *)
+      + rewrite L_arr_composition in H0.
+        unfold ARR in H0.
+        assert (exists c, L (ts ++ l) c) as (c, ?).
+        * apply reducibility_nonempty.
+          apply IH.
+          (* TODO: refactor this bit, please... *)
+          apply Forall_app; now split.
+          now apply count_arg.
+        * specialize (H0 c H2).
+          apply reducibility_normalization in H0.
+          (* TODO: refactor, please... *)
+          apply SN_preimage with (fun b => bind b ts c); auto with cps.
+          apply IH; auto.
+          unfold sumup; simpl; lia.
+  Qed.
 
   Lemma L_is_nonempty:
     valid_env g ->
@@ -466,6 +496,7 @@ Proof.
     + assumption.
   - apply L_is_normalizing with g; intros.
     + now apply H with (m := sumup count h) (g := h).
+    + assumption.
     + assumption.
   - apply L_is_nonempty; intros.
     + now apply H with (m := sumup count h) (g := h).
