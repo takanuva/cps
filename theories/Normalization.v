@@ -108,6 +108,18 @@ Proof.
   lia.
 Defined.
 
+Lemma count_switch:
+  forall n g h,
+  switch n g h ->
+  sumup count g = sumup count h.
+Proof.
+  unfold sumup; induction 1; simpl.
+  - lia.
+  - now rewrite IHswitch.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Local Notation candidate :=
   (pseudoterm -> Prop).
 
@@ -252,18 +264,28 @@ Qed.
 
 Inductive reducibility (g: env) (R: env -> candidate): Prop := {
   reducibility_weakening:
-    forall e,
-    R g e ->
     forall t,
     valid_env (t :: g) ->
+    forall e,
+    R g e ->
     R (t :: g) (lift 1 0 e);
-  (* reducibility_exchange:
-    EXCHANGE R;
+  reducibility_exchange:
+    valid_env g ->
+    forall n h,
+    switch n g h ->
+    forall e,
+    R g e ->
+    R h (switch_bindings n e);
   reducibility_contraction:
-    CONTRACTION R; *)
+    forall t,
+    valid_env (t :: g) ->
+    forall e,
+    R (t :: t :: g) e ->
+    R (t :: g) (subst 0 0 e);
   reducibility_normalization:
     forall c,
-    R g c -> SN beta c;
+    R g c ->
+    SN beta c;
   reducibility_nonempty:
     exists c,
     R g c
@@ -323,26 +345,26 @@ Section Reducibility.
 
   Variable g: env.
 
-  Hypothesis H:
+  Hypothesis IH:
     forall h,
     valid_env h ->
     sumup count h < sumup count g ->
     reducibility h L.
 
   Lemma L_weakening:
-    forall e,
-    L g e ->
     forall t,
     valid_env (t :: g) ->
+    forall e,
+    L g e ->
     L (t :: g) (lift 1 0 e).
   Proof.
     intros.
-    dependent destruction H1.
-    dependent destruction H1.
+    dependent destruction H.
+    dependent destruction H.
     - rewrite L_sub_composition.
       unfold SUB; intros.
       apply L_preservation; auto; intros.
-      specialize (H1 e H0).
+      specialize (H e H1).
       eapply sn_beta_backwards_step.
       + apply beta_context.
         apply beta_ctxjmp with (h := context_hole).
@@ -355,6 +377,27 @@ Section Reducibility.
       unfold ARR; intros.
       apply L_preservation; auto; intros.
       admit.
+  Admitted.
+
+  Lemma L_exchange:
+    valid_env g ->
+    forall n h,
+    switch n g h ->
+    forall e,
+    L g e ->
+    L h (switch_bindings n e).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma L_contraction:
+    forall t,
+    valid_env (t :: g) ->
+    forall e,
+    L (t :: t :: g) e ->
+    L (t :: g) (subst 0 0 e).
+  Proof.
+    admit.
   Admitted.
 
   Lemma L_is_normalizing:
@@ -371,7 +414,7 @@ Section Reducibility.
     L g c.
   Proof.
     intros.
-    dependent destruction H0.
+    dependent destruction H.
     (* Case: empty context. *)
     - (* On the empty context, we merely want terms to halt. This means that in
          here there are no variables to which we may interact. So we just pick
@@ -381,16 +424,15 @@ Section Reducibility.
          done by lifting the "neutral" term. *)
       exists (jump 0 []).
       constructor; intros.
-      inversion H0.
+      inversion H.
     (* Case: at least one type. *)
     - assert (reducibility l L).
-      + apply H.
+      + apply IH.
         * assumption.
         * unfold sumup.
-          destruct H0; simpl; lia.
-      + clear H.
-        edestruct reducibility_nonempty as (y, ?); eauto.
-        apply reducibility_weakening with (t := x) in H.
+          destruct H; simpl; lia.
+      + edestruct reducibility_nonempty as (y, ?); eauto.
+        apply reducibility_weakening with (t := x) in H2.
         * now exists (lift 1 0 y).
         * assumption.
         * now repeat constructor.
@@ -409,6 +451,16 @@ Proof.
   induction n using lt_wf_ind.
   split; subst; intros.
   - apply L_weakening; intros.
+    + now apply H with (m := sumup count h) (g := h).
+    + assumption.
+    + assumption.
+  - apply L_exchange with g; intros.
+    + rename h0 into i.
+      now apply H with (m := sumup count i) (g := i).
+    + assumption.
+    + assumption.
+    + assumption.
+  - apply L_contraction; intros.
     + now apply H with (m := sumup count h) (g := h).
     + assumption.
     + assumption.
@@ -562,7 +614,7 @@ Definition REFLECTS {T} (P: T -> Prop): relation T :=
   fun a b =>
     P b -> P a.
 
-Lemma L_distr:
+(* Lemma L_distr:
   forall g,
   valid_env g -> DISTR (REFLECTS (L g)).
 Proof.
@@ -695,7 +747,7 @@ Proof.
     admit.
   - rewrite L_arr_composition; unfold ARR; simpl; intros.
     admit.
-Admitted.
+Admitted. *)
 
 (* Record reducible (P: candidate): Prop := {
   cr1:
@@ -827,7 +879,7 @@ Proof.
     assumption.
   - (* It is closed, so it can't be normalizable! *)
     induction H0 using SN_ind.
-    destruct progress with (@nil pseudoterm) x as [ (k, ?) | (y, ?) ]; auto.
+    destruct progress with ([]: list pseudoterm) x as [ (k, ?) | (y, ?) ]; auto.
     + (* Can't converge if it's closed, right? *)
       clear H0 H2.
       apply free_converges with x k.
