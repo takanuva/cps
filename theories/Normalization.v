@@ -393,10 +393,40 @@ Section Reducibility.
     - dependent destruction H.
       dependent destruction H0.
       destruct H; destruct H0.
-      + admit.
-      + admit.
-      + admit.
+      + do 2 rewrite L_sub_composition in H2 |- *.
+        unfold SUB in H2 |- *; intros x y.
+        apply L_preservation; auto; intros.
+        specialize (H2 y x).
+        specialize (H _ H2).
+        admit.
+      + rewrite L_sub_composition in H2.
+        rewrite L_arr_composition in H2 |- *.
+        rewrite L_sub_composition.
+        unfold ARR, SUB in H2 |- *; intros.
+        admit.
+      + rewrite L_arr_composition in H2.
+        rewrite L_sub_composition in H2 |- *.
+        rewrite L_arr_composition.
+        unfold ARR, SUB in H2 |- *; intros.
+        admit.
       + rename ts0 into us.
+        do 2 rewrite L_arr_composition in H2 |- *.
+        unfold ARR in H2 |- *; intros c ? d ?.
+        (* Steps we need to follow:
+
+             1) By using weakening, H4 can have a (negation us) added;
+             2) By using our IH, we can move it after the ts, so it'll fit as
+                the first argument for H2 (we'll have ts ++ negation us :: xs);
+             3) Now we can repeatedly add each of us into H4 by weaneking;
+             4) By using our IH, we can move these us into the right in H4 (so
+                we will have ts ++ us ++ xs);
+             5) By plugging H4 into H3 (using IH to move negation ts left), we
+                get enough info for the second argument for H2;
+             6) Since switch bindings is involutive, apply it twice on e in H2.
+
+           If I did math correctly in my head, what's left is exactly with a
+           (DISTR), which should preserve strong normalization!
+        *)
         admit.
     (* Case: there's an assumption before the exchanged types. *)
     - dependent destruction H.
@@ -617,119 +647,7 @@ Proof.
   - assumption.
 Qed.
 
-Lemma switch_preserve_sumup:
-  forall {T} f n g h,
-  @switch T n g h ->
-  sumup f g = sumup f h.
-Proof.
-  induction 1; intros.
-  - do 4 rewrite sumup_cons.
-    lia.
-  - do 2 rewrite sumup_cons.
-    lia.
-Qed.
-
-Ltac do_stuff :=
-  simpl;
-  try (rewrite lift_bound_ge; [| lia ]);
-  simpl;
-  try (rewrite lift_bound_lt; [| lia ]);
-  simpl;
-  try (rewrite subst_bound_gt; [| lia ]);
-  simpl;
-  try (rewrite subst_bound_eq; [| lia ]);
-  simpl;
-  try (rewrite subst_bound_lt; [| lia ]);
-  simpl;
-  try rewrite lift_zero_e_equals_e;
-  simpl.
-
-Lemma hmmm:
-  forall e x k p,
-  subst x k (switch_bindings (k + S p) e) =
-    switch_bindings (k + p) (subst (switch_bindings p x) k e).
-Proof.
-  induction e using pseudoterm_deepind; intros.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - unfold switch_bindings.
-    destruct (lt_eq_lt_dec (2 + k + p) n) as [ [ ? | ? ] | ? ];
-    destruct (lt_eq_lt_dec (k + p) n) as [ [ ? | ? ] | ? ];
-    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ];
-    try lia;
-    repeat do_stuff; auto.
-    f_equal; lia.
-    + admit.
-    + admit.
-  - admit.
-  - admit.
-  - rewrite switch_bindings_distributes_over_bind.
-    do 2 rewrite subst_distributes_over_bind.
-    rewrite switch_bindings_distributes_over_bind.
-    f_equal.
-    + replace (S (k + S p)) with (S k + S p); try lia.
-      replace (S (k + p)) with (S k + p); try lia.
-      apply IHe1.
-    + admit.
-    + do 2 rewrite traverse_list_length; simpl.
-      replace (k + S p + length ts) with (k + length ts + S p); try lia.
-      replace (k + p + length ts) with (k + length ts + p); try lia.
-      apply IHe2.
-Admitted.
-
-Inductive foobar_inv_case: relation pseudoterm :=
-  | foobar_inv_case1:
-    foobar_inv_case base base
-  | foobar_inv_case2:
-    forall ts,
-    foobar_inv_case (negation ts) base
-  | foobar_inv_case3:
-    forall ts,
-    foobar_inv_case base (negation ts)
-  | foobar_inv_case4:
-    forall ts1 ts2,
-    foobar_inv_case (negation ts2) (negation ts1).
-
-Lemma foobar_inv:
-  forall x1 x2 g,
-  valid_env (x1 :: x2 :: g) -> foobar_inv_case x1 x2.
-Proof.
-  intros.
-  dependent destruction H.
-  dependent destruction H.
-  - dependent destruction H0.
-    dependent destruction H.
-    + constructor.
-    + constructor.
-  - dependent destruction H0.
-    dependent destruction H0.
-    + constructor.
-    + constructor.
-Qed.
-
-(* Lemma L_weakening:
-  forall g e,
-  L g e ->
-  forall t,
-  valid_env (t :: g) ->
-  L (t :: g) (lift 1 0 e).
-Proof.
-  intros.
-  dependent destruction H0.
-  dependent destruction H0.
-  - rewrite L_sub_composition.
-    unfold SUB; intros.
-    apply L_preservation; auto; intros.
-    (* This reduces to (h e), so follows from H and H1. *)
-    admit.
-  - rewrite L_arr_composition.
-    unfold ARR; intros.
-    apply L_preservation; auto; intros.
-    (* Follows from orthogonality for e and c. *)
-    admit.
-Admitted. *)
+(*
 
 Definition PRESERVES {T} (P: T -> Prop): relation T :=
   fun a b =>
@@ -739,140 +657,7 @@ Definition REFLECTS {T} (P: T -> Prop): relation T :=
   fun a b =>
     P b -> P a.
 
-(* Lemma L_distr:
-  forall g,
-  valid_env g -> DISTR (REFLECTS (L g)).
-Proof.
-  unfold DISTR, REFLECTS; intros.
-  (* This will be a nightmare in the de Bruijn setting. *)
-  apply L_preservation; auto; intros.
-  apply H2 in H1.
-  (* Should follow! *)
-  admit.
-Admitted.
-
-Lemma L_exchange:
-  forall g n h,
-  switch n g h ->
-  valid_env g ->
-  forall e,
-  L g e -> L h (switch_bindings n e).
-Proof.
-  intros g.
-  remember (sumup count g) as k.
-  generalize dependent g.
-  induction k using lt_wf_ind.
-  destruct 2; intros.
-  - dependent destruction Heqk.
-    destruct foobar_inv with x1 x2 xs; auto.
-    + do 2 rewrite L_sub_composition in H1 |- *.
-      unfold SUB in H1 |- *; intros x y.
-      apply L_preservation; intros.
-      * dependent destruction H0.
-        dependent destruction H1.
-        assumption.
-      * specialize (H1 y x).
-        apply H2 in H1.
-        (* Follows from H1! *)
-        admit.
-    + rewrite L_arr_composition in H1.
-      rewrite L_sub_composition in H1 |- *.
-      rewrite L_arr_composition.
-      unfold ARR, SUB in H1 |- *; intros.
-      admit.
-    + rewrite L_sub_composition in H1.
-      rewrite L_arr_composition in H1 |- *.
-      rewrite L_sub_composition.
-      unfold ARR, SUB in H1 |- *; intros.
-      admit.
-    + do 2 rewrite L_arr_composition in H1 |- *.
-      unfold ARR in H1 |- *; intros c1 ?H c2 ?H.
-      (* Steps we need to follow:
-           1) By using weakening, H3 can have a negation ts1 added;
-           2) By using our IH, we can move it after the ts2, so it'll fit as the
-              first argument for H1 (we'll have ts2 ++ negation ts1 ++ xs);
-           3) Now we can repeatedly add each of ts1 into H3 by weaneking;
-           4) By using our IH, we can move these t1 into the right in H3 (so we
-              will have ts2 ++ ts1 ++ xs);
-           5) By plugging H3 into H2 (using IH to move negation ts2 right), we
-              get enough info for the second argument for H1;
-           6) Since switch bindings is involutive, apply it twice on e in H1!
-
-         If I did math correctly in my head, we're left exactly with a (DISTR)!
-      *)
-      apply L_distr.
-      * dependent destruction H0.
-        dependent destruction H1.
-        assumption.
-      * (* Clearly, we have simple types... *)
-        admit.
-      * rewrite switch_bindings_is_involutive.
-        replace (traverse_list (lift 1) 0 ts2) with ts2.
-        replace (traverse_list remove_binding 0 ts1) with ts1.
-        replace (traverse_list (lift (length ts1)) 0 ts2) with ts2.
-        apply H1.
-        --- admit.
-        --- admit.
-        --- admit.
-        --- admit.
-        --- admit.
-  - dependent destruction H1.
-    assert (valid_env xs1); eauto with cps.
-    dependent destruction Heqk.
-    dependent destruction H1.
-    + rewrite L_sub_composition in H3 |- *.
-      unfold SUB in H3 |- *; intros.
-      admit.
-    + rewrite L_arr_composition in H3 |- *.
-      unfold ARR in H3 |- *; intros.
-      rewrite <- switch_bindings_is_involutive with (k := n).
-      eapply H with (sumup count xs1) xs1.
-      * eapply count_ret.
-        reflexivity.
-      * reflexivity.
-      * assumption.
-      * assumption.
-      * rewrite switch_bindings_distributes_over_bind.
-        (* It appears we'd need a limiting on the dependent case! Or rather, we
-           should simply ignore types here, making L a set of untyped terms. *)
-        replace (traverse_list switch_bindings n ts) with ts.
-        rewrite switch_bindings_is_involutive.
-        apply H3.
-        eapply H with (sumup count (ts ++ xs1)) (ts ++ xs2).
-        apply count_arg.
-        reflexivity.
-        eapply switch_preserve_sumup.
-        apply switch_app.
-        eassumption.
-        rewrite Nat.add_comm.
-        apply switch_app.
-        apply switch_sym.
-        assumption.
-        (* Derive from H1 and H2. *)
-        admit.
-        assumption.
-        (* We have simple types. *)
-        admit.
-Admitted.
-
-Lemma L_contraction:
-  forall t g,
-  valid_env (t :: g) ->
-  forall e,
-  L (t :: t :: g) e -> L (t :: g) (subst 0 0 e).
-Proof.
-  intros.
-  dependent destruction H.
-  dependent destruction H.
-  - rewrite L_sub_composition in H1; unfold SUB in H0; simpl in H0.
-    rewrite L_sub_composition in H1; unfold SUB in H0; simpl in H0.
-    rewrite L_sub_composition; unfold SUB; simpl; intros.
-    (*  k<a> { k<x> = j<b> { j<y> = c } }  --->
-        k<a> { k<x> = c[b/y] } *)
-    admit.
-  - rewrite L_arr_composition; unfold ARR; simpl; intros.
-    admit.
-Admitted. *)
+*)
 
 Lemma fundamental:
   forall e g,
