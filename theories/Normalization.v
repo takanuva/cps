@@ -361,6 +361,7 @@ Section Reducibility.
     intros.
     dependent destruction H.
     dependent destruction H.
+    (* Case: base type. *)
     - rewrite L_sub_composition.
       unfold SUB; intros.
       apply L_preservation; auto; intros.
@@ -373,6 +374,7 @@ Section Reducibility.
         rewrite lift_lift_simplification by lia.
         rewrite subst_lift_simplification by lia.
         admit.
+    (* Case: negation type. *)
     - rewrite L_arr_composition.
       unfold ARR; intros.
       apply L_preservation; auto; intros.
@@ -397,7 +399,13 @@ Section Reducibility.
     L (t :: t :: g) e ->
     L (t :: g) (subst 0 0 e).
   Proof.
-    admit.
+    intros.
+    dependent destruction H.
+    destruct H.
+    (* Case: base type. *)
+    - admit.
+    (* Case: negation type. *)
+    - admit.
   Admitted.
 
   Lemma L_is_normalizing:
@@ -407,34 +415,31 @@ Section Reducibility.
     SN beta e.
   Proof.
     intros.
-    destruct H.
+    destruct H; [| destruct H ].
     (* Case: empty context. *)
     - (* This follows intensionally from H0. *)
       assumption.
-    - destruct H.
-      (* Case: base type. *)
-      + rewrite L_sub_composition in H0.
-        unfold SUB in H0.
-        (* We are free to pick any fresh variable in this one. *)
-        specialize (H0 0).
+    (* Case: base type. *)
+    - rewrite L_sub_composition in H0.
+      unfold SUB in H0.
+      (* We are free to pick any fresh variable in this one. *)
+      specialize (H0 0).
+      apply reducibility_normalization in H0.
+      + set (b := (jump 0 [lift 1 0 0])).
+        apply SN_preimage with (fun c => bind b [base] c); auto with cps.
+      + apply IH; auto.
+    (* Case: negation type. *)
+    - rewrite L_arr_composition in H0.
+      unfold ARR in H0.
+      assert (exists c, L (ts ++ l) c) as (c, ?).
+      + apply reducibility_nonempty.
+        apply IH.
+        * apply Forall_app; now split.
+        * now apply count_arg.
+      + specialize (H0 c H2).
         apply reducibility_normalization in H0.
-        * set (b := (jump 0 [lift 1 0 0])).
-          apply SN_preimage with (fun c => bind b [base] c); auto with cps.
+        * apply SN_preimage with (fun b => bind b ts c); auto with cps.
         * apply IH; auto.
-      (* Case: negation type. *)
-      + rewrite L_arr_composition in H0.
-        unfold ARR in H0.
-        assert (exists c, L (ts ++ l) c) as (c, ?).
-        * apply reducibility_nonempty.
-          apply IH.
-          (* TODO: refactor this bit, please... *)
-          apply Forall_app; now split.
-          now apply count_arg.
-        * specialize (H0 c H2).
-          apply reducibility_normalization in H0.
-          (* TODO: refactor, please... *)
-          apply SN_preimage with (fun b => bind b ts c); auto with cps.
-          apply IH; auto.
           unfold sumup; simpl; lia.
   Qed.
 
