@@ -261,7 +261,7 @@ Qed.
 (* -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- *)
 (* -------------------------------------------------------------------------- *)
 
-Inductive reducibility (g: env) (R: env -> candidate): Prop := {
+Record reducibility (g: env) (R: env -> candidate): Prop := {
   reducibility_weakening:
     forall t,
     valid_env (t :: g) ->
@@ -388,7 +388,46 @@ Section Reducibility.
     L g e ->
     L h (switch_bindings n e).
   Proof.
-    admit.
+    destruct 2; intros.
+    (* Case: exchange happens at the start of the beginning. *)
+    - dependent destruction H.
+      dependent destruction H0.
+      destruct H; destruct H0.
+      + admit.
+      + admit.
+      + admit.
+      + rename ts0 into us.
+        admit.
+    (* Case: there's an assumption before the exchanged types. *)
+    - dependent destruction H.
+      destruct H.
+      + rewrite L_sub_composition in H2 |- *.
+        unfold SUB in H2 |- *; intros.
+        (* Hmm... *)
+        specialize (H2 (switch_bindings n x)).
+        (* It may be a bit hard to spot, but all we have to do is to apply
+           exchange to H2 now and we're done in here. *)
+        apply reducibility_exchange with (n := n) (h := xs2) in H2.
+        * (* Now, H2 is our goal. We just have to tweak it a bit. *)
+          rewrite switch_bindings_distributes_over_bind in H2.
+          rewrite switch_bindings_distributes_over_jump in H2.
+          unfold switch_bindings at 1 2 in H2; simpl in H2.
+          rewrite lift_bound_lt in H2 by lia.
+          rewrite subst_bound_lt in H2 by lia.
+          replace (S (S (S n))) with (1 + (2 + n)) in H2 by lia.
+          rewrite <- lift_lift_permutation in H2 by lia.
+          replace (S n) with (1 + n) in H2 by lia.
+          rewrite <- lift_and_subst_commute in H2 by lia.
+          fold (switch_bindings n (switch_bindings n x)) in H2.
+          rewrite switch_bindings_is_involutive in H2.
+          replace (switch_bindings n base) with base in H2 by now compute.
+          rewrite Nat.add_comm in H2.
+          (* There we go. *)
+          assumption.
+        * apply IH; auto.
+        * assumption.
+        * assumption.
+      + admit.
   Admitted.
 
   Lemma L_contraction:
@@ -406,14 +445,20 @@ Section Reducibility.
       rewrite L_sub_composition in H1.
       unfold SUB in H1 |- *; intros.
       (* We can observe in here that the term from H1 will reduce to the term
-         we want to prove is normalizing... *)
+         we want to prove is normalizing... namely, for some a and b:
+
+         k<a> { k<x> = j<b> { j<y> = c } }   ~~~>   k<a> { k<x> = c[b/y] } *)
       apply L_preservation; auto; intros.
+      (* TODO: check if we really want x in both here... *)
       specialize (H1 x x).
       specialize (H _ H1).
       apply SN_beta_and_SN_step_coincide in H.
       admit.
     (* Case: negation type. *)
-    - admit.
+    - rewrite L_arr_composition in H1 |- *.
+      rewrite L_arr_composition in H1.
+      unfold ARR in H1 |- *; intros.
+      admit.
   Admitted.
 
   Lemma L_is_normalizing:
