@@ -21,21 +21,20 @@ Require Import Local.Shrinking.
 
 (** ** Normalization. *)
 
-(* Lemma SN_bind_left:
-  forall b ts c,
-  SN beta (bind b ts c) -> SN beta b.
+Lemma SN_beta_and_SN_step_coincide:
+  forall c,
+  SN beta c <-> SN step c.
 Proof.
-  intros.
-  apply SN_preimage with (fun b => bind b ts c); auto with cps.
+  split; intros.
+  - apply SN_subset with (union beta smol).
+    + apply step_characterization.
+    + apply shrinking_preserves_strong_normalization.
+      * exact smol_is_shrinking.
+      * assumption.
+  - apply SN_subset with step.
+    + apply step_beta.
+    + assumption.
 Qed.
-
-Lemma SN_bind_right:
-  forall b ts c,
-  SN beta (bind b ts c) -> SN beta c.
-Proof.
-  intros.
-  apply SN_preimage with (fun c => bind b ts c); auto with cps.
-Qed. *)
 
 Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
   fold_right Nat.add 0 (map f ts).
@@ -403,7 +402,16 @@ Section Reducibility.
     dependent destruction H.
     destruct H.
     (* Case: base type. *)
-    - admit.
+    - rewrite L_sub_composition in H1 |- *.
+      rewrite L_sub_composition in H1.
+      unfold SUB in H1 |- *; intros.
+      (* We can observe in here that the term from H1 will reduce to the term
+         we want to prove is normalizing... *)
+      apply L_preservation; auto; intros.
+      specialize (H1 x x).
+      specialize (H _ H1).
+      apply SN_beta_and_SN_step_coincide in H.
+      admit.
     (* Case: negation type. *)
     - admit.
   Admitted.
@@ -519,13 +527,10 @@ Lemma SN_L:
   L g c -> SN step c.
 Proof.
   intros.
-  apply SN_subset with (union beta smol).
-  - apply step_characterization.
-  - apply shrinking_preserves_strong_normalization.
-    + exact smol_is_shrinking.
-    + apply reducibility_normalization with g L.
-      * now apply L_is_reducible.
-      * assumption.
+  apply SN_beta_and_SN_step_coincide.
+  apply reducibility_normalization with g L.
+  - now apply L_is_reducible.
+  - assumption.
 Qed.
 
 Lemma switch_preserve_sumup:
