@@ -403,7 +403,6 @@ Section Reducibility.
       destruct H.
       + rewrite L_sub_composition in H2 |- *.
         unfold SUB in H2 |- *; intros.
-        (* Hmm... *)
         specialize (H2 (switch_bindings n x)).
         (* It may be a bit hard to spot, but all we have to do is to apply
            exchange to H2 now and we're done in here. *)
@@ -427,7 +426,47 @@ Section Reducibility.
         * apply IH; auto.
         * assumption.
         * assumption.
-      + admit.
+      + rewrite L_arr_composition in H2 |- *.
+        unfold ARR in H2 |- *; intros.
+        (* We have to apply exchange in H3, so that we can use it as an argument
+           to H2, then we will apply exchange again in H2, which will result in
+           our goal (modulo some de Bruijn arithmetic gimmicks). *)
+        apply reducibility_exchange with (n := (length ts + n)) (h := ts ++ xs1)
+          in H3.
+        * specialize (H2 _ H3).
+          (* TODO: please, refactor me... *)
+          apply reducibility_exchange with (n := n) (h := xs2) in H2.
+          rewrite switch_bindings_distributes_over_bind in H2.
+          rewrite Nat.add_comm in H2.
+          rewrite switch_bindings_is_involutive in H2.
+          (* TODO: there's something about this in [TypeSystem.v]... *)
+          replace (traverse_list switch_bindings n ts) with ts in H2 by admit.
+          assumption.
+          apply IH.
+          assumption.
+          unfold sumup; simpl; lia.
+          assumption.
+          assumption.
+        * (* TODO: refactor, please? *)
+          apply IH.
+          apply Forall_app; split.
+          assumption.
+          apply valid_env_switch_bindings with n xs1.
+          now apply switch_sym.
+          assumption.
+          rewrite sumup_app.
+          rewrite count_switch with n xs2 xs1.
+          unfold sumup; simpl.
+          unfold sumup; lia.
+          now apply switch_sym.
+        * (* TODO: refactor... *)
+          apply Forall_app; split.
+          assumption.
+          apply valid_env_switch_bindings with n xs1.
+          now apply switch_sym.
+          assumption.
+        * apply switch_app.
+          now apply switch_sym.
   Admitted.
 
   Lemma L_contraction:
