@@ -272,16 +272,17 @@ Record reducibility (g: env) (R: env -> candidate): Prop := {
   reducibility_exchange:
     valid_env g ->
     forall n h,
-    switch n g h ->
+    switch n h g ->
     forall e,
-    R g e ->
-    R h (switch_bindings n e);
+    R h e ->
+    R g (switch_bindings n e);
   reducibility_contraction:
-    forall t,
-    valid_env (t :: g) ->
+    valid_env g ->
+    forall h,
+    join 0 h g ->
     forall e,
-    R (t :: t :: g) e ->
-    R (t :: g) (subst 0 0 e);
+    R h e ->
+    R g (subst 0 0 e);
   reducibility_normalization:
     forall c,
     R g c ->
@@ -386,10 +387,10 @@ Section Reducibility.
   Lemma L_exchange:
     valid_env g ->
     forall n h,
-    switch n g h ->
+    switch n h g ->
     forall e,
-    L g e ->
-    L h (switch_bindings n e).
+    L h e ->
+    L g (switch_bindings n e).
   Proof.
     destruct 2; intros.
     (* Case: exchange happens at the start of the beginning. *)
@@ -402,14 +403,14 @@ Section Reducibility.
         specialize (H2 y x).
         specialize (H _ H2).
         admit.
-      + rewrite L_sub_composition in H2.
-        rewrite L_arr_composition in H2 |- *.
-        rewrite L_sub_composition.
-        unfold ARR, SUB in H2 |- *; intros.
-        admit.
       + rewrite L_arr_composition in H2.
         rewrite L_sub_composition in H2 |- *.
         rewrite L_arr_composition.
+        unfold ARR, SUB in H2 |- *; intros.
+        admit.
+      + rewrite L_sub_composition in H2.
+        rewrite L_arr_composition in H2 |- *.
+        rewrite L_sub_composition.
         unfold ARR, SUB in H2 |- *; intros.
         admit.
       + rename ts0 into us.
@@ -439,7 +440,7 @@ Section Reducibility.
         specialize (H2 (switch_bindings n x)).
         (* It may be a bit hard to spot, but all we have to do is to apply
            exchange to H2 now and we're done in here. *)
-        apply reducibility_exchange with (n := n) (h := xs2) in H2.
+        apply reducibility_exchange with (n := n) (g := xs2) in H2.
         * (* Now, H2 is our goal. We just have to tweak it a bit. *)
           rewrite switch_bindings_distributes_over_bind in H2.
           rewrite switch_bindings_distributes_over_jump in H2.
@@ -464,11 +465,11 @@ Section Reducibility.
         (* We have to apply exchange in H3, so that we can use it as an argument
            to H2, then we will apply exchange again in H2, which will result in
            our goal (modulo some de Bruijn arithmetic gimmicks). *)
-        apply reducibility_exchange with (n := (length ts + n)) (h := ts ++ xs1)
+        apply reducibility_exchange with (n := (length ts + n)) (g := ts ++ xs1)
           in H3.
         * specialize (H2 _ H3).
           (* TODO: please, refactor me... *)
-          apply reducibility_exchange with (n := n) (h := xs2) in H2.
+          apply reducibility_exchange with (n := n) (g := xs2) in H2.
           rewrite switch_bindings_distributes_over_bind in H2.
           rewrite Nat.add_comm in H2.
           rewrite switch_bindings_is_involutive in H2.
@@ -484,37 +485,39 @@ Section Reducibility.
           apply IH.
           apply Forall_app; split.
           assumption.
-          apply valid_env_switch_bindings with n xs1.
-          now apply switch_sym.
+          apply valid_env_switch_bindings with n xs2.
+          assumption.
           assumption.
           rewrite sumup_app.
-          rewrite count_switch with n xs2 xs1.
+          rewrite count_switch with n xs1 xs2.
           unfold sumup; simpl.
           unfold sumup; lia.
-          now apply switch_sym.
+          assumption.
         * (* TODO: refactor... *)
           apply Forall_app; split.
           assumption.
-          apply valid_env_switch_bindings with n xs1.
-          now apply switch_sym.
+          apply valid_env_switch_bindings with n xs2.
+          assumption.
           assumption.
         * apply switch_app.
           now apply switch_sym.
   Admitted.
 
   Lemma L_contraction:
-    forall t,
-    valid_env (t :: g) ->
+    valid_env g ->
+    forall h,
+    join 0 h g ->
     forall e,
-    L (t :: t :: g) e ->
-    L (t :: g) (subst 0 0 e).
+    L h e ->
+    L g (subst 0 0 e).
   Proof.
     intros.
+    dependent destruction H0.
     dependent destruction H.
     destruct H.
     (* Case: base type. *)
-    - rewrite L_sub_composition in H1 |- *.
-      rewrite L_sub_composition in H1.
+    - rewrite L_sub_composition.
+      do 2 rewrite L_sub_composition in H1.
       unfold SUB in H1 |- *; intros.
       (* We can observe in here that the term from H1 will reduce to the term
          we want to prove is normalizing... namely, for some a and b:
@@ -618,30 +621,21 @@ Proof.
   remember (sumup count g) as n.
   generalize dependent g.
   induction n using lt_wf_ind.
+  (* We just have to join together the lemmas defined above! *)
   split; subst; intros.
-  - apply L_weakening with t h; intros.
-    + rename h0 into i.
-      now apply H with (m := sumup count i) (g := i).
-    + assumption.
-    + assumption.
-    + assumption.
-  - apply L_exchange with g; intros.
-    + rename h0 into i.
-      now apply H with (m := sumup count i) (g := i).
-    + assumption.
-    + assumption.
-    + assumption.
-  - apply L_contraction; intros.
-    + now apply H with (m := sumup count h) (g := h).
-    + assumption.
-    + assumption.
-  - apply L_is_normalizing with g; intros.
-    + now apply H with (m := sumup count h) (g := h).
-    + assumption.
-    + assumption.
-  - apply L_is_nonempty; intros.
-    + now apply H with (m := sumup count h) (g := h).
-    + assumption.
+  - apply L_weakening with t h; auto; intros.
+    rename h0 into i.
+    now apply H with (m := sumup count i) (g := i).
+  - apply L_exchange with h; auto; intros.
+    rename h0 into i.
+    now apply H with (m := sumup count i) (g := i).
+  - apply L_contraction with h; auto; intros.
+    rename h0 into i.
+    now apply H with (m := sumup count i) (g := i).
+  - apply L_is_normalizing with g; auto; intros.
+    now apply H with (m := sumup count h) (g := h).
+  - apply L_is_nonempty; auto; intros.
+    now apply H with (m := sumup count h) (g := h).
 Qed.
 
 (* -------------------------------------------------------------------------- *)
