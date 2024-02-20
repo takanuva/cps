@@ -263,11 +263,12 @@ Qed.
 
 Record reducibility (g: env) (R: env -> candidate): Prop := {
   reducibility_weakening:
-    forall t,
-    valid_env (t :: g) ->
+    valid_env g ->
+    forall t h,
+    insert [t] 0 h g ->
     forall e,
-    R g e ->
-    R (t :: g) (lift 1 0 e);
+    R h e ->
+    R g (lift 1 0 e);
   reducibility_exchange:
     valid_env g ->
     forall n h,
@@ -351,13 +352,15 @@ Section Reducibility.
     reducibility h L.
 
   Lemma L_weakening:
-    forall t,
-    valid_env (t :: g) ->
+    valid_env g ->
+    forall t h,
+    insert [t] 0 h g ->
     forall e,
-    L g e ->
-    L (t :: g) (lift 1 0 e).
+    L h e ->
+    L g (lift 1 0 e).
   Proof.
     intros.
+    dependent destruction H0; simpl in *.
     dependent destruction H.
     dependent destruction H.
     (* Case: base type. *)
@@ -571,6 +574,10 @@ Section Reducibility.
     L g c.
   Proof.
     intros.
+    (* We're gonna use g but we need to use the L_weakening lemma above for it,
+       so Coq requires us to keep it untouched. Let's do that by remembering its
+       original value. *)
+    remember g as g'.
     dependent destruction H.
     (* Case: empty context. *)
     - (* On the empty context, we merely want terms to halt. This means that in
@@ -589,10 +596,15 @@ Section Reducibility.
         * unfold sumup.
           destruct H; simpl; lia.
       + edestruct reducibility_nonempty as (y, ?); eauto.
-        apply reducibility_weakening with (t := x) in H2.
+        (* We need to call weakening on the same size as we are currently using
+           right now, which is fine as it only uses the existence of items on a
+           smaller environment. So, as we changed the variable g in IH, we have
+           to undo that work a bit first. *)
+        rewrite Heqg' in IH.
+        apply L_weakening with (t := x) in H2; subst.
         * now exists (lift 1 0 y).
-        * assumption.
         * now repeat constructor.
+        * constructor.
   Qed.
 
 End Reducibility.
@@ -607,8 +619,10 @@ Proof.
   generalize dependent g.
   induction n using lt_wf_ind.
   split; subst; intros.
-  - apply L_weakening; intros.
-    + now apply H with (m := sumup count h) (g := h).
+  - apply L_weakening with t h; intros.
+    + rename h0 into i.
+      now apply H with (m := sumup count i) (g := i).
+    + assumption.
     + assumption.
     + assumption.
   - apply L_exchange with g; intros.
