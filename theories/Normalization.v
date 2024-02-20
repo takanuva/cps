@@ -418,15 +418,16 @@ Section Reducibility.
         unfold ARR in H2 |- *; intros c ? d ?.
         (* Steps we need to follow:
 
-             1) By using weakening, H4 can have a (negation us) added;
-             2) By using our IH, we can move it after the ts, so it'll fit as
-                the first argument for H2 (we'll have ts ++ negation us :: xs);
-             3) Now we can repeatedly add each of us into H4 by weaneking;
-             4) By using our IH, we can move these us into the right in H4 (so
-                we will have ts ++ us ++ xs);
-             5) By plugging H4 into H3 (using IH to move negation ts left), we
-                get enough info for the second argument for H2;
-             6) Since switch bindings is involutive, apply it twice on e in H2.
+             1) By using weakening, H4 can have a (negation ts) added;
+             2) By using our IH, we can move it after the us, so it'll fit as
+                the first argument for H2 (we'll have us ++ negation ts :: xs);
+             3) Now we can repeatedly add each of ts into H4 by weaneking;
+             4) By using our IH, we can move these ts into the right in H4 (so
+                we will have us ++ ts ++ xs);
+             5) We have to change H3 by moving negation us into the left;
+             6) By plugging H4 into H3, we get enough info for the second
+                argument for H2;
+             7) Since switch bindings is involutive, apply it twice on e in H2.
 
            If I did math correctly in my head, what's left is exactly with a
            (DISTR), which should preserve strong normalization!
