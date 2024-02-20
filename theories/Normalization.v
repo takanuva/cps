@@ -655,6 +655,43 @@ Proof.
   - assumption.
 Qed.
 
+Goal
+  WEAKENING (fun g e => valid_env g -> L g e).
+Proof.
+  unfold WEAKENING; intros.
+  apply reducibility_weakening with t g.
+  - now apply L_is_reducible.
+  - assumption.
+  - constructor.
+  - apply H.
+    now dependent destruction H1.
+Qed.
+
+Goal
+  EXCHANGE (fun g e => valid_env g -> L g e).
+Proof.
+  unfold EXCHANGE; intros.
+  apply reducibility_exchange with g.
+  - now apply L_is_reducible.
+  - assumption.
+  - assumption.
+  - apply H.
+    now apply valid_env_switch_bindings with n h.
+Qed.
+
+Goal
+  CONTRACTION (fun g e => valid_env g -> L g e).
+Proof.
+  unfold CONTRACTION; intros.
+  apply reducibility_contraction with (t :: t :: g).
+  - now apply L_is_reducible.
+  - assumption.
+  - constructor.
+  - apply H.
+    dependent destruction H0.
+    now repeat constructor.
+Qed.
+
 (*
 
 Definition PRESERVES {T} (P: T -> Prop): relation T :=
