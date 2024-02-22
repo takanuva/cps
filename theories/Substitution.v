@@ -1048,6 +1048,21 @@ Section DeBruijn.
     - reflexivity.
   Qed.
 
+  (* LiftLift (additional!): U^i(U^j(s)) = U^(i+j)(s) *)
+  Lemma subst_LiftLift:
+    forall i j s,
+    subst_upn i (subst_upn j s) ~ subst_upn (i + j) s.
+  Proof.
+    intros i j s k x.
+    apply traverse_ext; simpl; intros l n ?.
+    destruct (le_gt_dec l n).
+    - destruct (le_gt_dec (i + l) n).
+      + f_equal; lia.
+      + destruct s; simpl;
+        now simplify decidable equality.
+    - reflexivity.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
 End DeBruijn.
@@ -1115,6 +1130,7 @@ Global Hint Rewrite subst_Lift2B using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftEnv using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftId using sigma_solver: sigma.
 Global Hint Rewrite subst_ShiftShift using sigma_solver: sigma.
+Global Hint Rewrite subst_LiftLift using sigma_solver: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
