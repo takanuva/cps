@@ -209,6 +209,11 @@ Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
 
 Global Hint Unfold right_cycle: cps.
 
+Definition left_cycle i k e :=
+  subst (bound i) k (lift 1 (1 + i + k) e).
+
+Global Hint Unfold left_cycle: cps.
+
 Definition remove_binding k e: pseudoterm :=
   subst 0 k e.
 
