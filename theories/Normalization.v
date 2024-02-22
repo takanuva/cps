@@ -292,6 +292,65 @@ Record reducibility (g: env) (R: env -> candidate): Prop := {
     R g c
 }.
 
+Lemma foo:
+  forall R: env -> candidate,
+  forall xs ts x ys e,
+  R (ts ++ x :: xs ++ ys) e ->
+  R (ts ++ xs ++ x :: ys) (left_cycle (length xs) (length ts) e).
+Proof.
+  induction xs; intros.
+  - simpl in H |- *.
+    unfold left_cycle; simpl.
+    (* We have the same term! This has been checked with the [Substitution.v]
+       library, which we will use here at some point. *)
+    admit.
+  - simpl in H |- *.
+    apply reducibility_exchange with (g := ts ++ a :: x :: xs ++ ys)
+      (n := length ts) in H.
+    + replace (ts ++ a :: x :: xs ++ ys) with
+        ((ts ++ [a]) ++ x :: xs ++ ys) in H.
+      * apply IHxs in H.
+        rewrite <- app_assoc in H; simpl in H.
+        (* Ok, we have the same term. This has also been checked with the sigma
+           tactic. *)
+        admit.
+      * rewrite <- app_assoc.
+        now simpl.
+    + admit.
+    + admit.
+    + replace (length ts) with (length ts + 0) by lia.
+      apply switch_app.
+      constructor.
+Admitted.
+
+Lemma bar:
+  forall R: env -> candidate,
+  forall ts xs ys e,
+  R (xs ++ ys) e ->
+  R (xs ++ ts ++ ys) (lift (length ts) (length xs) e).
+Proof.
+  intros; induction ts.
+  - simpl.
+    rewrite lift_zero_e_equals_e.
+    assumption.
+  - apply reducibility_weakening with (t := a) (g := a :: xs ++ ts ++ ys)
+      in IHts; simpl.
+    + rewrite lift_lift_permutation in IHts by lia.
+      apply foo with (ts := []) in IHts; simpl in IHts.
+      (* We keep moving the variable a little bit; our assumption already has
+         the result. *)
+      unfold left_cycle in IHts.
+      rewrite lift_lift_simplification in IHts by lia.
+      replace (S (length xs)) with (1 + length xs) in IHts by lia.
+      rewrite <- lift_lift_permutation in IHts by lia.
+      rewrite subst_lift_simplification in IHts by lia.
+      rewrite lift_zero_e_equals_e in IHts.
+      assumption.
+    + admit.
+    + admit.
+    + constructor.
+Admitted.
+
 Goal
   forall ts,
   valid_env ts ->
