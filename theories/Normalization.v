@@ -384,6 +384,66 @@ Section Reducibility.
       admit.
   Admitted.
 
+  (* TODO: when rewriting the following lemma, might wanna check the statement
+     on this one as well. *)
+
+  Lemma L_right_cycle_aux:
+    forall x xs ts ys e,
+    simple x ->
+    valid_env ts ->
+    valid_env xs ->
+    valid_env ys ->
+    sumup count (ts ++ xs ++ x :: ys) < sumup count g ->
+    L (ts ++ xs ++ x :: ys) e ->
+    L (ts ++ x :: xs ++ ys) (right_cycle (length xs) (length ts) e).
+  Proof.
+    induction xs using rev_ind; intros.
+    - simpl in H4 |- *.
+      rewrite right_cycle_zero_e_equals_e.
+      assumption.
+    - rename x0 into a.
+      rewrite <- app_assoc in H4 |- *; simpl in H4 |- *.
+      apply reducibility_exchange with (g := ts ++ xs ++ x :: a :: ys)
+        (n := length ts + length xs) in H4.
+      + replace (a :: ys) with ([a] ++ ys) in H4 by auto.
+        apply IHxs in H4.
+        * rewrite right_cycle_switch_bindings_simplification in H4.
+          rewrite app_length; simpl length.
+          rewrite Nat.add_comm.
+          assumption.
+        * assumption.
+        * assumption.
+        * apply Forall_app in H1 as (?, ?).
+          assumption.
+        * apply Forall_app in H1 as (?, ?).
+          apply Forall_app; auto.
+        * do 3 rewrite sumup_app in H3.
+          do 2 rewrite sumup_app.
+          do 2 rewrite sumup_cons in H3.
+          rewrite sumup_cons.
+          rewrite sumup_app.
+          rewrite sumup_cons.
+          lia.
+      + apply IH.
+        * apply Forall_app in H1 as (?, ?).
+          dependent destruction H5.
+          apply Forall_app; split; auto.
+          apply Forall_app; split; auto.
+        * do 3 rewrite sumup_app in H3.
+          do 2 rewrite sumup_app.
+          do 2 rewrite sumup_cons in H3.
+          do 2 rewrite sumup_cons.
+          lia.
+      + apply Forall_app in H1 as (?, ?).
+        dependent destruction H5.
+        apply Forall_app; split; auto.
+        apply Forall_app; split; auto.
+      + apply switch_app.
+        replace (length xs) with (length xs + 0) by lia.
+        apply switch_app.
+        constructor.
+  Qed.
+
   Lemma L_left_cycle_aux:
     forall x xs ts ys e,
     simple x ->
@@ -402,7 +462,7 @@ Section Reducibility.
       (* We have the same term! This has been checked with the [Substitution.v]
          library, which we will use here at some point. *)
       admit.
-    - simpl in H |- *.
+    - simpl in H4 |- *.
       (* As xs starts with a, move x after it. *)
       apply reducibility_exchange with (g := ts ++ a :: x :: xs ++ ys)
         (n := length ts) in H4.
