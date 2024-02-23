@@ -292,65 +292,6 @@ Record reducibility (g: env) (R: env -> candidate): Prop := {
     R g c
 }.
 
-Lemma foo:
-  forall R: env -> candidate,
-  forall xs ts x ys e,
-  R (ts ++ x :: xs ++ ys) e ->
-  R (ts ++ xs ++ x :: ys) (left_cycle (length xs) (length ts) e).
-Proof.
-  induction xs; intros.
-  - simpl in H |- *.
-    unfold left_cycle; simpl.
-    (* We have the same term! This has been checked with the [Substitution.v]
-       library, which we will use here at some point. *)
-    admit.
-  - simpl in H |- *.
-    apply reducibility_exchange with (g := ts ++ a :: x :: xs ++ ys)
-      (n := length ts) in H.
-    + replace (ts ++ a :: x :: xs ++ ys) with
-        ((ts ++ [a]) ++ x :: xs ++ ys) in H.
-      * apply IHxs in H.
-        rewrite <- app_assoc in H; simpl in H.
-        (* Ok, we have the same term. This has also been checked with the sigma
-           tactic. *)
-        admit.
-      * rewrite <- app_assoc.
-        now simpl.
-    + admit.
-    + admit.
-    + replace (length ts) with (length ts + 0) by lia.
-      apply switch_app.
-      constructor.
-Admitted.
-
-Lemma bar:
-  forall R: env -> candidate,
-  forall ts xs ys e,
-  R (xs ++ ys) e ->
-  R (xs ++ ts ++ ys) (lift (length ts) (length xs) e).
-Proof.
-  intros; induction ts.
-  - simpl.
-    rewrite lift_zero_e_equals_e.
-    assumption.
-  - apply reducibility_weakening with (t := a) (g := a :: xs ++ ts ++ ys)
-      in IHts; simpl.
-    + rewrite lift_lift_permutation in IHts by lia.
-      apply foo with (ts := []) in IHts; simpl in IHts.
-      (* We keep moving the variable a little bit; our assumption already has
-         the result. *)
-      unfold left_cycle in IHts.
-      rewrite lift_lift_simplification in IHts by lia.
-      replace (S (length xs)) with (1 + length xs) in IHts by lia.
-      rewrite <- lift_lift_permutation in IHts by lia.
-      rewrite subst_lift_simplification in IHts by lia.
-      rewrite lift_zero_e_equals_e in IHts.
-      assumption.
-    + admit.
-    + admit.
-    + constructor.
-Admitted.
-
 Goal
   forall ts,
   valid_env ts ->
@@ -443,6 +384,131 @@ Section Reducibility.
       admit.
   Admitted.
 
+  Lemma L_left_cycle_aux:
+    forall x xs ts ys e,
+    simple x ->
+    valid_env ts ->
+    valid_env xs ->
+    valid_env ys ->
+    sumup count (ts ++ x :: xs ++ ys) < sumup count g ->
+    L (ts ++ x :: xs ++ ys) e ->
+    L (ts ++ xs ++ x :: ys) (left_cycle (length xs) (length ts) e).
+  Proof.
+    (* This lemma is kinda ugly, sigh... TODO: I really think I should rewrite
+       this lemma, even though it's a technical one. *)
+    induction xs; intros.
+    - simpl in H |- *.
+      unfold left_cycle; simpl.
+      (* We have the same term! This has been checked with the [Substitution.v]
+         library, which we will use here at some point. *)
+      admit.
+    - simpl in H |- *.
+      (* As xs starts with a, move x after it. *)
+      apply reducibility_exchange with (g := ts ++ a :: x :: xs ++ ys)
+        (n := length ts) in H4.
+      + (* I don't like the following line, but oh well... *)
+        replace (ts ++ a :: x :: xs ++ ys) with
+          ((ts ++ [a]) ++ x :: xs ++ ys) in H4 by now rewrite <- app_assoc.
+        (* We can now keep moving x after the remaining of xs. *)
+        apply IHxs in H4.
+        * (* Undo the technical change. *)
+          rewrite <- app_assoc in H4; simpl in H4.
+          (* Ok, we have the same term. This has also been checked with the
+             sigma tactic. Not sure I'm gonna have time to properly prove this
+             lemma manually, but this is true. *)
+          admit.
+        * assumption.
+        * dependent destruction H1.
+          apply Forall_app; split; auto.
+        * now dependent destruction H1.
+        * assumption.
+        * (* We have to rewrite a bit, but yeah, same number, we just moved some
+             types around. *)
+          rewrite <- app_assoc; simpl.
+          rewrite sumup_app in H3 |- *.
+          unfold sumup in H3 |- *; simpl in H3 |- *.
+          lia.
+      + apply IH.
+        * dependent destruction H1.
+          rewrite Forall_app; split; auto.
+          constructor; auto.
+          constructor; auto.
+          now rewrite Forall_app.
+        * rewrite sumup_app in H3 |- *.
+          unfold sumup in H3 |- *; simpl in H3 |- *.
+          lia.
+      + dependent destruction H1.
+        rewrite Forall_app; split; auto.
+        constructor; auto.
+        constructor; auto.
+        now rewrite Forall_app.
+      + replace (length ts) with (length ts + 0) by lia.
+        apply switch_app.
+        constructor.
+  Admitted.
+
+  Lemma L_lift_aux:
+    forall ts xs ys e,
+    valid_env ts ->
+    valid_env xs ->
+    valid_env ys ->
+    sumup count (xs ++ ts ++ ys) < sumup count g ->
+    L (xs ++ ys) e ->
+    L (xs ++ ts ++ ys) (lift (length ts) (length xs) e).
+  Proof.
+    (* TODO: sigh, this lemma is too ugly... please, rewrite it once I have
+       enough time to do it. *)
+    intros; induction ts.
+    - simpl.
+      rewrite lift_zero_e_equals_e.
+      assumption.
+    - dependent destruction H.
+      (* Of course this decreases, but still... *)
+      assert (sumup count (xs ++ ts ++ ys) < sumup count g).
+      + rewrite sumup_app in H3 |- *.
+        unfold sumup in H3 |- *; simpl in H3 |- *.
+        lia.
+      + (* In the inductive case, we first add the new variable as the newest
+           one, by using weakening. *)
+        specialize (IHts H0 H5).
+        apply reducibility_weakening with (t := a) (g := a :: xs ++ ts ++ ys)
+          in IHts; simpl.
+        * (* And we then proceed to move it to the right position by using our
+             helper lemma above. *)
+          rewrite lift_lift_permutation in IHts by lia.
+          apply L_left_cycle_aux with (ts := []) in IHts; simpl in IHts.
+          (* We keep moving the variable a little bit; our assumption already has
+             the result. *)
+          unfold left_cycle in IHts.
+          rewrite lift_lift_simplification in IHts by lia.
+          replace (S (length xs)) with (1 + length xs) in IHts by lia.
+          rewrite <- lift_lift_permutation in IHts by lia.
+          rewrite subst_lift_simplification in IHts by lia.
+          rewrite lift_zero_e_equals_e in IHts.
+          assumption.
+          assumption.
+          constructor.
+          assumption.
+          now apply Forall_app.
+          simpl.
+          rewrite sumup_cons.
+          do 2 rewrite sumup_app in H3 |- *.
+          unfold sumup in H3 |- *; simpl in H3 |- *.
+          lia.
+        * apply IH.
+          constructor; auto.
+          apply Forall_app; split; auto.
+          apply Forall_app; split; auto.
+          rewrite sumup_cons.
+          do 2 rewrite sumup_app in H3 |- *.
+          unfold sumup in H3 |- *; simpl in H3 |- *.
+          lia.
+        * constructor; auto.
+          apply Forall_app; split; auto.
+          apply Forall_app; split; auto.
+        * constructor.
+  Qed.
+
   Lemma L_exchange:
     valid_env g ->
     forall n h,
@@ -451,6 +517,7 @@ Section Reducibility.
     L h e ->
     L g (switch_bindings n e).
   Proof.
+    remember g as g'.
     destruct 2; intros.
     (* Case: exchange happens at the start of the beginning. *)
     - dependent destruction H.
@@ -491,7 +558,28 @@ Section Reducibility.
            If I did math correctly in my head, what's left is exactly with a
            (DISTR), which should preserve strong normalization!
         *)
-        admit.
+        assert (L (us ++ negation ts :: xs) (lift 1 (length us) d) /\
+                L (us ++ ts ++ xs) (lift (length ts) (length us) d))
+          as (?H, ?H); repeat split.
+        * (* TODO: refactor... *)
+          rewrite Heqg' in IH.
+          apply L_lift_aux with (ts := [negation ts]).
+          now repeat constructor.
+          assumption.
+          assumption.
+          rewrite <- Heqg'.
+          rewrite sumup_app; simpl.
+          do 3 rewrite sumup_cons.
+          simpl; lia.
+          assumption.
+        * (* TODO: refactor... *)
+          rewrite Heqg' in IH.
+          apply L_lift_aux; auto.
+          rewrite <- Heqg'.
+          do 2 rewrite sumup_cons.
+          do 2 rewrite sumup_app.
+          simpl; lia.
+        * admit.
     (* Case: there's an assumption before the exchanged types. *)
     - dependent destruction H.
       destruct H.
