@@ -384,9 +384,6 @@ Section Reducibility.
       admit.
   Admitted.
 
-  (* TODO: when rewriting the following lemma, might wanna check the statement
-     on this one as well. *)
-
   Lemma L_right_cycle_aux:
     forall x xs ts ys e,
     simple x ->
@@ -397,6 +394,8 @@ Section Reducibility.
     L (ts ++ xs ++ x :: ys) e ->
     L (ts ++ x :: xs ++ ys) (right_cycle (length xs) (length ts) e).
   Proof.
+    (* TODO: when rewriting the following lemma, might wanna check the statement
+       on this one as well. *)
     induction xs using rev_ind; intros.
     - simpl in H4 |- *.
       rewrite right_cycle_zero_e_equals_e.
@@ -619,8 +618,9 @@ Section Reducibility.
            (DISTR), which should preserve strong normalization!
         *)
         assert (L (us ++ negation ts :: xs) (lift 1 (length us) d) /\
-                L (us ++ ts ++ xs) (lift (length ts) (length us) d))
-          as (?H, ?H); repeat split.
+                L (us ++ ts ++ xs) (lift (length ts) (length us) d) /\
+                L (negation us :: ts ++ xs) (right_cycle (length ts) 0 c))
+          as (?H, (?H, ?H)); repeat split.
         * (* TODO: refactor... *)
           rewrite Heqg' in IH.
           apply L_lift_aux with (ts := [negation ts]).
@@ -639,7 +639,30 @@ Section Reducibility.
           do 2 rewrite sumup_cons.
           do 2 rewrite sumup_app.
           simpl; lia.
-        * admit.
+        * (* TODO: refactor... *)
+          rewrite Heqg' in IH.
+          apply L_right_cycle_aux with (ts := []) (xs := ts) in H3.
+          assumption.
+          now repeat constructor.
+          constructor.
+          assumption.
+          assumption.
+          simpl; rewrite <- Heqg'.
+          rewrite sumup_app.
+          do 3 rewrite sumup_cons.
+          simpl count.
+          lia.
+        * rewrite L_arr_composition in H7.
+          unfold ARR in H7.
+          specialize (H7 _ H6).
+          specialize (H2 _ H5 _ H7).
+          rewrite <- switch_bindings_is_involutive with (e := e) (k := 0) in H2.
+          clear H3 H4 H5 H6 H7.
+          (* Just as expected! Now, H2 is just a (DISTR) application from our
+             goal. So our term preserves the strong normalization. *)
+          apply L_preservation; auto; intros.
+          apply H3 in H2; clear H3.
+          admit.
     (* Case: there's an assumption before the exchanged types. *)
     - dependent destruction H.
       destruct H.
