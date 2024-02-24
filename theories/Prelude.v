@@ -96,6 +96,8 @@ Proof.
   induction 1; simpl; auto with arith.
 Qed.
 
+Global Hint Resolve item_valid_index: cps.
+
 Lemma item_exists:
   forall {T} xs k,
   k < length xs ->

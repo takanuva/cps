@@ -236,6 +236,79 @@ Inductive wellbehaved: env -> context -> Prop :=
     wellbehaved (negation ts :: g) (compose_context h
       (context_left context_hole ts c)).
 
+Inductive split_wellbehaved_result: env -> context -> nat -> Prop :=
+  | split_wellbehaved_result_mk:
+    forall g h n g1 g2 h1 h2,
+    g = g1 ++ g2 ->
+    n = length g1 ->
+    wellbehaved g2 h2 ->
+    h = compose_context h2 h1 ->
+    length g1 = #h1 ->
+    split_wellbehaved_result g h n.
+
+(* TODO: move to [Metatheory.v]. *)
+
+Lemma compose_context_assoc:
+  forall h r s,
+  compose_context (compose_context h r) s =
+    compose_context h (compose_context r s).
+Proof.
+  induction h; simpl; intros.
+  - reflexivity.
+  - now rewrite IHh.
+  - now rewrite IHh.
+Qed.
+
+Lemma split_wellbehaved_context:
+  forall g h,
+  wellbehaved g h ->
+  forall n,
+  n < length g ->
+  split_wellbehaved_result g h n.
+Proof.
+  induction 1; simpl; intros.
+  - exfalso.
+    inversion H.
+  - destruct n.
+    + econstructor 1 with [] (base :: g) context_hole _.
+      * reflexivity.
+      * reflexivity.
+      * constructor.
+        eassumption.
+      * simpl.
+        rewrite compose_context_assoc.
+        now simpl.
+      * reflexivity.
+    + destruct IHwellbehaved with n; try lia; subst.
+      econstructor 1 with (base :: g1) g2 _ h2.
+      * reflexivity.
+      * now simpl.
+      * assumption.
+      * rewrite compose_context_assoc.
+        reflexivity.
+      * rewrite compose_context_bvars; simpl.
+        lia.
+  - destruct n.
+    + econstructor 1 with [] (negation ts :: g) context_hole _.
+      * reflexivity.
+      * reflexivity.
+      * constructor;
+        eassumption.
+      * simpl.
+        rewrite compose_context_assoc.
+        now simpl.
+      * reflexivity.
+    + destruct IHwellbehaved with n; try lia; subst.
+      econstructor 1 with (negation ts :: g1) g2 _ h2.
+      * reflexivity.
+      * now simpl.
+      * assumption.
+      * rewrite compose_context_assoc.
+        reflexivity.
+      * rewrite compose_context_bvars; simpl.
+        lia.
+Qed.
+
 Lemma L_preservation:
   forall g,
   valid_env g ->
@@ -966,6 +1039,25 @@ Proof.
   - clear IHe.
     dependent destruction H0.
     apply L_preservation; auto; intros.
+    (* The first step we need to do is to split the context h. As we know that
+       it is well-behaved for g, our typing information that g |- n: ~ts says
+       that we can split h into a context which defines the continuation at n
+       with the appropriate type and some context that plays no part on reducing
+       this continuation. *)
+    destruct split_wellbehaved_context with g h n; eauto with cps; subst.
+    (* The second half of our context contains the definition we want! *)
+    apply item_ignore_head in H0; auto.
+    replace (length g1 - length g1) with 0 in H0 by lia.
+    dependent destruction H0.
+    dependent destruction H6.
+    rename h into h2, cdr into g2.
+    do 2 setoid_rewrite compose_context_is_sound in H3; simpl in H3.
+    do 2 rewrite compose_context_is_sound; simpl.
+    rewrite H8.
+    (* Now that we have a term c that is to be reduced, we can apply successive
+       weakening and exchange rules on it to add (g1 ++ [negation ts]) to it's
+       environment, making it valid on the same environment as our goal plus the
+       parameters. *)
     admit.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
