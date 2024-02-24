@@ -220,41 +220,59 @@ Proof.
       reflexivity.
 Qed.
 
+Inductive wellbehaved: env -> context -> Prop :=
+  | wellbehaved_nil:
+    wellbehaved [] context_hole
+  | wellbehaved_cons_base:
+    forall h g x,
+    wellbehaved g h ->
+    wellbehaved (base :: g) (compose_context h
+      (context_right (jump 0 [lift 1 0 x]) [base]
+        context_hole))
+  | wellbehaveed_cons_negation:
+    forall g h ts c,
+    wellbehaved g h ->
+    L (ts ++ g) c ->
+    wellbehaved (negation ts :: g) (compose_context h
+      (context_left context_hole ts c)).
+
 Lemma L_preservation:
   forall g,
   valid_env g ->
   forall c,
-  (* Here, g generates a context, which is valid as g for any other term. *)
-  (forall (h: context), (forall b, L g b -> SN beta (h b)) -> SN beta (h c)) ->
+  (* Here, g generates a well-behaved context, which is valid as g for any other
+     term as well. *)
+  (forall h, wellbehaved g h ->
+             (forall b, L g b -> SN beta (h b)) ->
+             SN beta (h c)) ->
   L g c.
 Proof.
   induction g; intros.
   - specialize (H0 context_hole); simpl in H0.
     apply H0; intros.
-    assumption.
+    + constructor.
+    + assumption.
   - dependent destruction H.
     dependent destruction H.
     + rewrite L_sub_composition in H1 |- *.
       unfold SUB in H0 |- *; intros.
-      eapply IHg; intros.
-      * assumption.
-      * replace (bind (jump 0 [lift 1 0 x]) [base] c) with
-          (context_right (jump 0 [lift 1 0 x]) [base] context_hole c); auto.
-        rewrite <- compose_context_is_sound.
-        apply H1; intros.
-        rewrite compose_context_is_sound; simpl.
-        apply H.
-        apply H2.
+      eapply IHg; auto; intros.
+      replace (bind (jump 0 [lift 1 0 x]) [base] c) with
+        (context_right (jump 0 [lift 1 0 x]) [base] context_hole c); auto.
+      rewrite <- compose_context_is_sound.
+      apply H1; intros.
+      * now constructor.
+      * rewrite compose_context_is_sound; simpl.
+        apply H2, H3.
     + rewrite L_arr_composition in H1 |- *.
       unfold ARR in H1 |- *; intros d ?.
-      eapply IHg; intros.
-      * assumption.
-      * replace (bind c ts d) with (context_left context_hole ts d c); auto.
-        rewrite <- compose_context_is_sound.
-        apply H1; intros.
-        rewrite compose_context_is_sound; simpl.
-        apply H3, H4.
-        assumption.
+      eapply IHg; auto; intros.
+      replace (bind c ts d) with (context_left context_hole ts d c); auto.
+      rewrite <- compose_context_is_sound.
+      apply H1; intros.
+      * now constructor.
+      * rewrite compose_context_is_sound; simpl.
+        now apply H4, H5.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -368,7 +386,7 @@ Section Reducibility.
     - rewrite L_sub_composition.
       unfold SUB; intros.
       apply L_preservation; auto; intros.
-      specialize (H e H1).
+      specialize (H2 e H1).
       eapply sn_beta_backwards_step.
       + apply beta_context.
         apply beta_ctxjmp with (h := context_hole).
@@ -576,9 +594,11 @@ Section Reducibility.
     L h e ->
     L g (switch_bindings n e).
   Proof.
+    (* For technical details, we need to remember the original value of g. *)
     remember g as g'.
+    (* There we go; check where the switch happens. *)
     destruct 2; intros.
-    (* Case: exchange happens at the start of the beginning. *)
+    (* Case: exchange happens at the start of the environment. *)
     - dependent destruction H.
       dependent destruction H0.
       destruct H; destruct H0.
@@ -586,7 +606,7 @@ Section Reducibility.
         unfold SUB in H2 |- *; intros x y.
         apply L_preservation; auto; intros.
         specialize (H2 y x).
-        specialize (H _ H2).
+        specialize (H0 _ H2).
         admit.
       + rewrite L_arr_composition in H2.
         rewrite L_sub_composition in H2 |- *.
@@ -661,7 +681,7 @@ Section Reducibility.
           (* Just as expected! Now, H2 is just a (DISTR) application from our
              goal. So our term preserves the strong normalization. *)
           apply L_preservation; auto; intros.
-          apply H3 in H2; clear H3.
+          apply H4 in H2; clear H4.
           admit.
     (* Case: there's an assumption before the exchanged types. *)
     - dependent destruction H.
@@ -671,26 +691,23 @@ Section Reducibility.
         specialize (H2 (switch_bindings n x)).
         (* It may be a bit hard to spot, but all we have to do is to apply
            exchange to H2 now and we're done in here. *)
-        apply reducibility_exchange with (n := n) (g := xs2) in H2.
-        * (* Now, H2 is our goal. We just have to tweak it a bit. *)
-          rewrite switch_bindings_distributes_over_bind in H2.
-          rewrite switch_bindings_distributes_over_jump in H2.
-          unfold switch_bindings at 1 2 in H2; simpl in H2.
-          rewrite lift_bound_lt in H2 by lia.
-          rewrite subst_bound_lt in H2 by lia.
-          replace (S (S (S n))) with (1 + (2 + n)) in H2 by lia.
-          rewrite <- lift_lift_permutation in H2 by lia.
-          replace (S n) with (1 + n) in H2 by lia.
-          rewrite <- lift_and_subst_commute in H2 by lia.
-          fold (switch_bindings n (switch_bindings n x)) in H2.
-          rewrite switch_bindings_is_involutive in H2.
-          replace (switch_bindings n base) with base in H2 by now compute.
-          rewrite Nat.add_comm in H2.
-          (* There we go. *)
-          assumption.
-        * apply IH; auto.
-        * assumption.
-        * assumption.
+        apply reducibility_exchange with (n := n) (g := xs2) in H2; auto.
+        (* Now, H2 holds our goal. We just have to tweak it a bit. *)
+        rewrite switch_bindings_distributes_over_bind in H2.
+        rewrite switch_bindings_distributes_over_jump in H2.
+        unfold switch_bindings at 1 2 in H2; simpl in H2.
+        rewrite lift_bound_lt in H2 by lia.
+        rewrite subst_bound_lt in H2 by lia.
+        replace (S (S (S n))) with (1 + (2 + n)) in H2 by lia.
+        rewrite <- lift_lift_permutation in H2 by lia.
+        replace (S n) with (1 + n) in H2 by lia.
+        rewrite <- lift_and_subst_commute in H2 by lia.
+        fold (switch_bindings n (switch_bindings n x)) in H2.
+        rewrite switch_bindings_is_involutive in H2.
+        replace (switch_bindings n base) with base in H2 by now compute.
+        rewrite Nat.add_comm in H2.
+        (* There we go! *)
+        assumption.
       + rewrite L_arr_composition in H2 |- *.
         unfold ARR in H2 |- *; intros.
         (* We have to apply exchange in H3, so that we can use it as an argument
@@ -757,8 +774,8 @@ Section Reducibility.
       apply L_preservation; auto; intros.
       (* TODO: check if we really want x in both here... *)
       specialize (H1 x x).
-      specialize (H _ H1).
-      apply SN_beta_and_SN_step_coincide in H.
+      apply H2 in H1; clear H2.
+      apply SN_beta_and_SN_step_coincide in H1.
       admit.
     (* Case: negation type. *)
     - rewrite L_arr_composition in H1 |- *.
