@@ -1722,6 +1722,156 @@ Proof.
     lia.
 Qed.
 
+Lemma left_cycle_zero_e_equals_e:
+  forall e k,
+  left_cycle 0 k e = e.
+Proof.
+  unfold left_cycle; simpl.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite lift_bound_ge by lia.
+      rewrite subst_bound_gt by lia.
+      reflexivity.
+    + rewrite lift_bound_lt by lia.
+      rewrite subst_bound_eq by lia.
+      rewrite lift_bound_ge by lia.
+      f_equal; lia.
+    + rewrite lift_bound_lt by lia.
+      rewrite subst_bound_lt by lia.
+      reflexivity.
+  - rewrite lift_distributes_over_negation.
+    rewrite subst_distributes_over_negation.
+    f_equal.
+    induction H; simpl.
+    + reflexivity.
+    + f_equal; auto.
+      do 2 rewrite traverse_list_length.
+      replace (length l + S k) with (S (length l + k)) by lia.
+      apply H.
+  - rewrite lift_distributes_over_jump.
+    rewrite subst_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + clear IHe.
+      induction H; simpl.
+      * reflexivity.
+      * f_equal; auto.
+  - rewrite lift_distributes_over_bind.
+    rewrite subst_distributes_over_bind.
+    f_equal.
+    + apply IHe1.
+    + clear IHe1 IHe2.
+      induction H; simpl.
+      * constructor.
+      * f_equal; auto.
+        do 2 rewrite traverse_list_length.
+        replace (length l + S k) with (S (length l + k)) by lia.
+        apply H.
+    + rewrite traverse_list_length.
+      apply IHe2.
+Qed.
+
+Lemma left_cycle_switch_bindings_simplification:
+  forall e i k,
+  left_cycle i (S k) (switch_bindings k e) = left_cycle (S i) k e.
+Proof.
+  unfold left_cycle; simpl.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - unfold switch_bindings.
+    destruct (le_gt_dec (2 + k) n).
+    + rewrite lift_bound_ge by lia.
+      rewrite subst_bound_gt by lia; simpl.
+      destruct (le_gt_dec (2 + i + k) n).
+      * rewrite lift_bound_ge by lia.
+        rewrite subst_bound_gt by lia.
+        rewrite lift_bound_ge by lia.
+        rewrite subst_bound_gt by lia.
+        reflexivity.
+      * rewrite lift_bound_lt by lia.
+        rewrite subst_bound_gt by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_gt by lia.
+        reflexivity.
+    + rewrite lift_bound_lt by lia.
+      destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+      * rewrite subst_bound_gt by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_lt by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_gt by lia.
+        reflexivity.
+      * rewrite subst_bound_eq by lia.
+        rewrite lift_bound_ge by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_eq by lia.
+        rewrite lift_bound_ge by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_eq by lia.
+        rewrite lift_bound_ge by lia.
+        f_equal; lia.
+      * rewrite subst_bound_lt by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_lt by lia.
+        rewrite lift_bound_lt by lia.
+        rewrite subst_bound_lt by lia.
+        reflexivity.
+  - rewrite switch_bindings_distributes_over_negation.
+    do 2 rewrite lift_distributes_over_negation.
+    do 2 rewrite subst_distributes_over_negation.
+    f_equal.
+    induction H; simpl.
+    + reflexivity.
+    + f_equal; auto.
+      do 5 rewrite traverse_list_length.
+      replace (length l + S k) with (S (length l + k)) by lia.
+      replace (length l + S (i + S k)) with (1 + i + S (length l + k)) by lia.
+      replace (length l + S (S (i + k))) with (1 + S i + (length l + k))
+        by lia.
+      apply H.
+  - rewrite switch_bindings_distributes_over_jump.
+    do 2 rewrite lift_distributes_over_jump.
+    do 2 rewrite subst_distributes_over_jump.
+    f_equal.
+    + apply IHe.
+    + clear IHe.
+      induction H; simpl.
+      * constructor.
+      * f_equal; auto.
+  - rewrite switch_bindings_distributes_over_bind.
+    do 2 rewrite lift_distributes_over_bind.
+    do 2 rewrite subst_distributes_over_bind.
+    f_equal.
+    + replace (S (i + S k)) with (i + S (S k)) by lia.
+      replace (S (i + k)) with (i + S k) by lia.
+      apply IHe1.
+    + clear IHe1 IHe2.
+      induction H; simpl.
+      * constructor.
+      * f_equal; auto.
+        do 5 rewrite traverse_list_length.
+        replace (length l + S k) with (S (length l + k)) by lia.
+        replace (length l + S (i + S k)) with
+          (S (i + (S (length l + k)))) by lia.
+        replace (length l + S (S (i + k))) with
+          (S (S (i + (length l + k)))) by lia.
+        apply H.
+    + do 3 rewrite traverse_list_length.
+      replace (S k + length ts) with (S (k + length ts)) by lia.
+      replace (S (i + S k) + length ts) with
+        (S (i + S (k + length ts))) by lia.
+      replace (S (S (i + k)) + length ts) with
+        (S (S (i + (k + length ts)))) by lia.
+      apply IHe2.
+Qed.
+
 Lemma not_free_lift:
   forall c p k j,
   not_free (p + j) c ->

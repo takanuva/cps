@@ -548,10 +548,8 @@ Section Reducibility.
        this lemma, even though it's a technical one. *)
     induction xs; intros.
     - simpl in H |- *.
-      unfold left_cycle; simpl.
-      (* We have the same term! This has been checked with the [Substitution.v]
-         library, which we will use here at some point. *)
-      admit.
+      rewrite left_cycle_zero_e_equals_e.
+      assumption.
     - simpl in H4 |- *.
       (* As xs starts with a, move x after it. *)
       apply reducibility_exchange with (g := ts ++ a :: x :: xs ++ ys)
@@ -563,10 +561,10 @@ Section Reducibility.
         apply IHxs in H4.
         * (* Undo the technical change. *)
           rewrite <- app_assoc in H4; simpl in H4.
-          (* Ok, we have the same term. This has also been checked with the
-             sigma tactic. Not sure I'm gonna have time to properly prove this
-             lemma manually, but this is true. *)
-          admit.
+          rewrite app_length in H4.
+          rewrite Nat.add_comm in H4; simpl in H4.
+          rewrite left_cycle_switch_bindings_simplification in H4.
+          assumption.
         * assumption.
         * dependent destruction H1.
           apply Forall_app; split; auto.
@@ -595,7 +593,7 @@ Section Reducibility.
       + replace (length ts) with (length ts + 0) by lia.
         apply switch_app.
         constructor.
-  Admitted.
+  Qed.
 
   Lemma L_lift_aux:
     forall ts xs ys e,
