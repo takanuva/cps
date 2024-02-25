@@ -711,7 +711,39 @@ Section Reducibility.
         rewrite L_arr_composition in H2 |- *.
         rewrite L_sub_composition.
         unfold ARR, SUB in H2 |- *; intros.
-        admit.
+        (*
+          We have a term that normalizes:
+
+            k<x> { k<y> = e } { j<zs> = c[x/y] }
+
+          And we want to show that the following also normalizes:
+
+            k<x> { k<y> = e { j<zs> = c } }
+
+          Notice that after floating, we'd still have a mismatch on j because
+          on the hypothesis, y is out of scope for c. However, after applying
+          the linear head redex, the two terms will match.
+        *)
+        rewrite Heqg' in IH.
+        apply L_right_cycle_aux with (ts := []) (xs := ts) (ys := xs) in H0.
+        * simpl in H0.
+          rewrite L_sub_composition in H0.
+          unfold SUB in H0.
+          specialize (H0 (lift (length ts) 0 x)).
+          rewrite lift_lift_simplification in H0 by lia.
+          specialize (H2 x _ H0); clear H0.
+          apply L_preservation; auto; intros.
+          apply H3 in H2; clear H3.
+          admit.
+        * constructor.
+        * constructor.
+        * assumption.
+        * assumption.
+        * simpl.
+          rewrite <- Heqg'.
+          rewrite sumup_app.
+          do 3 rewrite sumup_cons; simpl.
+          lia.
       + rename ts0 into us.
         do 2 rewrite L_arr_composition in H2 |- *.
         unfold ARR in H2 |- *; intros c ? d ?.
