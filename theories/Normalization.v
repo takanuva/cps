@@ -58,6 +58,14 @@ Proof.
   reflexivity.
 Defined.
 
+Lemma sumup_nil:
+  forall {T} f,
+  @sumup T f [] = 0.
+Proof.
+  intros.
+  reflexivity.
+Qed.
+
 Fixpoint count (t: pseudoterm): nat :=
   match t with
   | base =>
@@ -1077,6 +1085,39 @@ Definition REFLECTS {T} (P: T -> Prop): relation T :=
 
 *)
 
+Local Lemma fundamental_techinical1:
+  forall g1 g2 ts c,
+  valid_env g1 ->
+  valid_env g2 ->
+  valid_env ts ->
+  L (ts ++ g2) c ->
+  L (ts ++ g1 ++ negation ts :: g2) (lift (1 + length g1) (length ts) c).
+Proof.
+  intros.
+  replace (g1 ++ negation ts :: g2) with ((g1 ++ [negation ts]) ++ g2).
+  - replace (1 + length g1) with (length (g1 ++ [negation ts])).
+    + (* As we're using the auxiliary lemma, we pick an arbitrary g in here that
+         is bigger than what we need... TODO: we might wanna rewrite this lemma
+         too. *)
+      apply L_lift_aux with (g := base :: negation ts :: ts ++ g1 ++ g2).
+      * intros.
+        now apply L_is_reducible.
+      * apply Forall_app; split; auto.
+        now repeat constructor.
+      * assumption.
+      * assumption.
+      * do 2 rewrite sumup_cons; simpl.
+        do 5 rewrite sumup_app; simpl.
+        rewrite sumup_cons; simpl.
+        rewrite sumup_nil.
+        lia.
+      * assumption.
+    + rewrite app_length; simpl.
+      lia.
+  - rewrite <- app_assoc; simpl.
+    reflexivity.
+Qed.
+
 Lemma fundamental:
   forall e g,
   typing g e void -> L g e.
@@ -1110,6 +1151,13 @@ Proof.
        weakening and exchange rules on it to add (g1 ++ [negation ts]) to it's
        environment, making it valid on the same environment as our goal plus the
        parameters. *)
+    apply Forall_app in H as (?, ?).
+    dependent destruction H4.
+    dependent destruction H0.
+    apply fundamental_techinical1 with (g1 := g1) in H5; auto.
+    (* The following step is to remove ts from the beginning of c, applying the
+       parameters accordingly, using the type information in H1 and by repeating
+       applications to exchange and contraction. *)
     admit.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
