@@ -683,7 +683,30 @@ Section Reducibility.
         rewrite L_sub_composition in H2 |- *.
         rewrite L_arr_composition.
         unfold ARR, SUB in H2 |- *; intros.
-        admit.
+        (* We have a normalizing term:
+
+             k<x> { k<y> = e { j<zs> = c } }
+
+           ...where y is free in c. We want to show the following term
+           normalizes:
+
+             k<x> { k<y> = e } { j<zs> = c }
+
+           This is merely showing that floating preserves normalization, which
+           we know is the case. *)
+        rewrite Heqg' in IH.
+        apply L_lift_aux with (ts := [base]) in H0; simpl in H0.
+        * specialize (H2 _ H0 x); clear H0.
+          apply L_preservation; auto; intros.
+          apply H3 in H2; clear H3.
+          admit.
+        * repeat constructor.
+        * assumption.
+        * assumption.
+        * rewrite <- Heqg'.
+          do 2 rewrite sumup_app; simpl.
+          do 2 rewrite sumup_cons; simpl.
+          lia.
       + rewrite L_sub_composition in H2.
         rewrite L_arr_composition in H2 |- *.
         rewrite L_sub_composition.
@@ -706,8 +729,7 @@ Section Reducibility.
              7) Since switch bindings is involutive, apply it twice on e in H2.
 
            If I did math correctly in my head, what's left is exactly with a
-           (DISTR), which should preserve strong normalization!
-        *)
+           (DISTR), which should preserve strong normalization! *)
         assert (L (us ++ negation ts :: xs) (lift 1 (length us) d) /\
                 L (us ++ ts ++ xs) (lift (length ts) (length us) d) /\
                 L (negation us :: ts ++ xs) (right_cycle (length ts) 0 c))
