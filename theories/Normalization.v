@@ -1073,19 +1073,7 @@ Proof.
     now repeat constructor.
 Qed.
 
-(*
-
-Definition PRESERVES {T} (P: T -> Prop): relation T :=
-  fun a b =>
-    P a -> P b.
-
-Definition REFLECTS {T} (P: T -> Prop): relation T :=
-  fun a b =>
-    P b -> P a.
-
-*)
-
-Local Lemma fundamental_techinical1:
+Local Lemma fundamental_technical1:
   forall g1 g2 ts c,
   valid_env g1 ->
   valid_env g2 ->
@@ -1196,7 +1184,7 @@ Proof.
     apply Forall_app in H as (?, ?).
     dependent destruction H4.
     dependent destruction H0.
-    apply fundamental_techinical1 with (g1 := g1) in H5; auto.
+    apply fundamental_technical1 with (g1 := g1) in H5; auto.
     (* The following step is to remove ts from the beginning of c, applying the
        parameters accordingly, using the type information in H1 and by repeating
        applications to exchange and contraction. We know then that the resulting
@@ -1205,9 +1193,12 @@ Proof.
     apply H3 in H5; simpl in H5; clear H3.
     rewrite H8 in H5; clear H8.
     (* The last piece of the proof requires us to undo the jump that has been
-       performed in H5, resulting exactly in our goal. This is easily so as we
-       have the uniform  *)
-    admit.
+       performed in H5, resulting exactly in our goal. This is easily true as we
+       have the uniform normalization property. *)
+    eapply sn_beta_backwards_step; eauto.
+    apply beta_context.
+    apply beta_ctxjmp.
+    now apply Forall2_length in H1.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
     specialize (IHe1 (negation ts :: g) H0).
@@ -1215,7 +1206,7 @@ Proof.
     rewrite L_arr_composition in IHe1.
     apply IHe1.
     assumption.
-Admitted.
+Qed.
 
 Theorem strong_normalization:
   forall g e,
