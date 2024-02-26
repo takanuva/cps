@@ -1098,7 +1098,7 @@ Proof.
   - replace (1 + length g1) with (length (g1 ++ [negation ts])).
     + (* As we're using the auxiliary lemma, we pick an arbitrary g in here that
          is bigger than what we need... TODO: we might wanna rewrite this lemma
-         too. *)
+         too. Preferably we should define a L_lift that doesn't take the g. *)
       apply L_lift_aux with (g := base :: negation ts :: ts ++ g1 ++ g2).
       * intros.
         now apply L_is_reducible.
@@ -1116,6 +1116,48 @@ Proof.
       lia.
   - rewrite <- app_assoc; simpl.
     reflexivity.
+Qed.
+
+Lemma L_apply_parameters:
+  forall ts xs g,
+  Forall2 (typing g) xs ts ->
+  valid_env ts ->
+  forall ps c,
+  valid_env ps ->
+  valid_env g ->
+  L (ps ++ ts ++ g) c ->
+  L (ps ++ g) (apply_parameters xs (length ps) c).
+Proof.
+  induction 1; simpl; intros.
+  - assumption.
+  - dependent destruction H1.
+    specialize (IHForall2 H2 (ps ++ [y])).
+    do 2 rewrite <- app_assoc in IHForall2.
+    apply IHForall2 in H5; simpl in H5.
+    + rewrite app_length, Nat.add_comm in H5; simpl in H5.
+      admit.
+    + apply Forall_app; split; auto.
+    + assumption.
+Admitted.
+
+Local Lemma fundamental_technical2:
+  forall ts g1 g2 xs c,
+  valid_env ts ->
+  valid_env g1 ->
+  valid_env g2 ->
+  Forall2 (typing (g1 ++ negation ts :: g2)) xs ts ->
+  L (ts ++ g1 ++ negation ts :: g2) c ->
+  L (g1 ++ negation ts :: g2) (apply_parameters xs 0 c).
+Proof.
+  intros.
+  apply L_apply_parameters with (ps := []) (ts := ts)
+    (g := g1 ++ negation ts :: g2); simpl.
+  - assumption.
+  - assumption.
+  - constructor.
+  - apply Forall_app; split; auto.
+    repeat constructor; auto.
+  - assumption.
 Qed.
 
 Lemma fundamental:
@@ -1157,7 +1199,14 @@ Proof.
     apply fundamental_techinical1 with (g1 := g1) in H5; auto.
     (* The following step is to remove ts from the beginning of c, applying the
        parameters accordingly, using the type information in H1 and by repeating
-       applications to exchange and contraction. *)
+       applications to exchange and contraction. We know then that the resulting
+       term is strongly normalizing by our hypothesis. *)
+    apply fundamental_technical2 with (xs := xs) in H5; auto.
+    apply H3 in H5; simpl in H5; clear H3.
+    rewrite H8 in H5; clear H8.
+    (* The last piece of the proof requires us to undo the jump that has been
+       performed in H5, resulting exactly in our goal. This is easily so as we
+       have the uniform  *)
     admit.
   (* Case: bind. *)
   - (* Follows trivially by definition. *)
