@@ -244,6 +244,35 @@ Inductive wellbehaved: env -> context -> Prop :=
     wellbehaved (negation ts :: g) (compose_context h
       (context_left context_hole ts c)).
 
+(* Goal
+  forall g h,
+  wellbehaved g h ->
+  exists2 r,
+  static r & forall b, SN beta (h b) <-> SN beta (r b).
+Proof.
+  induction 1.
+  - exists context_hole; intros.
+    + constructor.
+    + firstorder.
+  - destruct IHwellbehaved as (r, ?, ?).
+    exists (compose_context r (context_left context_hole [] (jump #r []))); intros.
+    + apply static_compose_context; auto.
+      repeat constructor.
+    + do 2 rewrite compose_context_is_sound; simpl.
+      split; intros.
+      * apply H1 in H2.
+        clear H H1 h.
+        admit.
+      * apply H1.
+        admit.
+  - destruct IHwellbehaved as (r, ?, ?).
+    exists (compose_context r (context_left context_hole ts c)); intros.
+    + apply static_compose_context; auto.
+      repeat constructor.
+    + do 2 rewrite compose_context_is_sound; simpl.
+      apply H2.
+Admitted. *)
+
 Inductive split_wellbehaved_result: env -> context -> nat -> Prop :=
   | split_wellbehaved_result_mk:
     forall g h n g1 g2 h1 h2,
