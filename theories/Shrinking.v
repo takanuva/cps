@@ -495,6 +495,16 @@ Proof.
   - admit.
 Admitted.
 
+(* TODO: consider two other relations (tiny and itsy?) containing:
+   - DCE and linear inlining
+   - DCE, linear inlining, TCO, specialization, and some kind of floating
+
+   It should be simple to show that the former is a shrinking reduction. The
+   latter will require more work, as adding (ETA) complicates things, but I do
+   believe that it should be enough to properly simulate the CBV translation
+   then. Note that specialization and floating should mimick structural rules
+   on linear proof nets. *)
+
 Section Properties.
 
   Variable R: relation pseudoterm.
