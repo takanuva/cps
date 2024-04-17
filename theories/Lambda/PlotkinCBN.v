@@ -397,6 +397,8 @@ Proof.
       assumption.
 Qed.
 
+(* -------------------------------------------------------------------------- *)
+
 (*
   From Amadio's class notes, we know that head reduction can't directly simulate
   beta reduction, though it's still computationally adequate. It should be the
@@ -460,10 +462,24 @@ Qed.
 
 *)
 
+(* -------------------------------------------------------------------------- *)
+
 (* TODO: move me above. *)
 
 Local Notation SUBST b1 b2 :=
   (bind (switch_bindings 0 b1) [void] (CPS.lift 1 1 b2)).
+
+Lemma step_switch_bindings:
+  forall b c,
+  step b c ->
+  forall k,
+  step (switch_bindings k b) (switch_bindings k c).
+Proof.
+  intros.
+  apply step_subst.
+  apply step_lift.
+  assumption.
+Qed.
 
 Lemma cbn_simulates_substitution:
   forall e b1,
@@ -476,6 +492,7 @@ Lemma cbn_simulates_substitution:
 Proof.
   intros e.
   destruct free_count_is_decidable with e 0 as (k, ?).
+  generalize dependent e.
   induction k; intros.
   (* Case: zero. *)
   - (* Our term has the form [b1] { x<k> = [b2] }, where x doesn't appear free
@@ -497,7 +514,27 @@ Proof.
       (* Sigma agrees this is true! *)
       admit.
   (* Case: succ. *)
-  - admit.
+  - (* If our term is [b1] { x<k> = [b2] }, with x appearing free in b1, then it
+       means there is a context C such that the term is [C[x]] { x<k> = [b2] },
+       thus we have [C][x<k>] { ... }, which can perform a single jump leading
+       to [C][b2] { ... }. Since the CPS translation is compositional, we can
+       proceed by induction with C[b2], which has one less occurrence of x. *)
+    edestruct free_usage as (h, ?); eauto with arith; subst.
+    rewrite Nat.add_0_r in H, H0, H2.
+    assert (exists b1', cbn_cps (h (lift (1 + context_bvars h) 0 x)) b1')
+      as (b1', ?) by eauto with cps.
+    apply star_trans with (SUBST b1' b2).
+    + apply star_step.
+      apply step_bind_left.
+      apply step_switch_bindings.
+      (* We can now apply the linear substitution of the x variable. *)
+      admit.
+    + (* Follow by induction. *)
+      eapply IHk; eauto.
+      * admit.
+      * replace (subst x 0 (h (lift (1 + context_bvars h) 0 x))) with
+          (subst x 0 (h (context_bvars h))); auto.
+        apply subst_linear_substitution.
 Admitted.
 
 Lemma cbn_simulates_beta:

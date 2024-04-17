@@ -540,6 +540,24 @@ Proof.
       now simpl.
 Qed.
 
+Lemma subst_linear_substitution:
+  forall (h: context) y k,
+  subst y k (h (k + context_bvars h)) =
+  subst y k (h (lift (1 + k + context_bvars h) 0 y)).
+Proof.
+  induction h; simpl; intros.
+  - rewrite Nat.add_0_r.
+    destruct (lt_eq_lt_dec k k) as [ [ ? | _ ] | ? ].
+    + exfalso; lia.
+    + rewrite subst_lift_simplification by lia.
+      reflexivity.
+    + exfalso; lia.
+  - replace (k + S (context_bvars h)) with (S k + (context_bvars h)) by lia.
+    now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+Qed.
+
 (* Full beta reduction relation. TODO: consider eta? *)
 
 Inductive full: relation term :=
