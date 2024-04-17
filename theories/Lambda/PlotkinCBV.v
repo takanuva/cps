@@ -344,13 +344,13 @@ Local Notation VAR n :=
   (* [x] = k<x> *)
   (jump 0 [CPS.bound (S n)]).
 
-Local Notation ABS b :=
+Local Notation ABS b t1 t2 :=
   (* [\x.e] = k<f> { f<x, k> = [e] } *)
-  (bind (jump 1 [CPS.bound 0]) [void; void] b).
+  (bind (jump 1 [CPS.bound 0]) [t1; t2] b).
 
-Local Notation APP b c :=
+Local Notation APP b c t1 t2 :=
   (* [e f] = [e] { k<f> = [f] { k<v> = f<v, k> } } *)
-  (bind b [void] (bind c [void] (jump 1 [CPS.bound 2; CPS.bound 0]))).
+  (bind b [t1] (bind c [t2] (jump 1 [CPS.bound 2; CPS.bound 0]))).
 
 (* TODO: these lifts should be moved from source to target! *)
 
@@ -361,12 +361,12 @@ Inductive cbv_cps: term -> pseudoterm -> Prop :=
   | cbv_cps_abstraction:
     forall t e b,
     cbv_cps (lift 1 1 e) b ->
-    cbv_cps (abstraction t e) (ABS b)
+    cbv_cps (abstraction t e) (ABS b void void)
   | cbv_cps_application:
     forall f x b c,
     cbv_cps (lift 1 0 f) b ->
     cbv_cps (lift 2 0 x) c ->
-    cbv_cps (application f x) (APP b c).
+    cbv_cps (application f x) (APP b c void void).
 
 Local Hint Constructors cbv_cps: cps.
 
