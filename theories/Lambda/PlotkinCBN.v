@@ -584,6 +584,75 @@ Proof.
         assumption.
 Qed.
 
+Local Lemma technical1:
+  forall b n k,
+  CPS.subst (CPS.subst 1 n 0) k
+    (CPS.lift (2 + n) (1 + k) b) =
+  CPS.subst 1 (k + n) (CPS.lift (2 + n) (1 + k) b).
+Proof.
+  (* TODO: sigma CAN'T solve this one! Figure out why! *)
+  induction b using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - rename n0 into m.
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
+    + rewrite Metatheory.lift_bound_ge by lia.
+      rewrite Metatheory.subst_bound_gt by lia.
+      rewrite Metatheory.subst_bound_gt by lia.
+      reflexivity.
+    + rewrite Metatheory.lift_bound_lt by lia.
+      rewrite Metatheory.subst_bound_eq by lia.
+      destruct m.
+      * rewrite Metatheory.subst_bound_eq by lia.
+        rewrite Metatheory.lift_bound_ge by lia.
+        rewrite Metatheory.subst_bound_eq by lia.
+        reflexivity.
+      * rewrite Metatheory.subst_bound_lt by lia.
+        rewrite Metatheory.subst_bound_lt by lia.
+        rewrite Metatheory.lift_bound_ge by lia.
+        rewrite Nat.add_comm.
+        reflexivity.
+    + rewrite Metatheory.lift_bound_lt by lia.
+      rewrite Metatheory.subst_bound_lt by lia.
+      rewrite Metatheory.subst_bound_lt by lia.
+      reflexivity.
+  - rewrite lift_distributes_over_negation.
+    do 2 rewrite subst_distributes_over_negation.
+    f_equal.
+    induction H; simpl.
+    + reflexivity.
+    + f_equal; auto.
+      repeat rewrite traverse_list_length.
+      replace (length l + S k) with (S (length l + k)) by lia.
+      rewrite H; f_equal.
+      now rewrite Nat.add_assoc.
+  - rewrite lift_distributes_over_jump.
+    do 2 rewrite subst_distributes_over_jump.
+    f_equal.
+    + apply IHb.
+    + clear IHb.
+      induction H; simpl.
+      * reflexivity.
+      * f_equal; eauto.
+  - rewrite lift_distributes_over_bind.
+    do 2 rewrite subst_distributes_over_bind.
+    f_equal.
+    + apply IHb1.
+    + clear IHb1 IHb2.
+      induction H; simpl.
+      * reflexivity.
+      * repeat rewrite traverse_list_length.
+        f_equal; auto.
+        replace (length l + S k) with (S (length l + k)) by lia.
+        rewrite H; f_equal.
+        now rewrite Nat.add_assoc.
+    + repeat rewrite traverse_list_length.
+      rewrite IHb2; f_equal.
+      lia.
+Qed.
+
 Lemma cbn_simulates_substitution:
   forall e b1,
   cbn_cps e b1 ->
@@ -643,7 +712,27 @@ Proof.
       do 2 rewrite context_switch_bindings_is_sound.
       rewrite Nat.add_0_r.
       rewrite switch_bindings_distributes_over_jump.
-      admit.
+      evar (j: pseudoterm).
+      evar (b2': pseudoterm).
+      replace (switch_bindings #r (S #r)) with ?j; [
+        replace (switch_bindings #r (Syntax.lift (#r + 1) 1 b2)) with ?b2' |].
+      * apply star_ctxjmp.
+        reflexivity.
+      * simpl.
+        rewrite context_switch_bindings_bvars.
+        unfold switch_bindings.
+        rewrite Metatheory.lift_lift_simplification by lia.
+        rewrite Metatheory.lift_lift_simplification by lia.
+        rewrite Metatheory.lift_bound_lt by lia.
+        (* Same term! *)
+        replace (S #r + 1) with (2 + #r) by lia.
+        replace (1 + (#r + 1)) with (2 + #r) by lia.
+        apply technical1.
+      * rewrite context_switch_bindings_bvars.
+        unfold switch_bindings.
+        rewrite Metatheory.lift_bound_lt by lia.
+        rewrite Metatheory.subst_bound_gt by lia.
+        reflexivity.
     + (* Follow by induction. *)
       eapply IHk; eauto.
       * admit.
