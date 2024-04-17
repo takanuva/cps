@@ -513,6 +513,33 @@ Proof.
     now constructor.
 Qed.
 
+Lemma free_usage:
+  forall e k n,
+  free_count k n e ->
+  k > 0 ->
+  exists h: context,
+  e = h (context_bvars h + n).
+Proof.
+  induction 1; intros.
+  - exists context_hole.
+    now simpl.
+  - exfalso.
+    inversion H0.
+  - destruct IHfree_count as (h, ?); auto; subst.
+    exists (context_abstraction t h).
+    simpl; do 3 f_equal.
+    lia.
+  - destruct i.
+    + simpl in H1.
+      destruct IHfree_count2 as (h, ?); auto; subst.
+      exists (context_application_right f h).
+      now simpl.
+    + clear H1.
+      destruct IHfree_count1 as (h, ?); auto with arith; subst.
+      exists (context_application_left h x).
+      now simpl.
+Qed.
+
 (* Full beta reduction relation. TODO: consider eta? *)
 
 Inductive full: relation term :=
