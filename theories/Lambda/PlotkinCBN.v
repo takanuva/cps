@@ -469,11 +469,15 @@ Qed.
 Local Notation SUBST b1 b2 :=
   (bind (switch_bindings 0 b1) [void] (CPS.lift 1 1 b2)).
 
-Lemma cbn_linear_jump_inversion1:
+Local Lemma cbn_linear_jump_inversion:
   forall (h: context) k b,
   cbn_cps (h (k + context_bvars h)) b ->
-  exists r: Context.context,
-  b = r (jump (1 + k + #r) [CPS.bound 0]).
+  exists2 r: Context.context,
+  b = r (jump (1 + k + #r) [CPS.bound 0]) &
+    forall e c,
+    cbn_cps e c ->
+    cbn_cps (h (lift (context_bvars h) 0 e))
+            (r (CPS.lift #r 1 c)).
 Proof.
   intros h.
   remember (context_depth h) as n.
@@ -481,12 +485,16 @@ Proof.
   induction n using lt_wf_ind; intros; subst.
   destruct h.
   - dependent destruction H0.
-    exists Context.context_hole.
-    now simpl.
+    exists Context.context_hole; intros.
+    + now simpl.
+    + simpl.
+      rewrite lift_zero_e_equals_e.
+      rewrite Metatheory.lift_zero_e_equals_e.
+      assumption.
   - dependent destruction H0.
     rewrite context_lift_is_sound in H0.
     edestruct H with (h := context_lift 1 1 h)
-      (m := context_depth (context_lift 1 1 h)) as (r, ?).
+      (m := context_depth (context_lift 1 1 h)) as (r, ?, ?); intros.
     + rewrite context_lift_depth.
       simpl; lia.
     + reflexivity.
@@ -498,13 +506,23 @@ Proof.
         eassumption.
       * exfalso; lia.
     + subst.
-      eexists (Context.context_right _ _ r); simpl.
-      f_equal; simpl; do 3 f_equal.
-      lia.
+      eexists (Context.context_right _ _ r); simpl; intros.
+      * f_equal; simpl; do 3 f_equal.
+        lia.
+      * constructor.
+        rewrite context_lift_is_sound.
+        rewrite lift_lift_simplification by lia.
+        rewrite context_lift_bvars in H2.
+        apply cbn_cps_lift with (i := 2) (k := 0) in H1.
+        specialize (H2 _ _ H1).
+        rewrite lift_lift_simplification in H2 by lia.
+        rewrite Metatheory.lift_lift_simplification in H2 by lia.
+        rewrite Nat.add_comm in H2.
+        assumption.
   - dependent destruction H0.
     rewrite context_lift_is_sound in H0_.
     edestruct H with (h := context_lift 1 0 h)
-      (m := context_depth (context_lift 1 0 h)) as (r, ?).
+      (m := context_depth (context_lift 1 0 h)) as (r, ?, ?).
     + rewrite context_lift_depth.
       simpl; lia.
     + reflexivity.
@@ -517,13 +535,24 @@ Proof.
         eassumption.
       * exfalso; lia.
     + subst.
-      eexists (Context.context_left r _ _); simpl.
-      f_equal; simpl; do 3 f_equal.
-      lia.
+      eexists (Context.context_left r _ _); simpl; intros.
+      * f_equal; simpl; do 3 f_equal.
+        lia.
+      * constructor; auto.
+        rewrite context_lift_is_sound.
+        rewrite lift_lift_simplification by lia.
+        rewrite context_lift_bvars in H1.
+        apply cbn_cps_lift with (i := 1) (k := 0) in H0.
+        specialize (H1 _ _ H0).
+        rewrite lift_lift_simplification in H1 by lia.
+        rewrite Metatheory.lift_lift_simplification in H1 by lia.
+        rewrite Nat.add_comm in H1.
+        rewrite Nat.add_comm with (n := #r) in H1.
+        assumption.
   - dependent destruction H0.
     rewrite context_lift_is_sound in H0_0.
     edestruct H with (h := context_lift 2 0 h)
-      (m := context_depth (context_lift 2 0 h)) as (r, ?).
+      (m := context_depth (context_lift 2 0 h)) as (r, ?, ?).
     + rewrite context_lift_depth.
       simpl; lia.
     + reflexivity.
@@ -536,9 +565,23 @@ Proof.
         eassumption.
       * exfalso; lia.
     + subst.
-      eexists (Context.context_right _ _ (Context.context_right _ _ r)); simpl.
-      do 2 f_equal; simpl; do 3 f_equal.
-      lia.
+      eexists (Context.context_right _ _ (Context.context_right _ _ r)); simpl;
+        intros.
+      * do 2 f_equal; simpl; do 3 f_equal.
+        lia.
+      * constructor; auto.
+        rewrite context_lift_is_sound.
+        rewrite lift_lift_simplification by lia.
+        rewrite context_lift_bvars in H1.
+        apply cbn_cps_lift with (i := 2) (k := 0) in H0.
+        specialize (H1 _ _ H0).
+        rewrite lift_lift_simplification in H1 by lia.
+        rewrite Metatheory.lift_lift_simplification in H1 by lia.
+        rewrite Nat.add_comm in H1.
+        rewrite Nat.add_comm with (n := #r) in H1.
+        simpl length.
+        replace (#r + 1 + 1) with (2 + #r) by lia.
+        assumption.
 Qed.
 
 Lemma cbn_simulates_substitution:
@@ -584,10 +627,22 @@ Proof.
     assert (exists b1', cbn_cps (h (lift (1 + context_bvars h) 0 x)) b1')
       as (b1', ?) by eauto with cps.
     apply star_trans with (SUBST b1' b2).
-    + apply star_step.
-      (* We can now apply the linear substitution of the x variable. *)
-      edestruct cbn_linear_jump_inversion1 with (k := 0) as (r, ?); eauto.
+    + (* We can now apply the linear substitution of the x variable. *)
+      edestruct cbn_linear_jump_inversion with (k := 0) as (r, ?, ?); eauto.
+      (* According to the inversion, b1 is on the form [C][x<k>]. *)
       simpl in H4; subst.
+      (* Also, we can show that b1' contains the expanded term b2. *)
+      apply cbn_cps_lift with (i := 1) (k := 0) in H1.
+      specialize (H5 _ _ H1).
+      rewrite lift_lift_simplification in H5 by lia.
+      rewrite Metatheory.lift_lift_simplification in H5 by lia.
+      rewrite Nat.add_comm in H5.
+      replace b1' with (r (Syntax.lift (#r + 1) 1 b2)) by eauto with cps.
+      (* Now it's just a matter to show that the hygiene conditions guarantee
+         that our jump can happen safely. Again, just de Bruijn gimmick! *)
+      do 2 rewrite context_switch_bindings_is_sound.
+      rewrite Nat.add_0_r.
+      rewrite switch_bindings_distributes_over_jump.
       admit.
     + (* Follow by induction. *)
       eapply IHk; eauto.
