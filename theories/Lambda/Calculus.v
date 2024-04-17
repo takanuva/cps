@@ -77,8 +77,11 @@ Lemma lift_zero_e_equals_e:
   forall e k,
   lift 0 k e = e.
 Proof.
-  admit.
-Admitted.
+  induction e; simpl; intros.
+  - now destruct (le_gt_dec k n).
+  - now rewrite IHe.
+  - now rewrite IHe1, IHe2.
+Qed.
 
 Lemma lift_lift_permutation:
   forall e i j k l,
@@ -133,8 +136,27 @@ Lemma subst_lift_simplification:
   subst y p (lift (S i) k e) =
   lift i k e.
 Proof.
-  admit.
-Admitted.
+  induction e; simpl; intros.
+  - destruct (le_gt_dec k n); simpl.
+    + destruct (lt_eq_lt_dec p (S (i + n))) as [ [ ? | ? ] | ? ]; simpl.
+      * reflexivity.
+      * exfalso; lia.
+      * exfalso; lia.
+    + destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ]; simpl.
+      * exfalso; lia.
+      * exfalso; lia.
+      * reflexivity.
+  - rewrite IHe.
+    + reflexivity.
+    + lia.
+    + lia.
+  - rewrite IHe1, IHe2.
+    + reflexivity.
+    + lia.
+    + lia.
+    + lia.
+    + lia.
+Qed.
 
 Fixpoint size (e: term): nat :=
   match e with
