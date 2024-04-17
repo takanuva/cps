@@ -469,16 +469,76 @@ Qed.
 Local Notation SUBST b1 b2 :=
   (bind (switch_bindings 0 b1) [void] (CPS.lift 1 1 b2)).
 
-Lemma step_switch_bindings:
-  forall b c,
-  step b c ->
-  forall k,
-  step (switch_bindings k b) (switch_bindings k c).
+Lemma cbn_linear_jump_inversion1:
+  forall (h: context) k b,
+  cbn_cps (h (k + context_bvars h)) b ->
+  exists r: Context.context,
+  b = r (jump (1 + k + #r) [CPS.bound 0]).
 Proof.
-  intros.
-  apply step_subst.
-  apply step_lift.
-  assumption.
+  intros h.
+  remember (context_depth h) as n.
+  generalize dependent h.
+  induction n using lt_wf_ind; intros; subst.
+  destruct h.
+  - dependent destruction H0.
+    exists Context.context_hole.
+    now simpl.
+  - dependent destruction H0.
+    rewrite context_lift_is_sound in H0.
+    edestruct H with (h := context_lift 1 1 h)
+      (m := context_depth (context_lift 1 1 h)) as (r, ?).
+    + rewrite context_lift_depth.
+      simpl; lia.
+    + reflexivity.
+    + rewrite context_lift_bvars.
+      simpl in H0.
+      destruct (le_gt_dec (context_bvars h + 1) (k + S (context_bvars h))).
+      * replace (S (k + S (context_bvars h))) with (2 + k + context_bvars h)
+          in H0 by lia.
+        eassumption.
+      * exfalso; lia.
+    + subst.
+      eexists (Context.context_right _ _ r); simpl.
+      f_equal; simpl; do 3 f_equal.
+      lia.
+  - dependent destruction H0.
+    rewrite context_lift_is_sound in H0_.
+    edestruct H with (h := context_lift 1 0 h)
+      (m := context_depth (context_lift 1 0 h)) as (r, ?).
+    + rewrite context_lift_depth.
+      simpl; lia.
+    + reflexivity.
+    + rewrite Nat.add_0_r in H0_.
+      rewrite context_lift_bvars.
+      simpl in H0_.
+      destruct (le_gt_dec (context_bvars h) (k + context_bvars h)).
+      * replace (S (k + context_bvars h)) with (1 + k + context_bvars h)
+          in H0_ by lia.
+        eassumption.
+      * exfalso; lia.
+    + subst.
+      eexists (Context.context_left r _ _); simpl.
+      f_equal; simpl; do 3 f_equal.
+      lia.
+  - dependent destruction H0.
+    rewrite context_lift_is_sound in H0_0.
+    edestruct H with (h := context_lift 2 0 h)
+      (m := context_depth (context_lift 2 0 h)) as (r, ?).
+    + rewrite context_lift_depth.
+      simpl; lia.
+    + reflexivity.
+    + rewrite Nat.add_0_r in H0_0.
+      rewrite context_lift_bvars.
+      simpl in H0_0.
+      destruct (le_gt_dec (context_bvars h) (k + context_bvars h)).
+      * replace (S (S (k + context_bvars h))) with (2 + k + context_bvars h)
+          in H0_0 by lia.
+        eassumption.
+      * exfalso; lia.
+    + subst.
+      eexists (Context.context_right _ _ (Context.context_right _ _ r)); simpl.
+      do 2 f_equal; simpl; do 3 f_equal.
+      lia.
 Qed.
 
 Lemma cbn_simulates_substitution:
@@ -525,9 +585,9 @@ Proof.
       as (b1', ?) by eauto with cps.
     apply star_trans with (SUBST b1' b2).
     + apply star_step.
-      apply step_bind_left.
-      apply step_switch_bindings.
       (* We can now apply the linear substitution of the x variable. *)
+      edestruct cbn_linear_jump_inversion1 with (k := 0) as (r, ?); eauto.
+      simpl in H4; subst.
       admit.
     + (* Follow by induction. *)
       eapply IHk; eauto.
