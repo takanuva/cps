@@ -1479,4 +1479,17 @@ Section Tests.
     now sigma.
   Qed.
 
+  Goal
+    forall b n,
+    subst (subst (var 1) n (var 0)) 0
+      (lift (2 + n) 1 b) =
+    subst (var 1) n (lift (2 + n) 1 b).
+  Proof.
+    intros.
+    (* This rule appears in the simulation proof for the CBN CPS translation. It
+       is however not proved yet by sigma. TODO: figure out why. *)
+    sigma.
+    admit.
+  Admitted.
+
 End Tests.
