@@ -288,7 +288,19 @@ Proof.
       * right.
         destruct e as (x, ?).
         eexists; eauto with cps.
-Qed.
+    (* TODO: once we add reduction under pairs and thunks, review below. As of
+       now, this isn't even true. *)
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 Lemma closed_normal_cbv_implies_value:
   forall e,
@@ -336,7 +348,18 @@ Proof.
         constructor.
         eassumption.
         inversion 1.
-Qed.
+      * (* TODO: not true yet, as we can't reduce inside a pair. *)
+        admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+Admitted.
 
 (* TODO: fix typing on the following! *)
 
@@ -440,7 +463,14 @@ Proof.
   - destruct IHe1 as (b, ?).
     destruct IHe2 as (c, ?).
     eauto with cps.
-Qed.
+  (* TODO: not yet true, we didn't define the CPS translations for pairs and
+     thunks. *)
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 Local Hint Resolve cbv_cps_is_total: cps.
 
@@ -1026,6 +1056,11 @@ Proof.
         now apply technical3.
         inversion_clear 1.
         contradiction.
+      * inversion H.
+      * inversion H.
+      * inversion H.
+      * inversion H.
+      * inversion H.
     + (* In here, the expression is like (\x.e) f. So, the only way this is not
          a redex is if f is not a value (and can't become one). So this will
          follow directly by the inductive hypothesis. *)
@@ -1062,6 +1097,21 @@ Proof.
         now apply technical5.
         inversion_clear 1.
         contradiction.
+    + inversion H1.
+      inversion H3.
+    + inversion H1.
+      inversion H3.
+    + inversion H1.
+      inversion H3.
+    + inversion H1.
+      inversion H3.
+    + inversion H1.
+      inversion H3.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
 Qed.
 
 Lemma termination:
@@ -1081,6 +1131,8 @@ Proof.
         constructor.
       * dependent destruction H0.
         do 2 constructor.
+      * inversion H0.
+      * inversion H0.
   - destruct termination_nonvalue with e c as (k, ?, ?).
     + assumption.
     + assumption.
@@ -1233,6 +1285,12 @@ Proof.
     apply barb_bind_left.
     apply barb_lift.
     apply IHh; auto.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
 Qed.
 
 Local Hint Resolve cbv_cps_is_compositional: cps.

@@ -108,6 +108,9 @@ Fixpoint unnamed_subterms e: nat :=
     1 + unnamed_subterms f + unnamed_subterms x
   | application f x =>
     unnamed_subterms f + unnamed_subterms x
+  (* TODO: what about pairs and thunks? *)
+  | _ =>
+    0
   end.
 
 Lemma unnamed_subterms_lift:
@@ -120,6 +123,11 @@ Proof.
   - rewrite IHe1, IHe2.
     destruct e1; simpl; auto.
     destruct (le_gt_dec k n); auto.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
 Qed.
 
 Lemma unnamed_subterms_context_lift:
@@ -134,6 +142,12 @@ Proof.
   - rewrite unnamed_subterms_lift.
     rewrite IHh; destruct f; simpl; auto.
     destruct (le_gt_dec k n); auto.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
 Qed.
 
 Notation cmp a b := (a = b \/ a > b).
@@ -159,12 +173,29 @@ Proof.
       left.
       rewrite unnamed_subterms_lift.
       lia.
+    + right.
+      rewrite unnamed_subterms_lift.
+      lia.
+    + right.
+      rewrite unnamed_subterms_lift.
+      lia.
+    + right.
+      rewrite unnamed_subterms_lift.
+      lia.
+    + right.
+      rewrite unnamed_subterms_lift.
+      lia.
+    + right.
+      rewrite unnamed_subterms_lift.
+      lia.
   (* Case: sigma-3. *)
   - left.
     destruct H; simpl.
     + auto.
     + rewrite unnamed_subterms_lift.
       lia.
+    + auto.
+    + auto.
   (* Case: beta-flat. *)
   - (* Here it decreases! *)
     right; simpl.
@@ -207,6 +238,11 @@ Proof.
   - reflexivity.
   - destruct e1; simpl; auto.
     destruct (le_gt_dec k n); auto.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
 Qed.
 
 Fixpoint inner_computations e: nat :=
@@ -217,6 +253,9 @@ Fixpoint inner_computations e: nat :=
     inner_computations b
   | application f x =>
     is_beta f + is_beta x + inner_computations f + inner_computations x
+  (* TODO: what about pairs and thunks? *)
+  | _ =>
+    0
   end.
 
 (*

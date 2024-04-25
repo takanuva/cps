@@ -149,6 +149,21 @@ Proof.
       * right.
         destruct e as (x, ?).
         eexists; eauto with cps.
+    + left; inversion_clear 1.
+      inversion H0.
+    + left; inversion_clear 1.
+      inversion H0.
+    + left; inversion_clear 1.
+      inversion H0.
+    + left; inversion_clear 1.
+      inversion H0.
+    + left; inversion_clear 1.
+      inversion H0.
+  - left; inversion 1.
+  - left; inversion 1.
+  - left; inversion 1.
+  - left; inversion 1.
+  - left; inversion 1.
 Qed.
 
 Lemma cbn_whr_iff:
@@ -209,7 +224,18 @@ Proof.
         constructor.
         eassumption.
         inversion 1.
-Qed.
+      * (* TODO: not true yet, as we can't reduce inside a pair. *)
+        admit.
+      * admit.
+      * admit.
+      * admit.
+      * admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+Admitted.
 
 (* TODO: fix typing on the following! *)
 
@@ -314,7 +340,14 @@ Proof.
   - destruct IHe1 as (b, ?).
     destruct IHe2 as (c, ?).
     eauto with cps.
-Qed.
+  (* TODO: not yet true, we didn't define the CPS translations for pairs and
+     thunks. *)
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 Local Hint Resolve cbn_cps_is_total: cps.
 
@@ -582,6 +615,18 @@ Proof.
         simpl length.
         replace (#r + 1 + 1) with (2 + #r) by lia.
         assumption.
+  - simpl in H0.
+    inversion H0.
+  - simpl in H0.
+    inversion H0.
+  - simpl in H0.
+    inversion H0.
+  - simpl in H0.
+    inversion H0.
+  - simpl in H0.
+    inversion H0.
+  - simpl in H0.
+    inversion H0.
 Qed.
 
 Local Lemma technical1:
@@ -946,6 +991,21 @@ Proof.
         intro; apply H3.
         dependent destruction H4.
         assumption.
+    + dependent destruction H1.
+      inversion H1_.
+    + dependent destruction H1.
+      inversion H1_.
+    + dependent destruction H1.
+      inversion H1_.
+    + dependent destruction H1.
+      inversion H1_.
+    + dependent destruction H1.
+      inversion H1_.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
+  - inversion H1.
 Qed.
 
 Lemma termination:
@@ -968,6 +1028,8 @@ Proof.
       dependent destruction H0.
       eexists 0.
       do 2 constructor.
+    + inversion H0.
+    + inversion H0.
   (* Case: e is not a value. *)
   - destruct termination_nonvalue with e c.
     + assumption.
@@ -1091,7 +1153,6 @@ Proof.
         assumption.
         (* Sure, from H and H4, reduction can't introduce free variables. *)
         admit.
-        eauto with cps.
         (* Clearly, from H9 and H10. *)
         admit.
         assumption.
@@ -1161,6 +1222,12 @@ Proof.
     apply barb_bind_right.
     apply barb_lift.
     apply IHh; auto.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
+  - inversion H2.
 Qed.
 
 Local Hint Resolve cbn_cps_is_compositional: cps.
@@ -1255,6 +1322,12 @@ Proof.
     apply beta_bind_right.
     apply beta_lift.
     assumption.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
 Qed.
 
 Lemma foo:
@@ -1267,7 +1340,13 @@ Proof.
   intros.
   eapply transitive_closure_preserves_diagram; eauto with cps.
   destruct 1; eauto with cps.
-Qed.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 Lemma bar:
   forall e,
@@ -1314,6 +1393,12 @@ Proof.
   - dependent destruction H0.
     apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
     admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
 Admitted.
 
 Theorem preservation_of_strong_normalization:
