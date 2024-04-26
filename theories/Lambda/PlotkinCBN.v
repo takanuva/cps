@@ -509,8 +509,7 @@ Local Lemma cbn_linear_jump_inversion:
   b = r (jump (1 + k + #r) [CPS.bound 0]) &
     forall e c,
     cbn_cps e c ->
-    cbn_cps (h (lift (context_bvars h) 0 e))
-            (r (CPS.lift #r 1 c)).
+    cbn_cps (h (lift (context_bvars h) 0 e)) (r (CPS.lift #r 1 c)).
 Proof.
   intros h.
   remember (context_depth h) as n.
@@ -708,12 +707,15 @@ Lemma cbn_simulates_substitution:
   [SUBST b1 b2 =>* c].
 Proof.
   intros e.
+  (* To simulate the substitution step of a redex, we perform induction on the
+     number of occurrences of the variable in the term. *)
   destruct free_count_is_decidable with e 0 as (k, ?).
   generalize dependent e.
   induction k; intros.
   (* Case: zero. *)
   - (* Our term has the form [b1] { x<k> = [b2] }, where x doesn't appear free
-       in [b1]. Thus we just have to apply a single garbage collection step. *)
+       in [b1]. Thus we just have to apply a single garbage collection step and
+       we're left with b1, which is our goal. *)
     apply not_free_count_zero_iff in H.
     replace c with (remove_binding 0 (switch_bindings 0 b1)).
     + apply star_step.
@@ -741,7 +743,7 @@ Proof.
     assert (exists b1', cbn_cps (h (lift (1 + context_bvars h) 0 x)) b1')
       as (b1', ?) by eauto with cps.
     apply star_trans with (SUBST b1' b2).
-    + (* We can now apply the linear substitution of the x variable. *)
+    + (* We can apply the linear substitution of the x variable. *)
       edestruct cbn_linear_jump_inversion with (k := 0) as (r, ?, ?); eauto.
       (* According to the inversion, b1 is on the form [C][x<k>]. *)
       simpl in H4; subst.
@@ -778,9 +780,11 @@ Proof.
         rewrite Metatheory.lift_bound_lt by lia.
         rewrite Metatheory.subst_bound_gt by lia.
         reflexivity.
-    + (* Follow by induction. *)
+    + (* We have applied the necessary jump for that variable occurrence; we now
+         follow by induction by decreasing the number of occurrences. *)
       eapply IHk; eauto.
-      * admit.
+      * apply free_count_linear_substitution.
+        assumption.
       * replace (subst x 0 (h (lift (1 + context_bvars h) 0 x))) with
           (subst x 0 (h (context_bvars h))); auto.
         apply subst_linear_substitution.

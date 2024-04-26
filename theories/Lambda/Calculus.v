@@ -916,7 +916,80 @@ Proof.
   - now rewrite IHh.
 Qed.
 
-(* Full beta reduction relation. TODO: consider eta? *)
+Lemma free_count_linear_substitution:
+  forall (h: context) n k e,
+  free_count (1 + n) k (h (k + context_bvars h)) ->
+  free_count n k (h (lift (1 + k + context_bvars h) 0 e)).
+Proof.
+  induction h; simpl; intros.
+  - rewrite Nat.add_0_r in H |- *.
+    dependent destruction H.
+    apply not_free_count_zero_iff.
+    rename n0 into k.
+    (* Clearly! *)
+    admit.
+  - dependent destruction H; constructor.
+    rename n0 into k.
+    replace (k + S (context_bvars h)) with
+      (S k + context_bvars h) in H |- * by lia.
+    now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    destruct i.
+    + exfalso.
+      (* From H, of course! *)
+      admit.
+    + replace n with (i + j) by lia.
+      constructor; auto.
+      now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    destruct j.
+    + exfalso.
+      (* As above, from H0. *)
+      admit.
+    + replace n with (i + j) by lia.
+      constructor; auto.
+      now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    destruct i.
+    + exfalso.
+      (* Ditto. *)
+      admit.
+    + replace n with (i + j) by lia.
+      constructor; auto.
+      now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    destruct j.
+    + exfalso.
+      (* Ditto. *)
+      admit.
+    + replace n with (i + j) by lia.
+      constructor; auto.
+      now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    constructor.
+    now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    constructor.
+    now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    constructor.
+    now apply IHh.
+  - dependent destruction H.
+    rename n0 into k.
+    constructor.
+    now apply IHh.
+Admitted.
+
+(* Full beta reduction relation. Note that we do not consider eta because it is
+   not justified by Plotkin's CBN translation, which captures the observational
+   equivalence for the intensional lambda calculus, where eta does not hold. *)
 
 Inductive full: relation term :=
   | full_beta:
