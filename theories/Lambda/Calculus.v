@@ -740,6 +740,34 @@ Proof.
     assumption.
 Qed.
 
+Lemma lifting_more_than_n_makes_not_free_n:
+  forall e i k n,
+  n >= k ->
+  n < k + i ->
+  not_free n (lift i k e).
+Proof.
+  induction e; simpl; intros.
+  - destruct (le_gt_dec k n).
+    + constructor; lia.
+    + constructor; lia.
+  - constructor.
+    apply IHe; lia.
+  - constructor.
+    + apply IHe1; lia.
+    + apply IHe2; lia.
+  - constructor.
+    + apply IHe1; lia.
+    + apply IHe2; lia.
+  - constructor.
+    apply IHe; lia.
+  - constructor.
+    apply IHe; lia.
+  - constructor.
+    apply IHe; lia.
+  - constructor.
+    apply IHe; lia.
+Qed.
+
 Inductive free_count: nat -> nat -> term -> Prop :=
   | free_count_match:
     forall n,
@@ -916,6 +944,38 @@ Proof.
   - now rewrite IHh.
 Qed.
 
+Lemma free_usage_isnt_zero:
+  forall (h: context) k,
+  ~free_count 0 k (h (k + context_bvars h)).
+Proof.
+  induction h; simpl; intros k ?.
+  - dependent destruction H.
+    lia.
+  - dependent destruction H.
+    apply IHh with (S n); simpl.
+    now rewrite plus_n_Sm.
+  - dependent destruction H.
+    assert (i = 0) by lia; subst.
+    now apply IHh with n.
+  - dependent destruction H.
+    assert (j = 0) by lia; subst.
+    now apply IHh with n.
+  - dependent destruction H.
+    assert (i = 0) by lia; subst.
+    now apply IHh with n.
+  - dependent destruction H.
+    assert (j = 0) by lia; subst.
+    now apply IHh with n.
+  - dependent destruction H.
+    now apply IHh with n.
+  - dependent destruction H.
+    now apply IHh with n.
+  - dependent destruction H.
+    now apply IHh with n.
+  - dependent destruction H.
+    now apply IHh with n.
+Qed.
+
 Lemma free_count_linear_substitution:
   forall (h: context) n k e,
   free_count (1 + n) k (h (k + context_bvars h)) ->
@@ -926,8 +986,7 @@ Proof.
     dependent destruction H.
     apply not_free_count_zero_iff.
     rename n0 into k.
-    (* Clearly! *)
-    admit.
+    apply lifting_more_than_n_makes_not_free_n; lia.
   - dependent destruction H; constructor.
     rename n0 into k.
     replace (k + S (context_bvars h)) with
@@ -937,8 +996,7 @@ Proof.
     rename n0 into k.
     destruct i.
     + exfalso.
-      (* From H, of course! *)
-      admit.
+      eapply free_usage_isnt_zero; eauto.
     + replace n with (i + j) by lia.
       constructor; auto;
       now apply IHh.
@@ -946,8 +1004,7 @@ Proof.
     rename n0 into k.
     destruct j.
     + exfalso.
-      (* As above, from H0. *)
-      admit.
+      eapply free_usage_isnt_zero; eauto.
     + replace n with (i + j) by lia.
       constructor; auto;
       now apply IHh.
@@ -955,8 +1012,7 @@ Proof.
     rename n0 into k.
     destruct i.
     + exfalso.
-      (* Ditto. *)
-      admit.
+      eapply free_usage_isnt_zero; eauto.
     + replace n with (i + j) by lia.
       constructor; auto;
       now apply IHh.
@@ -964,8 +1020,7 @@ Proof.
     rename n0 into k.
     destruct j.
     + exfalso.
-      (* Ditto. *)
-      admit.
+      eapply free_usage_isnt_zero; eauto.
     + replace n with (i + j) by lia.
       constructor; auto;
       now apply IHh.
@@ -985,7 +1040,7 @@ Proof.
     rename n0 into k.
     constructor.
     now apply IHh.
-Admitted.
+Qed.
 
 (* Full beta reduction relation. Note that we do not consider eta because it is
    not justified by Plotkin's CBN translation, which captures the observational
