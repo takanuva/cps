@@ -1052,15 +1052,15 @@ Inductive full: relation term :=
     full
       (application (abstraction t b) x)
       (subst x 0 b)
-  | full_abs:
+  | full_abstraction:
     forall t b1 b2,
     full b1 b2 ->
     full (abstraction t b1) (abstraction t b2)
-  | full_app1:
+  | full_application_left:
     forall f1 f2 x,
     full f1 f2 ->
     full (application f1 x) (application f2 x)
-  | full_app2:
+  | full_application_right:
     forall f x1 x2,
     full x1 x2 ->
     full (application f x1) (application f x2)
@@ -1083,7 +1083,7 @@ Proof.
     + right; intros ?.
       eapply n; intros b ?.
       eapply H.
-      apply full_abs.
+      apply full_abstraction.
       eassumption.
   - destruct IHe1.
     + destruct IHe2.
@@ -1123,12 +1123,12 @@ Proof.
       * clear n; rename n0 into n; right.
         intros ?; eapply n.
         intros b ?; eapply H.
-        apply full_app2.
+        apply full_application_right.
         eassumption.
     + clear IHe2; right.
       intros ?; eapply n.
       intros b ?; eapply H.
-      apply full_app1.
+      apply full_application_left.
       eassumption.
   - left; inversion 1.
   - left; inversion 1.

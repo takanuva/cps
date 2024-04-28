@@ -278,7 +278,7 @@ Proof.
     admit.
   - eapply rst_trans.
     apply rst_step.
-    apply full_app1.
+    apply full_application_left.
     apply full_beta.
     apply rst_sym.
     eapply rst_trans.
@@ -289,7 +289,7 @@ Proof.
     admit.
   - eapply rst_trans.
     apply rst_step.
-    apply full_app2.
+    apply full_application_right.
     apply full_beta.
     apply rst_sym.
     eapply rst_trans.
