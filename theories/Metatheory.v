@@ -1677,7 +1677,7 @@ Proof.
     rewrite subst_distributes_over_jump.
     f_equal.
     + apply IHe.
-    + list induction over H.
+    + list induction over H;
       apply H.
   - rewrite lift_distributes_over_bind.
     rewrite subst_distributes_over_bind.

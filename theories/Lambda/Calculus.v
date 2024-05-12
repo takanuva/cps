@@ -940,7 +940,7 @@ Proof.
       (* From H, of course! *)
       admit.
     + replace n with (i + j) by lia.
-      constructor; auto.
+      constructor; auto;
       now apply IHh.
   - dependent destruction H.
     rename n0 into k.
@@ -949,7 +949,7 @@ Proof.
       (* As above, from H0. *)
       admit.
     + replace n with (i + j) by lia.
-      constructor; auto.
+      constructor; auto;
       now apply IHh.
   - dependent destruction H.
     rename n0 into k.
@@ -958,7 +958,7 @@ Proof.
       (* Ditto. *)
       admit.
     + replace n with (i + j) by lia.
-      constructor; auto.
+      constructor; auto;
       now apply IHh.
   - dependent destruction H.
     rename n0 into k.
@@ -967,7 +967,7 @@ Proof.
       (* Ditto. *)
       admit.
     + replace n with (i + j) by lia.
-      constructor; auto.
+      constructor; auto;
       now apply IHh.
   - dependent destruction H.
     rename n0 into k.

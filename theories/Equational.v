@@ -628,7 +628,7 @@ Proof.
       assumption.
     + induction H; auto.
       inversion_clear H2.
-      simpl; f_equal; auto.
+      simpl; f_equal; auto;
       apply H; auto.
   - rewrite lift_distributes_over_bind.
     do 3 rewrite subst_distributes_over_bind.
