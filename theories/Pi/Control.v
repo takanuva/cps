@@ -294,3 +294,24 @@ Proof.
   - assumption.
   - now apply env_equiv_trans with h.
 Qed.
+
+(* Ohhh... this is why the length is at most 1... *)
+
+Goal
+  forall g,
+  env_wellformed g ->
+  forall x y,
+  env_edges g x y ->
+  forall z,
+  (~env_edges g z x) /\ (~env_edges g y z).
+Proof.
+  split; intro.
+  - destruct env_wellformed_domain with g x y as (ts1, ?); auto.
+    destruct env_wellformed_codomain with g z x as (ts2, ?); auto.
+    rewrite H2 in H3.
+    dependent destruction H3.
+  - destruct env_wellformed_codomain with g x y as (ts1, ?); auto.
+    destruct env_wellformed_domain with g y z as (ts2, ?); auto.
+    rewrite H2 in H3.
+    dependent destruction H3.
+Qed.
