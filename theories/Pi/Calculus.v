@@ -73,13 +73,16 @@ Fixpoint subst (y: nat) (k: nat) (e: term): term :=
     replication (subst y k p)
   end.
 
+Definition inverse (m: mode): mode :=
+  match m with
+  | I => O
+  | O => I
+  end.
+
 Fixpoint dual (t: type): type :=
   match t with
   | channel m ts =>
-    channel (match m with
-             | O => I
-             | I => O
-             end) (map dual ts)
+    channel (inverse m) (map dual ts)
   end.
 
 Lemma dual_is_involutive:
@@ -96,6 +99,34 @@ Proof.
     induction ts; simpl.
     + reflexivity.
     + f_equal; auto.
+Qed.
+
+Inductive alternating: mode -> type -> Prop :=
+  | alternating_input:
+    forall ts,
+    Forall (alternating O) ts ->
+    alternating I (channel I ts)
+  | alternating_output:
+    forall ts,
+    Forall (alternating I) ts ->
+    alternating O (channel O ts).
+
+Lemma alternating_inverse_dual:
+  forall m t,
+  alternating m t ->
+  alternating (inverse m) (dual t).
+Proof.
+  fix H 3; destruct 1; simpl.
+  - constructor.
+    induction H0; simpl.
+    + constructor.
+    + constructor; auto.
+      now apply H in H0.
+  - constructor.
+    induction H0; simpl.
+    + constructor.
+    + constructor; auto.
+      now apply H in H0.
 Qed.
 
 (* TODO: define size? *)
