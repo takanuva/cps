@@ -73,6 +73,31 @@ Fixpoint subst (y: nat) (k: nat) (e: term): term :=
     replication (subst y k p)
   end.
 
+(* Lemma type_eq_dec:
+  forall t1 t2: type,
+  { t1 = t2 } + { t1 <> t2 }.
+Proof.
+  fix H 1.
+  destruct t1, t2.
+  destruct m, m0.
+  - destruct list_eq_dec with type ts ts0.
+    + exact H.
+    + left; now subst.
+    + right; intro.
+      dependent destruction H0.
+      contradiction.
+  - right; intro.
+    dependent destruction H0.
+  - right; intro.
+    dependent destruction H0.
+  - destruct list_eq_dec with type ts ts0.
+    + exact H.
+    + left; now subst.
+    + right; intro.
+      dependent destruction H0.
+      contradiction.
+Qed. *)
+
 Definition inverse (m: mode): mode :=
   match m with
   | I => O
