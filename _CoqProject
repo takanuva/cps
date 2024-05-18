@@ -34,3 +34,4 @@ theories/Lambda/Control.v
 # theories/Simulation.v
 # Ignore this for now...
 # theories/FullAbstraction.v
+theories/Pi/Calculus.v
