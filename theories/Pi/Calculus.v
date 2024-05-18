@@ -10,7 +10,9 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 
-Variant mode: Set :=
+Import ListNotations.
+
+Variant mode: Prop :=
   | mode_input
   | mode_output.
 
@@ -70,3 +72,65 @@ Fixpoint subst (y: nat) (k: nat) (e: term): term :=
   | replication p =>
     replication (subst y k p)
   end.
+
+Fixpoint dual (t: type): type :=
+  match t with
+  | channel m ts =>
+    channel (match m with
+             | O => I
+             | I => O
+             end) (map dual ts)
+  end.
+
+Lemma dual_is_involutive:
+  forall t,
+  dual (dual t) = t.
+Proof.
+  fix H 1; destruct t.
+  destruct m; simpl.
+  - rewrite map_map; f_equal.
+    induction ts; simpl.
+    + reflexivity.
+    + f_equal; auto.
+  - rewrite map_map; f_equal.
+    induction ts; simpl.
+    + reflexivity.
+    + f_equal; auto.
+Qed.
+
+(* TODO: define size? *)
+
+(* TODO: define subterm? *)
+
+(* TODO: define context. *)
+
+Inductive not_free: nat -> term -> Prop :=
+  | not_free_inactive:
+    forall n,
+    not_free n inactive
+  | not_free_restriction:
+    forall n t p,
+    not_free (S n) p ->
+    not_free n (restriction t p)
+  | not_free_parallel:
+    forall n p q,
+    not_free n p ->
+    not_free n q ->
+    not_free n (parallel p q)
+  | not_free_input:
+    forall n ts p,
+    not_free (length ts + n) p ->
+    not_free n (input ts p)
+  | not_free_output:
+    forall n ns,
+    Forall (fun m => n <> m) ns ->
+    not_free n (output ns)
+  | not_free_replication:
+    forall n p,
+    not_free n (replication p).
+
+Definition free (n: nat) (e: term): Prop :=
+  ~not_free n e.
+
+Definition closed (e: term): Prop :=
+  forall n, not_free n e.
