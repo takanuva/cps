@@ -35,3 +35,4 @@ theories/Lambda/Control.v
 # Ignore this for now...
 # theories/FullAbstraction.v
 theories/Pi/Calculus.v
+theories/Pi/Control.v

@@ -10,9 +10,9 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 
-Import ListNotations.
+Export ListNotations.
 
-Variant mode: Prop :=
+Variant mode: Set :=
   | mode_input
   | mode_output.
 
