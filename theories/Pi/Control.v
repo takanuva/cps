@@ -281,14 +281,50 @@ Proof.
         --- now apply env_composition_edges_switch.
 Qed.
 
+Lemma type_composition_unit_left:
+  forall g,
+  env_composition_nodes [] g g.
+Proof.
+  admit.
+Admitted.
+
 Lemma env_composition_unit_left:
   forall g,
   exists2 h,
   env_composition env_empty g h & env_equiv g h.
 Proof.
   intros.
-  admit.
-Admitted.
+  assert (env_composition_nodes [] g g) by apply type_composition_unit_left.
+  exists (env_mk g (env_composition_edges env_empty g)
+      (env_composition_wellformed_domain env_empty g g H)
+      (env_composition_wellformed_codomain env_empty g g H)).
+  - constructor.
+  - split; simpl.
+    + reflexivity.
+    + split; intros x y ?.
+      * constructor.
+        --- now right.
+        --- apply env_wellformed_domain in H0 as (ts1, ?).
+            intros z ?.
+            destruct H1.
+            +++ contradiction.
+            +++ apply env_wellformed_codomain in H1 as (ts2, ?).
+                rewrite H0 in H1.
+                inversion H1.
+        --- apply env_wellformed_codomain in H0 as (ts1, ?).
+            intros z ?.
+            destruct H1.
+            +++ contradiction.
+            +++ apply env_wellformed_domain in H1 as (ts2, ?).
+                rewrite H0 in H1.
+                inversion H1.
+      * dependent destruction H0.
+        simpl in x.
+        destruct H0.
+        --- exfalso.
+            contradiction.
+        --- assumption.
+Qed.
 
 Lemma env_composition_unit_right:
   forall g,
