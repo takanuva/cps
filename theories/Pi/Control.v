@@ -285,8 +285,19 @@ Lemma type_composition_unit_left:
   forall g,
   env_composition_nodes [] g g.
 Proof.
-  admit.
-Admitted.
+  destruct g.
+  - constructor.
+  - constructor.
+Qed.
+
+Goal
+  forall g,
+  env_composition_nodes g [] g.
+Proof.
+  intros.
+  apply env_composition_nodes_sym.
+  apply type_composition_unit_left.
+Qed.
 
 Lemma env_composition_unit_left:
   forall g,
