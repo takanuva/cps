@@ -90,6 +90,32 @@ Inductive type_composition: type -> type -> type -> Prop :=
     t3 = channel O ts ->
     type_composition t1 t2 t3.
 
+(* TODO: check consistency within codebase. Are we writing "_is_a_function" or
+   "_is_deterministic"? *)
+
+Lemma type_composition_is_a_function:
+  forall t1 t2 t3,
+  type_composition t1 t2 t3 ->
+  forall t4,
+  type_composition t1 t2 t4 ->
+  t3 = t4.
+Proof.
+  intros.
+  dependent destruction H.
+  - dependent destruction H2.
+    + now subst.
+    + now subst.
+    + now subst.
+  - dependent destruction H2.
+    + now subst.
+    + now subst.
+    + now subst.
+  - dependent destruction H2.
+    + now subst.
+    + now subst.
+    + now subst.
+Qed.
+
 Lemma type_composition_sym:
   forall t1 t2 t3,
   type_composition t1 t2 t3 ->
@@ -152,6 +178,32 @@ Inductive env_composition_nodes: nodes -> nodes -> nodes -> Prop :=
     env_composition_nodes g h i ->
     type_composition t1 t2 t3 ->
     env_composition_nodes (Some t1 :: g) (Some t2 :: h) (Some t3 :: i).
+
+Lemma env_composition_nodes_is_a_function:
+  forall g h i1,
+  env_composition_nodes g h i1 ->
+  forall i2,
+  env_composition_nodes g h i2 ->
+  i1 = i2.
+Proof.
+  induction 1; intros.
+  - now dependent destruction H.
+  - now dependent destruction H.
+  - dependent destruction H0.
+    + f_equal.
+      now apply IHenv_composition_nodes.
+    + f_equal.
+      now apply IHenv_composition_nodes.
+  - dependent destruction H0.
+    + f_equal.
+      now apply IHenv_composition_nodes.
+    + f_equal.
+      now apply IHenv_composition_nodes.
+  - dependent destruction H1.
+    assert (t3 = t5) by now apply type_composition_is_a_function with t1 t2.
+    subst; f_equal.
+    now apply IHenv_composition_nodes.
+Qed.
 
 Lemma env_composition_nodes_sym:
   forall g h i,
