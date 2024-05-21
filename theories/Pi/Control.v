@@ -70,6 +70,8 @@ Proof.
   - destruct H0; destruct H2; firstorder.
 Qed.
 
+(* -------------------------------------------------------------------------- *)
+
 Inductive type_composition: type -> type -> type -> Prop :=
   | type_composition_oi:
     forall ts t1 t2 t3,
@@ -450,3 +452,11 @@ Proof.
   - assumption.
   - now apply env_equiv_trans with h.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Definition active (g: env) (y: nat): Prop :=
+  exists2 t,
+  nth y g None = Some t & (forall x, ~env_edges g x y).
+
+(* -------------------------------------------------------------------------- *)
