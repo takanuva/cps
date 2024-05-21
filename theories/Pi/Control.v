@@ -105,6 +105,14 @@ Definition type_coherent: relation type :=
   fun t1 t2 =>
     exists t3, type_composition t1 t2 t3.
 
+Goal
+  ~(type_coherent (channel I []) (channel I [])).
+Proof.
+  intro.
+  destruct H.
+  dependent destruction H.
+Qed.
+
 Lemma type_coherent_sym:
   symmetric type_coherent.
 Proof.
@@ -145,53 +153,100 @@ Inductive env_composition_nodes: nodes -> nodes -> nodes -> Prop :=
     type_composition t1 t2 t3 ->
     env_composition_nodes (Some t1 :: g) (Some t2 :: h) (Some t3 :: i).
 
-Definition lower_bound i (R: relation nat): Prop :=
+Lemma env_composition_nodes_sym:
+  forall g h i,
+  env_composition_nodes g h i ->
+  env_composition_nodes h g i.
+Proof.
+  induction 1.
+  - constructor.
+  - constructor.
+  - now constructor.
+  - now constructor.
+  - constructor.
+    + assumption.
+    + now apply type_composition_sym.
+Qed.
+
+Lemma env_composition_nodes_input_inversion:
+  forall g h i,
+  env_composition_nodes g h i ->
+  forall x ts,
+  nth x g None = Some (channel I ts) ->
+  nth x i None = Some (channel I ts).
+Proof.
+  induction 1; intros.
+  - exfalso.
+    destruct x; inversion H.
+  - assumption.
+  - destruct x.
+    + assumption.
+    + simpl.
+      now apply IHenv_composition_nodes.
+  - destruct x.
+    + exfalso.
+      inversion H0.
+    + simpl.
+      now apply IHenv_composition_nodes.
+  - destruct x.
+    + simpl in H1 |- *.
+      (* We have a composition of t1 and t2 into t3; since t1 is an input type,
+         it means that t3 also has to be an input type, and t2 had to be a dual
+         output type. *)
+      dependent destruction H1.
+      dependent destruction H0.
+      reflexivity.
+    + simpl.
+      now apply IHenv_composition_nodes.
+Qed.
+
+(* Local Definition lower_bound i (R: relation nat): Prop :=
   forall j, ~R j i.
 
-Definition upper_bound i (R: relation nat): Prop :=
-  forall j, ~R i j.
+Local Definition upper_bound i (R: relation nat): Prop :=
+  forall j, ~R i j. *)
 
-Inductive env_composition_edges: env -> env -> relation nat :=
+Inductive env_composition_edges: env -> env -> nodes -> relation nat :=
   | env_composition_edges_mk:
-    forall g h,
-    let x := union (env_edges g) (env_edges h) in
-    forall i j,
-    x i j ->
-    lower_bound i x ->
-    upper_bound j x ->
-    env_composition_edges g h i j.
+    forall g h i x y ts1 ts2,
+    let R := union (env_edges g) (env_edges h) in
+    t(R) x y ->
+    env_composition_nodes g h i ->
+    nth x i None = Some (channel I ts1) ->
+    nth y i None = Some (channel O ts2) ->
+    env_composition_edges g h i x y.
 
 Lemma env_composition_wellformed_domain:
-  forall (g h: env) i,
-  env_composition_nodes g h i ->
-  forall x y,
-  env_composition_edges g h x y ->
+  forall g h i x y,
+  env_composition_edges g h i x y ->
   exists ts,
   nth x i None = Some (channel I ts).
 Proof.
-  admit.
-Admitted.
+  intros.
+  destruct H.
+  now exists ts1.
+Qed.
 
 Lemma env_composition_wellformed_codomain:
-  forall (g h: env) i,
-  env_composition_nodes g h i ->
-  forall x y,
-  env_composition_edges g h x y ->
+  forall g h i x y,
+  env_composition_edges g h i x y ->
   exists ts,
   nth y i None = Some (channel O ts).
 Proof.
-  admit.
-Admitted.
+  intros.
+  destruct H.
+  now exists ts2.
+Qed.
 
 Inductive env_composition: env -> env -> env -> Prop :=
   | env_composition_mk:
     forall g: env,
     forall h: env,
     forall i: nodes,
-    forall H: env_composition_nodes g h i,
-    env_composition g h (env_mk i (env_composition_edges g h)
-      (env_composition_wellformed_domain g h i H)
-      (env_composition_wellformed_codomain g h i H)).
+    env_composition_nodes g h i ->
+    env_composition g h (env_mk i (env_composition_edges g h i)
+      (env_composition_wellformed_domain g h i)
+      (env_composition_wellformed_codomain g h i)).
 
 Goal
   forall g h,
@@ -224,40 +279,37 @@ Proof.
                 eassumption.
             +++ eexists; constructor.
                 eassumption.
-  - exists (env_mk i (env_composition_edges g h)
-      (env_composition_wellformed_domain g h i H1)
-      (env_composition_wellformed_codomain g h i H1)).
+  - exists (env_mk i (env_composition_edges g h i)
+      (env_composition_wellformed_domain g h i)
+      (env_composition_wellformed_codomain g h i)).
     constructor.
-Qed.
-
-Lemma env_composition_nodes_sym:
-  forall g h i,
-  env_composition_nodes g h i ->
-  env_composition_nodes h g i.
-Proof.
-  induction 1.
-  - constructor.
-  - constructor.
-  - now constructor.
-  - now constructor.
-  - constructor.
-    + assumption.
-    + now apply type_composition_sym.
+    assumption.
 Qed.
 
 Lemma env_composition_edges_switch:
-  forall g h,
-  inclusion (env_composition_edges g h) (env_composition_edges h g).
+  forall g h i,
+  inclusion (env_composition_edges g h i) (env_composition_edges h g i).
 Proof.
-  intros g h x y ?.
-  dependent destruction H; constructor.
-  - destruct H; firstorder.
-  - intros z ?.
-    apply H0 with z.
-    destruct H2; firstorder.
-  - intros z ?.
-    apply H1 with z.
-    destruct H2; firstorder.
+  intros g h i x y ?.
+  destruct H.
+  econstructor.
+  - clear H0 H1 H2.
+    induction H.
+    + apply t_step.
+      destruct H; firstorder.
+    + now apply t_trans with y.
+  - now apply env_composition_nodes_sym.
+  - eassumption.
+  - eassumption.
+Qed.
+
+Lemma env_composition_edges_switch_iff:
+  forall g h i,
+  same_relation (env_composition_edges g h i) (env_composition_edges h g i).
+Proof.
+  split; intros x y ?.
+  - now apply env_composition_edges_switch.
+  - now apply env_composition_edges_switch.
 Qed.
 
 Lemma env_composition_sym:
@@ -270,15 +322,13 @@ Proof.
   destruct 1; simpl.
   assert (env_composition_nodes h g i).
   - now apply env_composition_nodes_sym.
-  - exists (env_mk i (env_composition_edges h g)
-      (env_composition_wellformed_domain h g i H0)
-      (env_composition_wellformed_codomain h g i H0)).
-    + constructor.
+  - exists (env_mk i (env_composition_edges h g i)
+      (env_composition_wellformed_domain h g i)
+      (env_composition_wellformed_codomain h g i)).
+    + now constructor.
     + constructor; simpl.
       * reflexivity.
-      * split; intros x y ?.
-        --- now apply env_composition_edges_switch.
-        --- now apply env_composition_edges_switch.
+      * apply env_composition_edges_switch_iff.
 Qed.
 
 Lemma type_composition_unit_left:
@@ -306,35 +356,34 @@ Lemma env_composition_unit_left:
 Proof.
   intros.
   assert (env_composition_nodes [] g g) by apply type_composition_unit_left.
-  exists (env_mk g (env_composition_edges env_empty g)
-      (env_composition_wellformed_domain env_empty g g H)
-      (env_composition_wellformed_codomain env_empty g g H)).
-  - constructor.
+  exists (env_mk g (env_composition_edges env_empty g g)
+      (env_composition_wellformed_domain env_empty g g)
+      (env_composition_wellformed_codomain env_empty g g)).
+  - now constructor.
   - split; simpl.
     + reflexivity.
     + split; intros x y ?.
-      * constructor.
-        --- now right.
-        --- apply env_wellformed_domain in H0 as (ts1, ?).
-            intros z ?.
-            destruct H1.
-            +++ contradiction.
-            +++ apply env_wellformed_codomain in H1 as (ts2, ?).
-                rewrite H0 in H1.
-                inversion H1.
-        --- apply env_wellformed_codomain in H0 as (ts1, ?).
-            intros z ?.
-            destruct H1.
-            +++ contradiction.
-            +++ apply env_wellformed_domain in H1 as (ts2, ?).
-                rewrite H0 in H1.
-                inversion H1.
-      * dependent destruction H0.
-        simpl in x.
-        destruct H0.
-        --- exfalso.
-            contradiction.
-        --- assumption.
+      * assert (exists ts1, nth x g None = Some (channel I ts1)) as (ts1, ?) by
+          now apply env_wellformed_domain with y.
+        assert (exists ts2, nth y g None = Some (channel O ts2)) as (ts2, ?) by
+          now apply env_wellformed_codomain with x.
+        econstructor; eauto with cps.
+      * dependent destruction H0; simpl in *.
+        apply clos_trans_t1n_iff in H0.
+        destruct H0; destruct H0; try easy.
+        clear H2 H3; exfalso.
+        destruct H4; destruct H2; try easy.
+        --- rename y0 into z.
+            apply env_wellformed_codomain in H0 as (ts3, ?).
+            apply env_wellformed_domain in H2 as (ts4, ?).
+            rewrite H0 in H2.
+            inversion H2.
+        --- clear H4 z.
+            rename y0 into z.
+            apply env_wellformed_codomain in H0 as (ts3, ?).
+            apply env_wellformed_domain in H2 as (ts4, ?).
+            rewrite H0 in H2.
+            inversion H2.
 Qed.
 
 Lemma env_composition_unit_right:
