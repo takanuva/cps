@@ -459,4 +459,19 @@ Definition active (g: env) (y: nat): Prop :=
   exists2 t,
   nth y g None = Some t & (forall x, ~env_edges g x y).
 
+Goal
+  forall (g: env) y ts,
+  nth y g None = Some (channel I ts) ->
+  active g y.
+Proof.
+  intros.
+  exists (channel I ts).
+  - assumption.
+  - intros x ?H.
+    apply env_wellformed_codomain in H0 as (us, ?).
+    rewrite H in H0.
+    inversion H0.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
+
