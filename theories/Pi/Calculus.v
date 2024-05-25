@@ -154,6 +154,11 @@ Proof.
       now apply H in H0.
 Qed.
 
+Definition get_mode (t: type): mode :=
+  match t with
+  | channel m ts => m
+  end.
+
 (* TODO: define size? *)
 
 (* TODO: define subterm? *)
