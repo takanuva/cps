@@ -15,6 +15,14 @@ Set Primitive Projections.
 
 Local Notation nodes := (list (option type)).
 
+Definition has_input_type (g: nodes) (n: nat): Prop :=
+  exists ts,
+  nth n g None = Some (channel I ts).
+
+Definition has_output_type (g: nodes) (n: nat): Prop :=
+  exists ts,
+  nth n g None = Some (channel O ts).
+
 Record env: Type := env_mk {
   env_nodes:
     nodes;
@@ -23,13 +31,11 @@ Record env: Type := env_mk {
   env_wellformed_domain:
     forall i j,
     env_edges i j ->
-    exists ts,
-    nth i env_nodes None = Some (channel I ts);
+    has_input_type env_nodes i;
   env_wellformed_codomain:
     forall i j,
     env_edges i j ->
-    exists ts,
-    nth j env_nodes None = Some (channel O ts)
+    has_output_type env_nodes j
 }.
 
 Global Coercion env_nodes: env >-> list.
@@ -460,18 +466,17 @@ Definition active (g: env) (y: nat): Prop :=
   nth y g None = Some t & (forall x, ~env_edges g x y).
 
 Goal
-  forall (g: env) y ts,
-  nth y g None = Some (channel I ts) ->
+  forall (g: env) y,
+  has_input_type g y ->
   active g y.
 Proof.
-  intros.
-  exists (channel I ts).
+  intros g y (ts1, ?).
+  exists (channel I ts1).
   - assumption.
   - intros x ?H.
-    apply env_wellformed_codomain in H0 as (us, ?).
+    apply env_wellformed_codomain in H0 as (ts2, ?).
     rewrite H in H0.
     inversion H0.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
-
