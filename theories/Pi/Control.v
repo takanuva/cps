@@ -27,28 +27,44 @@ Record env: Type := env_mk {
   env_nodes:
     nodes;
   env_edges:
-    relation nat;
-  env_wellformed_domain:
-    forall i j,
-    env_edges i j ->
-    has_input_type env_nodes i;
-  env_wellformed_codomain:
-    forall i j,
-    env_edges i j ->
-    has_output_type env_nodes j
+    relation nat
 }.
 
 Global Coercion env_nodes: env >-> list.
 
-Local Notation exfalso := (False_rect _).
+Record env_wellformed (g: env): Prop := {
+  env_wellformed_domain:
+    forall i j,
+    env_edges g i j ->
+    has_input_type g i;
+  env_wellformed_codomain:
+    forall i j,
+    env_edges g i j ->
+    has_output_type g j;
+  env_wellformed_acyclic:
+    well_founded (env_edges g)
+}.
 
 Definition env_empty: env := {|
   env_nodes := [];
-  env_edges x y := False;
-  env_wellformed_domain i j H := exfalso H;
-  env_wellformed_codomain i j H := exfalso H
+  env_edges x y := False
 |}.
 
+Lemma env_empty_is_wellformed:
+  env_wellformed env_empty.
+Proof.
+  constructor; intros.
+  - exfalso.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - constructor.
+    intros b ?.
+    exfalso.
+    inversion H.
+Qed.
+
+(*
 Definition env_equiv (g h: env): Prop :=
   env_nodes g = env_nodes h /\ same_relation (env_edges g) (env_edges h).
 
@@ -75,6 +91,7 @@ Proof.
   - now transitivity y.
   - destruct H0; destruct H2; firstorder.
 Qed.
+*)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -124,7 +141,7 @@ Proof.
     + now subst.
 Qed.
 
-Lemma type_composition_sym:
+Lemma type_composition_is_commutative:
   forall t1 t2 t3,
   type_composition t1 t2 t3 ->
   type_composition t2 t1 t3.
@@ -153,7 +170,7 @@ Proof.
   intros t1 t2 ?.
   destruct H as (t3, ?).
   exists t3.
-  now apply type_composition_sym.
+  now apply type_composition_is_commutative.
 Qed.
 
 Record env_coherent (g: env) (h: env): Prop := {
@@ -213,7 +230,7 @@ Proof.
     now apply IHenv_composition_nodes.
 Qed.
 
-Lemma env_composition_nodes_sym:
+Lemma env_composition_nodes_is_commutative:
   forall g h i,
   env_composition_nodes g h i ->
   env_composition_nodes h g i.
@@ -225,7 +242,7 @@ Proof.
   - now constructor.
   - constructor.
     + assumption.
-    + now apply type_composition_sym.
+    + now apply type_composition_is_commutative.
 Qed.
 
 Lemma env_composition_nodes_input_inversion:
@@ -260,53 +277,22 @@ Proof.
       now apply IHenv_composition_nodes.
 Qed.
 
-(* Local Definition lower_bound i (R: relation nat): Prop :=
-  forall j, ~R j i.
-
-Local Definition upper_bound i (R: relation nat): Prop :=
-  forall j, ~R i j. *)
-
 Inductive env_composition_edges: env -> env -> nodes -> relation nat :=
   | env_composition_edges_mk:
-    forall g h i x y ts1 ts2,
+    forall g h i x y,
     let R := union (env_edges g) (env_edges h) in
     t(R) x y ->
     env_composition_nodes g h i ->
-    nth x i None = Some (channel I ts1) ->
-    nth y i None = Some (channel O ts2) ->
+    has_input_type i x ->
+    has_output_type i y ->
     env_composition_edges g h i x y.
-
-Lemma env_composition_wellformed_domain:
-  forall g h i x y,
-  env_composition_edges g h i x y ->
-  exists ts,
-  nth x i None = Some (channel I ts).
-Proof.
-  intros.
-  destruct H.
-  now exists ts1.
-Qed.
-
-Lemma env_composition_wellformed_codomain:
-  forall g h i x y,
-  env_composition_edges g h i x y ->
-  exists ts,
-  nth y i None = Some (channel O ts).
-Proof.
-  intros.
-  destruct H.
-  now exists ts2.
-Qed.
 
 Inductive env_composition: env -> env -> env -> Prop :=
   | env_composition_mk:
-    forall g: env,
-    forall h: env,
-    forall i: nodes,
+    forall g h i R,
+    same_relation R (env_composition_edges g h i) ->
     env_composition_nodes g h i ->
-    env_composition g h (env_mk i (env_composition_edges g h i)
-      (env_composition_wellformed_domain g h i)
-      (env_composition_wellformed_codomain g h i)).
+    env_composition g h (env_mk i R).
 
 Goal
   forall g h,
@@ -317,10 +303,9 @@ Proof.
   destruct 1 as (?H, ?H).
   assert (exists i, env_composition_nodes g h i) as (i, ?).
   - clear H0.
-    destruct g as (g, R, ?H, ?H).
-    destruct h as (h, S, ?H, ?H).
-    simpl in H |- *.
-    clear R S H0 H1 H2 H3.
+    destruct g as (g, R).
+    destruct h as (h, S).
+    simpl in H |- *; clear R S.
     generalize dependent h.
     induction g; intros.
     + eexists; constructor.
@@ -339,11 +324,10 @@ Proof.
                 eassumption.
             +++ eexists; constructor.
                 eassumption.
-  - exists (env_mk i (env_composition_edges g h i)
-      (env_composition_wellformed_domain g h i)
-      (env_composition_wellformed_codomain g h i)).
-    constructor.
-    assumption.
+  - set (R := env_composition_edges g h i).
+    assert (same_relation R R) by firstorder.
+    exists (env_mk i R).
+    now constructor.
 Qed.
 
 Lemma env_composition_edges_switch:
@@ -358,105 +342,41 @@ Proof.
     + apply t_step.
       destruct H; firstorder.
     + now apply t_trans with y.
-  - now apply env_composition_nodes_sym.
+  - now apply env_composition_nodes_is_commutative.
   - eassumption.
   - eassumption.
 Qed.
 
-Lemma env_composition_edges_switch_iff:
+Lemma env_composition_edges_is_commutative:
   forall g h i,
-  same_relation (env_composition_edges g h i) (env_composition_edges h g i).
+  inclusion (env_composition_edges g h i) (env_composition_edges h g i).
 Proof.
-  split; intros x y ?.
-  - now apply env_composition_edges_switch.
-  - now apply env_composition_edges_switch.
-Qed.
-
-Lemma env_composition_sym:
-  forall g h i1,
-  env_composition g h i1 ->
-  exists2 i2,
-  (* We don't have propositional extensionality... *)
-  env_composition h g i2 & env_equiv i1 i2.
-Proof.
-  destruct 1; simpl.
-  assert (env_composition_nodes h g i).
-  - now apply env_composition_nodes_sym.
-  - exists (env_mk i (env_composition_edges h g i)
-      (env_composition_wellformed_domain h g i)
-      (env_composition_wellformed_codomain h g i)).
-    + now constructor.
-    + constructor; simpl.
-      * reflexivity.
-      * apply env_composition_edges_switch_iff.
-Qed.
-
-Lemma type_composition_unit_left:
-  forall g,
-  env_composition_nodes [] g g.
-Proof.
-  destruct g.
-  - constructor.
-  - constructor.
-Qed.
-
-Goal
-  forall g,
-  env_composition_nodes g [] g.
-Proof.
-  intros.
-  apply env_composition_nodes_sym.
-  apply type_composition_unit_left.
-Qed.
-
-Lemma env_composition_unit_left:
-  forall g,
-  exists2 h,
-  env_composition env_empty g h & env_equiv g h.
-Proof.
-  intros.
-  assert (env_composition_nodes [] g g) by apply type_composition_unit_left.
-  exists (env_mk g (env_composition_edges env_empty g g)
-      (env_composition_wellformed_domain env_empty g g)
-      (env_composition_wellformed_codomain env_empty g g)).
-  - now constructor.
-  - split; simpl.
-    + reflexivity.
-    + split; intros x y ?.
-      * assert (exists ts1, nth x g None = Some (channel I ts1)) as (ts1, ?) by
-          now apply env_wellformed_domain with y.
-        assert (exists ts2, nth y g None = Some (channel O ts2)) as (ts2, ?) by
-          now apply env_wellformed_codomain with x.
-        econstructor; eauto with cps.
-      * dependent destruction H0; simpl in *.
-        apply clos_trans_t1n_iff in H0.
-        destruct H0; destruct H0; try easy.
-        clear H2 H3; exfalso.
-        destruct H4; destruct H2; try easy.
-        --- rename y0 into z.
-            apply env_wellformed_codomain in H0 as (ts3, ?).
-            apply env_wellformed_domain in H2 as (ts4, ?).
-            rewrite H0 in H2.
-            inversion H2.
-        --- clear H4 z.
-            rename y0 into z.
-            apply env_wellformed_codomain in H0 as (ts3, ?).
-            apply env_wellformed_domain in H2 as (ts4, ?).
-            rewrite H0 in H2.
-            inversion H2.
-Qed.
-
-Lemma env_composition_unit_right:
-  forall g,
-  exists2 h,
-  env_composition g env_empty h & env_equiv g h.
-Proof.
-  intros.
-  destruct env_composition_unit_left with g as (h, ?, ?).
-  destruct env_composition_sym with env_empty g h as (i, ?, ?); auto.
-  exists i.
+  intros g h i x y ?.
+  destruct H; constructor.
+  - clear H0 H1 H2.
+    induction H.
+    + destruct H.
+      * auto with cps.
+      * auto with cps.
+    + eauto with cps.
+  - now apply env_composition_nodes_is_commutative.
   - assumption.
-  - now apply env_equiv_trans with h.
+  - assumption.
+Qed.
+
+Lemma env_composition_is_commutative:
+  forall g h i,
+  env_composition g h i ->
+  env_composition h g i.
+Proof.
+  destruct 1.
+  constructor.
+  - split; intros x y ?.
+    + apply H in H1.
+      now apply env_composition_edges_is_commutative.
+    + apply H.
+      now apply env_composition_edges_is_commutative.
+  - now apply env_composition_nodes_is_commutative.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -466,17 +386,19 @@ Definition active (g: env) (y: nat): Prop :=
   nth y g None = Some t & (forall x, ~env_edges g x y).
 
 Goal
-  forall (g: env) y,
+  forall g y,
+  env_wellformed g ->
   has_input_type g y ->
   active g y.
 Proof.
-  intros g y (ts1, ?).
+  intros g y ?H (ts1, ?).
   exists (channel I ts1).
   - assumption.
   - intros x ?H.
-    apply env_wellformed_codomain in H0 as (ts2, ?).
-    rewrite H in H0.
-    inversion H0.
+    apply env_wellformed_codomain in H1 as (ts2, ?).
+    + rewrite H0 in H1.
+      inversion H1.
+    + assumption.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
