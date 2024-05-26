@@ -491,11 +491,12 @@ Inductive typing: mode -> term -> env -> Prop :=
       |-(m) (x: !(ts))(p) |> G
   *)
   | typing_res:
-    forall m p g h ts,
+    forall m p g h t,
     typing m p g ->
-    nth 0 g None = Some (channel I ts) ->
+    alternating I t ->
+    nth 0 g None = Some t ->
     env_hiding 1 g h ->
-    typing m (restriction (channel I ts) p) h.
+    typing m (restriction t p) h.
 
 Lemma typing_env_wellformed:
   forall m p g,
