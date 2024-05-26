@@ -497,6 +497,70 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Definition env_singleton (n: nat) (t: type) := {|
+  env_nodes := repeat None n ++ [Some t];
+  env_edges x y := False
+|}.
+
+Definition env_singleton_holes:
+  forall i t n,
+  n <> i ->
+  nth i (env_singleton n t) None = None.
+Proof.
+  intros.
+  destruct (lt_eq_lt_dec n i) as [ [ ? | ? ] | ? ].
+  - unfold env_singleton; simpl.
+    rewrite app_nth2.
+    + rewrite repeat_length.
+      remember (i - n) as m.
+      destruct m.
+      * exfalso.
+        lia.
+      * now destruct m.
+    + rewrite repeat_length.
+      lia.
+  - exfalso.
+    contradiction.
+  - unfold env_singleton; simpl.
+    rewrite app_nth1.
+    + apply nth_repeat.
+    + now rewrite repeat_length.
+Qed.
+
+Definition env_singleton_is_always_coherent:
+  forall g,
+  env_wellformed g ->
+  forall n t,
+  nth n g None = None ->
+  env_coherent g (env_singleton n t).
+Proof.
+  intros.
+  constructor; intros.
+  - exfalso.
+    destruct (Nat.eq_dec n i); subst.
+    + rewrite H0 in H1.
+      inversion H1.
+    + clear H0 H1 t1.
+      rewrite env_singleton_holes in H2.
+      * inversion H2.
+      * assumption.
+  - clear H0.
+    intros x.
+    apply env_wellformed_acyclic in H.
+    specialize (H x).
+    replace (Acc (env_edges g)) with (SN (transp (env_edges g))) in H by auto.
+    induction H using SN_ind.
+    constructor; intros y ?.
+    apply H2.
+    destruct H0.
+    + apply t_step.
+      assumption.
+    + exfalso.
+      inversion H0.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
 Inductive mode_composition: mode -> mode -> mode -> Prop :=
   | mode_composition_io:
     mode_composition I O O
@@ -542,7 +606,20 @@ Inductive typing: mode -> term -> env -> Prop :=
     alternating I t ->
     nth 0 g None = Some t ->
     env_hiding 1 g h ->
-    typing m (restriction t p) h.
+    typing m (restriction t p) h
+
+  (*
+           |-(m) p |> G
+    -------------------------- (WEAK)
+      |-(m) p |> G, x: ?(ts)
+  *)
+  | typing_weak:
+    forall m p g n t h,
+    typing m p g ->
+    alternating O t ->
+    nth n g None = None ->
+    env_composition g (env_singleton n t) h ->
+    typing m p h.
 
 Lemma typing_env_wellformed:
   forall m p g,
@@ -553,4 +630,9 @@ Proof.
   - apply env_empty_is_wellformed.
   - now apply env_conherence_implies_wellformedness with g h.
   - now apply env_hiding_preserves_wellformedness with 1 g.
+  - apply env_conherence_implies_wellformedness with g (env_singleton n t).
+    + apply env_singleton_is_always_coherent.
+      * assumption.
+      * assumption.
+    + assumption.
 Qed.
