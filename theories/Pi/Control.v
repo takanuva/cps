@@ -421,28 +421,6 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Definition active (g: env) (y: nat): Prop :=
-  exists2 t,
-  nth y g None = Some t & (forall x, ~env_edges g x y).
-
-Goal
-  forall g y,
-  env_wellformed g ->
-  has_input_type g y ->
-  active g y.
-Proof.
-  intros g y ?H (ts1, ?).
-  exists (channel I ts1).
-  - assumption.
-  - intros x ?H.
-    apply env_wellformed_codomain in H1 as (ts2, ?).
-    + rewrite H0 in H1.
-      inversion H1.
-    + assumption.
-Qed.
-
-(* -------------------------------------------------------------------------- *)
-
 Inductive env_hiding_edges: nat -> relation nat -> relation nat :=
   | env_hiding_edges_mk:
     forall (R: relation nat) n x y,
@@ -451,9 +429,10 @@ Inductive env_hiding_edges: nat -> relation nat -> relation nat :=
 
 Inductive env_hiding: nat -> env -> env -> Prop :=
   | env_hiding_mk:
-    forall n g R h,
+    forall n g R S h,
     drop 0 n g h ->
-    env_hiding n (env_mk g R) (env_mk h (env_hiding_edges n R)).
+    same_relation S (env_hiding_edges n R) ->
+    env_hiding n (env_mk g R) (env_mk h S).
 
 Lemma env_hiding_preserves_wellformedness:
   forall n g h,
@@ -464,17 +443,19 @@ Proof.
   constructor; intros.
   - destruct H as (?H, _, _).
     destruct H0; simpl in *.
+    apply H2 in H1.
     destruct H1.
     specialize (H _ _ H1).
-    clear H1 y.
+    clear H1 H2 y.
     dependent induction H0.
     + assumption.
     + now apply IHdrop.
   - destruct H as (_, ?H, _).
     destruct H0; simpl in *.
+    apply H2 in H1.
     destruct H1.
     specialize (H _ _ H1).
-    clear H1 x.
+    clear H1 H2 x.
     dependent induction H0.
     + assumption.
     + now apply IHdrop.
@@ -490,6 +471,7 @@ Proof.
     intros; subst.
     constructor; intros y ?.
     eapply H2; eauto.
+    apply H1 in H0.
     destruct H0.
     apply t_step.
     assumption.
@@ -561,6 +543,70 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Definition active (g: env) (y: nat): Prop :=
+  exists2 t,
+  nth y g None = Some t & (forall x, ~env_edges g x y).
+
+Goal
+  forall g y,
+  env_wellformed g ->
+  has_input_type g y ->
+  active g y.
+Proof.
+  intros g y ?H (ts1, ?).
+  exists (channel I ts1).
+  - assumption.
+  - intros x ?H.
+    apply env_wellformed_codomain in H1 as (ts2, ?).
+    + rewrite H0 in H1.
+      inversion H1.
+    + assumption.
+Qed.
+
+Inductive env_prefix_edges: nat -> nodes -> relation nat :=
+  | env_prefix_edges_mk:
+    forall n g y,
+    active g y ->
+    has_output_type g y ->
+    env_prefix_edges n g n y.
+
+Inductive env_prefix: nat -> type -> env -> env -> Prop :=
+  | env_prefix_mk:
+    forall n t g h R S,
+    alternating I t ->
+    nth n (env_nodes g) None = None ->
+    env_composition g (env_singleton n t) h ->
+    same_relation S (union R (env_prefix_edges n h)) ->
+    env_prefix n t (env_mk g R) (env_mk h S).
+
+Lemma env_prefix_preserves_wellformedness:
+  forall n t g h,
+  env_prefix n t g h ->
+  env_wellformed g ->
+  env_wellformed h.
+Proof.
+  intros.
+  destruct H.
+  constructor; intros.
+  - destruct H0 as (?H, _, _); simpl in *.
+    apply H3 in H4 as [ ?H | ?H ].
+    + admit.
+    + admit.
+  - destruct H0 as (_, ?H, _); simpl in *.
+    apply H3 in H4 as [ ?H | ?H ].
+    + admit.
+    + admit.
+  - destruct H0 as (_, _, ?H); simpl in *.
+    admit.
+Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+Definition env_mode (m: mode) (g: nodes): Prop :=
+  forall i t,
+  nth i g None = Some t ->
+  get_mode t = m.
+
 Inductive mode_composition: mode -> mode -> mode -> Prop :=
   | mode_composition_io:
     mode_composition I O O
@@ -572,7 +618,7 @@ Inductive mode_composition: mode -> mode -> mode -> Prop :=
 Inductive typing: mode -> term -> env -> Prop :=
   (*
     -------------- (ZERO)
-      |-(I) 0 |>
+      |-I 0 |>
   *)
   | typing_zero:
     typing I inactive env_empty
@@ -619,7 +665,24 @@ Inductive typing: mode -> term -> env -> Prop :=
     alternating O t ->
     nth n g None = None ->
     env_composition g (env_singleton n t) h ->
-    typing m p h.
+    typing m p h
+
+  (*
+       |-O p |> G, ys: ts    md(G) = ?
+    ------------------------------------- (IN)
+      |-I !x(ys: ts).p |> x: !(ts) -> G
+  *)
+  | typing_in:
+    forall p g n ts h i,
+    typing O p g ->
+    nth (length ts + n) g None = None ->
+    env_mode O g ->
+    Forall (alternating O) ts ->
+    (* We're hiding ys from G, which only had output types, so it can't have any
+       edge and thus all variables must be active. *)
+    env_hiding (length ts) g h ->
+    env_prefix n (channel I ts) h i ->
+    typing I (replication (input ts p)) i.
 
 Lemma typing_env_wellformed:
   forall m p g,
@@ -635,4 +698,9 @@ Proof.
       * assumption.
       * assumption.
     + assumption.
+  - apply env_prefix_preserves_wellformedness with n (channel I ts) h.
+    + assumption.
+    + apply env_hiding_preserves_wellformedness with (length ts) g.
+      * assumption.
+      * assumption.
 Qed.
