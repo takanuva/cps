@@ -379,6 +379,46 @@ Proof.
   - now apply env_composition_nodes_is_commutative.
 Qed.
 
+Lemma env_conherence_implies_wellformedness:
+  forall g h,
+  env_coherent g h ->
+  forall i,
+  env_composition g h i ->
+  env_wellformed i.
+Proof.
+  intros.
+  destruct H as (?H, ?H).
+  constructor.
+  - intros x y ?.
+    destruct H0.
+    apply H0 in H2.
+    destruct H2.
+    assumption.
+  - intros x y ?.
+    destruct H0.
+    apply H0 in H2.
+    destruct H2.
+    assumption.
+  - destruct H0.
+    intros x; simpl.
+    specialize (H1 x).
+    set (S := union (env_edges g) (env_edges h)) in H1.
+    replace (Acc S) with (SN (transp S)) in H1 by auto.
+    induction H1 using SN_ind.
+    constructor; intros y ?.
+    apply H3; clear H2.
+    apply H0 in H4; clear H0.
+    destruct H4.
+    clear H1 H2 H3 H4 H5.
+    induction H0.
+    + destruct H0.
+      * apply t_step.
+        now left.
+      * apply t_step.
+        now right.
+    + eauto with cps.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Definition active (g: env) (y: nat): Prop :=
@@ -402,3 +442,68 @@ Proof.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
+
+Inductive env_hiding_edges: nat -> relation env -> relation env :=
+  .
+
+Inductive env_hiding: nat -> env -> env -> Prop :=
+  .
+
+(* -------------------------------------------------------------------------- *)
+
+Inductive mode_composition: mode -> mode -> mode -> Prop :=
+  | mode_composition_io:
+    mode_composition I O O
+  | mode_composition_oi:
+    mode_composition O I O
+  | mode_composition_ii:
+    mode_composition I I I.
+
+Inductive typing: mode -> term -> env -> Prop :=
+  (*
+    -------------- (ZERO)
+      |-(I) 0 |>
+  *)
+  | typing_zero:
+    typing I inactive env_empty
+
+  (*
+      |-(m) p |> G    |-(n) q |> H    G >< H    G * H = I    m * n = o
+    -------------------------------------------------------------------- (PAR)
+                              |-(o) (p | q) |> I
+
+    TODO: maybe we should require that a composition only exists when the action
+    types are coherent with each other, as composition by itself does not imply
+    that there is no cycle in the resulting term.
+  *)
+  | typing_par:
+    forall m n o p q g h i,
+    typing m p g ->
+    typing n q h ->
+    env_coherent g h ->
+    env_composition g h i ->
+    mode_composition m n o ->
+    typing o (parallel p q) i
+
+  (*
+       |-(m) p |> G, x: !(ts)
+    ---------------------------- (RES)
+      |-(m) (x: !(ts))(p) |> G
+  *)
+  | typing_res:
+    forall m p g h ts,
+    typing m p g ->
+    nth 0 g None = Some (channel I ts) ->
+    env_hiding 1 g h ->
+    typing m (restriction (channel I ts) p) h.
+
+Lemma typing_env_wellformed:
+  forall m p g,
+  typing m p g ->
+  env_wellformed g.
+Proof.
+  induction 1.
+  - apply env_empty_is_wellformed.
+  - now apply env_conherence_implies_wellformedness with g h.
+  - admit.
+Admitted.
