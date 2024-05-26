@@ -443,11 +443,57 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive env_hiding_edges: nat -> relation env -> relation env :=
-  .
+Inductive env_hiding_edges: nat -> relation nat -> relation nat :=
+  | env_hiding_edges_mk:
+    forall (R: relation nat) n x y,
+    R (n + x) (n + y) ->
+    env_hiding_edges n R x y.
 
 Inductive env_hiding: nat -> env -> env -> Prop :=
-  .
+  | env_hiding_mk:
+    forall n g R h,
+    drop 0 n g h ->
+    env_hiding n (env_mk g R) (env_mk h (env_hiding_edges n R)).
+
+Lemma env_hiding_preserves_wellformedness:
+  forall n g h,
+  env_wellformed g ->
+  env_hiding n g h ->
+  env_wellformed h.
+Proof.
+  constructor; intros.
+  - destruct H as (?H, _, _).
+    destruct H0; simpl in *.
+    destruct H1.
+    specialize (H _ _ H1).
+    clear H1 y.
+    dependent induction H0.
+    + assumption.
+    + now apply IHdrop.
+  - destruct H as (_, ?H, _).
+    destruct H0; simpl in *.
+    destruct H1.
+    specialize (H _ _ H1).
+    clear H1 x.
+    dependent induction H0.
+    + assumption.
+    + now apply IHdrop.
+  - destruct H as (_, _, ?H).
+    destruct H0; simpl in *.
+    clear H0 h.
+    intros x.
+    specialize (H (n + x)).
+    replace (Acc R) with (SN (transp R)) in H by auto.
+    remember (n + x) as i.
+    generalize dependent x.
+    induction H using SN_ind.
+    intros; subst.
+    constructor; intros y ?.
+    eapply H2; eauto.
+    destruct H0.
+    apply t_step.
+    assumption.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -506,5 +552,5 @@ Proof.
   induction 1.
   - apply env_empty_is_wellformed.
   - now apply env_conherence_implies_wellformedness with g h.
-  - admit.
-Admitted.
+  - now apply env_hiding_preserves_wellformedness with 1 g.
+Qed.
