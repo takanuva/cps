@@ -512,6 +512,36 @@ Proof.
       inversion H0.
 Qed.
 
+Lemma env_singleton_composition_inversion:
+  forall n g t h,
+  env_composition_nodes g (env_singleton n t) h ->
+  forall k,
+  k <> n ->
+  nth k g None = nth k h None.
+Proof.
+  induction n; simpl; intros.
+  - dependent destruction H.
+    + destruct k; try lia.
+      now destruct k.
+    + destruct k; try lia.
+      now dependent destruction H.
+    + destruct k; try lia.
+      now dependent destruction H.
+  - destruct k.
+    + now dependent destruction H; simpl.
+    + assert (k <> n) by lia.
+      dependent destruction H; simpl.
+      * clear IHn H0.
+        generalize dependent k.
+        induction n; destruct k; simpl; intros.
+        --- exfalso; contradiction.
+        --- now destruct k.
+        --- reflexivity.
+        --- now erewrite <- IHn with k by lia.
+      * now apply IHn with t.
+      * now apply IHn with t.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Definition active (g: env) (y: nat): Prop :=
@@ -547,7 +577,7 @@ Inductive env_prefix: nat -> type -> env -> env -> Prop :=
     alternating I t ->
     nth n (env_nodes g) None = None ->
     env_composition g (env_singleton n t) h ->
-    same_relation S (union R (env_prefix_edges n h)) ->
+    same_relation S (union R (env_prefix_edges n g)) ->
     env_prefix n t (env_mk g R) (env_mk h S).
 
 Lemma env_prefix_preserves_wellformedness:
@@ -561,15 +591,67 @@ Proof.
   constructor; intros.
   - destruct H0 as (?H, _, _); simpl in *.
     apply H3 in H4 as [ ?H | ?H ].
-    + admit.
-    + admit.
+    + rename i into x, j into y.
+      apply H0 in H4 as (ts, ?).
+      destruct H2; simpl.
+      exists ts.
+      now apply env_composition_nodes_input_inversion with g h.
+    + apply env_composition_is_commutative in H2.
+      assert (has_input_type (env_singleton n t) i) as (ts, ?).
+      * destruct H4.
+        dependent destruction H.
+        exists ts; simpl.
+        clear H1 H2 H3 H0 H4 H5 y.
+        induction n; eauto.
+      * destruct H2; simpl.
+        exists ts.
+        eapply env_composition_nodes_input_inversion; eauto.
   - destruct H0 as (_, ?H, _); simpl in *.
-    apply H3 in H4 as [ ?H | ?H ].
-    + admit.
-    + admit.
-  - destruct H0 as (_, _, ?H); simpl in *.
-    admit.
-Admitted.
+    assert (j <> n).
+    + intros ?H; subst.
+      apply H3 in H4 as [ ?H | ?H ].
+      * apply H0 in H4 as (ts, ?).
+        rewrite H1 in H4.
+        inversion H4.
+      * dependent destruction H4.
+        destruct H5 as (ts, ?).
+        rewrite x, H1 in H5.
+        inversion H5.
+    + apply H3 in H4 as [ ?H | ?H ].
+      * dependent destruction H2; simpl.
+        apply H4 in H5 as (ts, ?).
+        erewrite env_singleton_composition_inversion in H5; eauto.
+        now exists ts.
+      * dependent destruction H2; simpl.
+        dependent destruction H5; simpl.
+        destruct H6 as (ts, ?).
+        rewrite x in H6; clear x.
+        erewrite env_singleton_composition_inversion in H6; eauto.
+        now exists ts.
+  - destruct H0 as (?H, ?H, ?H); simpl in *.
+    intros x.
+    specialize (H5 x).
+    replace (Acc R) with (SN (transp R)) in H5 by auto.
+    induction H5 using SN_ind.
+    constructor; intros.
+    apply H3 in H7 as [ ? | ? ].
+    + apply H6.
+      apply t_step.
+      assumption.
+    + destruct H7 as (x, i, y, ?, ?).
+      clear H5 H6.
+      (* This has to be the last step. *)
+      constructor; intros z ?.
+      exfalso.
+      apply H3 in H5 as [ ? | ? ].
+      * apply H4 in H5 as (ts, ?).
+        rewrite H1 in H5.
+        inversion H5.
+      * destruct H5 as (_, j, z, ?, ?).
+        destruct H6 as (ts, ?).
+        rewrite H1 in H6.
+        inversion H6.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
