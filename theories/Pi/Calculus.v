@@ -26,49 +26,58 @@ Inductive term: Set :=
   | inactive
   | restriction (t: type) (p: term)
   | parallel (p: term) (q: term)
-  | input (ts: list type) (p: term)
-  | output (ns: list nat)
+  | input (k: nat) (ts: list type) (p: term)
+  | output (k: nat) (ns: list nat)
   | replication (p: term).
 
+Definition bound_output (n: nat) (ts: list type) (p: term) :=
+  let fix sequence i n :=
+    match n with
+    | 0 => []
+    | S m => i :: sequence (1 + i) m
+    end
+  in fold_left (fun e t => restriction t e) ts
+    (parallel (output (length ts + n) (sequence 0 (length ts))) p).
+
 Fixpoint lift (i: nat) (k: nat) (e: term): term :=
-  match e with
+  let conv n :=
+    if le_gt_dec k n then
+      i + n
+    else
+      n
+  in match e with
   | inactive =>
     inactive
   | restriction t p =>
     restriction t (lift i (S k) p)
   | parallel p q =>
     parallel (lift i k p) (lift i k q)
-  | input ts p =>
-    input ts (lift i (length ts + k) p)
-  | output ns =>
-    let conv n :=
-      if le_gt_dec k n then
-        i + n
-      else
-        n
-    in output (map conv ns)
+  | input k ts p =>
+    input (conv k) ts (lift i (length ts + k) p)
+  | output k ns =>
+    output (conv k) (map conv ns)
   | replication p =>
     replication (lift i k p)
   end.
 
 Fixpoint subst (y: nat) (k: nat) (e: term): term :=
-  match e with
+  let conv n :=
+    match lt_eq_lt_dec k n with
+    | inleft (left _) => pred n
+    | inleft (right _) => k + y
+    | inright _ => n
+    end
+  in match e with
   | inactive =>
     inactive
   | restriction t p =>
     restriction t (subst y (S k) p)
   | parallel p q =>
     parallel (subst y k p) (subst y k q)
-  | input ts p =>
-    input ts (subst y (length ts + k) p)
-  | output ns =>
-    let conv n :=
-      match lt_eq_lt_dec k n with
-      | inleft (left _) => pred n
-      | inleft (right _) => k + y
-      | inright _ => n
-      end
-    in output (map conv ns)
+  | input k ts p =>
+    input (conv k) ts (subst y (length ts + k) p)
+  | output k ns =>
+    output (conv k) (map conv ns)
   | replication p =>
     replication (subst y k p)
   end.
@@ -179,13 +188,15 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n q ->
     not_free n (parallel p q)
   | not_free_input:
-    forall n ts p,
+    forall n k ts p,
+    n <> k ->
     not_free (length ts + n) p ->
-    not_free n (input ts p)
+    not_free n (input k ts p)
   | not_free_output:
-    forall n ns,
+    forall n k ns,
+    n <> k ->
     Forall (fun m => n <> m) ns ->
-    not_free n (output ns)
+    not_free n (output k ns)
   | not_free_replication:
     forall n p,
     not_free n (replication p).

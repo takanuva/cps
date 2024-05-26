@@ -64,35 +64,6 @@ Proof.
     inversion H.
 Qed.
 
-(*
-Definition env_equiv (g h: env): Prop :=
-  env_nodes g = env_nodes h /\ same_relation (env_edges g) (env_edges h).
-
-Lemma env_equiv_refl:
-  reflexive env_equiv.
-Proof.
-  split; intros.
-  - reflexivity.
-  - firstorder.
-Qed.
-
-Lemma env_equiv_sym:
-  symmetric env_equiv.
-Proof.
-  destruct 1; split.
-  - auto.
-  - destruct H0; firstorder.
-Qed.
-
-Lemma env_equiv_trans:
-  transitive env_equiv.
-Proof.
-  destruct 1, 1; split.
-  - now transitivity y.
-  - destruct H0; destruct H2; firstorder.
-Qed.
-*)
-
 (* -------------------------------------------------------------------------- *)
 
 Inductive type_composition: type -> type -> type -> Prop :=
@@ -682,7 +653,7 @@ Inductive typing: mode -> term -> env -> Prop :=
        edge and thus all variables must be active. *)
     env_hiding (length ts) g h ->
     env_prefix n (channel I ts) h i ->
-    typing I (replication (input ts p)) i.
+    typing I (replication (input n ts p)) i.
 
 Lemma typing_env_wellformed:
   forall m p g,
