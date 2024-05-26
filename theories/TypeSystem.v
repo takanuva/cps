@@ -595,13 +595,14 @@ Qed.
 (* -------------------------------------------------------------------------- *)
 
 Lemma valid_env_drop:
-  forall n g h,
-  drop n g h ->
+  forall k n g h,
+  drop k n g h ->
   valid_env g -> valid_env h.
 Proof.
   induction 1; intros.
-  - dependent destruction H.
-    assumption.
+  - assumption.
+  - dependent destruction H0.
+    firstorder.
   - dependent destruction H0.
     firstorder.
 Qed.
@@ -611,20 +612,19 @@ Local Hint Resolve valid_env_drop: cps.
 Lemma typing_remove_binding:
   forall e g t,
   typing g e t ->
-  forall n h,
-  drop n g h ->
-  not_free n e ->
-  typing h (remove_binding n e) t.
+  forall k h,
+  drop k 1 g h ->
+  not_free k e ->
+  typing h (remove_binding k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
   - inversion H.
   - inversion H.
   - inversion H.
   - inversion H.
-  - rename n0 into m.
-    dependent destruction H.
+  - dependent destruction H.
     unfold remove_binding.
-    destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
+    destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
     + rewrite subst_bound_gt; try lia.
       constructor; eauto with cps.
       admit.
@@ -657,7 +657,7 @@ Proof.
     rewrite subst_distributes_over_bind.
     constructor.
     + apply IHe1 with (negation ts :: g); eauto.
-      replace (negation (traverse_list (subst 0) n ts)) with (negation ts).
+      replace (negation (traverse_list (subst 0) k ts)) with (negation ts).
       * constructor.
         assumption.
       * f_equal.
@@ -670,7 +670,7 @@ Proof.
         assumption.
     + apply IHe2 with (ts ++ g); eauto.
       rewrite Nat.add_comm.
-      replace (traverse_list (subst 0) n ts) with ts.
+      replace (traverse_list (subst 0) k ts) with ts.
       * apply drop_app.
         assumption.
       * apply valid_env_typing in H0_.
@@ -694,7 +694,7 @@ Proof.
   - dependent destruction H0.
     eapply typing_remove_binding.
     + eassumption.
-    + constructor.
+    + repeat constructor.
     + assumption.
   - dependent destruction H0.
     constructor; auto.

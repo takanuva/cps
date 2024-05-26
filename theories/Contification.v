@@ -28,9 +28,9 @@ Require Import Local.Observational.
 *)
 
 Definition CONTI (R: relation pseudoterm): Prop :=
-  forall h n (ts us: list pseudoterm) (b1 b2 c: pseudoterm),
+  forall h k (ts us: list pseudoterm) (b1 b2 c: pseudoterm),
   not_free_context 0 h ->
-  drop n ts us ->
+  drop k 1 ts us ->
   (* Of course this definition is still wrong. *)
   R void void.
 

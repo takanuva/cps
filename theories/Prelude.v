@@ -337,19 +337,23 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive drop {T}: nat -> relation (list T) :=
+Inductive drop {T}: nat -> nat -> relation (list T) :=
+  | drop_noop:
+    forall xs,
+    drop 0 0 xs xs
   | drop_head:
-    forall x xs,
-    drop 0 (x :: xs) xs
-  | drop_tail:
     forall n x xs1 xs2,
-    drop n xs1 xs2 ->
-    drop (S n) (x :: xs1) (x :: xs2).
+    drop 0 n xs1 xs2 ->
+    drop 0 (S n) (x :: xs1) xs2
+  | drop_tail:
+    forall k n x xs1 xs2,
+    drop k n xs1 xs2 ->
+    drop (S k) n (x :: xs1) (x :: xs2).
 
 Lemma drop_app:
-  forall {T} n g h i,
-  @drop T n h i ->
-  @drop T (length g + n) (g ++ h) (g ++ i).
+  forall {T} k n g h i,
+  @drop T k n h i ->
+  @drop T (length g + k) n (g ++ h) (g ++ i).
 Proof.
   induction g; simpl; intros.
   - assumption.
