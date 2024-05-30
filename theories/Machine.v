@@ -86,16 +86,16 @@ Definition configuration_final (c: configuration): Prop :=
 
 (* Big-step abstract machine semantics for the CPS-calculus. This was derived
    directly from Kennedy's paper, slightly adapting it to use any free variable
-   as a signal of termination rather than using a distinguished "halt", and then
-   keeping track of it (so it's a function, not a predicate). Something really
-   similar is also implemented in Appel's book (see Chapter 3). This is meant to
-   be an "implementation-friendly" semantics. *)
+   as a signal of termination rather than using a distinguished "halt". This
+   represents the trace of an interpreter as the one in Appel's book (see
+   Chapter 3), also similar to what's being done in the CertiCoq project. This
+   is meant to be an "implementation-friendly" semantics. *)
 
 Inductive big: configuration -> Prop :=
   (*
       r(k) is undefined
     --------------------- (M-HALT)
-       (k<xs>, r) \/ k
+        (k<xs>, r) \/
   *)
   | big_halt:
     forall k xs r,
@@ -103,9 +103,9 @@ Inductive big: configuration -> Prop :=
     big (jump k xs, r)
 
   (*
-      p(k) = <s, \xs.c>       <c, s, xs = r(ys)> \/ j
-    --------------------------------------------------- (M-JUMP)
-                   <k<ys>, r> \/ j[ys/xs]
+      r(k) = <s, \ys.c>       <c, s, ys = r(xs)> \/
+    ------------------------------------------------- (M-JUMP)
+                       <k<xs>, r> \/
   *)
   | big_jump:
     forall r s c k xs ts,
@@ -115,9 +115,9 @@ Inductive big: configuration -> Prop :=
     big (jump k xs, r)
 
   (*
-      <b, r, k = <r, \xs.c>> \/ j
-    ------------------------------- (M-BIND)
-       <b { k<xs> = c }, r> \/ j
+      <b, r, k = <r, \ys.c>> \/
+    ----------------------------- (M-BIND)
+       <b { k<ys> = c }, r> \/
   *)
   | big_bind:
     forall b ts c r,
@@ -221,23 +221,20 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-(* TODO: move this definition somewhere else. *)
+(* TODO: move this definition somewhere else. I think I've defined this thing
+   elsewhere too, also in the wrong place... oh well... *)
 
 Definition eval a n: Prop :=
   comp rt(head) converges a n.
 
-(* Oh no, oh no, oh no no no no no...
-
-   This is clearly not a first-order term, but it's valid in our higher-order
+(* This is clearly not a first-order term, but it's valid in our higher-order
    formulation...
 
    j@0<k@1<>>
    { j<x> =
      x@0 }
 
-   And I expect that eval will reach a normal form, halting at k...
-
-*)
+   And I expect that eval will reach a normal form, halting at k... *)
 
 Example ohno: pseudoterm :=
   bind
@@ -476,6 +473,9 @@ Proof.
     + eapply big_high; eauto.
 Qed.
 
+(*
+*)
+
 Definition corresponding_valueF :=
   fun p (f: forall m, fst (fst m) < fst (fst p) -> Prop) =>
     let t := fst (fst p) in
@@ -502,7 +502,7 @@ Definition corresponding_valueF :=
       False
     end.
 
-Definition corresponding_valueP p: Prop :=
+Definition corresponding_valueP (p: nat * value * value): Prop :=
   let wf := well_founded_ltof _ (fun p => fst (fst p)) in
   Fix wf _ corresponding_valueF p.
 
@@ -575,8 +575,8 @@ Proof.
 Qed.
 
 Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
-  (forall n: nat,
-  corresponding_value t (heap_get (f k n) r) (heap_get n s)).
+  forall n: nat,
+  corresponding_value t (heap_get (f k n) r) (heap_get n s).
 
 Lemma heap_get_heap_append_simplification:
   forall xs n r s,
@@ -937,7 +937,7 @@ Proof.
       rename k0 into j, c0 into c, s into r', s0 into s.
       (* ... *)
       simpl in x.
-      assert (corresponding_value (S t) (heap_get (f k n) r) (heap_get n s));
+      assert (corresponding_value (S t) (heap_get (f k n) r) (heap_get n s)) by
         auto.
       apply nth_item with (y := U) in H0.
       (*
@@ -955,7 +955,7 @@ Proof.
 
         We also know that...
 
-          r corresponds to s through f
+          r corresponds to s through f at 1+t
 
         We want to show that...
 
@@ -1035,7 +1035,7 @@ Qed.
 
   We now define a new heap s such that:
 
-    s := r, k = \ys.c, H
+    s := (r, k = \ys.c, H)
 
   And the desired proof is as follow:
 
@@ -1142,27 +1142,42 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-(*
-Axiom heap_depth: heap -> nat.
+(* TODO: we also define sumup in [Normalization.v]... move to a common place! *)
 
-Compute fun r s => ltof heap heap_depth s r.
+Definition sumup {T} (f: T -> nat) (ts: list T): nat :=
+  fold_right Nat.add 0 (map f ts).
 
-Definition aaa r (f: forall s, heap_depth s < heap_depth r -> context) :=
-  context_hole.
+Definition heap_depth (r: heap): nat :=
+  let fix value_depth (v: value): nat :=
+    match v with
+    | value_closure r _ _ =>
+      sumup value_depth r
+    | value_suspend r _ =>
+      sumup value_depth r
+    | value_undefined =>
+      0
+    end
+  in sumup value_depth r.
 
-Check
-  fun p  =>
-    let wf := well_founded_ltof _ heap_depth in
-    Fix wf _ aaa p.
-*)
+Definition heap_to_contextF :=
+  fun r (f: forall s, heap_depth s < heap_depth r -> context) =>
+    context_hole.
 
-Axiom heap_to_context: heap -> context.
+Definition heap_to_context (r: heap): context :=
+  let wf := well_founded_ltof _ heap_depth in
+  Fix wf _ heap_to_contextF r.
 
 Coercion heap_to_context: heap >-> context.
 
+Lemma heap_to_context_nil:
+  heap_to_context [] = context_hole.
+Proof.
+  reflexivity.
+Qed.
+
 (* Soundness! *)
 
-Goal
+Lemma heap_to_context_preserves_semantics:
   forall c r,
   big (c, r) ->
   exists n,
@@ -1173,20 +1188,24 @@ Proof.
   generalize dependent r.
   generalize dependent c.
   induction H; intros.
+  (* Case: halt. *)
   - dependent destruction Heqp.
     rename r0 into r.
     admit.
+  (* Case: jump. *)
   - dependent destruction Heqp.
     rename r0 into r.
     specialize (IHbig _ _ eq_refl) as (n, ?).
     exists n.
     admit.
+  (* Case: bind. *)
   - dependent destruction Heqp.
     rename r0 into r.
     specialize (IHbig _ _ eq_refl) as (n, ?).
     exists n.
     simpl in H0.
     admit.
+  (* Case: high. *)
   - dependent destruction Heqp.
     rename r0 into r.
     specialize (IHbig _ _ eq_refl) as (n, ?).
@@ -1199,8 +1218,11 @@ Lemma big_implies_head_evaluation:
   exists n,
   eval c n.
 Proof.
-  admit.
-Admitted.
+  intros.
+  apply heap_to_context_preserves_semantics in H as (n, ?).
+  rewrite heap_to_context_nil in H.
+  now exists n.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
