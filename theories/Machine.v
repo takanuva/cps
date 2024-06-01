@@ -475,6 +475,12 @@ Proof.
 Qed.
 
 (*
+  In order to show soundness of the machine semantics, we first have to show
+  some correspondence between heaps. This is a bit awkward in here as we are in
+  a de Bruijn setting and because we allow for high order terms, but it may be
+  simplified as such:
+
+  TODO: describe the relations.
 *)
 
 Definition corresponding_valueF :=
@@ -485,8 +491,9 @@ Definition corresponding_valueF :=
     match v1, v2 with
     | value_closure p ts c, value_closure q us b =>
       length ts = length us /\
-        forall m r s xs ys,
-        forall H: m < t,
+        forall m r s xs ys (H: m < t) g k,
+        `{proper g} ->
+        xs = map (traverse g k) ys ->
         big_at_time (c, heap_append xs r p) m ->
         length xs = length ts ->
         Forall2 (fun x y =>
@@ -525,18 +532,18 @@ Proof.
     + assumption.
     + destruct H0; split; intros.
       * assumption.
-      * apply H1 with r xs H2; auto.
-        clear H0 H1 H3 H4.
-        induction H5; constructor; auto.
+      * apply H1 with r xs H2 g0 k; auto.
+        clear H0 H1 H3 H4 H5 H6.
+        induction H7; constructor; auto.
         apply H; auto.
   - destruct v1; destruct v2; try contradiction.
     + assumption.
     + assumption.
     + destruct H0; split; intros.
       * assumption.
-      * apply H1 with r xs H2; auto.
-        clear H0 H1 H3 H4.
-        induction H5; constructor; auto.
+      * apply H1 with r xs H2 g0 k; auto.
+        clear H0 H1 H3 H4 H5 H6.
+        induction H7; constructor; auto.
         apply H; auto.
 Qed.
 
@@ -545,8 +552,9 @@ Lemma corresponding_value_inv:
   forall P: value -> value -> Prop,
   (forall p ts c q us b,
      length ts = length us ->
-     (forall m r s xs ys,
-        m < t ->
+     (forall m r s xs ys (H: m < t) g k,
+        `{proper g} ->
+        xs = map (traverse g k) ys ->
         big_at_time (c, heap_append xs r p) m ->
         length xs = length ts ->
         Forall2 (fun x y =>
@@ -572,7 +580,7 @@ Proof.
     destruct H2.
     apply H; intros.
     + assumption.
-    + apply H3 with r xs; auto.
+    + apply H3 with r xs g k; auto.
 Qed.
 
 Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
@@ -659,10 +667,10 @@ Proof.
         eauto with arith cps.
       intro n; unfold ids.
       destruct (le_gt_dec (length xs) n).
-      * apply Forall2_length in H4.
+      * apply Forall2_length in H6.
         rewrite heap_get_heap_append_simplification; try lia.
         rewrite heap_get_heap_append_simplification; try lia.
-        rewrite H4; apply H1.
+        rewrite H6; apply H1.
         assumption.
       * apply foobar; auto.
 Qed.
@@ -761,6 +769,8 @@ Proof.
     + assumption.
     + eapply H0.
       * simpl in H2; lia.
+      * eassumption.
+      * eassumption.
       * eassumption.
       * assumption.
       * assumption.
@@ -1001,13 +1011,12 @@ Proof.
       * rewrite traverse_list_length.
         reflexivity.
       * simpl in H2.
-        rewrite traverse_list_length in H4.
+        rewrite traverse_list_length in H6.
         rename r0 into r', s0 into s'.
-        eapply H; eauto.
-        rewrite Nat.add_comm.
-        rewrite <- H4.
+        eapply H with (f := f); eauto.
+        rewrite <- H6, Nat.add_comm.
         apply technical2; eauto with cps; intros.
-        rewrite proper_respects_structure in H9.
+        rewrite proper_respects_structure in H11.
         eapply H; eauto with arith.
 Qed.
 
