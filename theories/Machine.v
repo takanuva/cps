@@ -11,6 +11,7 @@ Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
 Require Import Local.Reduction.
+Require Import Local.Equational.
 Require Import Local.Observational.
 
 (* A runtime value, which is either a continuation closure, a suspended
@@ -1151,30 +1152,71 @@ Definition heap_depth (r: heap): nat :=
   let fix value_depth (v: value): nat :=
     match v with
     | value_closure r _ _ =>
-      sumup value_depth r
+      1 + sumup value_depth r
     | value_suspend r _ =>
-      sumup value_depth r
+      1 + sumup value_depth r
     | value_undefined =>
-      0
+      1
     end
   in sumup value_depth r.
 
-Definition heap_to_contextF :=
-  fun r (f: forall s, heap_depth s < heap_depth r -> context) =>
-    match r with
-    | [] =>
-      context_hole
-    | U :: s =>
-      context_hole
-    | value_closure r ts c :: s =>
-      context_hole
-    | value_suspend r c :: s =>
-      context_hole
-    end.
+Lemma smaller_heap_tail:
+  forall {r r' v},
+  r = v :: r' ->
+  heap_depth r' < heap_depth r.
+Proof.
+  intros; subst.
+  admit.
+Admitted.
 
-Definition heap_to_context (r: heap): context :=
-  let wf := well_founded_ltof _ heap_depth in
-  Fix wf _ heap_to_contextF r.
+Lemma smaller_heap_closure_heap:
+  forall {r r' s ts c},
+  r = value_closure s ts c :: r' ->
+  heap_depth s < heap_depth r.
+Proof.
+  admit.
+Admitted.
+
+Lemma heap_depth_is_well_founded:
+  well_founded (ltof _ heap_depth).
+Proof.
+  apply well_founded_ltof.
+Defined.
+
+(* Our idea is to define a context by induction on the heap in that we can check
+   that 1) the context is static, 2) the context binds the same variables as the
+   heap defines, and 3) we have that jumps are preserved by bisimilarity.
+
+   In particular, we need to define:
+
+     [r, k = <s; \xs.c>] = [r][[-] { k<xs> = [s][c] }]
+
+   As the heap isn't dependent (r doesn't bind in s or c), we assume, without
+   loss of generality that the free variables in s and c are different from the
+   ones bound by r. Note also that, in the de Bruijn setting, we have to switch
+   the indexes bound in xs and s.
+*)
+
+Definition heap_to_context :=
+  Fix heap_depth_is_well_founded (fun _ => context) (fun r f =>
+    match r as x return (r = x -> context) with
+    | value_closure t ts c :: s =>
+      fun H =>
+        let h := f _ (smaller_heap_tail H) in
+        let i := f _ (smaller_heap_closure_heap H) in
+        compose_context h (context_left context_hole ts
+          (* TODO: add renaming constraints. *)
+          (i c))
+    | value_suspend t c :: s =>
+      fun H =>
+        context_hole
+    | value_undefined :: s =>
+      fun H =>
+        context_hole
+    | [] =>
+      fun H =>
+        context_hole
+    end eq_refl).
 
 Coercion heap_to_context: heap >-> context.
 
@@ -1184,10 +1226,60 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma heap_to_context_closure_unfold:
+  forall r s ts c,
+  heap_to_context (value_closure s ts c :: r) =
+    compose_context (heap_to_context r)
+      (context_left context_hole ts (heap_to_context s c)).
+Proof.
+  intros.
+  unfold heap_to_context.
+  rewrite Fix_eq; simpl.
+  - fold heap_to_context.
+    reflexivity.
+  - intros.
+    destruct x; simpl; auto.
+    destruct v; simpl; auto.
+    now do 2 rewrite H.
+Qed.
+
+Lemma heap_to_context_app:
+  forall r s,
+  heap_to_context (r ++ s) =
+    compose_context (heap_to_context s) (heap_to_context r).
+Proof.
+  induction r; simpl; intros.
+  - (* Of course. *)
+    admit.
+  - destruct a.
+    + admit.
+    + admit.
+    + do 2 rewrite heap_to_context_closure_unfold.
+      rewrite IHr; simpl.
+      admit.
+Admitted.
+
 Lemma static_heap_to_context:
   forall r,
   static (heap_to_context r).
 Proof.
+  induction r.
+  - constructor.
+  - destruct a.
+    + admit.
+    + admit.
+    + rewrite heap_to_context_closure_unfold.
+      apply static_compose_context; auto with cps.
+Admitted.
+
+Lemma heap_to_context_preserves_jumps:
+  forall (r s: heap) ts c k xs,
+  length ts = length xs ->
+  item (value_closure s ts c) r k ->
+  [r (jump k xs) ~~ heap_append xs r s c].
+Proof.
+  intros.
+  apply barb_sema.
   admit.
 Admitted.
 
@@ -1213,13 +1305,18 @@ Proof.
     rename r0 into r.
     specialize (IHbig _ _ eq_refl) as (n, ?).
     exists n.
-    admit.
+    apply weak_convergence_characterization in H2.
+    apply weak_convergence_characterization.
+    apply barb_weak_convergence with (heap_append xs r s c).
+    + now apply heap_to_context_preserves_jumps with ts.
+    + assumption.
   (* Case: bind. *)
   - dependent destruction Heqp.
     rename r0 into r.
     specialize (IHbig _ _ eq_refl) as (n, ?).
     exists n.
-    simpl in H0.
+    rewrite heap_to_context_closure_unfold in H0.
+    rewrite compose_context_is_sound in H0; simpl in H0.
     admit.
   (* Case: high. *)
   - dependent destruction Heqp.
