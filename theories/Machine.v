@@ -793,6 +793,42 @@ Qed.
 
 Local Hint Resolve corresponding_decrease: cps.
 
+Goal
+  forall f r s k t,
+  `{proper f} ->
+  corresponding f r s k t ->
+  (forall m c,
+     m <= t ->
+     big_at_time (f k c, r) m ->
+     big_at_time (c, s) m) ->
+  forall c,
+  corresponding_value t (heap_get (f k c) r) (heap_get c s).
+Proof.
+  intros.
+  rewrite proper_respects_structure; simpl.
+  destruct c.
+  - simpl.
+    constructor.
+  - simpl.
+    constructor.
+  - simpl.
+    constructor.
+  - simpl.
+    constructor.
+  - specialize (H0 n); simpl.
+    assumption.
+  - simpl.
+    constructor.
+  - intros m ?H ?H; simpl in H2.
+    apply H1; auto.
+    rewrite proper_respects_structure; simpl.
+    assumption.
+  - intros m ?H ?H; simpl in H2.
+    apply H1; auto.
+    rewrite proper_respects_structure; simpl.
+    assumption.
+Qed.
+
 Local Lemma technical1:
   forall f r s k t,
   `{proper f} ->
