@@ -1161,7 +1161,16 @@ Definition heap_depth (r: heap): nat :=
 
 Definition heap_to_contextF :=
   fun r (f: forall s, heap_depth s < heap_depth r -> context) =>
-    context_hole.
+    match r with
+    | [] =>
+      context_hole
+    | U :: s =>
+      context_hole
+    | value_closure r ts c :: s =>
+      context_hole
+    | value_suspend r c :: s =>
+      context_hole
+    end.
 
 Definition heap_to_context (r: heap): context :=
   let wf := well_founded_ltof _ heap_depth in
@@ -1174,6 +1183,13 @@ Lemma heap_to_context_nil:
 Proof.
   reflexivity.
 Qed.
+
+Lemma static_heap_to_context:
+  forall r,
+  static (heap_to_context r).
+Proof.
+  admit.
+Admitted.
 
 (* Soundness! *)
 
