@@ -480,7 +480,12 @@ Qed.
   a de Bruijn setting and because we allow for high order terms, but it may be
   simplified as such:
 
-  TODO: describe the relations.
+  We say that heap r corresponds to heap s under substitution f at t iff:
+    - For every variable x, r(x[f]) corresponds to s(x) at t;
+
+  And we say that <r; \xs.b> corresponds to <s; \ys.c> at t iff:
+    - For every r', s', f', zs and m < t such that r' corresponds to s' under g
+    at m and <b, r, xs = r'(zs[f'])> @ m, we have that <c, s, ys = s'(zs)> @ m.
 *)
 
 Definition corresponding_valueF :=
@@ -489,16 +494,16 @@ Definition corresponding_valueF :=
     let v1 := snd (fst p) in
     let v2 := snd p in
     match v1, v2 with
-    | value_closure p ts c, value_closure q us b =>
+    | value_closure r ts b, value_closure s us c =>
       length ts = length us /\
-        forall m r s xs ys (H: m < t) g k,
+        forall m r' s' xs ys (H: m < t) g k,
         `{proper g} ->
         xs = map (traverse g k) ys ->
-        big_at_time (c, heap_append xs r p) m ->
+        big_at_time (b, heap_append xs r' r) m ->
         length xs = length ts ->
-        (forall c: pseudoterm,
-           f (m, heap_get (g k c) r, heap_get c s) H) ->
-        big_at_time (b, heap_append ys s q) m
+        (forall x: pseudoterm,
+           f (m, heap_get (g k x) r', heap_get x s') H) ->
+        big_at_time (c, heap_append ys s' s) m
     | value_suspend r b, value_suspend s c =>
       forall m,
       m <= t ->
@@ -532,7 +537,7 @@ Proof.
     + assumption.
     + destruct H0; split; intros.
       * assumption.
-      * apply H1 with r xs H2 g0 k; auto.
+      * apply H1 with r' xs H2 g0 k; auto.
         clear H0 H1 H3 H4 H5 H6.
         intros b; apply H, H7.
   - destruct v1; destruct v2; try contradiction.
@@ -540,7 +545,7 @@ Proof.
     + assumption.
     + destruct H0; split; intros.
       * assumption.
-      * apply H1 with r xs H2 g0 k; auto.
+      * apply H1 with r' xs H2 g0 k; auto.
         clear H0 H1 H3 H4 H5 H6.
         intros b; apply H, H7.
 Qed.
@@ -548,17 +553,17 @@ Qed.
 Lemma corresponding_value_inv:
   forall t,
   forall P: value -> value -> Prop,
-  (forall p ts c q us b,
+  (forall r ts b s us c,
      length ts = length us ->
-     (forall m r s xs ys (H: m < t) g k,
+     (forall m r' s' xs ys (H: m < t) g k,
         `{proper g} ->
         xs = map (traverse g k) ys ->
-        big_at_time (c, heap_append xs r p) m ->
+        big_at_time (b, heap_append xs r' r) m ->
         length xs = length ts ->
-        (forall c: pseudoterm,
-           corresponding_value m (heap_get (g k c) r) (heap_get c s)) ->
-        big_at_time (b, heap_append ys s q) m) ->
-        P (value_closure p ts c) (value_closure q us b)) ->
+        (forall x: pseudoterm,
+           corresponding_value m (heap_get (g k x) r') (heap_get x s')) ->
+        big_at_time (c, heap_append ys s' s) m) ->
+        P (value_closure r ts b) (value_closure s us c)) ->
   (forall r b s c,
     (forall m,
        m <= t ->
@@ -578,7 +583,7 @@ Proof.
     destruct H2.
     apply H; intros.
     + assumption.
-    + apply H3 with r xs g k; auto.
+    + apply H3 with r' xs g k; auto.
 Qed.
 
 Definition corresponding (f: nat -> pseudoterm -> pseudoterm) r s k t :=
@@ -661,7 +666,7 @@ Proof.
       split; intros; auto.
       simpl in H0.
       replace c with (ids 0 c) in H1; auto.
-      apply H with ids (heap_append xs r p) (length xs + 0);
+      apply H with ids (heap_append xs r' p) (length xs + 0);
         eauto with arith cps.
       intro n; unfold ids.
       destruct (le_gt_dec (length xs) n).
@@ -819,8 +824,7 @@ Proof.
     constructor.
   - simpl.
     constructor.
-  - specialize (H0 n); simpl.
-    assumption.
+  - apply H0.
   - simpl.
     constructor.
   - intros m ?H ?H; simpl in H2.
@@ -1009,7 +1013,6 @@ Proof.
       rewrite <- x in H4; simpl in H4.
       rewrite H0 in H4.
       dependent destruction H4 using corresponding_value_inv.
-      rename q into s'.
       eapply big_at_time_jump.
       * eapply item_nth; eauto.
         congruence.
@@ -1037,7 +1040,6 @@ Proof.
         reflexivity.
       * simpl in H2.
         rewrite traverse_list_length in H6.
-        rename r0 into r', s0 into s'.
         eapply H with (f := f); eauto.
         rewrite <- H6, Nat.add_comm.
         apply technical2; eauto with cps; intros.
