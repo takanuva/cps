@@ -1117,11 +1117,30 @@ Proof.
     clear H h.
     induction s; eauto with cps.
   - assumption.
-  - (* Hmm... *)
+  - (* We have a substitution that will correspond directly to the new heap. *)
     remember (C2H h (value_closure r ts c :: r)) as s.
     apply big_has_time in H1; destruct H1 as (t, ?H).
     apply big_has_time; exists t.
-    admit.
+    (* TODO: we have to show that this substitution is proper... we might not
+       want to do that before we replace everything by the sigma-calculus. *)
+    assert (exists2 f: nat -> pseudoterm -> pseudoterm,
+      forall k c, f k c = apply_parameters xs k
+        (lift (S #h) (k + length ts) c) & proper f) as (f, ?, ?) by admit.
+    rewrite <- H2 in H1.
+    apply corresponding_heaps_preserve_semantics with f s 0.
+    + assumption.
+    + intros n.
+      destruct (le_gt_dec (length xs) n).
+      * rewrite heap_get_heap_append_simplification; auto.
+        rewrite H2.
+        rewrite lift_bound_ge by lia.
+        rewrite apply_parameters_bound_gt by lia.
+        rewrite Heqs.
+        (* Clearly! *)
+        admit.
+      * admit.
+    + rewrite <- proper_respects_structure.
+      assumption.
 Admitted.
 
 Lemma big_is_preserved_backwards_by_head:
