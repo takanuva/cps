@@ -607,6 +607,22 @@ Proof.
     simpl; reflexivity.
 Qed.
 
+Lemma heap_get_heap_context_simplification:
+  forall h,
+  static h ->
+  forall n,
+  n >= #h ->
+  forall r,
+  heap_get n (C2H h r) = heap_get (n - #h) r.
+Proof.
+  induction 1 using static_ind; simpl; intros.
+  - now rewrite Nat.sub_0_r.
+  - simpl in IHstatic.
+    rewrite IHstatic by lia.
+    replace (n - #h) with (S (n - S #h)) by lia.
+    now simpl.
+Qed.
+
 (* TODO: rename me. *)
 
 Lemma foobar:
@@ -1136,9 +1152,13 @@ Proof.
         rewrite lift_bound_ge by lia.
         rewrite apply_parameters_bound_gt by lia.
         rewrite Heqs.
-        (* Clearly! *)
+        rewrite heap_get_heap_context_simplification by (auto; lia).
+        replace (S #h + n - length xs - #h) with (S (n - length xs)) by lia.
+        simpl.
+        apply corresponding_value_refl.
+      * rewrite H2.
+        rewrite lift_bound_lt by lia.
         admit.
-      * admit.
     + rewrite <- proper_respects_structure.
       assumption.
 Admitted.
