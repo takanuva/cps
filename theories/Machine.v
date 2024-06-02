@@ -496,8 +496,8 @@ Definition corresponding_valueF :=
         xs = map (traverse g k) ys ->
         big_at_time (c, heap_append xs r p) m ->
         length xs = length ts ->
-        Forall2 (fun x y =>
-                  f (m, heap_get x r, heap_get y s) H) xs ys ->
+        (forall c: pseudoterm,
+           f (m, heap_get (g k c) r, heap_get c s) H) ->
         big_at_time (b, heap_append ys s q) m
     | value_suspend r b, value_suspend s c =>
       forall m,
@@ -534,8 +534,7 @@ Proof.
       * assumption.
       * apply H1 with r xs H2 g0 k; auto.
         clear H0 H1 H3 H4 H5 H6.
-        induction H7; constructor; auto.
-        apply H; auto.
+        intros b; apply H, H7.
   - destruct v1; destruct v2; try contradiction.
     + assumption.
     + assumption.
@@ -543,8 +542,7 @@ Proof.
       * assumption.
       * apply H1 with r xs H2 g0 k; auto.
         clear H0 H1 H3 H4 H5 H6.
-        induction H7; constructor; auto.
-        apply H; auto.
+        intros b; apply H, H7.
 Qed.
 
 Lemma corresponding_value_inv:
@@ -557,8 +555,8 @@ Lemma corresponding_value_inv:
         xs = map (traverse g k) ys ->
         big_at_time (c, heap_append xs r p) m ->
         length xs = length ts ->
-        Forall2 (fun x y =>
-          corresponding_value m (heap_get x r) (heap_get y s)) xs ys ->
+        (forall c: pseudoterm,
+           corresponding_value m (heap_get (g k c) r) (heap_get c s)) ->
         big_at_time (b, heap_append ys s q) m) ->
         P (value_closure p ts c) (value_closure q us b)) ->
   (forall r b s c,
@@ -667,12 +665,18 @@ Proof.
         eauto with arith cps.
       intro n; unfold ids.
       destruct (le_gt_dec (length xs) n).
-      * apply Forall2_length in H6.
-        rewrite heap_get_heap_append_simplification; try lia.
-        rewrite heap_get_heap_append_simplification; try lia.
-        rewrite H6; apply H1.
+      * assert (length xs = length ys) by now rewrite H3, map_length.
+        rewrite heap_get_heap_append_simplification by try lia.
+        rewrite heap_get_heap_append_simplification by try lia.
+        rewrite H7; apply H1.
         assumption.
       * apply foobar; auto.
+        rewrite H3; clear H3.
+        induction ys; simpl.
+        --- constructor.
+        --- constructor; auto.
+            rewrite <- proper_respects_structure.
+            apply H6.
 Qed.
 
 Lemma corresponding_lift:
@@ -837,41 +841,26 @@ Local Lemma technical1:
      m <= t ->
      big_at_time (f k c, r) m ->
      big_at_time (c, s) m) ->
-  forall xs,
-  Forall2
-    (fun x y => corresponding_value t (heap_get x r) (heap_get y s))
-    (map (traverse f k) xs) xs.
+  forall c,
+  corresponding_value t (heap_get (f k c) r) (heap_get c s).
 Proof.
   intros.
-  induction xs.
-  - simpl.
-    constructor.
-  - simpl.
-    constructor.
-    + clear IHxs xs.
-      destruct a.
-      * simpl; constructor.
-      * simpl; constructor.
-      * simpl; constructor.
-      * simpl; constructor.
-      * specialize (H0 n); simpl.
-        assumption.
-      * simpl; constructor.
-      * rewrite <- proper_respects_structure.
-        rewrite proper_respects_structure; simpl.
-        intros m ?H ?H.
-        simpl in H2.
-        apply H1; auto.
-        rewrite proper_respects_structure; simpl.
-        assumption.
-      * rewrite <- proper_respects_structure.
-        rewrite proper_respects_structure; simpl.
-        intros m ?H ?H.
-        simpl in H2.
-        apply H1; auto.
-        rewrite proper_respects_structure; simpl.
-        assumption.
-    + assumption.
+  rewrite proper_respects_structure.
+  destruct c; simpl.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - apply H0.
+  - constructor.
+  - intros m ?H ?H; simpl in H2.
+    apply H1; auto.
+    rewrite proper_respects_structure; simpl.
+    assumption.
+  - intros m ?H ?H; simpl in H2.
+    apply H1; auto.
+    rewrite proper_respects_structure; simpl.
+    assumption.
 Qed.
 
 Local Lemma technical2:
@@ -1052,8 +1041,14 @@ Proof.
         eapply H with (f := f); eauto.
         rewrite <- H6, Nat.add_comm.
         apply technical2; eauto with cps; intros.
-        rewrite proper_respects_structure in H11.
-        eapply H; eauto with arith.
+        --- rewrite proper_respects_structure in H11.
+            eapply H; eauto with arith.
+        --- rewrite H4; clear H4.
+            induction ys; simpl.
+            +++ constructor.
+            +++ constructor; auto.
+                rewrite <- proper_respects_structure.
+                apply H7.
 Qed.
 
 Lemma corresponding_value_refl:
