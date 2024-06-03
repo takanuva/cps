@@ -220,7 +220,7 @@ Proof.
      the paving lemma to join back the reductions that lead to c and d. *)
   destruct paving with (mark b) r (mark c) p (mark d); eauto.
   (* As c has no marks (or d, of course), so the result shouldn't as well. *)
-  assert (exists e, d0 = mark e) as (e, ?) by admit; subst.
+  assert (exists e, d0 = mark e) as (e, ?) by eauto with cps; subst.
   (* We proceed by case analysis on the number of marks in rp and pr. *)
   destruct (le_gt_dec (redexes_count rp) 0) as [ ?H | ?H ];
   destruct (le_gt_dec (redexes_count pr) 0) as [ ?H | ?H ].
@@ -257,7 +257,7 @@ Proof.
   - (* We need to move in both directions. So we follow by our first inductive
        hypothesis, as we're decreasing the maximum reduction length. *)
     apply H2 with e; eauto with cps.
-Admitted.
+Qed.
 
 Lemma sn_beta_backwards_step:
   forall b c,
