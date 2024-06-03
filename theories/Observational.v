@@ -794,6 +794,30 @@ Proof.
       exists x; auto with cps.
 Qed.
 
+(* TODO: define this relation. On the translation files I've called it eval. I
+   also do use it above somewhere. *)
+
+Lemma barb_eval:
+  forall b c,
+  [b ~~ c] ->
+  forall k,
+  comp rt(head) converges b k <-> comp rt(head) converges c k.
+Proof.
+  split; intros.
+  - destruct H0 as (b', ?, ?).
+    assert (weakly_converges b' k) by eauto with cps.
+    apply barb_weak_convergence with c b' k in H2.
+    + now apply weak_convergence_characterization.
+    + transitivity b; auto with cps.
+  - destruct H0 as (c', ?, ?).
+    assert (weakly_converges c' k) by eauto with cps.
+    apply barb_weak_convergence with b c' k in H2.
+    + now apply weak_convergence_characterization.
+    + transitivity c; auto with cps.
+Qed.
+
+(* TODO: this is a bit dissonant from the two above lemmas; check it please? *)
+
 Lemma cps_terminates_barb:
   forall b,
   cps_terminates b ->
