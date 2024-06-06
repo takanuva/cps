@@ -479,6 +479,12 @@ Admitted.
 
 *)
 
+Lemma smol_may_be_reordered:
+  reorders beta smol.
+Proof.
+  admit.
+Admitted.
+
 Theorem smol_is_shrinking:
   shrinking smol.
 Proof.
@@ -492,8 +498,8 @@ Proof.
   (* Case: commutation. *)
   - apply beta_and_smol_commute.
   (* Case: reordering. *)
-  - admit.
-Admitted.
+  - apply smol_may_be_reordered.
+Qed.
 
 (* TODO: consider two other relations (tiny and itsy?) containing:
    - DCE and linear inlining
