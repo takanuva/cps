@@ -74,7 +74,7 @@ Definition heap_get (x: pseudoterm) (r: heap): value :=
    jumps are written from left to write! *)
 
 Definition heap_append (xs: list pseudoterm) (r s: heap): heap :=
-  fold_left (fun acc x => heap_get x r :: acc) xs s.
+  fold_right (fun x acc => heap_get x r :: acc) s xs.
 
 (* A predicate that says that a configuration has successfully reached it's
    final point, and that it won't reduce any further. This is signaled by a
@@ -638,18 +638,9 @@ Proof.
   intros until 1.
   dependent induction H; intros.
   - inversion H.
-  - simpl in H1.
-    replace (heap_append (x :: l) r p) with
-      (heap_append l r (heap_get x r :: p)); auto.
-    replace (heap_append (y :: l') s q) with
-      (heap_append l' s (heap_get y s :: q)); auto.
-    destruct (Nat.eq_dec n (length l)).
-    + apply Forall2_length in H0.
-      rewrite heap_get_heap_append_simplification; try lia.
-      rewrite heap_get_heap_append_simplification; try lia.
-      replace (n - length l) with 0; try lia.
-      replace (n - length l') with 0; try lia.
-      simpl; exact H.
+  - simpl in H1 |- *.
+    destruct n.
+    + assumption.
     + apply IHForall2.
       lia.
 Qed.
@@ -883,6 +874,8 @@ Proof.
     assumption.
 Qed.
 
+(* TODO: we most certainly can remove this lemma by now. *)
+
 Local Lemma technical2:
   forall f t,
   `{proper f} ->
@@ -901,17 +894,13 @@ Local Lemma technical2:
   corresponding f (heap_append xs r' r) (heap_append ys s' s) (length xs + k) t.
 Proof.
   intros.
-  dependent induction H1; intros.
-  - simpl.
-    assumption.
-  - replace (heap_append (x :: l) r' r) with
-      (heap_append l r' (heap_get x r' :: r)); auto.
-    replace (heap_append (y :: l') s' s) with
-      (heap_append l' s' (heap_get y s' :: s)); auto.
-    simpl.
-    replace (S (length l + k)) with (length l + S k); try lia.
-    apply IHForall2.
-    apply corresponding_extension; auto.
+  dependent induction H1; simpl; intros.
+  - assumption.
+  - apply corresponding_extension.
+    + assumption.
+    + now apply IHForall2.
+    + apply H0.
+    + apply H1.
 Qed.
 
 Lemma corresponding_heaps_preserve_semantics:
@@ -1105,7 +1094,91 @@ Qed.
   Of course, c can't refer to k neither the variables in the domain of H.
 
   ...TODO...
+
+  TODO: we need to consider a substitution as used by a (CTXJMP) rule, and show
+  that it is proper... we quickly sketch this, but this code should be removed
+  once we start using the sigma-calculus.
 *)
+
+Local Definition RAP xs n k c :=
+  apply_parameters xs k (lift n (k + length xs) c).
+
+Local Instance RAP_proper: forall xs n, proper (RAP xs n).
+Proof.
+  split; intros.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; intros.
+    + apply apply_parameters_type.
+    + apply apply_parameters_prop.
+    + apply apply_parameters_base.
+    + apply apply_parameters_void.
+    + reflexivity.
+    + unfold RAP.
+      rewrite lift_distributes_over_negation.
+      rewrite apply_parameters_distributes_over_negation.
+      simpl; f_equal.
+      induction H; simpl; auto.
+      repeat rewrite traverse_list_length.
+      f_equal; auto.
+      rewrite Nat.add_assoc.
+      apply H.
+    + unfold RAP.
+      rewrite lift_distributes_over_jump.
+      rewrite apply_parameters_distributes_over_jump.
+      simpl; f_equal.
+      * apply IHx.
+      * induction H; auto.
+        simpl; f_equal; auto.
+        apply H.
+    + unfold RAP.
+      rewrite lift_distributes_over_bind.
+      rewrite apply_parameters_distributes_over_bind.
+      simpl; f_equal.
+      * apply IHx1.
+      * induction H; simpl; auto.
+        repeat rewrite traverse_list_length.
+        f_equal; auto.
+        rewrite Nat.add_assoc.
+        apply H.
+      * rewrite traverse_list_length.
+        replace (k + length xs + length ts) with (k + length ts + length xs)
+          by lia.
+        apply IHx2.
+  - unfold RAP.
+    rewrite lift_bound_lt by lia.
+    now rewrite apply_parameters_bound_lt by lia.
+  - unfold RAP.
+    rename n0 into m.
+    generalize dependent m.
+    generalize dependent k.
+    generalize dependent n.
+    induction xs; simpl; intros.
+    + rewrite lift_lift_permutation by lia.
+      reflexivity.
+    + rewrite lift_and_subst_commute by lia; f_equal.
+      replace (S (k + S (length xs))) with (2 + k + length xs) by lia.
+      replace (k + S (length xs)) with (1 + k + length xs) by lia.
+      apply IHxs.
+Qed.
+
+Lemma apply_parameters_matches_heap_append:
+  forall xs n,
+  length xs > n ->
+  forall s r,
+  heap_get (apply_parameters xs 0 n) s =
+  heap_get n (heap_append xs s r).
+Proof.
+  induction xs; simpl; intros.
+  - inversion H.
+  - destruct n.
+    + rewrite apply_parameters_bound_lt by lia.
+      rewrite subst_bound_eq by lia.
+      now rewrite lift_zero_e_equals_e.
+    + rewrite proper_avoids_capture.
+      rewrite subst_lift_simplification by lia.
+      rewrite lift_zero_e_equals_e.
+      apply IHxs; lia.
+Qed.
 
 Lemma backwards_head_preservation:
   forall h,
@@ -1137,31 +1210,31 @@ Proof.
     remember (C2H h (value_closure r ts c :: r)) as s.
     apply big_has_time in H1; destruct H1 as (t, ?H).
     apply big_has_time; exists t.
-    (* TODO: we have to show that this substitution is proper... we might not
-       want to do that before we replace everything by the sigma-calculus. *)
-    assert (exists2 f: nat -> pseudoterm -> pseudoterm,
-      forall k c, f k c = apply_parameters xs k
-        (lift (S #h) (k + length ts) c) & proper f) as (f, ?, ?) by admit.
-    rewrite <- H2 in H1.
+    (* Fix the substitution function we're using. *)
+    rewrite <- H0 in H1.
+    set (f := RAP xs (S #h)).
+    replace (apply_parameters xs 0 _) with (f 0 c) in H1 by auto.
+    (* Proceed to show the correspondence. *)
     apply corresponding_heaps_preserve_semantics with f s 0.
-    + assumption.
+    + apply RAP_proper.
     + intros n.
+      (* We can simplify our substitution to show the terms match: we close the
+         proof by reflexivity. *)
+      unfold f, RAP; simpl Nat.add.
       destruct (le_gt_dec (length xs) n).
       * rewrite heap_get_heap_append_simplification; auto.
-        rewrite H2.
         rewrite lift_bound_ge by lia.
         rewrite apply_parameters_bound_gt by lia.
         rewrite Heqs.
         rewrite heap_get_heap_context_simplification by (auto; lia).
         replace (S #h + n - length xs - #h) with (S (n - length xs)) by lia.
-        simpl.
         apply corresponding_value_refl.
-      * rewrite H2.
-        rewrite lift_bound_lt by lia.
-        admit.
+      * rewrite lift_bound_lt by lia.
+        rewrite apply_parameters_matches_heap_append with (r := r) by auto.
+        apply corresponding_value_refl.
     + rewrite <- proper_respects_structure.
       assumption.
-Admitted.
+Qed.
 
 Lemma big_is_preserved_backwards_by_head:
   forall c1 c2,
