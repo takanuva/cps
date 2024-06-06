@@ -1553,8 +1553,29 @@ Proof.
     apply sema_contr.
   - apply sema_bind_left.
     apply float_free_continuation_into_context.
-    (* Clearly. *)
-    admit.
+    (* TODO: we might wanna make a lemma for this. *)
+    clear H xs ts c.
+    generalize O at 1 3 as k.
+    induction h; simpl; intros.
+    + constructor.
+    + constructor.
+      * apply IHh.
+      * clear IHh.
+        induction ts; simpl; try now constructor.
+        constructor; auto.
+        rewrite traverse_list_length.
+        apply lifting_more_than_n_makes_not_free_n; lia.
+      * rewrite traverse_list_length.
+        apply lifting_more_than_n_makes_not_free_n; lia.
+    + constructor.
+      * apply lifting_more_than_n_makes_not_free_n; lia.
+      * clear IHh.
+        induction ts; simpl; try now constructor.
+        constructor; auto.
+        rewrite traverse_list_length.
+        apply lifting_more_than_n_makes_not_free_n; lia.
+      * rewrite traverse_list_length.
+        apply IHh.
   - apply sema_bind_left.
     rewrite context_lift_bvars.
     rewrite right_cycle_distributes_over_jump.
@@ -1575,7 +1596,13 @@ Proof.
     replace (map (right_cycle #h 0) (map (lift 1 #h) xs)) with
       (map (lift 1 0) xs). (* :D *)
     + apply sema_gc.
-      admit.
+      apply not_free_apply_parameters with (k := 0) (p := 0).
+      * clear H.
+        induction xs; simpl; try now constructor.
+        constructor; auto.
+        apply lifting_more_than_n_makes_not_free_n; auto.
+      * rewrite map_length; simpl.
+        apply lifting_more_than_n_makes_not_free_n; lia.
     + clear H.
       induction xs; simpl; auto.
       f_equal; auto.
@@ -1593,7 +1620,7 @@ Proof.
       apply lift_zero_e_equals_e.
     + rewrite subst_lift_simplification; try lia.
       f_equal; lia.
-Admitted.
+Qed.
 
 Corollary sema_step:
   forall a b,
