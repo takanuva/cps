@@ -475,7 +475,7 @@ Proof.
 Qed.
 
 (*
-  In order to show soundness of the machine semantics, we first have to show
+  In order to show completeness of the machine semantics, we first have to show
   some correspondence between heaps. This is a bit awkward in here as we are in
   a de Bruijn setting and because we allow for high order terms, but it may be
   simplified as such:
@@ -484,7 +484,7 @@ Qed.
     - For every variable x, r(x[f]) corresponds to s(x) at t;
 
   And we say that <r; \xs.b> corresponds to <s; \ys.c> at t iff:
-    - For every r', s', f', zs and m < t such that r' corresponds to s' under g
+    - For every r', s', f', zs and m < t such that r' corresponds to s' under f'
     at m and <b, r, xs = r'(zs[f'])> @ m, we have that <c, s, ys = s'(zs)> @ m.
 *)
 
