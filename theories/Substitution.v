@@ -38,17 +38,17 @@ Section DeBruijn.
   Inductive substitution: Set :=
     | subst_ids
     | subst_lift (i: nat)
-    | subst_cons (y: X) (s: substitution)
+    | subst_app (ys: list X) (s: substitution)
     | subst_comp (s: substitution) (t: substitution)
     | subst_upn (i: nat) (s: substitution).
 
-  Definition subst_app (xs: list X) (s: substitution): substitution :=
-    fold_right subst_cons s xs.
+  Local Notation subst_cons y :=
+    (subst_app [y]).
 
-  (* TODO: turn this into a definition afterwards. *)
+  (* TODO: turn this into a definition afterwards...? *)
 
-  Local Notation subst_drop i s :=
-    (subst_comp (subst_lift i) s).
+  Local Notation subst_drop i :=
+    (subst_comp (subst_lift i)).
 
   Class deBruijn: Type := {
     var:
@@ -58,6 +58,9 @@ Section DeBruijn.
   }.
 
   Context `{db: deBruijn}.
+
+  (* TODO: review these laws. This works for now, but it begs to be simplified
+     in some way... *)
 
   Class deBruijnLaws: Type := {
     traverse_var:
@@ -73,7 +76,7 @@ Section DeBruijn.
       traverse f k x = traverse g k x;
     traverse_fun:
       forall f g x k j,
-      (* TODO: is there a nicer way to represent this...? *)
+      (* Is there a nicer way to represent this law...? *)
       traverse f k (traverse g j x) =
         traverse (fun i n => traverse f (i + k - j) (g i n)) j x
   }.
@@ -90,17 +93,18 @@ Section DeBruijn.
     traverse (lift_fun i).
 
   Fixpoint inst_fun (s: substitution) (k: nat) (n: nat): X :=
+    (* Is k <= n? *)
     if le_gt_dec k n then
       match s with
       | subst_ids =>
         var n
       | subst_lift i =>
         var (i + n)
-      | subst_cons y s =>
-        if Nat.eq_dec k n then
-          lift k 0 y
-        else
-          inst_fun s k (n - 1)
+      | subst_app ys s =>
+        match nth_error ys (n - k) with
+        | Some y => lift k 0 y
+        | None => inst_fun s k (n - length ys)
+        end
       | subst_comp s t =>
         traverse (inst_fun t) k (inst_fun s k n)
       | subst_upn i s =>
@@ -108,6 +112,40 @@ Section DeBruijn.
       end
     else
       var n.
+
+  (* Ideally, we'd like to use this simpler definition given below, which can
+     generate nice code by a reasonable optimizer, but it isn't defined by
+     structural recursion. Instead, we merely check that it would be fine to
+     use it (as we may wanna use that in the paper). *)
+
+  Goal
+    forall y ys s k n,
+    k <= n ->
+    inst_fun (subst_app (y :: ys) s) k n =
+      if Nat.eq_dec k n then
+        lift k 0 y
+      else
+        (* Recursive call with ys. *)
+        inst_fun (subst_app ys s) k (n - 1).
+  Proof.
+    intros.
+    destruct (Nat.eq_dec k n).
+    - simpl.
+      simplify decidable equality.
+      replace (n - k) with 0 by lia.
+      now simpl.
+    - simpl.
+      simplify decidable equality.
+      remember (n - k) as m.
+      destruct m; simpl.
+      + exfalso.
+        lia.
+      + replace (n - 1 - k) with m by lia.
+        replace (n - 1 - length ys) with (n - S (length ys)) by lia.
+        reflexivity.
+  Qed.
+
+  (* TODO: we'd like inst to have no index, but inst n to be a notation. *)
 
   Definition inst (s: substitution): nat -> X -> X :=
     traverse (inst_fun s).
@@ -124,7 +162,7 @@ Section DeBruijn.
   Global Instance subst_equivalence:
     Equivalence subst_equiv.
   Proof.
-    split; now congruence.
+    split; congruence.
   Qed.
 
   Global Instance inst_proper:
@@ -135,18 +173,17 @@ Section DeBruijn.
   Qed.
 
   Global Instance subst_cons_proper:
-    Proper (eq ==> subst_equiv ==> subst_equiv) subst_cons.
+    Proper (eq ==> subst_equiv ==> subst_equiv) subst_app.
   Proof.
-    intros y _ () s t ? k x.
+    intros ys _ () s t ? k x.
     unfold inst.
-    apply traverse_ext.
-    intros; simpl.
-    destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
-    - simplify decidable equality.
-      do 2 rewrite <- traverse_var.
-      apply H.
-    - now simplify decidable equality.
-    - now simplify decidable equality.
+    apply traverse_ext; intros; simpl.
+    destruct (le_gt_dec j n) as [ ? | ? ].
+    - destruct (nth_error ys (n - j)).
+      + reflexivity.
+      + do 2 rewrite <- traverse_var.
+        apply H.
+    - reflexivity.
   Qed.
 
   Global Instance subst_comp_proper:
@@ -314,41 +351,44 @@ Section DeBruijn.
       unfold inst.
       do 2 rewrite traverse_fun.
       apply traverse_ext; simpl; intros l n ?.
+      remember (j - k + l) as m.
       (* Are we in scope for any change at all? *)
-      destruct (le_gt_dec l n).
-      + (* Some change... *)
-        remember (j - k + l) as m.
-        (* Will we be performing the substitution or...? *)
-        destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
-        * (* We're too big, so follow by inductive hypothesis... *)
-          rewrite traverse_var.
-          simplify decidable equality.
-          fold (lift_fun i) (lift i).
-          do 2 rewrite <- traverse_var.
+      destruct (le_gt_dec m n).
+      + simplify decidable equality.
+        replace (l + (i + j) - k) with (i + m) by lia.
+        rewrite traverse_var.
+        simplify decidable equality.
+        replace (i + n - (i + m)) with (n - m) by lia.
+        (* Are we performing a substitution right now? *)
+        remember (nth_error ys (n - m)) as y.
+        destruct y.
+        * (* Yes, we are! And, if we pay attention to the equation... *)
+          apply lift_lift_simplification; lia.
+        * (* No substitution right now, so we proceed by induction. Of course,
+             we just need some rewriting in here to confirm that. *)
+          fold (lift_fun i).
+          fold (lift i).
+          rewrite <- traverse_var.
           fold (inst s).
           replace (l + k - k) with l by lia.
           rewrite IHs by lia.
           unfold lift, lift_fun.
           rewrite traverse_var.
+          symmetry in Heqy.
+          apply nth_error_None in Heqy.
           simplify decidable equality.
-          replace (i + (n - 1)) with (i + n - 1) by lia.
-          replace (l + (i + j) - k) with (i + m) by lia.
-          reflexivity.
-        * (* We're doing the substitution now, then lifting... *)
+          unfold inst.
           rewrite traverse_var.
-          subst; simplify decidable equality.
-          fold (lift_fun i) (lift i).
-          (* Of course, we can simplify these lifts! *)
-          rewrite lift_lift_simplification by lia.
+          (* There we go. *)
           f_equal; lia.
-        * (* We're just lifting... *)
-          rewrite traverse_var.
-          simplify decidable equality.
-          rewrite traverse_var.
+      + (* There may be some lifting. *)
+        destruct (le_gt_dec l n).
+        * (* There is some lifting. *)
+          do 2 rewrite traverse_var.
           now simplify decidable equality.
-      + (* No change whatsoever. *)
-        do 2 rewrite traverse_var.
-        now simplify decidable equality.
+        * (* No change whatsoever. *)
+          do 2 rewrite traverse_var.
+          now simplify decidable equality.
     (* Case: composition. *)
     - (* We just need to split the occurrences to use the hypotheses. *)
       do 2 rewrite subst_lift_unfold.
@@ -398,7 +438,7 @@ Section DeBruijn.
       s (i + k) (var (i + n)).
   Proof.
     intros.
-    (* TODO: this can be greatly simplified by adding a few lemmas... *)
+    (* This can be greatly simplified by adding a few lemmas... *)
     unfold inst.
     do 2 rewrite traverse_var.
     generalize dependent k.
@@ -412,20 +452,24 @@ Section DeBruijn.
       rewrite traverse_var.
       simplify decidable equality.
       f_equal; lia.
-    - destruct (Nat.eq_dec k n).
-      + simplify decidable equality.
-        fold (lift_fun i) (lift i).
-        now rewrite lift_lift_simplification by lia.
-      + simplify decidable equality.
-        replace (i + n - 1) with (i + (n - 1)) by lia.
-        fold (lift_fun i) (lift i).
-        do 2 rewrite <- traverse_var.
+    - simplify decidable equality.
+      fold (lift_fun i).
+      fold (lift i).
+      replace (i + n - (i + k)) with (n - k) by lia.
+      remember (nth_error ys (n - k)) as y.
+      destruct y.
+      + now rewrite lift_lift_simplification by lia.
+      + rewrite <- traverse_var.
         fold (inst s).
         rewrite subst_lift_inst_commute by lia.
-        f_equal.
         unfold lift, lift_fun.
+        symmetry in Heqy.
+        apply nth_error_None in Heqy.
         rewrite traverse_var.
-        now simplify decidable equality.
+        simplify decidable equality.
+        unfold inst.
+        rewrite traverse_var.
+        f_equal; lia.
     - simplify decidable equality.
       fold (lift_fun i) (lift i).
       fold (inst s2).
@@ -495,6 +539,7 @@ Section DeBruijn.
     intros; subst.
     unfold inst at 1.
     rewrite traverse_var at 1; simpl.
+    replace (n - n) with 0 by lia.
     now simplify decidable equality.
   Qed.
 
@@ -507,7 +552,12 @@ Section DeBruijn.
     intros.
     unfold inst.
     do 2 rewrite traverse_var; simpl.
-    now simplify decidable equality.
+    remember (n - k) as m.
+    destruct m.
+    - exfalso.
+      lia.
+    - simpl.
+      destruct m; now simplify decidable equality.
   Qed.
 
   (* VarShift1: n[S] = 1+n *)
@@ -683,9 +733,15 @@ Section DeBruijn.
     simpl; intros j m ?.
     destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
     - simplify decidable equality.
-      f_equal; lia.
+      remember (m - j) as o.
+      destruct o.
+      + exfalso.
+        lia.
+      + simpl.
+        destruct o; simpl; f_equal; lia.
     - simplify decidable equality.
-      unfold lift.
+      replace (m - j) with 0 by lia.
+      unfold lift; simpl.
       rewrite traverse_var.
       unfold lift_fun; simpl.
       f_equal; lia.
@@ -707,11 +763,20 @@ Section DeBruijn.
     - simplify decidable equality.
       do 2 rewrite traverse_var.
       simplify decidable equality.
-      f_equal; lia.
+      remember (i + n - j) as m.
+      destruct m.
+      + exfalso.
+        lia.
+      + simpl.
+        destruct m; simpl; f_equal; lia.
     - simplify decidable equality.
       do 2 rewrite traverse_var.
       simplify decidable equality.
-      f_equal; lia.
+      replace (i + n - j) with i by lia.
+      destruct i; simpl.
+      + exfalso.
+        lia.
+      + destruct i; simpl; f_equal; lia.
     - now simplify decidable equality.
   Qed.
 
@@ -776,9 +841,15 @@ Section DeBruijn.
     unfold inst.
     apply traverse_ext; simpl; intros.
     destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
-    - now simplify decidable equality.
+    - simplify decidable equality.
+      remember (n - j) as m.
+      destruct m.
+      + exfalso.
+        lia.
+      + destruct m; now simpl.
     - simplify decidable equality.
       replace (traverse (inst_fun t)) with (inst t) by auto.
+      replace (n - j) with 0 by lia; simpl.
       rewrite subst_lift_inst_commute by lia.
       f_equal; lia.
     - now simplify decidable equality.
@@ -799,13 +870,17 @@ Section DeBruijn.
     intros j m ?; simpl.
     destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
     - simplify decidable equality.
-      repeat f_equal; lia.
+      remember (m - j) as o.
+      destruct o.
+      + exfalso.
+        lia.
+      + destruct o; simpl; repeat f_equal; lia.
     - simplify decidable equality.
       replace (traverse (inst_fun s)) with (inst s) by auto.
+      replace (m - j) with 0 by lia; simpl.
       rewrite subst_lift_inst_commute by lia.
       unfold lift; rewrite traverse_var.
       unfold lift_fun; simpl.
-      replace (j + 0) with j by lia.
       do 2 f_equal; lia.
     - now simplify decidable equality.
   Qed.
@@ -1016,6 +1091,7 @@ Section DeBruijn.
     - simplify decidable equality.
       rewrite inst_fun_bvar by lia.
       rewrite traverse_var.
+      replace (m - j) with 0 by lia; simpl.
       now simplify decidable equality.
     - now simplify decidable equality.
   Admitted.
@@ -1072,10 +1148,15 @@ End DeBruijn.
 Arguments substitution {X}.
 Arguments subst_ids {X}.
 Arguments subst_lift {X}.
-Arguments subst_cons {X}.
+Arguments subst_app {X}.
 Arguments subst_comp {X}.
 Arguments subst_upn {X}.
 Arguments subst_app {X}.
+
+(* Todo: we should move the notation to this place instead of copying it. *)
+
+Global Notation subst_cons y :=
+  (subst_app [y]).
 
 (* *)
 
@@ -1487,9 +1568,12 @@ Section Tests.
   Proof.
     intros.
     (* This rule appears in the simulation proof for the CBN CPS translation. It
-       is however not proved yet by sigma. TODO: figure out why. *)
-    sigma.
-    admit.
+       is however not proved yet by sigma. TODO: figure out why. Nevertheless, a
+       simple check on n seems enough... *)
+    destruct n.
+    - now sigma.
+    - sigma.
+      admit.
   Admitted.
 
 End Tests.
