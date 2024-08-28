@@ -42,9 +42,6 @@ Section DeBruijn.
     | subst_comp (s: substitution) (t: substitution)
     | subst_upn (i: nat) (s: substitution).
 
-  Local Notation subst_cons y :=
-    (subst_app [y]).
-
   (* TODO: turn this into a definition afterwards...? *)
 
   Local Notation subst_drop i :=
@@ -153,7 +150,20 @@ Section DeBruijn.
   Global Coercion inst: substitution >-> Funclass.
 
   Definition subst (y: X): nat -> X -> X :=
-    inst (subst_cons y subst_ids).
+    inst (subst_app [y] subst_ids).
+
+  (* (* We want something that is intensionally equivalent to map, but that we may
+     handle with our rewriting tactics instead (so that we'll rewrite smap, but
+     not map). *)
+
+  Definition smap (s: substitution) :=
+    fix smap l :=
+      match l with
+      | [] => []
+      | a :: t => s a :: smap t
+      end. *)
+
+  (* ... *)
 
   Definition subst_equiv (s: substitution) (t: substitution): Prop :=
     forall k x,
@@ -230,15 +240,16 @@ Section DeBruijn.
     forall i k x,
     lift i k x = subst_lift i k x.
   Proof.
-    (* We have intensional equality between lift i and inst (subst_lift i)! *)
+    (* We have intensional equality between lift i and inst (subst_lift i)! Of
+       course this is not needed, but it's still a nice property to have. *)
     auto.
   Qed.
 
   Lemma subst_subst_unfold:
     forall y k x,
-    subst y k x = subst_cons y subst_ids k x.
+    subst y k x = subst_app [y] subst_ids k x.
   Proof.
-    (* This is by definition, but we need a way to unfold it. *)
+    (* This is by definition, but we need a way to unfold it in the tactics. *)
     auto.
   Qed.
 
@@ -532,9 +543,9 @@ Section DeBruijn.
 
   (* FVarCons: 0[y, s] = y *)
   Lemma subst_FVarCons:
-    forall s k n y,
+    forall s k n y ys,
     k = n ->
-    subst_cons y s k (var n) = subst_lift k 0 y.
+    subst_app (y :: ys)  s k (var n) = subst_lift k 0 y.
   Proof.
     intros; subst.
     unfold inst at 1.
@@ -545,9 +556,9 @@ Section DeBruijn.
 
   (* RVarCons: (1+n)[y, s] = n[s] *)
   Lemma subst_RVarCons:
-    forall s y k n,
+    forall s y ys k n,
     n > k ->
-    subst_cons y s k (var n) = s k (var (n - 1)).
+    subst_app (y :: ys) s k (var n) = subst_app ys s k (var (n - 1)).
   Proof.
     intros.
     unfold inst.
@@ -557,7 +568,10 @@ Section DeBruijn.
     - exfalso.
       lia.
     - simpl.
-      destruct m; now simplify decidable equality.
+      simplify decidable equality.
+      replace (n - 1 - k) with m by lia.
+      replace (n - 1 - length ys) with (n - S (length ys)) by lia.
+      reflexivity.
   Qed.
 
   (* VarShift1: n[S] = 1+n *)
@@ -725,7 +739,7 @@ Section DeBruijn.
     forall n i,
     i = 1 + n ->
     (* Nice generalization! *)
-    subst_cons (var n) (subst_lift i) ~ subst_lift n.
+    subst_app [var n] (subst_lift i) ~ subst_lift n.
   Proof.
     intros n i ? k x; subst.
     unfold inst.
@@ -750,12 +764,12 @@ Section DeBruijn.
 
   (* ShiftCons: S o (y, s) ~ s *)
   Lemma subst_ShiftCons:
-    forall i y s,
+    forall i y ys s,
     i > 0 ->
-    subst_comp (subst_lift i) (subst_cons y s) ~
-      subst_comp (subst_lift (i - 1)) s.
+    subst_comp (subst_lift i) (subst_app (y :: ys) s) ~
+      subst_comp (subst_lift (i - 1)) (subst_app ys s).
   Proof.
-    intros i y s ? k x.
+    intros i y ys s ? k x.
     unfold inst.
     apply traverse_ext.
     simpl; intros.
@@ -768,7 +782,9 @@ Section DeBruijn.
       + exfalso.
         lia.
       + simpl.
-        destruct m; simpl; f_equal; lia.
+        replace (i - 1 + n - j) with m by lia.
+        replace (i - 1 + n - length ys) with (i + n - S (length ys)) by lia.
+        reflexivity.
     - simplify decidable equality.
       do 2 rewrite traverse_var.
       simplify decidable equality.
@@ -776,7 +792,9 @@ Section DeBruijn.
       destruct i; simpl.
       + exfalso.
         lia.
-      + destruct i; simpl; f_equal; lia.
+      + replace (i - 0 + n - j) with i by lia.
+        replace (i - 0 + n - length ys) with (i + n - length ys) by lia.
+        reflexivity.
     - now simplify decidable equality.
   Qed.
 
@@ -834,10 +852,13 @@ Section DeBruijn.
 
   (* MapEnv: (y, s) o t ~ (y[t], s o t) *)
   Lemma subst_MapEnv:
-    forall y s t,
-    subst_comp (subst_cons y s) t ~ subst_cons (t 0 y) (subst_comp s t).
+    forall y ys s t,
+    (* TODO: do we want to apply only to the first item in here, or do we want
+       to use a map over everything...? *)
+    subst_comp (subst_app (y :: ys) s) t ~
+      subst_app [t 0 y] (subst_comp (subst_app ys s) t).
   Proof.
-    intros y s t k x.
+    intros y ys s t k x.
     unfold inst.
     apply traverse_ext; simpl; intros.
     destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
@@ -846,9 +867,11 @@ Section DeBruijn.
       destruct m.
       + exfalso.
         lia.
-      + destruct m; now simpl.
+      + replace (n - 1 - j) with m by lia.
+        replace (n - 1 - length ys) with (n - (S (length ys))) by lia.
+        destruct m; now simpl.
     - simplify decidable equality.
-      replace (traverse (inst_fun t)) with (inst t) by auto.
+      fold (inst t).
       replace (n - j) with 0 by lia; simpl.
       rewrite subst_lift_inst_commute by lia.
       f_equal; lia.
@@ -861,7 +884,8 @@ Section DeBruijn.
     k = 0 ->
     m = 1 + n ->
     (* We want to simplify a drop! Notice k has to be 0 to avoid lifting. *)
-    subst_cons (s k (var n)) (subst_comp (subst_lift m) s) ~
+    (* TODO: I believe this can be generalized... do we want it? *)
+    subst_app [s k (var n)] (subst_comp (subst_lift m) s) ~
       subst_comp (subst_lift n) s.
   Proof.
     intros s k n m ? ?; subst.
@@ -874,7 +898,8 @@ Section DeBruijn.
       destruct o.
       + exfalso.
         lia.
-      + destruct o; simpl; repeat f_equal; lia.
+      + simpl.
+        destruct o; simpl; do 2 f_equal; lia.
     - simplify decidable equality.
       replace (traverse (inst_fun s)) with (inst s) by auto.
       replace (m - j) with 0 by lia; simpl.
@@ -1062,12 +1087,13 @@ Section DeBruijn.
 
   (* LiftEnv: U(s) o (y, t) ~ (y, s o t) *)
   Lemma subst_LiftEnv:
-    forall n s y t,
+    forall n s y ys t,
     n > 0 ->
-    subst_comp (subst_upn n s) (subst_cons y t) ~
-      subst_cons y (subst_comp (subst_upn (n - 1) s) t).
+    (* TODO: this can be generalized. Do we want it...? *)
+    subst_comp (subst_upn n s) (subst_app (y :: ys) t) ~
+      subst_app [y] (subst_comp (subst_upn (n - 1) s) (subst_app ys t)).
   Proof.
-    intros n s y t ? k x.
+    intros n s y ys t ? k x.
     unfold inst.
     apply traverse_ext; intros j m ?.
     simpl.
@@ -1084,10 +1110,20 @@ Section DeBruijn.
         simpl.
         simplify decidable equality.
         rewrite traverse_fun.
+        remember (m - j) as o.
+        destruct o; try lia; simpl.
+        replace (nth_error [] o) with (@None X) by now destruct o.
+        (* I really need to rework those laws... *)
         admit.
       + do 2 rewrite inst_fun_bvar by lia.
         do 2 rewrite traverse_var.
-        now simplify decidable equality.
+        remember (m - j) as o.
+        destruct o; try lia; simpl.
+        replace (nth_error [] o) with (@None X) by now destruct o.
+        simplify decidable equality.
+        replace (m - 1 - j) with o by lia.
+        replace (m - 1 - length ys) with (m - S (length ys)) by lia.
+        reflexivity.
     - simplify decidable equality.
       rewrite inst_fun_bvar by lia.
       rewrite traverse_var.
@@ -1138,6 +1174,13 @@ Section DeBruijn.
         now simplify decidable equality.
     - reflexivity.
   Qed.
+
+  Lemma subst_AppNil:
+    forall s,
+    subst_app [] s ~ s.
+  Proof.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -1212,6 +1255,7 @@ Global Hint Rewrite subst_LiftEnv using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftId using sigma_solver: sigma.
 Global Hint Rewrite subst_ShiftShift using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftLift using sigma_solver: sigma.
+Global Hint Rewrite subst_AppNil using sigma_solver: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
