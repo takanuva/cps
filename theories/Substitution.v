@@ -89,26 +89,27 @@ Section DeBruijn.
   Definition lift (i: nat): nat -> X -> X :=
     traverse (lift_fun i).
 
-  Fixpoint inst_fun (s: substitution) (k: nat) (n: nat): X :=
-    (* Is k <= n? *)
-    if le_gt_dec k n then
-      match s with
-      | subst_ids =>
-        var n
-      | subst_lift i =>
-        var (i + n)
-      | subst_app ys s =>
-        match nth_error ys (n - k) with
-        | Some y => lift k 0 y
-        | None => inst_fun s k (n - length ys)
+  Fixpoint inst_fun (s: substitution): nat -> nat -> X :=
+    fun k n =>
+      (* Is k <= n? *)
+      if le_gt_dec k n then
+        match s with
+        | subst_ids =>
+          var n
+        | subst_lift i =>
+          var (i + n)
+        | subst_app ys s =>
+          match nth_error ys (n - k) with
+          | Some y => lift k 0 y
+          | None => inst_fun s k (n - length ys)
+          end
+        | subst_comp s t =>
+          traverse (inst_fun t) k (inst_fun s k n)
+        | subst_upn i s =>
+          inst_fun s (i + k) n
         end
-      | subst_comp s t =>
-        traverse (inst_fun t) k (inst_fun s k n)
-      | subst_upn i s =>
-        inst_fun s (i + k) n
-      end
-    else
-      var n.
+      else
+        var n.
 
   (* Ideally, we'd like to use this simpler definition given below, which can
      generate nice code by a reasonable optimizer, but it isn't defined by
@@ -152,16 +153,64 @@ Section DeBruijn.
   Definition subst (y: X): nat -> X -> X :=
     inst (subst_app [y] subst_ids).
 
-  (* (* We want something that is intensionally equivalent to map, but that we may
-     handle with our rewriting tactics instead (so that we'll rewrite smap, but
-     not map). *)
+  Definition smap (s: substitution) (k: nat): list X -> list X :=
+    fold_right (fun t ts => s k t :: ts) [].
 
-  Definition smap (s: substitution) :=
-    fix smap l :=
-      match l with
-      | [] => []
-      | a :: t => s a :: smap t
-      end. *)
+  Goal
+    forall s k,
+    (* Ohhh, nice! *)
+    smap s k = map (s k).
+  Proof.
+    reflexivity.
+  Qed.
+
+  Definition bsmap (s: substitution) (k: nat): list X -> list X :=
+    fold_right (fun t ts => s (length ts + k) t :: ts) [].
+
+  (* TODO: move these auxiliary lemmas to cleanup section below. *)
+
+  Lemma smap_length:
+    forall s k x,
+    length (smap s k x) = length x.
+  Proof.
+    induction x; simpl; congruence.
+  Qed.
+
+  Lemma smap_nil:
+    forall s k,
+    smap s k [] = [].
+  Proof.
+    auto.
+  Qed.
+
+  Lemma smap_cons:
+    forall s k x xs,
+    smap s k (x :: xs) = s k x :: smap s k xs.
+  Proof.
+    auto.
+  Qed.
+
+  Lemma bsmap_length:
+    forall s k x,
+    length (bsmap s k x) = length x.
+  Proof.
+    induction x; simpl; congruence.
+  Qed.
+
+  Lemma bsmap_nil:
+    forall s k,
+    bsmap s k [] = [].
+  Proof.
+    auto.
+  Qed.
+
+  Lemma bsmap_cons:
+    forall s k x xs,
+    bsmap s k (x :: xs) = s (length xs + k) x :: bsmap s k xs.
+  Proof.
+    intros; simpl.
+    now rewrite bsmap_length.
+  Qed.
 
   (* ... *)
 
@@ -852,31 +901,16 @@ Section DeBruijn.
 
   (* MapEnv: (y, s) o t ~ (y[t], s o t) *)
   Lemma subst_MapEnv:
-    forall y ys s t,
-    (* TODO: do we want to apply only to the first item in here, or do we want
-       to use a map over everything...? *)
-    subst_comp (subst_app (y :: ys) s) t ~
-      subst_app [t 0 y] (subst_comp (subst_app ys s) t).
+    forall ys s t,
+    (* Note that we generalize this to the polyadic case! *)
+    subst_comp (subst_app ys s) t ~ subst_app (smap t 0 ys) (subst_comp s t).
   Proof.
-    intros y ys s t k x.
-    unfold inst.
+    intros ys s t k x.
     apply traverse_ext; simpl; intros.
-    destruct (lt_eq_lt_dec j n) as [ [ ? | ? ] | ? ].
-    - simplify decidable equality.
-      remember (n - j) as m.
-      destruct m.
-      + exfalso.
-        lia.
-      + replace (n - 1 - j) with m by lia.
-        replace (n - 1 - length ys) with (n - (S (length ys))) by lia.
-        destruct m; now simpl.
-    - simplify decidable equality.
-      fold (inst t).
-      replace (n - j) with 0 by lia; simpl.
-      rewrite subst_lift_inst_commute by lia.
-      f_equal; lia.
-    - now simplify decidable equality.
-  Qed.
+    destruct (le_gt_dec j n).
+    - admit.
+    - reflexivity.
+  Admitted.
 
   (* SCons: (0[s], S o s) ~ s *)
   Lemma subst_SCons:
@@ -1094,7 +1128,6 @@ Section DeBruijn.
       subst_app [y] (subst_comp (subst_upn (n - 1) s) (subst_app ys t)).
   Proof.
     intros n s y ys t ? k x.
-    unfold inst.
     apply traverse_ext; intros j m ?.
     simpl.
     destruct (lt_eq_lt_dec j m) as [ [ ? | ? ] | ? ].
@@ -1130,6 +1163,44 @@ Section DeBruijn.
       replace (m - j) with 0 by lia; simpl.
       now simplify decidable equality.
     - now simplify decidable equality.
+  Admitted.
+
+  (* New rule! Hmm... *)
+  Lemma subst_LiftApp:
+    forall n s ys t,
+    n >= length ys ->
+    subst_comp (subst_upn n s) (subst_app ys t) ~
+      subst_app ys (subst_comp (subst_upn (n - length ys) s) t).
+  Proof.
+    intros n s ys t ? k x.
+    apply traverse_ext; intros j m ?.
+    simpl.
+    destruct (le_gt_dec j m).
+    - (* I'm not sure why fold doesn't work in here, sorry. *)
+      replace (fun k n => ?[X]) with (inst_fun (subst_app ys t)) by auto.
+      (* Are we substituting something for a term in ys? *)
+      remember (m - j) as o.
+      remember (nth_error ys o) as y.
+      destruct y as [ y | ].
+      + (* We are; thus, the upn can't change the variable as the level is too
+           high, so we're only left to apply the app substitution. For starter,
+           we're out of reach for s. *)
+        assert (nth_error ys o <> None) by congruence.
+        apply nth_error_Some in H1.
+        rewrite inst_fun_bvar by lia.
+        (* This gotta return y to us. *)
+        rewrite traverse_var; simpl.
+        simplify decidable equality.
+        rewrite <- Heqo, <- Heqy.
+        reflexivity.
+      + (* We're above ys, so we will apply s, up to something, and then t. *)
+        assert (nth_error ys o = None) by congruence.
+        apply nth_error_None in H1.
+        simplify decidable equality.
+        replace (n - length ys + j) with (n + j - length ys) by lia.
+        fold (inst (subst_app ys t)) (inst t).
+        admit.
+    - reflexivity.
   Admitted.
 
   (* LiftId: U(I) ~ I *)
@@ -1175,6 +1246,7 @@ Section DeBruijn.
     - reflexivity.
   Qed.
 
+  (* New rule! *)
   Lemma subst_AppNil:
     forall s,
     subst_app [] s ~ s.
@@ -1210,6 +1282,11 @@ Ltac sigma_solver :=
   | |- @deBruijnLaws _ _ =>
     typeclasses eauto
   | |- ?G =>
+    idtac "trying to solve" G;
+    (* TODO: rewrite those if they are within the context of a substitution;
+       this can most certainly be done by using proper setoid rewriting. *)
+    repeat rewrite smap_length;
+    repeat rewrite bsmap_length;
     lia
   end.
 
@@ -1252,10 +1329,20 @@ Global Hint Rewrite subst_Lift1B using sigma_solver: sigma.
 Global Hint Rewrite subst_Lift2A using sigma_solver: sigma.
 Global Hint Rewrite subst_Lift2B using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftEnv using sigma_solver: sigma.
+Global Hint Rewrite subst_LiftApp using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftId using sigma_solver: sigma.
 Global Hint Rewrite subst_ShiftShift using sigma_solver: sigma.
 Global Hint Rewrite subst_LiftLift using sigma_solver: sigma.
 Global Hint Rewrite subst_AppNil using sigma_solver: sigma.
+
+(* TODO: rewrite those only within the context of a substitution! *)
+
+Global Hint Rewrite smap_length: sigma.
+Global Hint Rewrite smap_nil: sigma.
+Global Hint Rewrite smap_cons: sigma.
+Global Hint Rewrite bsmap_length: sigma.
+Global Hint Rewrite bsmap_nil: sigma.
+Global Hint Rewrite bsmap_cons: sigma.
 
 (* TODO: figure out a way to restrict these rewritings. *)
 
@@ -1532,7 +1619,7 @@ Section Tests.
 
   Local Ltac equal_modulo_arith :=
     (* TODO: do we want this to be global...? *)
-    reflexivity || assumption || lia || (f_equal; equal_modulo_arith).
+    reflexivity || assumption || lia || (progress f_equal; equal_modulo_arith).
 
   Local Hint Extern 0 => equal_modulo_arith: core.
 
@@ -1604,6 +1691,7 @@ Section Tests.
     now sigma.
   Qed.
 
+  (* This rule appears in the simulation proof for the CBN CPS translation. *)
   Goal
     forall b n,
     subst (subst (var 1) n (var 0)) 0
@@ -1611,13 +1699,22 @@ Section Tests.
     subst (var 1) n (lift (2 + n) 1 b).
   Proof.
     intros.
-    (* This rule appears in the simulation proof for the CBN CPS translation. It
-       is however not proved yet by sigma. TODO: figure out why. Nevertheless, a
+    (* This is not yet proved by sigma. TODO: figure out why! Nevertheless, a
        simple check on n seems enough... *)
     destruct n.
     - now sigma.
     - sigma.
       admit.
   Admitted.
+
+  (* An useful, and true, property. This is required by the machine semantics,
+     and, indeed, sigma is able to solve it. *)
+  Goal
+    forall s p k n,
+    s (p + k) (var (p + n)) = lift p 0 (s k (var n)).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
 
 End Tests.
