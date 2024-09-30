@@ -161,37 +161,62 @@ Fixpoint traverse f k e: pseudoterm :=
       (traverse f (k + length ts) c)
   end.
 
-Definition lift i: nat -> pseudoterm -> pseudoterm :=
-  traverse (fun k n =>
-    if le_gt_dec k n then
-      bound (i + n)
-    else
-      bound n).
+Global Instance pseudoterm_deBruijn: deBruijn pseudoterm := {|
+  Substitution.var := bound;
+  Substitution.traverse := traverse
+|}.
 
-Arguments lift i k e: simpl nomatch.
+Global Instance pseudoterm_laws: @deBruijnLaws _ pseudoterm_deBruijn.
+Proof.
+  split; intros.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
-Definition subst y: nat -> pseudoterm -> pseudoterm :=
-  traverse (fun k n =>
-    match lt_eq_lt_dec k n with
-    | inleft (left _) => bound (pred n)
-    | inleft (right _) => lift k 0 y
-    | inright _ => bound n
-    end).
+(* -------------------------------------------------------------------------- *)
 
-Arguments subst y k e: simpl nomatch.
+Lemma bound_var_equality_stuff:
+  forall n,
+  bound n = var n.
+Proof.
+  auto.
+Qed.
 
-Fixpoint apply_parameters ys k e: pseudoterm :=
-  match ys with
-  | [] => e
-  | y :: ys => subst y k (apply_parameters ys (1 + k) e)
-  end.
+Lemma inst_distributes_over_negation:
+  forall (s: substitution) ts,
+  inst s (negation ts) = negation (bsmap s 0 ts).
+Proof.
+  auto.
+Qed.
 
-Global Hint Unfold apply_parameters: cps.
+Lemma inst_distributes_over_jump:
+  forall (s: substitution) x xs,
+  inst s (jump x xs) = jump (s 0 x) (smap s 0 xs).
+Proof.
+  auto.
+Qed.
 
-Definition switch_bindings k e: pseudoterm :=
-  subst 1 k (lift 1 (2 + k) e).
+Lemma inst_distributes_over_bind:
+  forall (s: substitution) b ts c,
+  inst s (bind b ts c) = bind (s 1 b) (bsmap s 0 ts) (s (length ts) c).
+Proof.
+  auto.
+Qed.
 
-Global Hint Unfold switch_bindings: cps.
+Global Hint Rewrite bound_var_equality_stuff using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_negation using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_jump using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_bind using sigma_solver: sigma.
+
+(* -------------------------------------------------------------------------- *)
+
+Definition apply_parameters (ys: list pseudoterm): substitution :=
+  subst_app ys subst_ids.
+
+Definition switch_bindings: substitution :=
+  subst_app [bound 1; bound 0] (subst_lift 2).
 
 Fixpoint sequence (i: nat) (n: nat): list pseudoterm :=
   match n with
@@ -204,8 +229,8 @@ Global Hint Unfold sequence: cps.
 Notation high_sequence := (sequence 1).
 Notation low_sequence := (sequence 0).
 
-Definition right_cycle (i: nat) (k: nat) e: pseudoterm :=
-  apply_parameters (high_sequence i ++ [bound 0]) k (lift (S i) (S i + k) e).
+Definition right_cycle (i: nat): substitution :=
+  subst_app (high_sequence i ++ [bound 0]) (subst_lift (S i)).
 
 Global Hint Unfold right_cycle: cps.
 
@@ -215,7 +240,7 @@ Definition left_cycle i k e :=
 Global Hint Unfold left_cycle: cps.
 
 Definition remove_binding k e: pseudoterm :=
-  subst 0 k e.
+  subst (bound 0) k e.
 
 Inductive not_free: nat -> pseudoterm -> Prop :=
   | not_free_type:
