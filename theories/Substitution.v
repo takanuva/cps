@@ -810,10 +810,11 @@ Create HintDb sigma.
 
 Ltac sigma_solver :=
   match goal with
-  | |- @deBruijnLaws _ _ =>
+  | |- @deBruijnLaws ?A ?B =>
+    idtac "trying to solve @deBruijnLaws" A B;
     typeclasses eauto
   | |- ?G =>
-    (* idtac "trying to solve" G; *)
+    idtac "trying to solve" G;
     (* TODO: rewrite those if they are within the context of a substitution;
        this can most certainly be done by using proper setoid rewriting. *)
     try repeat (rewrite smap_length
@@ -821,6 +822,7 @@ Ltac sigma_solver :=
          || rewrite app_length
          || rewrite last_length
          || simpl length);
+    idtac "cleanup done";
     lia
   end.
 
@@ -1272,5 +1274,18 @@ Section Tests.
   Qed.
 
   (* TODO: can we make right_cycle_right_cycle_simplification simpler? *)
+
+  (* Oh no... *)
+
+  Goal
+    forall x l k,
+    bsmap (subst_cons (var 0) subst_ids) k
+      (bsmap (subst_app [var 1; var 0] (subst_lift 2)) k
+         (x :: l)) =
+    bsmap (subst_cons (var 0) subst_ids) (S k) (x :: l).
+  Proof.
+    intros.
+    timeout 60 (rewrite_strat topdown (hints sigma)).
+  Admitted.
 
 End Tests.
