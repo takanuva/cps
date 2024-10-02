@@ -1251,3 +1251,24 @@ Proof with modulo_arith.
       rewrite Nat.add_comm.
       assumption.
 Qed.
+
+Lemma apply_parameters_unfold:
+  forall y ys k e,
+  apply_parameters (y :: ys) k e = subst y k (apply_parameters ys (1 + k) e).
+Proof.
+  intros.
+  unfold apply_parameters.
+  now sigma.
+Qed.
+
+Lemma right_cycle_characterization:
+  forall i k e,
+  right_cycle i k e =
+    apply_parameters (high_sequence i ++ [bound 0]) k (lift (S i) (S i + k) e).
+Proof.
+  intros.
+  unfold right_cycle.
+  unfold apply_parameters.
+  assert (length (high_sequence i) = i) by apply sequence_length.
+  now sigma.
+Qed.
