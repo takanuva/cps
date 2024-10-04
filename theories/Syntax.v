@@ -212,7 +212,7 @@ Global Hint Rewrite inst_distributes_over_bind using sigma_solver: sigma.
 
 (* -------------------------------------------------------------------------- *)
 
-Definition apply_parameters (ys: list pseudoterm): substitution :=
+Definition apply_parameters {X} `{deBruijnLaws X} (ys: list X): substitution :=
   subst_app ys subst_ids.
 
 Definition switch_bindings: substitution :=

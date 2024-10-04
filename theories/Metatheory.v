@@ -703,7 +703,7 @@ Lemma apply_parameters_bound_in:
   forall x,
   item x xs n ->
   forall k,
-  apply_parameters xs k (k + n) = lift k 0 x.
+  apply_parameters xs k (var (k + n)) = lift k 0 x.
 Proof.
   intros.
   unfold apply_parameters.
@@ -1253,7 +1253,7 @@ Proof with modulo_arith.
 Qed.
 
 Lemma apply_parameters_cons:
-  forall y ys k e,
+  forall {X} `{deBruijnLaws X} y ys k e,
   apply_parameters (y :: ys) k e = subst y k (apply_parameters ys (1 + k) e).
 Proof.
   intros.
@@ -1262,7 +1262,7 @@ Proof.
 Qed.
 
 Lemma apply_parameters_nil:
-  forall k e,
+  forall {X} `{deBruijnLaws X} k e,
   apply_parameters [] k e = e.
 Proof.
   intros.
