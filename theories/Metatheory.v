@@ -1252,9 +1252,18 @@ Proof with modulo_arith.
       assumption.
 Qed.
 
-Lemma apply_parameters_unfold:
+Lemma apply_parameters_cons:
   forall y ys k e,
   apply_parameters (y :: ys) k e = subst y k (apply_parameters ys (1 + k) e).
+Proof.
+  intros.
+  unfold apply_parameters.
+  now sigma.
+Qed.
+
+Lemma apply_parameters_nil:
+  forall k e,
+  apply_parameters [] k e = e.
 Proof.
   intros.
   unfold apply_parameters.

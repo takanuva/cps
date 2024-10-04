@@ -529,7 +529,7 @@ Proof.
   induction xs; intros.
   - unfold apply_parameters.
     now sigma.
-  - do 2 rewrite apply_parameters_unfold.
+  - do 2 rewrite apply_parameters_cons.
     apply sema_subst.
     now apply IHxs.
 Qed.
