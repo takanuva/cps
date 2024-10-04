@@ -6,8 +6,9 @@ Require Import Lia.
 Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
-Require Import Local.Syntax.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
+Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
 Require Import Local.Equational.
