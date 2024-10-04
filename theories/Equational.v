@@ -5,10 +5,12 @@
 Require Import Lia.
 Require Import Arith.
 Require Import Setoid.
+Require Import Equality.
 Require Import Morphisms.
 Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.Syntax.
+Require Import Local.Substitution.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
@@ -524,7 +526,12 @@ Lemma sema_apply_parameters:
   [a == b] ->
   [apply_parameters xs k a == apply_parameters xs k b].
 Proof.
-  induction xs; eauto with cps.
+  induction xs; intros.
+  - unfold apply_parameters.
+    now sigma.
+  - do 2 rewrite apply_parameters_unfold.
+    apply sema_subst.
+    now apply IHxs.
 Qed.
 
 Global Hint Resolve sema_apply_parameters: cps.
@@ -535,7 +542,11 @@ Lemma sema_right_cycle:
   forall n k,
   [right_cycle n k a == right_cycle n k b].
 Proof.
-  unfold right_cycle; auto with cps.
+  intros.
+  do 2 rewrite right_cycle_characterization.
+  apply sema_apply_parameters.
+  apply sema_lift.
+  assumption.
 Qed.
 
 Global Hint Resolve sema_right_cycle: cps.
@@ -580,87 +591,60 @@ Goal
   not_free (1 + k) b ->
   remove_binding k (switch_bindings k b) = remove_binding (1 + k) b.
 Proof.
+  simpl; intros.
   unfold remove_binding.
   unfold switch_bindings.
+  sigma.
+  replace (k - k) with 0 by lia; simpl.
+  generalize dependent k.
   induction b using pseudoterm_deepind; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
-  - destruct (lt_eq_lt_dec (1 + k) n) as [ [ ? | ? ] | ? ].
-    + rewrite subst_bound_gt; auto.
-      rewrite lift_bound_ge; try lia.
-      rewrite subst_bound_gt; try lia.
-      rewrite subst_bound_gt; try lia.
-      f_equal; lia.
-    + exfalso.
-      inversion_clear H; auto.
-    + rewrite subst_bound_lt; auto.
-      rewrite lift_bound_lt; try lia.
-      destruct (le_gt_dec k n).
-      * rewrite subst_bound_eq; try lia.
-        rewrite lift_bound_ge; auto.
-        rewrite subst_bound_gt; try lia.
-        f_equal; lia.
-      * rewrite subst_bound_lt; auto.
-        rewrite subst_bound_lt; auto.
-  - rewrite lift_distributes_over_negation.
-    do 3 rewrite subst_distributes_over_negation.
-    f_equal.
-    induction H; auto.
-    inversion_clear H0.
-    inversion_clear H2.
-    simpl; f_equal.
-    + do 4 rewrite traverse_list_length.
-      replace (length l + S (S k)) with (2 + (length l + k)); try lia.
-      replace (length l + S k) with (1 + (length l + k)); try lia.
+  - destruct (le_gt_dec (1 + k) n).
+    + dependent destruction H.
+      sigma; f_equal; lia.
+    + destruct (le_gt_dec k n).
+      * sigma; f_equal; lia.
+      * now sigma.
+  - dependent destruction H0.
+    sigma; f_equal.
+    induction H.
+    + now sigma.
+    + dependent destruction H0.
+      sigma; f_equal; auto.
       apply H.
-      replace (1 + (length l + k)) with (length l + (1 + k)); try lia.
-      assumption.
-    + apply IHForall.
-      constructor.
-      assumption.
-  - rewrite lift_distributes_over_jump.
-    do 3 rewrite subst_distributes_over_jump.
-    inversion_clear H0.
-    f_equal.
-    + apply IHb.
-      assumption.
-    + induction H; auto.
-      inversion_clear H2.
-      simpl; f_equal; auto;
-      apply H; auto.
-  - rewrite lift_distributes_over_bind.
-    do 3 rewrite subst_distributes_over_bind.
-    do 2 rewrite traverse_list_length.
-    inversion_clear H0.
-    f_equal.
-    + apply IHb1; auto.
-    + clear IHb1 IHb2 H1 H3.
-      induction H; auto.
-      inversion_clear H2.
-      simpl; f_equal; auto.
-      do 4 rewrite traverse_list_length.
-      replace (length l + S (S k)) with (2 + (length l + k)); try lia.
-      replace (length l + S k) with (1 + (length l + k)); try lia.
-      apply H.
-      replace (1 + (length l + k)) with (length l + (1 + k)); try lia.
-      assumption.
+      now replace (S (length l + k)) with (length l + S k) by lia.
+  - dependent destruction H0.
+    sigma; f_equal.
+    + now eapply IHb.
+    + induction H.
+      * reflexivity.
+      * dependent destruction H1.
+        sigma; f_equal; auto.
+  - dependent destruction H0.
+    sigma; f_equal.
+    + now apply IHb1.
+    + clear H0_ H0_0.
+      induction H.
+      * reflexivity.
+      * dependent destruction H0.
+        sigma; f_equal; auto.
+        apply H.
+        now replace (S (length l + k)) with (length l + S k) by lia.
     + apply IHb2.
-      replace (1 + (k + length ts)) with (length ts + (1 + k)); try lia.
-      assumption.
+      now replace (S (length ts + k)) with (length ts + S k) by lia.
 Qed.
 
 Local Lemma technical1:
-  forall n k c: nat,
+  forall n k c,
   c < k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
+    lift 1 k (var c).
 Proof.
   intros.
-  rewrite lift_bound_lt; try lia.
-  rewrite lift_bound_lt; try lia.
-  apply apply_parameters_bound_lt.
-  lia.
+  now sigma.
 Qed.
 
 Local Lemma technical2:
@@ -671,17 +655,17 @@ Proof.
   intros.
   replace (1 + c) with ((1 + n + c) - n); try lia.
   rewrite apply_parameters_bound_gt; try lia.
-  + rewrite sequence_length; simpl.
-    replace (n + 0) with n by lia.
+  + rewrite sequence_length.
     reflexivity.
   + rewrite sequence_length; simpl.
     lia.
 Qed.
 
 Local Lemma technical3:
-  forall n k c: nat,
+  forall n k c,
   c >= n + k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
+    lift 1 k (var c).
 Proof.
   intros.
   rewrite lift_bound_ge; try lia.
@@ -690,10 +674,11 @@ Proof.
 Qed.
 
 Local Lemma technical4:
-  forall n k c: nat,
+  forall n k c,
   c >= k ->
   c < n + k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
+    lift 1 k (var c).
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.
