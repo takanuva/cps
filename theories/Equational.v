@@ -640,8 +640,8 @@ Qed.
 Local Lemma technical1:
   forall n k c,
   c < k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
-    lift 1 k (var c).
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (bound c)) =
+    lift 1 k (bound c).
 Proof.
   intros.
   now sigma.
@@ -650,7 +650,7 @@ Qed.
 Local Lemma technical2:
   forall c n k,
   c >= n + k ->
-  apply_parameters (high_sequence n) k (1 + n + c) = 1 + c.
+  apply_parameters (high_sequence n) k (bound (1 + n + c)) = bound (1 + c).
 Proof.
   intros.
   replace (1 + c) with ((1 + n + c) - n); try lia.
@@ -664,8 +664,8 @@ Qed.
 Local Lemma technical3:
   forall n k c,
   c >= n + k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
-    lift 1 k (var c).
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (bound c)) =
+    lift 1 k (bound c).
 Proof.
   intros.
   rewrite lift_bound_ge; try lia.
@@ -677,8 +677,8 @@ Local Lemma technical4:
   forall n k c,
   c >= k ->
   c < n + k ->
-  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (var c)) =
-    lift 1 k (var c).
+  apply_parameters (high_sequence n) k (lift (1 + n) (k + n) (bound c)) =
+    lift 1 k (bound c).
 Proof.
   intros.
   rewrite lift_bound_lt; try lia.

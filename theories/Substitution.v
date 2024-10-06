@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*      Copyright (c) 2024 - Paulo Torrens <paulotorrens AT gnu DOT org>      *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -9,11 +9,155 @@ Require Import Relations.
 Require Import Morphisms.
 
 Import ListNotations.
+
 Set Implicit Arguments.
+Generalizable Variables X Y.
 
-(* TODO: move this tactic! Also... TODO: use this tactic more! *)
+Inductive substitution {Y}: Type :=
+  | subst_ids
+  | subst_lift (i: nat)
+  | subst_app (ys: list Y) (s: substitution)
+  | subst_comp (s: substitution) (t: substitution)
+  | subst_upn (i: nat) (s: substitution).
 
-Tactic Notation "simplify" "decidable" "equality" :=
+Global Notation subst_drop i :=
+  (subst_comp (subst_lift i)).
+
+Global Notation subst_cons y :=
+  (subst_app [y]).
+
+Class dbVar Y: Type :=
+  var: nat -> Y.
+
+Class dbTraverse X Y: Type :=
+  traverse: (nat -> nat -> Y) -> (nat -> X -> X).
+
+Global Instance nat_dbVar: dbVar nat :=
+  id.
+
+Global Instance nat_dbTraverse: dbTraverse nat nat :=
+  fun f k n => f k n.
+
+Section Definitions.
+
+  Context {X: Type}.
+  Context {Y: Type}.
+
+  Context `{vY: dbVar Y}.
+
+  Definition lift_fun i k n: Y :=
+    if le_gt_dec k n then
+      var (i + n)
+    else
+      var n.
+
+  Context `{tYY: dbTraverse X Y}.
+
+  Definition lift i k: X -> X :=
+    traverse (lift_fun i) k.
+
+  Context `{tXY: dbTraverse Y Y}.
+
+  Fixpoint inst_fun s: nat -> nat -> Y :=
+    fun k n =>
+      if le_gt_dec k n then
+        match s with
+        | subst_ids =>
+          var n
+        | subst_lift i =>
+          var (i + n)
+        | subst_app ys s =>
+          match nth_error ys (n - k) with
+          | Some y => traverse (lift_fun k) 0 y
+          | None => inst_fun s k (n - length ys)
+          end
+        | subst_comp s t =>
+          traverse (inst_fun t) k (inst_fun s k n)
+        | subst_upn i s =>
+          inst_fun s (i + k) n
+        end
+      else
+        var n.
+
+  Definition inst_rec (s: substitution): nat -> X -> X :=
+    traverse (inst_fun s).
+
+  Definition subst (y: Y) (k: nat): X -> X :=
+    inst_rec (subst_cons y subst_ids) k.
+
+  Definition inst (s: substitution): X -> X :=
+    inst_rec s 0.
+
+  #[nonuniform]
+  Global Coercion inst_rec: substitution >-> Funclass.
+
+  Definition smap (s: substitution) (k: nat): list X -> list X :=
+    fold_right (fun t ts => s k t :: ts) [].
+
+  Definition bsmap (s: substitution) (k: nat): list X -> list X :=
+    fold_right (fun t ts => s (length ts + k) t :: ts) [].
+
+  Class dbVarLaws := {
+    traverse_var:
+      forall f k n,
+      traverse f k (var n) = f k n
+  }.
+
+  Implicit Types x: X.
+
+  Class dbTraverseLaws := {
+    traverse_ids:
+      forall f,
+      (forall k n, f k n = var n) ->
+      forall k x,
+      traverse f k x = x;
+    traverse_inj:
+      forall f g,
+      (forall k x, traverse f k x = traverse g k x) ->
+      forall k n,
+      f k n = g k n;
+    traverse_ext:
+      forall f g k j,
+      (forall l n, f (l + k) n = g (l + j) n) ->
+      forall x,
+      traverse f k x = traverse g j x;
+    traverse_fun:
+      forall f g k x,
+      traverse f k (traverse g k x) =
+        traverse (fun j n => traverse f j (g j n)) k x
+  }.
+
+End Definitions.
+
+Section Equivalence.
+
+Definition subst_equiv {Y} (s: substitution) (t: substitution): Prop :=
+  forall X: Type,
+  forall vY: @dbVar Y,
+  forall tXY: @dbTraverse X Y,
+  forall tYY: @dbTraverse Y Y,
+  forall vYLaws: @dbVarLaws Y vY tYY,
+  forall tXYLaws: @dbTraverseLaws X Y vY tXY tYY,
+  forall tYYLaws: @dbTraverseLaws Y Y vY tYY tYY,
+  forall (k: nat) (x: X),
+  inst_rec s k x = inst_rec t k x.
+
+Global Instance subst_equivalence:
+  forall Y,
+  Equivalence (@subst_equiv Y).
+Proof.
+  split; repeat intro.
+  - congruence.
+  - symmetry.
+    now apply H.
+  - transitivity (y k x0).
+    + now apply H.
+    + now apply H0.
+Qed.
+
+End Equivalence.
+
+Local Tactic Notation "simplify" "decidable" "cases" :=
   repeat progress match goal with
   | |- context H [le_gt_dec ?m ?n] =>
     (destruct (le_gt_dec m n) as [ ? | _ ];
@@ -27,140 +171,117 @@ Tactic Notation "simplify" "decidable" "equality" :=
       [ idtac | exfalso; lia ])
   end.
 
-(* *)
-
 Section DeBruijn.
 
-  Variable X: Set.
+  Variable X: Type.
+  Variable Y: Type.
 
-  (* *)
+  Implicit Types x: X.
+  Implicit Types y: Y.
+  Implicit Types s t u v: @substitution Y.
+  Implicit Types n m i k j l: nat.
 
-  Inductive substitution: Set :=
-    | subst_ids
-    | subst_lift (i: nat)
-    | subst_app (ys: list X) (s: substitution)
-    | subst_comp (s: substitution) (t: substitution)
-    | subst_upn (i: nat) (s: substitution).
+  Context `{vY: dbVar Y}.
+  Context `{tYY: dbTraverse Y Y}.
+  Context `{tXY: dbTraverse X Y}.
+  Context `{vYLaws: @dbVarLaws Y vY tYY}.
+  Context `{tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
+  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
 
-  Class deBruijn: Type := {
-    var:
-      nat -> X;
-    traverse:
-      (nat -> nat -> X) -> nat -> X -> X
-  }.
-
-  Context `{db: deBruijn}.
-
-  (* TODO: review these laws. This works for now, but it begs to be simplified
-     in some way... *)
-
-  Class deBruijnLaws: Type := {
-    traverse_var:
-      forall f k n,
-      traverse f k (var n) = f k n;
-    traverse_ids:
-      forall k x,
-      traverse (fun _ n => var n) k x = x;
-    traverse_ext:
-      forall f g k,
-      (forall j n, j >= k -> f j n = g j n) ->
-      forall x,
-      traverse f k x = traverse g k x;
-    traverse_fun:
-      forall f g x k j,
-      (* Is there a nicer way to represent this law...? *)
-      traverse f k (traverse g j x) =
-        traverse (fun i n => traverse f (i + k - j) (g i n)) j x
-  }.
-
-  Context `{db_laws: deBruijnLaws}.
-
-  Definition lift_fun i k n :=
-    if le_gt_dec k n then
-      var (i + n)
-    else
-      var n.
-
-  Definition lift (i: nat) (k: nat): X -> X :=
-    traverse (lift_fun i) k.
-
-  Fixpoint inst_fun (s: substitution): nat -> nat -> X :=
-    fun k n =>
-      if le_gt_dec k n then
-        match s with
-        | subst_ids =>
-          var n
-        | subst_lift i =>
-          var (i + n)
-        | subst_app ys s =>
-          match nth_error ys (n - k) with
-          | Some y => lift k 0 y
-          | None => inst_fun s k (n - length ys)
-          end
-        | subst_comp s t =>
-          traverse (inst_fun t) k (inst_fun s k n)
-        | subst_upn i s =>
-          inst_fun s (i + k) n
-        end
-      else
-        var n.
-
-  (* Ideally, we'd like to use this simpler definition given below, which can
-     generate nice code by a reasonable optimizer, but it isn't defined by
-     structural recursion. Instead, we merely check that it would be fine to
-     use it (as we may wanna use that in the paper). *)
-
-  Goal
-    forall y ys s k n,
-    k <= n ->
-    inst_fun (subst_app (y :: ys) s) k n =
-      if Nat.eq_dec k n then
-        lift k 0 y
-      else
-        (* Recursive call with ys. *)
-        inst_fun (subst_app ys s) k (n - 1).
+  Global Instance inst_proper:
+    Proper (@subst_equiv Y ==> eq ==> eq) inst.
   Proof.
-    intros.
-    destruct (Nat.eq_dec k n).
-    - simpl.
-      simplify decidable equality.
-      replace (n - k) with 0 by lia.
-      now simpl.
-    - simpl.
-      simplify decidable equality.
-      remember (n - k) as m.
-      destruct m; simpl.
-      + exfalso.
-        lia.
-      + replace (n - 1 - k) with m by lia.
-        replace (n - 1 - length ys) with (n - S (length ys)) by lia.
-        reflexivity.
+    intros s t ? x _ ().
+    now apply H.
   Qed.
 
-  Definition inst_rec (s: substitution): nat -> X -> X :=
-    traverse (inst_fun s).
+  Global Instance subst_app_proper:
+    Proper (eq ==> @subst_equiv Y ==> @subst_equiv Y) subst_app.
+  Proof.
+    intros ys _ () s t ? Z ? ? ? ? ? ? k x.
+    apply traverse_ext; intros; simpl.
+    destruct (le_gt_dec (l + k) n).
+    - destruct (nth_error ys (n - (l + k))).
+      + reflexivity.
+      + apply traverse_inj; intros.
+        now apply H.
+    - reflexivity.
+  Qed.
 
-  Definition subst (y: X) (k: nat): X -> X :=
-    inst_rec (subst_app [y] subst_ids) k.
+  Global Instance subst_comp_proper:
+    Proper (@subst_equiv Y ==> @subst_equiv Y ==> @subst_equiv Y) subst_comp.
+  Proof.
+    intros s t ? u v ? Z ? ? ? ? ? ? k x.
+    apply traverse_ext; intros; simpl.
+    destruct (le_gt_dec (l + k) n).
+    - rewrite traverse_inj with (g := inst_fun t).
+      + apply traverse_ext; intros.
+        apply traverse_inj; intros.
+        now apply H0.
+      + intros.
+        now apply H.
+    - reflexivity.
+  Qed.
 
-  Definition inst (s: substitution): X -> X :=
-    inst_rec s 0.
+  Global Instance subst_upn_proper:
+    Proper (eq ==> @subst_equiv Y ==> @subst_equiv Y) subst_upn.
+  Proof.
+    intros i _ () s t ? Z ? ? ? ? ? ? k x.
+    apply traverse_ext; intros; simpl.
+    destruct (le_gt_dec (l + k) n).
+    - apply traverse_inj; intros.
+      now apply H.
+    - reflexivity.
+  Qed.
 
-  Global Coercion inst_rec: substitution >-> Funclass.
+  (* ---------------------------------------------------------------------- *)
 
-  Definition smap (s: substitution) (k: nat): list X -> list X :=
-    fold_right (fun t ts => s k t :: ts) [].
+  Local Lemma subst_lift_unfold:
+    forall i k x,
+    lift i k x = subst_lift i k x.
+  Proof.
+    auto.
+  Qed.
 
-  Definition bsmap (s: substitution) (k: nat): list X -> list X :=
-    fold_right (fun t ts => s (length ts + k) t :: ts) [].
+  Lemma subst_subst_unfold:
+    forall y k x,
+    subst y k x = subst_cons y subst_ids k x.
+  Proof.
+    auto.
+  Qed.
 
-  (* TODO: move these auxiliary lemmas to cleanup section below. *)
+  Lemma inst_fun_bvar:
+    forall s k n,
+    n < k ->
+    inst_fun s k n = var n.
+  Proof.
+    intros.
+    destruct s; simpl.
+    - now simplify decidable cases.
+    - now simplify decidable cases.
+    - now simplify decidable cases.
+    - now simplify decidable cases.
+    - now simplify decidable cases.
+  Qed.
+
+  Lemma inst_rec_bvar:
+    forall s k n,
+    n < k ->
+    s k (var n) = var n.
+  Proof.
+    intros.
+    unfold inst_rec.
+    rewrite traverse_var.
+    now apply inst_fun_bvar.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
 
   Lemma smap_length:
-    forall s k x,
-    length (smap s k x) = length x.
+    forall s k xs,
+    length (smap s k xs) = length xs.
   Proof.
-    induction x; simpl; congruence.
+    induction xs; simpl; congruence.
   Qed.
 
   Lemma smap_nil:
@@ -188,10 +309,10 @@ Section DeBruijn.
   Admitted.
 
   Lemma bsmap_length:
-    forall s k x,
-    length (bsmap s k x) = length x.
+    forall s k xs,
+    length (bsmap s k xs) = length xs.
   Proof.
-    induction x; simpl; congruence.
+    induction xs; simpl; congruence.
   Qed.
 
   Lemma bsmap_nil:
@@ -220,126 +341,7 @@ Section DeBruijn.
       admit.
   Admitted.
 
-  (* ... *)
-
-  Definition subst_equiv (s: substitution) (t: substitution): Prop :=
-    forall k x,
-    s k x = t k x.
-
-  Global Instance subst_equivalence:
-    Equivalence subst_equiv.
-  Proof.
-    split; congruence.
-  Qed.
-
-  Global Instance inst_proper:
-    Proper (subst_equiv ==> eq ==> eq) inst.
-  Proof.
-    intros s t ? x _ ().
-    admit.
-  Admitted.
-
-  Global Instance subst_app_proper:
-    Proper (eq ==> subst_equiv ==> subst_equiv) subst_app.
-  Proof.
-    intros ys _ () s t ? k x.
-    unfold inst.
-    apply traverse_ext; intros; simpl.
-    destruct (le_gt_dec j n) as [ ? | ? ].
-    - destruct (nth_error ys (n - j)).
-      + reflexivity.
-      + do 2 rewrite <- traverse_var.
-        admit.
-    - reflexivity.
-  Admitted.
-
-  Global Instance subst_comp_proper:
-    Proper (subst_equiv ==> subst_equiv ==> subst_equiv) subst_comp.
-  Proof.
-    intros s t ? u v ? k x.
-    unfold inst.
-    apply traverse_ext.
-    simpl; intros.
-    destruct (le_gt_dec j n).
-    - rewrite <- traverse_var.
-      admit.
-    - reflexivity.
-  Admitted.
-
-  Global Instance subst_upn_proper:
-    Proper (eq ==> subst_equiv ==> subst_equiv) subst_upn.
-  Proof.
-    intros i _ () s t ? k x.
-    unfold inst.
-    admit.
-  Admitted.
-
-  Global Instance subst_smap_proper:
-    Proper (subst_equiv ==> eq ==> eq ==> eq) smap.
-  Proof.
-    intros s t ? k _ () xs _ ().
-    induction xs; intros.
-    - reflexivity.
-    - simpl; f_equal.
-      + admit.
-      + apply IHxs.
-  Admitted.
-
-  Global Instance subst_bsmap_proper:
-    Proper (subst_equiv ==> eq ==> eq ==> eq) bsmap.
-  Proof.
-    intros s t ? k _ () xs _ ().
-    induction xs; intros.
-    - reflexivity.
-    - simpl; f_equal.
-      + admit.
-      + apply IHxs.
-  Admitted.
-
   (* ---------------------------------------------------------------------- *)
-
-  Implicit Types x y z: X.
-  Implicit Types s t u v: substitution.
-  Implicit Types n m i k j: nat.
-
-  Lemma subst_lift_unfold:
-    forall i k x,
-    lift i k x = subst_lift i k x.
-  Proof.
-    auto.
-  Qed.
-
-  Lemma subst_subst_unfold:
-    forall y k x,
-    subst y k x = subst_app [y] subst_ids k x.
-  Proof.
-    auto.
-  Qed.
-
-  Lemma inst_fun_bvar:
-    forall s k n,
-    n < k ->
-    s k (var n) = var n.
-  Proof.
-    admit.
-  Admitted.
-
-  (* Lemma lift_lift_permutation:
-    forall x i j k l,
-    k <= l ->
-    lift i k (lift j l x) = lift j (i + l) (lift i k x).
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma lift_lift_simplification:
-    forall x i j k l,
-    k <= l + j ->
-    l <= k ->
-    lift i k (lift j l x) = lift (i + j) l x.
-  Proof.
-    admit.
-  Admitted. *)
 
   Lemma subst_ids_simpl:
     forall k x,
@@ -356,83 +358,29 @@ Section DeBruijn.
     admit.
   Admitted.
 
-  (* TODO: rename me. This is probably not enough to keep confluence! *)
-
-  (* Lemma baz:
-    forall s i k n,
-    k <= n ->
-    subst_comp s (subst_lift i) k (var n) =
-      s (i + k) (var (i + n)).
+  Lemma subst_upn_simpl:
+    forall i k s x,
+    subst_upn i s k x = s (i + k) x.
   Proof.
     intros.
-    (* This can be greatly simplified by adding a few lemmas... *)
-    unfold inst.
-    do 2 rewrite traverse_var.
-    generalize dependent k.
-    generalize dependent i.
-    generalize dependent n.
-    destruct s; simpl; intros.
-    - simplify decidable equality.
-      rewrite traverse_var.
-      now simplify decidable equality.
-    - simplify decidable equality.
-      rewrite traverse_var.
-      simplify decidable equality.
-      f_equal; lia.
-    - simplify decidable equality.
-      fold (lift_fun i).
-      fold (lift i).
-      replace (i + n - (i + k)) with (n - k) by lia.
-      remember (nth_error ys (n - k)) as y.
-      destruct y.
-      + now rewrite lift_lift_simplification by lia.
-      + rewrite <- traverse_var.
-        fold (inst s).
-        rewrite subst_lift_inst_commute by lia.
-        unfold lift, lift_fun.
-        symmetry in Heqy.
-        apply nth_error_None in Heqy.
-        rewrite traverse_var.
-        simplify decidable equality.
-        unfold inst.
-        rewrite traverse_var.
-        f_equal; lia.
-    - simplify decidable equality.
-      fold (lift_fun i) (lift i).
-      fold (inst s2).
-      rewrite subst_lift_inst_commute by lia.
-      do 2 rewrite <- traverse_var.
-      fold (inst s1).
-      rewrite subst_lift_inst_commute by lia.
-      do 2 f_equal.
-      unfold lift, lift_fun.
-      rewrite traverse_var.
-      now simplify decidable equality.
-    - simplify decidable equality.
-      rename i0 into j.
-      replace (i + (j + k)) with (j + (i + k)) by lia.
-      destruct (le_gt_dec (i + k) n).
-      + fold (lift_fun j) (lift j).
-        do 2 rewrite <- traverse_var.
-        fold (inst s).
-        rewrite subst_lift_inst_commute by lia.
-        f_equal.
-        unfold lift, lift_fun.
-        rewrite traverse_var.
-        now simplify decidable equality.
-      + do 2 rewrite inst_fun_bvar by lia.
-        rewrite traverse_var.
-        now simplify decidable equality.
-  Qed. *)
+    apply traverse_ext; intros.
+    simpl.
+    destruct (le_gt_dec (l + k) n).
+    - f_equal; lia.
+    - now rewrite inst_fun_bvar by lia.
+  Qed.
 
-  (* ---------------------------------------------------------------------- *)
+  (* Replace de Bruijn substitution notation to the default instantiation. *)
 
   Lemma subst_Inst:
     forall s k x,
-    inst_rec s k x = inst (subst_upn k s) x.
+    s k x = inst (subst_upn k s) x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst.
+    rewrite subst_upn_simpl.
+    now rewrite Nat.add_0_r.
+  Qed.
 
   (* Id: x[I] = x *)
   Lemma subst_Id:
@@ -533,7 +481,8 @@ Section DeBruijn.
 
   (* ---------------------------------------------------------------------- *)
 
-  Local Notation "s ~ t" := (subst_equiv s t) (at level 70, no associativity).
+  Local Notation "s ~ t" := (@subst_equiv Y s t)
+    (at level 70, no associativity).
 
   (* ShiftZero (additional!): S^0 ~ I *)
   Lemma subst_ShiftZero:
@@ -782,27 +731,12 @@ End DeBruijn.
 
 (* *)
 
+Arguments dbVarLaws Y {vY} {tXY}.
+Arguments dbTraverseLaws X Y {vY} {tYY} {tXY}.
+
+(* *)
+
 Global Opaque lift subst inst_rec inst smap bsmap.
-
-(* *)
-
-Arguments substitution {X}.
-Arguments subst_ids {X}.
-Arguments subst_lift {X}.
-Arguments subst_app {X}.
-Arguments subst_comp {X}.
-Arguments subst_upn {X}.
-Arguments subst_app {X}.
-
-(* *)
-
-(* TODO: turn this into a definition afterwards...? *)
-
-Global Notation subst_drop i :=
-  (subst_comp (subst_lift i)).
-
-Global Notation subst_cons y :=
-  (subst_app [y]).
 
 (* *)
 
@@ -810,11 +744,16 @@ Create HintDb sigma.
 
 Ltac sigma_solver :=
   match goal with
-  | |- @deBruijnLaws ?A ?B =>
-    idtac "trying to solve @deBruijnLaws" A B;
+  | |- dbVar _ =>
+    typeclasses eauto
+  | |- dbTraverse _ =>
+    typeclasses eauto
+  | |- @dbVarLaws _ _ _ =>
+    typeclasses eauto
+  | |- @dbTraverseLaws _ _ _ _ _ =>
     typeclasses eauto
   | |- ?G =>
-    idtac "trying to solve" G;
+    (* idtac "trying to solve" G; *)
     (* TODO: rewrite those if they are within the context of a substitution;
        this can most certainly be done by using proper setoid rewriting. *)
     try repeat (rewrite smap_length
@@ -822,17 +761,17 @@ Ltac sigma_solver :=
          || rewrite app_length
          || rewrite last_length
          || simpl length);
-    idtac "cleanup done";
     lia
   end.
 
 (* *)
 
-Global Hint Rewrite subst_lift_unfold: sigma.
-Global Hint Rewrite subst_subst_unfold: sigma.
+Global Hint Rewrite subst_lift_unfold using sigma_solver: sigma.
+Global Hint Rewrite subst_subst_unfold using sigma_solver: sigma.
 
 (* Global Hint Rewrite subst_BVar using sigma_solver: sigma. *)
 (* Global Hint Rewrite subst_LiftInst using sigma_solver: sigma. *)
+
 Global Hint Rewrite subst_Inst using sigma_solver: sigma.
 Global Hint Rewrite subst_Id using sigma_solver: sigma.
 Global Hint Rewrite subst_FVarCons using sigma_solver: sigma.
@@ -928,11 +867,20 @@ Section Tests.
      reference, both calculi are described in the "Confluence Properties of Weak
      and Strong Calculi" paper. *)
 
-  Variable X: Set.
-  Context `{db_laws: deBruijnLaws X}.
+  Variable X: Type.
+  Variable Y: Type.
 
-  Implicit Types x y z: X.
-  Implicit Types s t u: @substitution X.
+  Implicit Types x: X.
+  Implicit Types y: Y.
+  Implicit Types s t u v: @substitution Y.
+  Implicit Types n m i k j l: nat.
+
+  Context `{vY: dbVar Y}.
+  Context `{tYY: dbTraverse Y Y}.
+  Context `{tXY: dbTraverse X Y}.
+  Context `{vYLaws: @dbVarLaws Y vY tYY}.
+  Context `{tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
+  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
 
   (* Lets first check the laws for the sigma SP calculus... we note that these
      differ a bit from the paper because they take non-zero indexes to be zero
@@ -1278,14 +1226,14 @@ Section Tests.
   (* Oh no... *)
 
   Goal
-    forall x l k,
+    forall x xs k,
     bsmap (subst_cons (var 0) subst_ids) k
       (bsmap (subst_app [var 1; var 0] (subst_lift 2)) k
-         (x :: l)) =
-    bsmap (subst_cons (var 0) subst_ids) (S k) (x :: l).
+         (x :: xs)) =
+    bsmap (subst_cons (var 0) subst_ids) (S k) (x :: xs).
   Proof.
     intros.
-    timeout 60 (rewrite_strat topdown (hints sigma)).
+    Fail timeout 5 (rewrite_strat topdown (hints sigma)).
   Admitted.
 
 End Tests.

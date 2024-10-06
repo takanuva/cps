@@ -89,7 +89,7 @@ Qed.
 Lemma lift_bound_ge:
   forall i k n,
   k <= n ->
-  lift i k (var n) = var (i + n).
+  lift i k (bound n) = bound (i + n).
 Proof with modulo_arith.
   intros.
   sigma...
@@ -98,7 +98,7 @@ Qed.
 Lemma lift_bound_lt:
   forall i k n,
   k > n ->
-  lift i k (var n) = var n.
+  lift i k (bound n) = bound n.
 Proof with modulo_arith.
   intros.
   sigma...
@@ -151,7 +151,7 @@ Qed.
 Lemma subst_bound_gt:
   forall e k n,
   n > k ->
-  subst e k (var n) = var (pred n).
+  subst e k (bound n) = bound (pred n).
 Proof with modulo_arith.
   intros.
   sigma...
@@ -160,7 +160,7 @@ Qed.
 Lemma subst_bound_eq:
   forall e k n,
   n = k ->
-  subst e k (var n) = lift n 0 e.
+  subst e k (bound n) = lift n 0 e.
 Proof with modulo_arith.
   intros.
   sigma...
@@ -169,7 +169,7 @@ Qed.
 Lemma subst_bound_lt:
   forall e k n,
   n < k ->
-  subst e k (var n) = var n.
+  subst e k (bound n) = bound n.
 Proof with modulo_arith.
   intros.
   sigma...
@@ -703,7 +703,7 @@ Lemma apply_parameters_bound_in:
   forall x,
   item x xs n ->
   forall k,
-  apply_parameters xs k (var (k + n)) = lift k 0 x.
+  apply_parameters xs k (bound (k + n)) = lift k 0 x.
 Proof.
   intros.
   unfold apply_parameters.
@@ -887,7 +887,7 @@ Qed.
 Lemma switch_bindings_bound_eq:
   forall k n,
   k = n ->
-  switch_bindings k n = S n.
+  switch_bindings k (bound n) = bound (S n).
 Proof with modulo_arith.
   intros.
   unfold switch_bindings.
@@ -898,7 +898,7 @@ Lemma apply_parameters_high_sequence_bound_in:
   forall n i k,
   n >= k ->
   i + k > n ->
-  apply_parameters (high_sequence i) k n = S n.
+  apply_parameters (high_sequence i) k (bound n) = bound (S n).
 Proof.
   intros.
   replace n with (k + (n - k)); try lia.
@@ -921,7 +921,7 @@ Proof.
   assert (length (high_sequence (i + p)) = i + p) by apply sequence_length.
   sigma; do 3 f_equal.
   - clear H H0 H1.
-    replace (smap _ 0 _) with (sequence (1 + i) p ++ [var 0]).
+    replace (smap _ 0 _) with (sequence (1 + i) p ++ [bound 0]).
     + generalize 1.
       induction i; simpl; intros.
       * now rewrite Nat.add_0_r.
@@ -1253,7 +1253,7 @@ Proof with modulo_arith.
 Qed.
 
 Lemma apply_parameters_cons:
-  forall {X} `{deBruijnLaws X} y ys k e,
+  forall y ys k e,
   apply_parameters (y :: ys) k e = subst y k (apply_parameters ys (1 + k) e).
 Proof.
   intros.
@@ -1262,7 +1262,7 @@ Proof.
 Qed.
 
 Lemma apply_parameters_nil:
-  forall {X} `{deBruijnLaws X} k e,
+  forall k e,
   apply_parameters [] k e = e.
 Proof.
   intros.

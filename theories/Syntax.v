@@ -161,18 +161,55 @@ Fixpoint traverse f k e: pseudoterm :=
       (traverse f (k + length ts) c)
   end.
 
-Global Instance pseudoterm_deBruijn: deBruijn pseudoterm := {|
-  Substitution.var := bound;
-  Substitution.traverse := traverse
-|}.
+Global Instance pseudoterm_dbVar: dbVar pseudoterm :=
+  bound.
 
-Global Instance pseudoterm_laws: @deBruijnLaws _ pseudoterm_deBruijn.
+Global Instance pseudoterm_dbTraverse: dbTraverse pseudoterm pseudoterm :=
+  traverse.
+
+Global Instance pseudoterm_dbVarLaws: dbVarLaws pseudoterm.
 Proof.
-  split; intros.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+  split; auto.
+Qed.
+
+Global Instance pseudoterm_dbTraverseLaws: dbTraverseLaws pseudoterm pseudoterm.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + f_equal.
+      list induction over H0.
+    + f_equal; auto.
+      list induction over H0.
+    + f_equal; auto.
+      list induction over H0.
+  - apply H with (x := n).
+  - generalize dependent j.
+    generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + apply H with (l := 0).
+    + f_equal.
+      list induction over H.
+      admit.
+    + f_equal; auto.
+      list induction over H.
+    + f_equal; auto.
+      * apply IHx1; intros.
+        admit.
+      * list induction over H.
+        admit.
+      * apply IHx2; intros.
+        admit.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + f_equal.
+      list induction over H.
+      admit.
+    + f_equal; auto.
+      list induction over H.
+    + f_equal; auto.
+      * admit.
+      * admit.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
@@ -212,7 +249,7 @@ Global Hint Rewrite inst_distributes_over_bind using sigma_solver: sigma.
 
 (* -------------------------------------------------------------------------- *)
 
-Definition apply_parameters {X} `{deBruijnLaws X} (ys: list X): substitution :=
+Definition apply_parameters (ys: list pseudoterm): substitution :=
   subst_app ys subst_ids.
 
 Definition switch_bindings: substitution :=
