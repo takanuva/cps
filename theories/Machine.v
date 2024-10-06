@@ -6,6 +6,7 @@ Require Import Lia.
 Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
@@ -256,7 +257,7 @@ Proof.
     + constructor.
     + reflexivity.
   - simpl.
-    compute.
+    vm_compute.
     constructor.
     constructor.
 Qed.
@@ -334,29 +335,7 @@ Global Instance apply_parameters_proper:
   forall xs, proper (apply_parameters xs).
 Proof.
   constructor; intros.
-  - generalize dependent k.
-    induction x using pseudoterm_deepind; simpl; intros.
-    + apply apply_parameters_type.
-    + apply apply_parameters_prop.
-    + apply apply_parameters_base.
-    + apply apply_parameters_void.
-    + reflexivity.
-    + rewrite apply_parameters_distributes_over_negation.
-      f_equal.
-      list induction over H.
-      do 2 rewrite traverse_list_length.
-      apply H.
-    + rewrite apply_parameters_distributes_over_jump.
-      f_equal.
-      * apply IHx.
-      * list induction over H.
-    + rewrite apply_parameters_distributes_over_bind.
-      f_equal.
-      * apply IHx1.
-      * list induction over H.
-        do 2 rewrite traverse_list_length.
-        apply H.
-      * apply IHx2.
+  - reflexivity.
   - rewrite apply_parameters_bound_lt; try lia.
     reflexivity.
   - destruct (le_gt_dec k n).
@@ -731,6 +710,7 @@ Proof.
     + destruct (f k n); try discriminate.
       simpl in x0, x |- *.
       rewrite <- x.
+      sigma; simpl.
       rewrite <- x0.
       rewrite corresponding_value_isorec; simpl.
       split; eauto.
@@ -745,6 +725,7 @@ Proof.
         apply H; auto.
       * simpl in x, x0 |- *.
         rewrite <- x.
+        sigma; simpl.
         intros m ?H ?H.
         simpl in H1.
         apply H; auto.
@@ -754,18 +735,22 @@ Proof.
         eapply H0; eauto with arith.
       * simpl in x, x0 |- *.
         rewrite <- x.
+        sigma; simpl.
         intros m ?H ?H.
         simpl in H1.
         apply H; auto.
         dependent destruction x0.
+        (* TODO: please refactor this bit, shall we? *)
         apply H0 with (lift 1) (x1 :: r) 0; auto with cps.
         apply corresponding_lift; intros.
         eapply H0; eauto with arith.
+        sigma; auto.
     + simpl in x |- *.
       rewrite <- x.
       destruct (f k n);
         try discriminate;
         try constructor.
+      sigma; simpl.
       simpl in x0 |- *.
       rewrite <- x0.
       constructor.
@@ -1100,7 +1085,7 @@ Qed.
   once we start using the sigma-calculus.
 *)
 
-Local Definition RAP xs n k c :=
+Local Definition RAP xs n k (c: pseudoterm) :=
   apply_parameters xs k (lift n (k + length xs) c).
 
 Local Instance RAP_proper: forall xs n, proper (RAP xs n).
@@ -1147,30 +1132,28 @@ Proof.
   - unfold RAP.
     rewrite lift_bound_lt by lia.
     now rewrite apply_parameters_bound_lt by lia.
-  - unfold RAP.
+  - unfold RAP, apply_parameters.
     rename n0 into m.
-    generalize dependent m.
-    generalize dependent k.
-    generalize dependent n.
-    induction xs; simpl; intros.
-    + rewrite lift_lift_permutation by lia.
-      reflexivity.
-    + rewrite lift_and_subst_commute by lia; f_equal.
-      replace (S (k + S (length xs))) with (2 + k + length xs) by lia.
-      replace (k + S (length xs)) with (1 + k + length xs) by lia.
-      apply IHxs.
+    destruct (le_gt_dec k m).
+    + sigma; do 2 f_equal.
+      (* TODO: we need smap fusion... *)
+      clear l.
+      induction xs; sigma; auto.
+      f_equal; auto.
+    + now sigma.
 Qed.
 
 Lemma apply_parameters_matches_heap_append:
   forall xs n,
   length xs > n ->
   forall s r,
-  heap_get (apply_parameters xs 0 n) s =
+  heap_get (apply_parameters xs 0 (bound n)) s =
   heap_get n (heap_append xs s r).
 Proof.
   induction xs; simpl; intros.
   - inversion H.
-  - destruct n.
+  - rewrite apply_parameters_cons.
+    destruct n.
     + rewrite apply_parameters_bound_lt by lia.
       rewrite subst_bound_eq by lia.
       now rewrite lift_zero_e_equals_e.

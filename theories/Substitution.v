@@ -1216,6 +1216,9 @@ Section Tests.
     s (p + k) (var (p + n)) = lift p 0 (s k (var n)).
   Proof.
     intros.
+    (* Another case like this appeared in the machine semantics file, at least
+       in the code that I intend to remove. Could we generalize a tactic for
+       these cases, i.e., do a sigma by cases? *)
     destruct (le_gt_dec k n).
     - now sigma.
     - now sigma.
