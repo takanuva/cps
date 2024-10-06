@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
@@ -239,55 +240,48 @@ Proof.
     now rewrite app_assoc.
 Qed.
 
-Lemma unmark_lift:
-  forall r i k,
-  unmark (redexes_lift i k r) = lift i k (unmark r).
+Lemma unmark_inst:
+  forall r s,
+  unmark (inst s r) = inst s (unmark r).
 Proof.
   induction r; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
-  - simpl.
+  - simpl; sigma.
     now rewrite unmark_mark_is_sound.
   - reflexivity.
   - reflexivity.
-  - simpl.
-    rewrite lift_distributes_over_bind.
-    f_equal.
-    + apply IHr1.
-    + apply IHr2.
+  - simpl; sigma.
+    now rewrite <- IHr1, <- IHr2.
+Qed.
+
+Lemma unmark_lift:
+  forall r i k,
+  unmark (lift i k r) = lift i k (unmark r).
+Proof.
+  intros.
+  sigma.
+  apply unmark_inst.
 Qed.
 
 Lemma unmark_subst:
   forall r y k,
-  unmark (redexes_subst y k r) = subst y k (unmark r).
+  unmark (subst y k r) = subst y k (unmark r).
 Proof.
-  induction r; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - simpl.
-    now rewrite unmark_mark_is_sound.
-  - reflexivity.
-  - reflexivity.
-  - simpl.
-    rewrite subst_distributes_over_bind.
-    f_equal.
-    + apply IHr1.
-    + apply IHr2.
+  intros.
+  sigma.
+  apply unmark_inst.
 Qed.
 
 Lemma unmark_apply_parameters:
   forall xs k r,
-  unmark (redexes_apply_parameters xs k r) =
-    apply_parameters xs k (unmark r).
+  unmark (apply_parameters xs k r) = apply_parameters xs k (unmark r).
 Proof.
-  induction xs; simpl; intros.
-  - reflexivity.
-  - rewrite unmark_subst.
-    now rewrite IHxs.
+  intros.
+  sigma.
+  apply unmark_inst.
 Qed.
 
 Lemma beta_residuals_ctxjmp:
