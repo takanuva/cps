@@ -8,6 +8,7 @@ Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
@@ -91,79 +92,199 @@ Qed.
 
 Global Hint Resolve mark_is_injective: cps.
 
-Fixpoint redexes_lift i k e: redexes :=
+Fixpoint redexes_traverse f k e: redexes :=
   match e with
-  | redexes_jump r f xs =>
-    redexes_jump r (lift i k f) (map (lift i k) xs)
+  | redexes_bound n =>
+    mark (f k n)
+  | redexes_jump r x xs =>
+    redexes_jump r (traverse f k x) (map (traverse f k) xs)
   | redexes_bind b ts c =>
     redexes_bind
-      (redexes_lift i (S k) b)
-      (traverse_list (lift i) k ts)
-      (redexes_lift i (k + length ts) c)
+      (redexes_traverse f (S k) b)
+      (traverse_list (traverse f) k ts)
+      (redexes_traverse f (k + length ts) c)
   | _ =>
-    mark (lift i k (unmark e))
+    mark (traverse f k (unmark e))
   end.
 
-Fixpoint redexes_subst y k e: redexes :=
-  match e with
-  | redexes_jump r f xs =>
-    redexes_jump r (subst y k f) (map (subst y k) xs)
-  | redexes_bind b ts c =>
-    redexes_bind
-      (redexes_subst y (S k) b)
-      (traverse_list (subst y) k ts)
-      (redexes_subst y (k + length ts) c)
-  | _ =>
-    mark (subst y k (unmark e))
-  end.
+Global Instance redexes_dbTraverse: dbTraverse redexes pseudoterm :=
+  redexes_traverse.
 
-Fixpoint redexes_apply_parameters ys k e: redexes :=
-  match ys with
-  | [] => e
-  | y :: ys => redexes_subst y k (redexes_apply_parameters ys (1 + k) e)
-  end.
+Global Instance redexes_dbTraverseLaws: dbTraverseLaws redexes pseudoterm.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - generalize dependent k.
+    induction x; intros; simpl.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + simpl.
+      rewrite H.
+      reflexivity.
+    + f_equal.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      rewrite traverse_list_length.
+      now apply traverse_ids.
+    + f_equal.
+      * now apply traverse_ids.
+      * induction xs; auto.
+        simpl; f_equal; auto.
+        now apply traverse_ids.
+    + f_equal; auto.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      rewrite traverse_list_length.
+      now apply traverse_ids.
+  - apply mark_is_injective.
+    apply (H k (redexes_bound n)).
+  - generalize dependent j.
+    generalize dependent k.
+    induction x; intros; simpl.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + f_equal.
+      apply (H 0).
+    + f_equal.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      repeat rewrite traverse_list_length.
+      apply traverse_ext; intros.
+      now do 2 rewrite Nat.add_assoc.
+    + f_equal.
+      * now apply traverse_ext.
+      * induction xs; auto.
+        simpl; f_equal; auto.
+        now apply traverse_ext.
+    + f_equal.
+      * apply IHx1; intros.
+        replace (l + S k) with (S l + k) by lia.
+        replace (l + S j) with (S l + j) by lia.
+        apply H.
+      * induction ts; auto.
+        simpl; f_equal; auto.
+        repeat rewrite traverse_list_length.
+        apply traverse_ext; intros.
+        now do 2 rewrite Nat.add_assoc.
+      * apply IHx2; intros.
+        replace (l + (k + length ts)) with (l + length ts + k) by lia.
+        replace (l + (j + length ts)) with (l + length ts + j) by lia.
+        apply H.
+  - generalize dependent k.
+    induction x; intros; simpl.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + reflexivity.
+    + generalize (g k n) as x; intros.
+      generalize dependent k.
+      induction x; simpl; intros; auto.
+      now rewrite IHx1, IHx2.
+    + f_equal.
+      induction ts; auto.
+      simpl.
+      repeat rewrite traverse_list_length.
+      f_equal; auto.
+      apply traverse_fun.
+    + f_equal.
+      * apply traverse_fun.
+      * induction xs; auto.
+        simpl; f_equal; auto.
+        apply traverse_fun.
+    + rewrite traverse_list_length.
+      f_equal; auto.
+      induction ts; auto.
+      simpl; f_equal; auto.
+      repeat rewrite traverse_list_length.
+      apply traverse_fun.
+Qed.
 
-Lemma mark_lift_is_sound:
-  forall c i k,
-  mark (lift i k c) = redexes_lift i k (mark c).
+(* -------------------------------------------------------------------------- *)
+
+Lemma redexes_bound_var_equality_stuff:
+  forall s n,
+  inst s (redexes_bound n) = mark (inst s (bound n)).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_redexes_negation:
+  forall s ts,
+  inst s (redexes_negation ts) = redexes_negation (bsmap s 0 ts).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_redexes_jump:
+  forall s r x xs,
+  inst s (redexes_jump r x xs) = redexes_jump r (s 0 x) (smap s 0 xs).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_redexes_bind:
+  forall s b ts c,
+  inst s (redexes_bind b ts c) =
+    redexes_bind (s 1 b) (bsmap s 0 ts) (s (length ts) c).
+Proof.
+  auto.
+Qed.
+
+Global Hint Rewrite redexes_bound_var_equality_stuff using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_redexes_negation using sigma_solver:
+  sigma.
+Global Hint Rewrite inst_distributes_over_redexes_jump using sigma_solver:
+  sigma.
+Global Hint Rewrite inst_distributes_over_redexes_bind using sigma_solver:
+  sigma.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma mark_inst_is_sound:
+  forall c s,
+  mark (inst s c) = inst s (mark c).
 Proof.
   induction c; intros.
   - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
+  - simpl.
+    now sigma.
   - reflexivity.
   - reflexivity.
-  - reflexivity.
-  - rewrite lift_distributes_over_bind; simpl.
-    f_equal; auto.
+  - simpl; sigma.
+    now rewrite <- IHc1, <- IHc2.
+Qed.
+
+Lemma mark_lift_is_sound:
+  forall c i k,
+  mark (lift i k c) = lift i k (mark c).
+Proof.
+  intros.
+  sigma.
+  apply mark_inst_is_sound.
 Qed.
 
 Lemma mark_subst_is_sound:
   forall c x k,
-  mark (subst x k c) = redexes_subst x k (mark c).
+  mark (subst x k c) = subst x k (mark c).
 Proof.
-  induction c; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - rewrite subst_distributes_over_bind; simpl.
-    f_equal; auto.
+  intros.
+  sigma.
+  apply mark_inst_is_sound.
 Qed.
 
 Lemma mark_apply_parameters_is_sound:
   forall xs k c,
-  mark (apply_parameters xs k c) = redexes_apply_parameters xs k (mark c).
+  mark (apply_parameters xs k c) = apply_parameters xs k (mark c).
 Proof.
-  induction xs; simpl; intros.
-  - reflexivity.
-  - rewrite mark_subst_is_sound.
-    f_equal.
-    apply IHxs.
+  intros.
+  sigma.
+  apply mark_inst_is_sound.
 Qed.
 
 Inductive compatible: relation redexes :=
@@ -236,35 +357,47 @@ Qed.
 
 Global Hint Resolve compatible_trans: cps.
 
+Lemma compatible_inst:
+  forall a b,
+  compatible a b ->
+  forall s,
+  compatible (inst s a) (inst s b).
+Proof.
+  induction 1; simpl; auto with cps; intros.
+  - sigma; constructor.
+  - sigma; now constructor.
+Qed.
+
 Lemma compatible_lift:
   forall a b,
   compatible a b ->
   forall i k,
-  compatible (redexes_lift i k a) (redexes_lift i k b).
+  compatible (lift i k a) (lift i k b).
 Proof.
-  induction 1; simpl; auto with cps.
+  intros.
+  sigma.
+  now apply compatible_inst.
 Qed.
 
 Lemma compatible_subst:
   forall a b,
   compatible a b ->
   forall y k,
-  compatible (redexes_subst y k a) (redexes_subst y k b).
+  compatible (subst y k a) (subst y k b).
 Proof.
-  induction 1; simpl; auto with cps.
+  intros.
+  sigma.
+  now apply compatible_inst.
 Qed.
 
 Lemma compatible_apply_parameters:
   forall ys k a b,
   compatible a b ->
-  compatible (redexes_apply_parameters ys k a)
-    (redexes_apply_parameters ys k b).
+  compatible (apply_parameters ys k a) (apply_parameters ys k b).
 Proof.
-  induction ys; simpl; intros.
-  - assumption.
-  - apply compatible_subst.
-    apply IHys.
-    assumption.
+  intros.
+  sigma.
+  now apply compatible_inst.
 Qed.
 
 Definition residuals_env: Set :=
@@ -309,7 +442,7 @@ Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
     residuals g
       (redexes_jump r (bound k) xs)
       (redexes_jump true (bound k) xs)
-      (redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c))
+      (apply_parameters xs 0 (lift (S k) (length xs) c))
   | residuals_bind:
     forall g b1 b2 b3 ts c1 c2 c3,
     residuals (Some (length ts, c3) :: g) b1 b2 b3 ->
@@ -460,48 +593,40 @@ Local Hint Resolve residuals_env_item_aux: cps.
 
 Lemma redexes_apply_parameters_distributes_over_jump:
   forall ys k r x xs,
-  redexes_apply_parameters ys k (redexes_jump r x xs) =
+  apply_parameters ys k (redexes_jump r x xs) =
   redexes_jump r (apply_parameters ys k x)
     (map (apply_parameters ys k) xs).
 Proof.
-  induction ys; simpl; intros.
-  - now rewrite map_id.
-  - rewrite IHys; simpl.
-    f_equal.
-    now rewrite map_map.
+  intros.
+  now sigma.
 Qed.
 
 Lemma redexes_apply_parameters_distributes_over_bind:
   forall ys k b ts c,
-  redexes_apply_parameters ys k (redexes_bind b ts c) =
-    redexes_bind (redexes_apply_parameters ys (S k) b)
+  apply_parameters ys k (redexes_bind b ts c) =
+    redexes_bind (apply_parameters ys (S k) b)
       (traverse_list (apply_parameters ys) k ts)
-      (redexes_apply_parameters ys (k + length ts) c).
+      (apply_parameters ys (k + length ts) c).
 Proof.
-  induction ys; simpl; intros.
-  - f_equal; induction ts; auto.
-    simpl; f_equal.
-    assumption.
-  - rewrite IHys; clear IHys; simpl.
-    rewrite traverse_list_length.
-    f_equal.
-    induction ts; auto.
-    simpl.
-    repeat rewrite traverse_list_length.
-    f_equal; auto.
-    do 2 f_equal; lia.
+  intros.
+  sigma; do 3 f_equal.
+  (* TODO: could we please check where have we inverted this bit? *)
+  lia.
 Qed.
 
 Lemma redexes_apply_parameters_distributes_over_itself:
   forall b xs ys k,
-  redexes_apply_parameters xs k (redexes_apply_parameters ys 0 b) =
-    redexes_apply_parameters (map (apply_parameters xs k) ys) 0
-      (redexes_apply_parameters xs (length ys + k) b).
+  apply_parameters xs k (apply_parameters ys 0 b) =
+    apply_parameters (map (apply_parameters xs k) ys) 0
+      (apply_parameters xs (length ys + k) b).
 Proof.
-  (* It would be certainly easier to do this with the sigma calculus machinery,
-     but I'll come to this one later. *)
-  admit.
-Admitted.
+  intros.
+  unfold apply_parameters.
+  sigma.
+  replace (map (subst_app xs subst_ids k) ys) with
+    (smap (subst_app xs subst_ids) k ys) by auto.
+  sigma; repeat f_equal; lia.
+Qed.
 
 Local Lemma technical1:
   forall {T} k a g h,
@@ -533,14 +658,14 @@ Lemma residuals_apply_parameters:
   residuals h c1 c2 c3 ->
   forall xs k g,
   insert (blank (length xs)) k g h ->
-  residuals g (redexes_apply_parameters xs k c1)
-    (redexes_apply_parameters xs k c2) (redexes_apply_parameters xs k c3).
+  residuals g (apply_parameters xs k c1)
+    (apply_parameters xs k c2) (apply_parameters xs k c3).
 Proof.
   induction 1; intros.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
   - admit.
   - admit.
   - do 2 rewrite redexes_apply_parameters_distributes_over_jump.
@@ -562,8 +687,8 @@ Proof.
         (* We have to adjust the term a bit. *)
         rewrite redexes_apply_parameters_distributes_over_itself.
         (* TODO: fix me. *)
-        replace (redexes_apply_parameters ys (length xs + k) (redexes_lift (S n)
-          (length xs) c)) with (redexes_lift (S (n - length ys))
+        replace (apply_parameters ys (length xs + k) (lift (S n)
+          (length xs) c)) with (lift (S (n - length ys))
             (length (map (apply_parameters ys k) xs)) c) by admit.
         (* Now we can make the residual by performing this redex. *)
         constructor.
@@ -583,8 +708,7 @@ Admitted.
 Lemma residuals_lift:
   forall k i g c1 c2 c3,
   residuals (blank k ++ drop i g) c1 c2 c3 ->
-  residuals (blank k ++ g) (redexes_lift i k c1) (redexes_lift i k c2)
-    (redexes_lift i k c3).
+  residuals (blank k ++ g) (lift i k c1) (lift i k c2) (lift i k c3).
 Proof.
   admit.
 Admitted.
@@ -662,8 +786,7 @@ Proof.
     eapply residuals_sanity in H3 as (c2, ?, ?); eauto.
     apply residuals_lift in H1.
     eapply residuals_apply_parameters with (k := 0) (g := q) (xs := xs) in H1.
-    + replace d with (redexes_apply_parameters xs 0 (redexes_lift (S k)
-        (length xs) c2)).
+    + replace d with (apply_parameters xs 0 (lift (S k) (length xs) c2)).
       * now constructor.
       * eapply residuals_is_unique; eauto.
     + constructor.
@@ -675,8 +798,7 @@ Proof.
     eapply residuals_sanity in H4 as (c4, ?, ?); eauto.
     apply residuals_lift in H4.
     eapply residuals_apply_parameters with (k := 0) (g := q) (xs := xs) in H4.
-    + replace d with (redexes_apply_parameters xs 0 (redexes_lift (S k)
-        (length xs) c4)).
+    + replace d with (apply_parameters xs 0 (lift (S k) (length xs) c4)).
       * (* Sigh... TODO: refactor me, please? *)
         eapply residuals_sanity in H5 as (c4', ?, ?); eauto.
         assert (c4' = c4) by eauto with cps; subst.
@@ -1160,8 +1282,7 @@ Fixpoint redexes_context_bvars h: nat :=
     redexes_context_bvars c + length ts
   end.
 
-Notation RAP xs k c :=
-  (redexes_apply_parameters xs 0 (redexes_lift (S k) (length xs) c)).
+Notation RAP xs k c := (apply_parameters xs 0 (lift (S k) (length xs) c)).
 
 (* -------------------------------------------------------------------------- *)
 

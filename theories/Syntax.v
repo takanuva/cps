@@ -222,21 +222,21 @@ Proof.
 Qed.
 
 Lemma inst_distributes_over_negation:
-  forall (s: substitution) ts,
+  forall s ts,
   inst s (negation ts) = negation (bsmap s 0 ts).
 Proof.
   auto.
 Qed.
 
 Lemma inst_distributes_over_jump:
-  forall (s: substitution) x xs,
+  forall s x xs,
   inst s (jump x xs) = jump (s 0 x) (smap s 0 xs).
 Proof.
   auto.
 Qed.
 
 Lemma inst_distributes_over_bind:
-  forall (s: substitution) b ts c,
+  forall s b ts c,
   inst s (bind b ts c) = bind (s 1 b) (bsmap s 0 ts) (s (length ts) c).
 Proof.
   auto.
