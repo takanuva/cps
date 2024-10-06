@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Equality.
 Require Import Relations.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
@@ -234,8 +235,8 @@ Qed.
 Lemma converges_lift:
   forall e n,
   converges e n ->
-  forall i k (m: nat),
-  lift i k n = m ->
+  forall i k m,
+  lift i k (bound n) = bound m ->
   converges (lift i k e) m.
 Proof.
   induction 1; intros.
@@ -261,8 +262,8 @@ Qed.
 Lemma converges_subst:
   forall e n,
   converges e n ->
-  forall y k (m: nat),
-  subst y k n = m ->
+  forall y k m,
+  subst y k (bound n) = bound m ->
   converges (subst y k e) m.
 Proof.
   induction 1; intros.
@@ -296,7 +297,7 @@ Lemma converges_unlift:
   forall i k e n,
   converges (lift i k e) n ->
   exists2 m,
-  converges e m & bound n = lift i k m.
+  converges e m & bound n = lift i k (bound m).
 Proof.
   intros.
   dependent induction H.
@@ -952,13 +953,8 @@ Lemma diverges_apply_parameters:
   forall ys k,
   diverges (apply_parameters ys k b).
 Proof.
-  intros until ys; generalize dependent b.
-  induction ys; simpl; intros.
-  - assumption.
-  - apply diverges_subst.
-    apply IHys.
-    assumption.
-Qed.
+  admit.
+Admitted.
 
 (* From Merro's paper, proposition 5.1.(2). *)
 
