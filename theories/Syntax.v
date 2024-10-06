@@ -167,51 +167,6 @@ Global Instance pseudoterm_dbVar: dbVar pseudoterm :=
 Global Instance pseudoterm_dbTraverse: dbTraverse pseudoterm pseudoterm :=
   traverse.
 
-Global Instance pseudoterm_dbVarLaws: dbVarLaws pseudoterm.
-Proof.
-  split; auto.
-Qed.
-
-Global Instance pseudoterm_dbTraverseLaws: dbTraverseLaws pseudoterm pseudoterm.
-Proof.
-  split; unfold Substitution.traverse; intros.
-  - generalize dependent k.
-    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
-    + f_equal.
-      list induction over H0.
-    + f_equal; auto.
-      list induction over H0.
-    + f_equal; auto.
-      list induction over H0.
-  - apply H with (x := n).
-  - generalize dependent j.
-    generalize dependent k.
-    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
-    + apply H with (l := 0).
-    + f_equal.
-      list induction over H.
-      admit.
-    + f_equal; auto.
-      list induction over H.
-    + f_equal; auto.
-      * apply IHx1; intros.
-        admit.
-      * list induction over H.
-        admit.
-      * apply IHx2; intros.
-        admit.
-  - generalize dependent k.
-    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
-    + f_equal.
-      list induction over H.
-      admit.
-    + f_equal; auto.
-      list induction over H.
-    + f_equal; auto.
-      * admit.
-      * admit.
-Admitted.
-
 (* -------------------------------------------------------------------------- *)
 
 Lemma bound_var_equality_stuff:

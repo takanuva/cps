@@ -25,6 +25,66 @@ Proof.
   - f_equal; assumption.
 Qed.
 
+Global Instance pseudoterm_dbVarLaws: dbVarLaws pseudoterm.
+Proof.
+  split; auto.
+Qed.
+
+Global Instance pseudoterm_dbTraverseLaws: dbTraverseLaws pseudoterm pseudoterm.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + f_equal.
+      list induction over H0.
+    + f_equal; auto.
+      list induction over H0.
+    + f_equal; auto.
+      list induction over H0.
+  - apply H with (x := n).
+  - generalize dependent j.
+    generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + apply H with (l := 0).
+    + f_equal.
+      list induction over H.
+      repeat rewrite traverse_list_length.
+      apply H; intros h n.
+      now do 2 rewrite Nat.add_assoc.
+    + f_equal; auto.
+      list induction over H.
+    + f_equal; auto.
+      * apply IHx1; intros.
+        replace (l + S k) with (S l + k) by lia.
+        replace (l + S j) with (S l + j) by lia.
+        apply H0.
+      * list induction over H.
+        repeat rewrite traverse_list_length.
+        apply H; intros h n.
+        now do 2 rewrite Nat.add_assoc.
+      * apply IHx2; intros.
+        replace (l + (k + length ts)) with
+          (l + length ts + k) by lia.
+        replace (l + (j + length ts)) with
+          (l + length ts + j) by lia.
+        apply H0.
+  - generalize dependent k.
+    induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
+    + f_equal.
+      list induction over H.
+      repeat rewrite traverse_list_length.
+      apply H.
+    + f_equal; auto.
+      list induction over H.
+    + f_equal; auto.
+      * induction H; auto.
+        simpl.
+        repeat rewrite traverse_list_length.
+        f_equal; auto.
+      * repeat rewrite traverse_list_length.
+        apply IHx2.
+Qed.
+
 (* TODO: move the two following lemmas about sequences elsewhere, as we might
    need those for other calculi... I'm guessing. *)
 
