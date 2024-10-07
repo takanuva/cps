@@ -1341,3 +1341,34 @@ Proof.
   assert (length (high_sequence i) = i) by apply sequence_length.
   now sigma.
 Qed.
+
+Lemma switch_bindings_characterization:
+  forall k e,
+  switch_bindings k e = subst (bound 1) k (lift 1 (2 + k) e).
+Proof with modulo_arith.
+  intros.
+  sigma.
+  replace (S (S k) - k - 1) with 1 by lia.
+  generalize dependent k.
+  induction e using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - unfold switch_bindings.
+    destruct (le_gt_dec k n).
+    + remember (n - k) as o.
+      destruct o.
+      * now sigma.
+      * destruct o; sigma...
+    + now sigma.
+  - sigma; f_equal.
+    induction H; auto.
+    sigma; f_equal; auto.
+  - sigma; f_equal; auto.
+    induction H; auto.
+    sigma; f_equal; auto.
+  - sigma; f_equal; auto.
+    induction H; auto.
+    sigma; f_equal; auto.
+Qed.
