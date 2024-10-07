@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
@@ -291,23 +292,21 @@ Lemma cbn_cps_lift:
   forall e c,
   cbn_cps e c ->
   forall i k,
-  cbn_cps (lift i k e) (CPS.lift i (S k) c).
+  cbn_cps (lift i k e) (lift i (S k) c).
 Proof.
   induction 1; simpl; intros.
   - destruct (le_gt_dec k n).
-    + rewrite lift_distributes_over_jump; simpl.
-      rewrite lift_bound_ge; try lia.
-      rewrite lift_bound_lt; try lia.
-      replace (i + S n) with (S (i + n)); try lia.
+    + sigma.
+      replace (k + (i + n) - k) with (i + n) by lia.
       constructor.
-    + rewrite lift_distributes_over_jump; simpl.
-      rewrite lift_bound_lt; try lia.
-      rewrite lift_bound_lt; try lia.
+    + sigma.
       constructor.
   - rewrite lift_distributes_over_bind.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
+    replace (lift i k (abstraction t e)) with
+      (abstraction t (lift i (S k) e)) by now sigma.
     constructor.
     rewrite lift_lift_permutation; try lia.
     replace (k + 2) with (2 + k); simpl; try lia.
@@ -318,6 +317,8 @@ Proof.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
+    replace (lift i k (application f x)) with
+      (application (lift i k f) (lift i k x)) by now sigma.
     constructor.
     + rewrite lift_lift_permutation; try lia.
       apply IHcbn_cps1; lia.
@@ -355,7 +356,7 @@ Lemma cbn_cps_lift_inversion:
   forall i k e b,
   cbn_cps (lift i k e) b ->
   exists2 c,
-  cbn_cps e c & b = CPS.lift i (S k) c.
+  cbn_cps e c & b = lift i (S k) c.
 Proof.
   intros.
   assert (exists c, cbn_cps e c) as (c, ?).
@@ -500,7 +501,7 @@ Qed.
 (* TODO: move me above. *)
 
 Local Notation SUBST b1 b2 :=
-  (bind (switch_bindings 0 b1) [void] (CPS.lift 1 1 b2)).
+  (bind (switch_bindings 0 b1) [void] (lift 1 1 b2)).
 
 Local Lemma cbn_linear_jump_inversion:
   forall (h: context) k b,
@@ -509,7 +510,7 @@ Local Lemma cbn_linear_jump_inversion:
   b = r (jump (1 + k + #r) [CPS.bound 0]) &
     forall e c,
     cbn_cps e c ->
-    cbn_cps (h (lift (context_bvars h) 0 e)) (r (CPS.lift #r 1 c)).
+    cbn_cps (h (lift (context_bvars h) 0 e)) (r (lift #r 1 c)).
 Proof.
   intros h.
   remember (context_depth h) as n.
@@ -531,12 +532,11 @@ Proof.
       simpl; lia.
     + reflexivity.
     + rewrite context_lift_bvars.
-      simpl in H0.
-      destruct (le_gt_dec (context_bvars h + 1) (k + S (context_bvars h))).
-      * replace (S (k + S (context_bvars h))) with (2 + k + context_bvars h)
-          in H0 by lia.
-        eassumption.
-      * exfalso; lia.
+      (* TODO: we need a "sigma in" tactic!!! *)
+      rewrite_strat topdown (hints sigma) in H0; simpl in H0.
+      replace (context_bvars h + 1 + S (k + S (context_bvars h) -
+        (context_bvars h + 1))) with (2 + k + context_bvars h) in H0 by lia.
+      eassumption.
     + subst.
       eexists (Context.context_right _ _ r); simpl; intros.
       * f_equal; simpl; do 3 f_equal.
@@ -560,12 +560,11 @@ Proof.
     + reflexivity.
     + rewrite Nat.add_0_r in H0_.
       rewrite context_lift_bvars.
-      simpl in H0_.
-      destruct (le_gt_dec (context_bvars h) (k + context_bvars h)).
-      * replace (S (k + context_bvars h)) with (1 + k + context_bvars h)
-          in H0_ by lia.
-        eassumption.
-      * exfalso; lia.
+      (* TODO: we need a "sigma in" tactic!!! *)
+      rewrite_strat topdown (hints sigma) in H0_; simpl in H0_.
+      replace (context_bvars h + S (k + context_bvars h - context_bvars h)) with
+        (1 + k + context_bvars h) in H0_ by lia.
+      eassumption.
     + subst.
       eexists (Context.context_left r _ _); simpl; intros.
       * f_equal; simpl; do 3 f_equal.
@@ -590,12 +589,11 @@ Proof.
     + reflexivity.
     + rewrite Nat.add_0_r in H0_0.
       rewrite context_lift_bvars.
-      simpl in H0_0.
-      destruct (le_gt_dec (context_bvars h) (k + context_bvars h)).
-      * replace (S (S (k + context_bvars h))) with (2 + k + context_bvars h)
-          in H0_0 by lia.
-        eassumption.
-      * exfalso; lia.
+      (* TODO: we need a "sigma in" tactic!!! *)
+      rewrite_strat topdown (hints sigma) in H0_0; simpl in H0_0.
+      replace (context_bvars h + S (S (k + context_bvars h - context_bvars h)))
+        with (2 + k + context_bvars h) in H0_0 by lia.
+      eassumption.
     + subst.
       eexists (Context.context_right _ _ (Context.context_right _ _ r)); simpl;
         intros.
@@ -629,10 +627,10 @@ Proof.
 Qed.
 
 Local Lemma technical1:
-  forall b n k,
-  CPS.subst (CPS.subst 1 n 0) k
-    (CPS.lift (2 + n) (1 + k) b) =
-  CPS.subst 1 (k + n) (CPS.lift (2 + n) (1 + k) b).
+  forall (b: pseudoterm) n k,
+  subst (subst (CPS.bound 1) n (CPS.bound 0)) k
+    (lift (2 + n) (1 + k) b) =
+  subst (CPS.bound 1) (k + n) (lift (2 + n) (1 + k) b).
 Proof.
   (* TODO: sigma CAN'T solve this one! Figure out why! *)
   induction b using pseudoterm_deepind; intros.
@@ -728,10 +726,9 @@ Proof.
       rewrite lift_zero_e_equals_e in H2.
       apply cbn_cps_lift_inversion in H0 as (b, ?, ?); subst.
       assert (b = c) by eauto with cps; subst.
-      unfold remove_binding, switch_bindings.
-      rewrite Metatheory.lift_lift_simplification by lia; simpl.
-      (* Sigma agrees this is true! *)
-      admit.
+      unfold remove_binding.
+      rewrite switch_bindings_characterization.
+      now sigma.
   (* Case: succ. *)
   - (* If our term is [b1] { x<k> = [b2] }, with x appearing free in b1, then it
        means there is a context C such that the term is [C[x]] { x<k> = [b2] },
@@ -753,7 +750,7 @@ Proof.
       rewrite lift_lift_simplification in H5 by lia.
       rewrite Metatheory.lift_lift_simplification in H5 by lia.
       rewrite Nat.add_comm in H5.
-      replace b1' with (r (Syntax.lift (#r + 1) 1 b2)) by eauto with cps.
+      replace b1' with (r (lift (#r + 1) 1 b2)) by eauto with cps.
       (* Now it's just a matter to show that the hygiene conditions guarantee
          that our jump can happen safely. Again, just de Bruijn gimmick! *)
       do 2 rewrite context_switch_bindings_is_sound.
@@ -761,22 +758,24 @@ Proof.
       rewrite switch_bindings_distributes_over_jump.
       evar (j: pseudoterm).
       evar (b2': pseudoterm).
-      replace (switch_bindings #r (S #r)) with ?j; [
-        replace (switch_bindings #r (Syntax.lift (#r + 1) 1 b2)) with ?b2' |].
+      replace (switch_bindings #r (CPS.bound (S #r))) with ?j; [
+        replace (switch_bindings #r (lift (#r + 1) 1 b2)) with ?b2' |].
       * apply star_ctxjmp.
         reflexivity.
       * simpl.
         rewrite context_switch_bindings_bvars.
-        unfold switch_bindings.
+        repeat rewrite switch_bindings_characterization.
         rewrite Metatheory.lift_lift_simplification by lia.
         rewrite Metatheory.lift_lift_simplification by lia.
         rewrite Metatheory.lift_bound_lt by lia.
         (* Same term! *)
         replace (S #r + 1) with (2 + #r) by lia.
         replace (1 + (#r + 1)) with (2 + #r) by lia.
+        rewrite apply_parameters_cons.
+        rewrite apply_parameters_nil.
         apply technical1.
       * rewrite context_switch_bindings_bvars.
-        unfold switch_bindings.
+        rewrite switch_bindings_characterization.
         rewrite Metatheory.lift_bound_lt by lia.
         rewrite Metatheory.subst_bound_gt by lia.
         reflexivity.
@@ -797,7 +796,10 @@ Lemma cbn_simulates_beta:
   comp t(head) star b c.
 Proof.
   intros.
-  do 2 dependent destruction H.
+  dependent destruction H.
+  replace (lift 1 0 (abstraction t e)) with
+    (abstraction t (lift 1 1 e)) in H by now sigma.
+  dependent destruction H.
   rewrite lift_lift_simplification in H; auto.
   apply cbn_cps_lift_inversion in H as (b1, ?, ?).
   apply cbn_cps_lift_inversion in H0 as (b2, ?, ?).
@@ -834,7 +836,7 @@ Lemma head_lift:
   forall b c,
   head b c ->
   forall i k,
-  head (CPS.lift i k b) (CPS.lift i k c).
+  head (lift i k b) (lift i k c).
 Proof.
   admit.
 Admitted.
@@ -845,12 +847,12 @@ Lemma t_head_lift:
   forall b c,
   t(head) b c ->
   forall i k,
-  t(head) (CPS.lift i k b) (CPS.lift i k c).
+  t(head) (lift i k b) (lift i k c).
 Proof.
   induction 1; intros.
   - apply t_step.
     now apply head_lift.
-  - now apply t_trans with (CPS.lift i k y).
+  - now apply t_trans with (lift i k y).
 Qed.
 
 (* TODO: move me! *)
@@ -1295,8 +1297,7 @@ Proof.
     destruct H; subst; rename b0 into e.
     assert (x = c); eauto with cps; subst.
     apply uniform_normalization.
-    eapply SN_preimage with (f := fun c =>
-      bind _ _ (CPS.lift 1 2 c));
+    eapply SN_preimage with (f := fun c => bind _ _ (lift 1 2 c));
     eauto; intros.
     apply beta_bind_right.
     apply beta_lift.
@@ -1307,8 +1308,7 @@ Proof.
     destruct H; subst; rename x0 into b.
     assert (c0 = b); eauto with cps; subst.
     apply uniform_normalization.
-    eapply SN_preimage with (f := fun b =>
-      bind (CPS.lift 1 1 b) _ _);
+    eapply SN_preimage with (f := fun b => bind (lift 1 1 b) _ _);
     eauto; intros.
     apply beta_bind_left.
     apply beta_lift.
@@ -1319,8 +1319,7 @@ Proof.
     destruct H0; subst; rename x0 into c.
     assert (c0 = c); eauto with cps; subst.
     apply uniform_normalization.
-    eapply SN_preimage with (f := fun c =>
-      bind _ _ (bind _ _ (CPS.lift 2 1 c)));
+    eapply SN_preimage with (f := fun c => bind _ _ (bind _ _ (lift 2 1 c)));
     eauto; intros.
     apply beta_bind_right.
     apply beta_bind_right.

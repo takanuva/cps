@@ -6,13 +6,14 @@ Require Import Lia.
 Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Context.
 (* TODO: remove this one. *)
 Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Metatheory.
-Require Import Local.AbstractRewriting.
 Require Import Local.Observational.
 Require Import Local.Conservation.
 (* TODO: will we need this one...? *)
@@ -90,8 +91,9 @@ Lemma head_apply_parameters:
   head (apply_parameters xs k b) (apply_parameters xs k c).
 Proof.
   induction xs; simpl; intros.
-  - assumption.
-  - apply head_subst.
+  - now repeat rewrite apply_parameters_nil.
+  - repeat rewrite apply_parameters_cons.
+    apply head_subst.
     apply IHxs.
 Qed.
 
@@ -414,23 +416,18 @@ Lemma cbv_cps_lift:
   forall e c,
   cbv_cps e c ->
   forall i k,
-  cbv_cps (lift i k e) (CPS.lift i (S k) c).
+  cbv_cps (lift i k e) (lift i (S k) c).
 Proof.
-  induction 1; simpl; intros.
+  induction 1; intros.
   - destruct (le_gt_dec k n).
-    + rewrite lift_distributes_over_jump; simpl.
-      rewrite lift_bound_lt; try lia.
-      rewrite lift_bound_ge; try lia.
-      replace (i + S n) with (S (i + n)); try lia.
-      constructor.
-    + rewrite lift_distributes_over_jump; simpl.
-      rewrite lift_bound_lt; try lia.
-      rewrite lift_bound_lt; try lia.
-      constructor.
+    + sigma; constructor.
+    + sigma; constructor.
   - rewrite lift_distributes_over_bind.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
+    replace (lift i k (abstraction t e)) with
+      (abstraction t (lift i (S k) e)) by now sigma.
     constructor.
     rewrite lift_lift_permutation; try lia.
     replace (k + 2) with (2 + k); simpl; try lia.
@@ -441,6 +438,8 @@ Proof.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
     rewrite lift_bound_lt; try lia.
+    replace (lift i k (application f x)) with
+      (application (lift i k f) (lift i k x)) by now sigma.
     constructor.
     + rewrite lift_lift_permutation; try lia.
       apply IHcbv_cps1; lia.
@@ -478,7 +477,7 @@ Lemma cbv_cps_lift_inversion:
   forall i k e b,
   cbv_cps (lift i k e) b ->
   exists2 c,
-  cbv_cps e c & b = CPS.lift i (S k) c.
+  cbv_cps e c & b = lift i (S k) c.
 Proof.
   intros.
   assert (exists c, cbv_cps e c) as (c, ?).
@@ -650,7 +649,7 @@ Conjecture R_lift:
   forall b c,
   R b c ->
   forall i k,
-  R (CPS.lift i k b) (CPS.lift i k c).
+  R (lift i k b) (lift i k c).
 
 Lemma rt_R_bind_left:
   LEFT rt(R).
@@ -676,13 +675,13 @@ Lemma rt_R_lift:
   forall b c,
   rt(R) b c ->
   forall i k,
-  rt(R) (CPS.lift i k b) (CPS.lift i k c).
+  rt(R) (lift i k b) (lift i k c).
 Proof.
   induction 1; intros.
   - apply rt_step.
     now apply R_lift.
   - apply rt_refl.
-  - now apply rt_trans with (CPS.lift i k y).
+  - now apply rt_trans with (lift i k y).
 Qed.
 
 Lemma cbv_simulates_betav:
@@ -803,18 +802,18 @@ Proof.
       by auto.
     apply star_ctxjmp.
     reflexivity.
-  - (* TODO: not the best way, but hopefully I'll replace this by sigma. *)
-    compute.
-    set (b := jump 1 [CPS.bound 2; CPS.bound 0]).
-    set (c := bind (jump 0 [CPS.bound (S (S (S m)))]) [void] b).
-    set (d := jump (S (S (S n))) [CPS.bound 2; CPS.bound 0]).
+  - simpl.
+    unfold apply_parameters.
+    sigma.
+    replace (inst _ void) with void by auto.
     apply star_bind_left.
-    replace (jump 0 [CPS.bound (S (S (S m)))]) with
+    replace (jump (var 0) [var (S (S (S m)))]) with
       (Context.context_hole (jump 0 [CPS.bound (S (S (S m)))])) by auto.
     apply star_ctxjmp.
     reflexivity.
-  - (* TODO: ditto... *)
-    compute.
+  - simpl.
+    unfold apply_parameters.
+    sigma.
     do 3 constructor.
 Qed.
 
@@ -823,8 +822,8 @@ Local Lemma technical2:
   weakly_converges
     (bind (jump 0 [CPS.bound (S (S n))]) [void]
       (bind
-        (CPS.lift 2 1 (bind (jump 1 [CPS.bound 0])
-          [void; void] (CPS.lift 1 2 b)))
+        (lift 2 1 (bind (jump 1 [CPS.bound 0])
+          [void; void] (lift 1 2 b)))
         [void] (jump 1 [CPS.bound 2; CPS.bound 0]))) (1 + n).
 Proof.
   intros.
@@ -848,6 +847,8 @@ Proof.
     apply star_ctxjmp.
     reflexivity.
   - simpl.
+    rewrite apply_parameters_cons.
+    rewrite apply_parameters_nil.
     apply star_bind_left.
     rewrite lift_distributes_over_bind; simpl.
     rewrite Metatheory.lift_lift_simplification by lia; simpl.
@@ -857,10 +858,10 @@ Proof.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt by lia.
     rewrite lift_bound_lt by lia.
-    replace (Syntax.subst (CPS.bound (S (S n))) 0 (Syntax.lift 1 1 void))
-      with void by now compute.
-    replace (Syntax.lift 2 2 void) with void by now compute.
-    replace (Syntax.lift 2 1 void) with void by now compute.
+    replace (subst (CPS.bound (S (S n))) 0 (lift 1 1 void))
+      with void by auto.
+    replace (lift 2 2 void) with void by auto.
+    replace (lift 2 1 void) with void by auto.
     rewrite Metatheory.lift_lift_simplification by lia; simpl.
     rewrite lift_distributes_over_jump; simpl.
     rewrite lift_bound_lt by lia.
@@ -872,12 +873,15 @@ Proof.
     rewrite subst_bound_gt by lia; simpl.
     rewrite subst_bound_lt by lia; simpl.
     set (c := (jump (S (S (S n))) [CPS.bound 2; CPS.bound 0])).
-    replace (bind (jump 1 [CPS.bound 0]) [void; void] (Syntax.lift 3 2 b)) with
-      (context_left Context.context_hole [void; void] (Syntax.lift 3 2 b)
+    replace (bind (jump 1 [CPS.bound 0]) [void; void] (lift 3 2 b)) with
+      (context_left Context.context_hole [void; void] (lift 3 2 b)
       (jump 1 [CPS.bound 0])) by auto.
     apply star_ctxjmp.
     reflexivity.
   - simpl.
+    rewrite apply_parameters_cons.
+    rewrite apply_parameters_nil.
+    sigma.
     do 4 constructor.
 Qed.
 
@@ -886,7 +890,7 @@ Local Lemma technical3:
   weakly_converges b (1 + k) ->
   weakly_converges
     (bind (jump 0 [CPS.bound (S (S n))]) [void]
-       (bind (CPS.lift 2 1 b) [void]
+       (bind (lift 2 1 b) [void]
           (jump 1 [CPS.bound 2; CPS.bound 0])))
     (1 + k).
 Proof.
@@ -912,6 +916,8 @@ Proof.
     apply star_ctxjmp.
     reflexivity.
   - constructor; simpl.
+    rewrite apply_parameters_cons.
+    rewrite apply_parameters_nil.
     rewrite lift_distributes_over_bind.
     rewrite subst_distributes_over_bind.
     constructor.
@@ -930,7 +936,7 @@ Local Lemma technical4:
   weakly_converges
     (bind (bind (jump 1 [CPS.bound 0]) [void; void] b)
        [void]
-       (bind (CPS.lift 2 1 c) [void]
+       (bind (lift 2 1 c) [void]
           (jump 1 [CPS.bound 2; CPS.bound 0])))
     (1 + k).
 Proof.
@@ -957,6 +963,8 @@ Proof.
      apply star_ctxjmp.
      reflexivity.
    - simpl.
+     rewrite apply_parameters_cons.
+     rewrite apply_parameters_nil.
      do 2 constructor.
      rewrite lift_distributes_over_bind.
      rewrite Metatheory.lift_lift_simplification by lia; simpl.
@@ -972,7 +980,7 @@ Local Lemma technical5:
   forall b c k,
   weakly_converges b (1 + k) ->
   weakly_converges
-    (bind (CPS.lift 1 1 b) [void]
+    (bind (lift 1 1 b) [void]
        (bind c [void]
           (jump 1 [CPS.bound 2; CPS.bound 0])))
     (1 + k).
