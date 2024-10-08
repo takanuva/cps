@@ -9,6 +9,7 @@ Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 
 Export ListNotations.
 
@@ -39,48 +40,56 @@ Definition bound_output (n: nat) (ts: list type) (p: term) :=
   in fold_left (fun e t => restriction t e) ts
     (parallel (output (length ts + n) (sequence 0 (length ts))) p).
 
-Fixpoint lift (i: nat) (k: nat) (e: term): term :=
-  let conv n :=
-    if le_gt_dec k n then
-      i + n
-    else
-      n
-  in match e with
+Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
+  match e with
   | inactive =>
     inactive
   | restriction t p =>
-    restriction t (lift i (S k) p)
+    restriction t (traverse f (S k) p)
   | parallel p q =>
-    parallel (lift i k p) (lift i k q)
-  | input k ts p =>
-    input (conv k) ts (lift i (length ts + k) p)
-  | output k ns =>
-    output (conv k) (map conv ns)
+    parallel (traverse f k p) (traverse f k q)
+  | input n ts p =>
+    input (f k n) ts (traverse f (length ts + k) p)
+  | output n ns =>
+    output (f k n) (map (f k) ns)
   | replication p =>
-    replication (lift i k p)
+    replication (traverse f k p)
   end.
 
-Fixpoint subst (y: nat) (k: nat) (e: term): term :=
-  let conv n :=
-    match lt_eq_lt_dec k n with
-    | inleft (left _) => pred n
-    | inleft (right _) => k + y
-    | inright _ => n
-    end
-  in match e with
-  | inactive =>
-    inactive
-  | restriction t p =>
-    restriction t (subst y (S k) p)
-  | parallel p q =>
-    parallel (subst y k p) (subst y k q)
-  | input k ts p =>
-    input (conv k) ts (subst y (length ts + k) p)
-  | output k ns =>
-    output (conv k) (map conv ns)
-  | replication p =>
-    replication (subst y k p)
-  end.
+Global Instance pi_dbTraverse: dbTraverse term nat :=
+  traverse.
+
+Global Instance pi_dbTraverseLaws: dbTraverseLaws term nat.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - generalize dependent k.
+    induction x; intros; simpl; auto;
+    f_equal; auto.
+    induction ns; auto; simpl;
+    f_equal; auto.
+  - specialize (H k (output n [])).
+    dependent destruction H.
+    assumption.
+  - generalize dependent j.
+    generalize dependent k.
+    induction x; intros; simpl; auto;
+    f_equal; auto.
+    + apply IHx; intros.
+      replace (l + S k) with (S l + k) by lia.
+      replace (l + S j) with (S l + j) by lia.
+      apply H.
+    + apply H with (l := 0).
+    + apply IHx; intros.
+      do 2 rewrite Nat.add_assoc.
+      apply H.
+    + apply H with (l := 0).
+    + induction ns; auto; simpl; f_equal; auto.
+      apply H with (l := 0).
+  - generalize dependent k.
+    induction x; intros; simpl; auto;
+    f_equal; auto.
+    now rewrite map_map.
+Qed.
 
 (* Lemma type_eq_dec:
   forall t1 t2: type,
