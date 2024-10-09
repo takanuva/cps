@@ -38,7 +38,7 @@ Global Instance nat_dbVar: dbVar nat :=
 Global Instance nat_dbTraverse: dbTraverse nat nat :=
   fun f k n => f k n.
 
-Section DeBruijn.
+Section Core.
 
   Context {X: Type}.
   Context {Y: Type}.
@@ -127,7 +127,7 @@ Section DeBruijn.
         traverse (fun j n => traverse f j (g j n)) k x
   }.
 
-End DeBruijn.
+End Core.
 
 Local Tactic Notation "simplify" "decidable" "cases" :=
   repeat progress match goal with
@@ -143,7 +143,7 @@ Local Tactic Notation "simplify" "decidable" "cases" :=
       [ idtac | exfalso; lia ])
   end.
 
-Section Sigma.
+Section DeBruijn.
 
   Definition subst_equiv {Y} (s: substitution) (t: substitution): Prop :=
     forall X: Type,
@@ -156,19 +156,6 @@ Section Sigma.
     forall (k: nat) (x: X),
     inst_rec s k x = inst_rec t k x.
 
-  Global Instance subst_equivalence:
-    forall Y,
-    Equivalence (@subst_equiv Y).
-  Proof.
-    split; repeat intro.
-    - congruence.
-    - symmetry.
-      now apply H.
-    - transitivity (y k x0).
-      + now apply H.
-      + now apply H0.
-  Qed.
-
   Variable X: Type.
   Variable Y: Type.
 
@@ -176,20 +163,6 @@ Section Sigma.
   Implicit Types y: Y.
   Implicit Types s t u v: @substitution Y.
   Implicit Types n m i k j l: nat.
-
-  Context `{vY: dbVar Y}.
-  Context `{tYY: dbTraverse Y Y}.
-  Context `{tXY: dbTraverse X Y}.
-  Context `{vYLaws: @dbVarLaws Y vY tYY}.
-  Context `{tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
-  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
-
-  Global Instance inst_proper:
-    Proper (@subst_equiv Y ==> eq ==> eq) inst.
-  Proof.
-    intros s t ? x _ ().
-    now apply H.
-  Qed.
 
   Global Instance subst_app_proper:
     Proper (eq ==> @subst_equiv Y ==> @subst_equiv Y) subst_app.
@@ -230,6 +203,32 @@ Section Sigma.
     - reflexivity.
   Qed.
 
+  Global Instance subst_equivalence:
+    Equivalence (@subst_equiv Y).
+  Proof.
+    split; repeat intro.
+    - congruence.
+    - symmetry.
+      now apply H.
+    - transitivity (y k x0).
+      + now apply H.
+      + now apply H0.
+  Qed.
+
+  Context {vY: dbVar Y}.
+  Context {tYY: dbTraverse Y Y}.
+  Context {tXY: dbTraverse X Y}.
+  Context {vYLaws: @dbVarLaws Y vY tYY}.
+  Context {tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
+  Context {tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
+
+  Global Instance inst_proper:
+    Proper (@subst_equiv Y ==> eq ==> eq) inst.
+  Proof.
+    intros s t ? x _ ().
+    now apply H.
+  Qed.
+
   (* ---------------------------------------------------------------------- *)
 
   Lemma sigma_lift_unfold:
@@ -246,7 +245,7 @@ Section Sigma.
     auto.
   Qed.
 
-  Local Lemma inst_fun_bvar_simpl:
+  Local Lemma sigma_bvar_simpl:
     forall s k n,
     n < k ->
     inst_fun s k n = var n.
@@ -260,20 +259,18 @@ Section Sigma.
     - now simplify decidable cases.
   Qed.
 
-  Lemma sigma_bvar_simpl:
-    forall s k n,
-    n < k ->
-    s k (var n) = var n.
+  Lemma sigma_lift_zero:
+    forall k x,
+    lift 0 k x = x.
   Proof.
     intros.
-    unfold inst_rec.
-    rewrite traverse_var.
-    now apply inst_fun_bvar_simpl.
+    apply traverse_ids.
+    clear k x; intros.
+    unfold lift_fun; simpl.
+    now destruct (le_gt_dec k n).
   Qed.
 
-  (* ---------------------------------------------------------------------- *)
-
-  Lemma subst_ids_simpl:
+  Local Lemma sigma_ids_simpl:
     forall k x,
     subst_ids k x = x.
   Proof.
@@ -283,15 +280,7 @@ Section Sigma.
     now destruct (le_gt_dec k n).
   Qed.
 
-  Lemma subst_lift_inst_commute:
-    forall s x i k j,
-    k <= j ->
-    lift i k (s j x) = s (i + j) (lift i k x).
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_upn_simpl:
+  Local Lemma sigma_upn_simpl:
     forall i k s x,
     subst_upn i s k x = s (i + k) x.
   Proof.
@@ -300,8 +289,51 @@ Section Sigma.
     simpl.
     destruct (le_gt_dec (l + k) n).
     - f_equal; lia.
-    - now rewrite inst_fun_bvar_simpl by lia.
+    - now rewrite sigma_bvar_simpl by lia.
   Qed.
+
+  Local Lemma sigma_inst_comp:
+    forall s t x,
+    inst (subst_comp s t) x = inst t (inst s x).
+  Proof.
+    intros.
+    unfold inst, inst_rec; simpl.
+    rewrite traverse_fun.
+    apply traverse_ext; intros.
+    rewrite Nat.add_0_r.
+    destruct (le_gt_dec l n).
+    - reflexivity.
+    - rewrite sigma_bvar_simpl by lia.
+      rewrite traverse_var.
+      now rewrite sigma_bvar_simpl by lia.
+  Qed.
+
+  Local Lemma sigma_lift_inst_commute:
+    forall s i k j x,
+    k <= j ->
+    lift i k (s j x) = s (i + j) (lift i k x).
+  Proof.
+    admit.
+  Admitted.
+
+End DeBruijn.
+
+Section Sigma.
+
+  Variable X: Type.
+  Variable Y: Type.
+
+  Implicit Types x: X.
+  Implicit Types y: Y.
+  Implicit Types s t u v: @substitution Y.
+  Implicit Types n m i k j l: nat.
+
+  Context {vY: dbVar Y}.
+  Context {tYY: dbTraverse Y Y}.
+  Context {tXY: dbTraverse X Y}.
+  Context {vYLaws: @dbVarLaws Y vY tYY}.
+  Context {tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
+  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
 
   (* Replace de Bruijn substitution notation to the default instantiation. *)
 
@@ -311,7 +343,7 @@ Section Sigma.
   Proof.
     intros.
     unfold inst.
-    rewrite subst_upn_simpl.
+    rewrite sigma_upn_simpl by auto.
     now rewrite Nat.add_0_r.
   Qed.
 
@@ -320,8 +352,9 @@ Section Sigma.
     forall x,
     inst subst_ids x = x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    now apply sigma_ids_simpl.
+  Qed.
 
   (* FVarCons: 0[y, s] = y *)
   Lemma subst_FVarCons:
@@ -329,8 +362,14 @@ Section Sigma.
     n = 0 ->
     inst (subst_app (y :: ys) s) (var n) = y.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    rewrite traverse_var.
+    subst; simpl.
+    apply traverse_ids; intros.
+    unfold lift_fun.
+    now destruct (le_gt_dec k n).
+  Qed.
 
   (* RVarCons: (1+n)[y, s] = n[s] *)
   Lemma subst_RVarCons:
@@ -338,8 +377,14 @@ Section Sigma.
     n > 0 ->
     inst (subst_app (y :: ys) s) (var n) = inst (subst_app ys s) (var (n - 1)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    do 2 rewrite traverse_var; simpl.
+    destruct n; simpl.
+    - exfalso.
+      inversion H.
+    - now repeat rewrite Nat.sub_0_r.
+  Qed.
 
   (* New rule! *)
   Lemma subst_VarApp:
@@ -347,24 +392,34 @@ Section Sigma.
     n >= length ys ->
     inst (subst_app ys s) (var n) = inst s (var (n - length ys)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    do 2 rewrite traverse_var; simpl.
+    rewrite Nat.sub_0_r.
+    apply nth_error_None in H.
+    now rewrite H.
+  Qed.
 
   (* VarShift1: n[S] = 1+n *)
   Lemma subst_VarShift1:
     forall i n,
     inst (subst_lift i) (var n) = var (i + n).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    now rewrite traverse_var.
+  Qed.
 
   (* VarShift2: n[S o s] = (1+n)[s] *)
   Lemma subst_VarShift2:
     forall s i n,
     inst (subst_comp (subst_lift i) s) (var n) = inst s (var (i + n)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    do 2 rewrite traverse_var; simpl.
+    now rewrite traverse_var.
+  Qed.
 
   (* FVarLift1: 0[U(s)] = 0 *)
   Lemma subst_FVarLift1:
@@ -372,8 +427,12 @@ Section Sigma.
     i > n ->
     inst (subst_upn i s) (var n) = var n.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    rewrite traverse_var; simpl.
+    rewrite Nat.add_0_r.
+    now rewrite sigma_bvar_simpl by lia.
+  Qed.
 
   (* FVarLift2: 0[U(s) o t] = 0[t] *)
   Lemma subst_FVarLift2:
@@ -381,8 +440,13 @@ Section Sigma.
     i > n ->
     inst (subst_comp (subst_upn i s) t) (var n) = inst t (var n).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    unfold inst, inst_rec.
+    do 2 rewrite traverse_var; simpl.
+    rewrite Nat.add_0_r.
+    rewrite sigma_bvar_simpl by lia.
+    now rewrite traverse_var.
+  Qed.
 
   (* RVarLift1: (1+n)[U(s)] = n[s o S] *)
   Lemma subst_RVarLift1:
@@ -391,8 +455,17 @@ Section Sigma.
     inst (subst_upn i s) (var n) =
       inst (subst_comp s (subst_lift i)) (var (n - i)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    rewrite sigma_inst_comp by auto.
+    unfold inst.
+    rewrite <- sigma_lift_unfold.
+    rewrite sigma_lift_inst_commute by auto.
+    unfold lift, inst_rec.
+    do 2 rewrite traverse_var; simpl.
+    unfold lift_fun; simpl.
+    rewrite traverse_var.
+    f_equal; lia.
+  Qed.
 
   (* RVarLift2: (1+n)[U(s) o t] = n[s o S o t] *)
   Lemma subst_RVarLift2:
@@ -401,16 +474,20 @@ Section Sigma.
     inst (subst_comp (subst_upn i s) t) (var n) =
       inst (subst_comp s (subst_comp (subst_lift i) t)) (var (n - i)).
   Proof.
-    admit.
-  Admitted.
+    intros.
+    rewrite sigma_inst_comp by auto.
+    rewrite subst_RVarLift1 by auto.
+    now repeat rewrite sigma_inst_comp by auto.
+  Qed.
 
   (* Clos: x[s][t] = x[s o t] *)
   Lemma subst_Clos:
     forall s t x,
     inst t (inst s x) = inst (subst_comp s t) x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    now rewrite sigma_inst_comp by auto.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -688,7 +765,7 @@ Section Sigma.
     induction xs; simpl; intros.
     - reflexivity.
     - rewrite IHxs; f_equal.
-      apply subst_upn_simpl.
+      now apply sigma_upn_simpl.
   Qed.
 
   Lemma bsmap_length:
@@ -721,7 +798,7 @@ Section Sigma.
     - reflexivity.
     - rewrite IHxs; f_equal.
       rewrite bsmap_length.
-      rewrite subst_upn_simpl.
+      rewrite sigma_upn_simpl by auto.
       f_equal; lia.
   Qed.
 
@@ -731,12 +808,12 @@ End Sigma.
 
 (* *)
 
-Arguments dbVarLaws Y {vY} {tXY}.
-Arguments dbTraverseLaws X Y {vY} {tYY} {tXY}.
+Global Opaque lift subst inst_rec inst smap bsmap.
 
 (* *)
 
-Global Opaque lift subst inst_rec inst smap bsmap.
+Arguments dbVarLaws Y {vY} {tXY}.
+Arguments dbTraverseLaws X Y {vY} {tYY} {tXY}.
 
 (* *)
 
