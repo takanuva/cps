@@ -64,9 +64,9 @@ Proof.
   split; unfold Substitution.traverse; intros.
   - generalize dependent k.
     induction x; intros; simpl; auto;
-    f_equal; auto.
+    f_equal; eauto.
     induction ns; auto; simpl;
-    f_equal; auto.
+    f_equal; eauto.
   - specialize (H k (output n [])).
     dependent destruction H.
     assumption.
