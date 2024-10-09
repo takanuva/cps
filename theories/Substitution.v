@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*      Copyright (c) 2024 - Paulo Torrens <paulotorrens AT gnu DOT org>      *)
+(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -11,7 +11,7 @@ Require Import Morphisms.
 Import ListNotations.
 
 Set Implicit Arguments.
-Generalizable Variables X Y.
+Local Generalizable Variables X Y.
 
 Inductive substitution {Y}: Type :=
   | subst_ids
@@ -38,7 +38,7 @@ Global Instance nat_dbVar: dbVar nat :=
 Global Instance nat_dbTraverse: dbTraverse nat nat :=
   fun f k n => f k n.
 
-Section Definitions.
+Section DeBruijn.
 
   Context {X: Type}.
   Context {Y: Type}.
@@ -127,35 +127,7 @@ Section Definitions.
         traverse (fun j n => traverse f j (g j n)) k x
   }.
 
-End Definitions.
-
-Section Equivalence.
-
-Definition subst_equiv {Y} (s: substitution) (t: substitution): Prop :=
-  forall X: Type,
-  forall vY: @dbVar Y,
-  forall tXY: @dbTraverse X Y,
-  forall tYY: @dbTraverse Y Y,
-  forall vYLaws: @dbVarLaws Y vY tYY,
-  forall tXYLaws: @dbTraverseLaws X Y vY tXY tYY,
-  forall tYYLaws: @dbTraverseLaws Y Y vY tYY tYY,
-  forall (k: nat) (x: X),
-  inst_rec s k x = inst_rec t k x.
-
-Global Instance subst_equivalence:
-  forall Y,
-  Equivalence (@subst_equiv Y).
-Proof.
-  split; repeat intro.
-  - congruence.
-  - symmetry.
-    now apply H.
-  - transitivity (y k x0).
-    + now apply H.
-    + now apply H0.
-Qed.
-
-End Equivalence.
+End DeBruijn.
 
 Local Tactic Notation "simplify" "decidable" "cases" :=
   repeat progress match goal with
@@ -171,7 +143,31 @@ Local Tactic Notation "simplify" "decidable" "cases" :=
       [ idtac | exfalso; lia ])
   end.
 
-Section DeBruijn.
+Section Sigma.
+
+  Definition subst_equiv {Y} (s: substitution) (t: substitution): Prop :=
+    forall X: Type,
+    forall vY: @dbVar Y,
+    forall tXY: @dbTraverse X Y,
+    forall tYY: @dbTraverse Y Y,
+    forall vYLaws: @dbVarLaws Y vY tYY,
+    forall tXYLaws: @dbTraverseLaws X Y vY tXY tYY,
+    forall tYYLaws: @dbTraverseLaws Y Y vY tYY tYY,
+    forall (k: nat) (x: X),
+    inst_rec s k x = inst_rec t k x.
+
+  Global Instance subst_equivalence:
+    forall Y,
+    Equivalence (@subst_equiv Y).
+  Proof.
+    split; repeat intro.
+    - congruence.
+    - symmetry.
+      now apply H.
+    - transitivity (y k x0).
+      + now apply H.
+      + now apply H0.
+  Qed.
 
   Variable X: Type.
   Variable Y: Type.
@@ -236,21 +232,21 @@ Section DeBruijn.
 
   (* ---------------------------------------------------------------------- *)
 
-  Local Lemma subst_lift_unfold:
+  Lemma sigma_lift_unfold:
     forall i k x,
     lift i k x = subst_lift i k x.
   Proof.
     auto.
   Qed.
 
-  Lemma subst_subst_unfold:
+  Lemma sigma_subst_unfold:
     forall y k x,
     subst y k x = subst_cons y subst_ids k x.
   Proof.
     auto.
   Qed.
 
-  Lemma inst_fun_bvar:
+  Local Lemma inst_fun_bvar_simpl:
     forall s k n,
     n < k ->
     inst_fun s k n = var n.
@@ -264,7 +260,7 @@ Section DeBruijn.
     - now simplify decidable cases.
   Qed.
 
-  Lemma inst_rec_bvar:
+  Lemma sigma_bvar_simpl:
     forall s k n,
     n < k ->
     s k (var n) = var n.
@@ -272,74 +268,8 @@ Section DeBruijn.
     intros.
     unfold inst_rec.
     rewrite traverse_var.
-    now apply inst_fun_bvar.
+    now apply inst_fun_bvar_simpl.
   Qed.
-
-  (* ---------------------------------------------------------------------- *)
-
-  Lemma smap_length:
-    forall s k xs,
-    length (smap s k xs) = length xs.
-  Proof.
-    induction xs; simpl; congruence.
-  Qed.
-
-  Lemma smap_nil:
-    forall s k,
-    smap s k [] = [].
-  Proof.
-    auto.
-  Qed.
-
-  Lemma smap_cons:
-    forall s k x xs,
-    smap s k (x :: xs) = s k x :: smap s k xs.
-  Proof.
-    auto.
-  Qed.
-
-  Lemma smap_upn:
-    forall xs s i k,
-    smap (subst_upn i s) k xs = smap s (i + k) xs.
-  Proof.
-    induction xs; simpl; intros.
-    - reflexivity.
-    - rewrite IHxs; f_equal.
-      admit.
-  Admitted.
-
-  Lemma bsmap_length:
-    forall s k xs,
-    length (bsmap s k xs) = length xs.
-  Proof.
-    induction xs; simpl; congruence.
-  Qed.
-
-  Lemma bsmap_nil:
-    forall s k,
-    bsmap s k [] = [].
-  Proof.
-    auto.
-  Qed.
-
-  Lemma bsmap_cons:
-    forall s k x xs,
-    bsmap s k (x :: xs) = s (length xs + k) x :: bsmap s k xs.
-  Proof.
-    intros; simpl.
-    now rewrite bsmap_length.
-  Qed.
-
-  Lemma bsmap_upn:
-    forall xs s i k,
-    bsmap (subst_upn i s) k xs = bsmap s (i + k) xs.
-  Proof.
-    induction xs; simpl; intros.
-    - reflexivity.
-    - rewrite IHxs; f_equal.
-      rewrite bsmap_length.
-      admit.
-  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -347,8 +277,11 @@ Section DeBruijn.
     forall k x,
     subst_ids k x = x.
   Proof.
-    admit.
-  Admitted.
+    intros.
+    apply traverse_ids.
+    clear k x; simpl; intros.
+    now destruct (le_gt_dec k n).
+  Qed.
 
   Lemma subst_lift_inst_commute:
     forall s x i k j,
@@ -367,7 +300,7 @@ Section DeBruijn.
     simpl.
     destruct (le_gt_dec (l + k) n).
     - f_equal; lia.
-    - now rewrite inst_fun_bvar by lia.
+    - now rewrite inst_fun_bvar_simpl by lia.
   Qed.
 
   (* Replace de Bruijn substitution notation to the default instantiation. *)
@@ -727,7 +660,74 @@ Section DeBruijn.
 
   (* ---------------------------------------------------------------------- *)
 
-End DeBruijn.
+  Lemma smap_length:
+    forall s k xs,
+    length (smap s k xs) = length xs.
+  Proof.
+    induction xs; simpl; congruence.
+  Qed.
+
+  Lemma smap_nil:
+    forall s k,
+    smap s k [] = [].
+  Proof.
+    auto.
+  Qed.
+
+  Lemma smap_cons:
+    forall s k x xs,
+    smap s k (x :: xs) = s k x :: smap s k xs.
+  Proof.
+    auto.
+  Qed.
+
+  Lemma smap_upn:
+    forall xs s i k,
+    smap (subst_upn i s) k xs = smap s (i + k) xs.
+  Proof.
+    induction xs; simpl; intros.
+    - reflexivity.
+    - rewrite IHxs; f_equal.
+      apply subst_upn_simpl.
+  Qed.
+
+  Lemma bsmap_length:
+    forall s k xs,
+    length (bsmap s k xs) = length xs.
+  Proof.
+    induction xs; simpl; congruence.
+  Qed.
+
+  Lemma bsmap_nil:
+    forall s k,
+    bsmap s k [] = [].
+  Proof.
+    auto.
+  Qed.
+
+  Lemma bsmap_cons:
+    forall s k x xs,
+    bsmap s k (x :: xs) = s (length xs + k) x :: bsmap s k xs.
+  Proof.
+    intros; simpl.
+    now rewrite bsmap_length.
+  Qed.
+
+  Lemma bsmap_upn:
+    forall xs s i k,
+    bsmap (subst_upn i s) k xs = bsmap s (i + k) xs.
+  Proof.
+    induction xs; simpl; intros.
+    - reflexivity.
+    - rewrite IHxs; f_equal.
+      rewrite bsmap_length.
+      rewrite subst_upn_simpl.
+      f_equal; lia.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
+
+End Sigma.
 
 (* *)
 
@@ -766,8 +766,8 @@ Ltac sigma_solver :=
 
 (* *)
 
-Global Hint Rewrite subst_lift_unfold using sigma_solver: sigma.
-Global Hint Rewrite subst_subst_unfold using sigma_solver: sigma.
+Global Hint Rewrite sigma_lift_unfold using sigma_solver: sigma.
+Global Hint Rewrite sigma_subst_unfold using sigma_solver: sigma.
 
 (* Global Hint Rewrite subst_BVar using sigma_solver: sigma. *)
 (* Global Hint Rewrite subst_LiftInst using sigma_solver: sigma. *)
