@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Metatheory.
@@ -113,31 +114,52 @@ Proof.
 Qed.
 
 Lemma simple_types_ignore_substitution:
+  forall t,
+  simple t ->
+  forall s,
+  t = inst s t.
+Proof.
+  induction t using pseudoterm_deepind; intros.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - inversion H.
+  - dependent destruction H0.
+    sigma; f_equal.
+    induction H; auto.
+    dependent destruction H0.
+    sigma; f_equal; auto.
+  - inversion H0.
+  - inversion H0.
+Qed.
+
+Lemma simple_env_ignores_lift:
   forall ts,
   valid_env ts ->
-  forall f n,
-  ts = traverse_list (traverse f) n ts.
+  forall i k,
+  ts = traverse_list (lift i) k ts.
 Proof.
   induction 1; simpl; intros.
   - reflexivity.
   - f_equal; auto.
     rewrite traverse_list_length.
-    clear H0 IHForall.
-    generalize (length l + n); clear l n.
-    induction x using pseudoterm_deepind; intros.
-    + inversion H.
-    + inversion H.
-    + reflexivity.
-    + inversion H.
-    + inversion H.
-    + dependent destruction H.
-      simpl; f_equal.
-      induction H0; simpl.
-      * reflexivity.
-      * dependent destruction H.
-        f_equal; auto.
-    + inversion H.
-    + inversion H.
+    sigma.
+    now apply simple_types_ignore_substitution.
+Qed.
+
+Lemma simple_env_ignores_subst:
+  forall ts,
+  valid_env ts ->
+  forall y k,
+  ts = traverse_list (subst y) k ts.
+Proof.
+  induction 1; simpl; intros.
+  - reflexivity.
+  - f_equal; auto.
+    rewrite traverse_list_length.
+    sigma.
+    now apply simple_types_ignore_substitution.
 Qed.
 
 Lemma not_free_typing:
@@ -206,7 +228,7 @@ Section Structural.
   Definition CONTRACTION: Prop :=
     forall g c t,
     R (t :: t :: g) c ->
-    R (t :: g) (subst 0 0 c).
+    R (t :: g) (subst (bound 0) 0 c).
 
 End Structural.
 
@@ -284,7 +306,7 @@ Proof.
       * eapply IHe1; eauto.
         now constructor.
       * f_equal.
-        apply simple_types_ignore_substitution.
+        apply simple_env_ignores_lift.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
@@ -293,7 +315,7 @@ Proof.
       * eapply IHe2; eauto.
         rewrite Nat.add_comm.
         now apply insert_app.
-      * apply simple_types_ignore_substitution.
+      * apply simple_env_ignores_lift.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
@@ -351,30 +373,23 @@ Proof.
     assert ((m > n) \/ (m = n) \/ (S m = n) \/ (S m < n))
       as [ ? | [ ? | [ ? | ? ] ] ] by lia.
     + unfold switch_bindings.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_lt; try lia.
+      sigma.
       constructor; eauto with cps.
       admit.
     + dependent destruction H2.
       unfold switch_bindings.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_eq; try lia.
-      rewrite lift_bound_ge; try lia.
-      rewrite Nat.add_comm; simpl.
+      sigma.
       constructor; eauto with cps.
       admit.
     + dependent destruction H2.
       unfold switch_bindings.
-      rewrite lift_bound_lt; try lia.
-      rewrite subst_bound_gt; try lia.
+      sigma.
       constructor; eauto with cps.
-      simpl.
       admit.
     + unfold switch_bindings.
-      rewrite lift_bound_ge; try lia.
-      rewrite subst_bound_gt; try lia.
+      sigma.
+      replace (S (S (m + n)) - m - 2) with n by lia.
       constructor; eauto with cps.
-      simpl.
       admit.
   - inversion H0.
   - dependent destruction H0.
@@ -451,7 +466,7 @@ Lemma typing_subst0:
   typing g e t ->
   forall n h,
   join n g h ->
-  typing h (subst 0 n e) t.
+  typing h (subst (bound 0) n e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
   - inversion H.
@@ -492,24 +507,25 @@ Proof.
     rewrite subst_distributes_over_bind.
     constructor.
     + apply IHe1 with (negation ts :: g); eauto.
-      replace (negation (traverse_list (subst 0) n ts)) with (negation ts).
+      replace (negation (traverse_list (subst (bound 0)) n ts)) with
+        (negation ts).
       * constructor.
         assumption.
       * f_equal.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_types_ignore_substitution.
+        apply simple_env_ignores_subst.
         assumption.
     + apply IHe2 with (ts ++ g); eauto.
       rewrite Nat.add_comm.
-      replace (traverse_list (subst 0) n ts) with ts.
+      replace (traverse_list (subst (bound 0)) n ts) with ts.
       * apply join_app.
         assumption.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_types_ignore_substitution.
+        apply simple_env_ignores_subst.
         assumption.
 Admitted.
 
@@ -657,27 +673,28 @@ Proof.
     rewrite subst_distributes_over_bind.
     constructor.
     + apply IHe1 with (negation ts :: g); eauto.
-      replace (negation (traverse_list (subst 0) k ts)) with (negation ts).
+      replace (negation (traverse_list (subst (bound 0)) k ts)) with
+        (negation ts).
       * constructor.
         assumption.
       * f_equal.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
+        apply simple_env_ignores_subst.
+        assumption.
       * dependent destruction H2.
         assumption.
     + apply IHe2 with (ts ++ g); eauto.
       rewrite Nat.add_comm.
-      replace (traverse_list (subst 0) k ts) with ts.
+      replace (traverse_list (subst (bound 0)) k ts) with ts.
       * apply drop_app.
         assumption.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        (* From H0. *)
-        admit.
+        apply simple_env_ignores_subst.
+        assumption.
       * dependent destruction H2.
         rewrite Nat.add_comm.
         assumption.

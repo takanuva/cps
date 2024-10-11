@@ -7,10 +7,12 @@ Require Import Arith.
 Require Import List.
 Require Import Relations.
 Require Import Equality.
+Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
-Require Import Local.AbstractRewriting.
 Require Import Local.Reduction.
 (* TODO: We take only converges from here; might wanna move it to Syntax. *)
 Require Import Local.Observational.
@@ -116,9 +118,7 @@ Proof.
     + reflexivity.
   (* Case: transition_ctx_jmp. *)
   - clear H.
-    specialize IHtransition with
-      k (traverse_list (lift 1) 0 ts) (lift 1 (length ts) c).
-    destruct IHtransition; auto.
+    edestruct IHtransition; eauto.
     dependent destruction H5.
     (* This has all that we need. *)
     apply transition_label_jmp_invariant_ctor with
@@ -144,16 +144,36 @@ Proof.
       rewrite Nat.add_0_r.
       replace (S #h + 1) with (S (S #h)); try lia.
       f_equal; clear H1 d us.
-      unfold switch_bindings.
+      (* TODO: I'd like to prove this one with sigma! Can we try later? *)
+      rewrite switch_bindings_behavior.
+      rewrite right_cycle_characterization.
       rewrite lift_distributes_over_apply_parameters.
+      simpl sequence.
+      simpl app.
+      rewrite apply_parameters_cons.
+      rewrite apply_parameters_cons.
+      rewrite apply_parameters_nil.
       rewrite subst_distributes_over_apply_parameters.
       rewrite map_map; f_equal.
       rewrite map_length.
       rewrite traverse_list_length in H3.
       rewrite context_switch_bindings_bvars.
-      rewrite lift_lift_simplification; try lia.
-      rewrite subst_lift_simplification; try lia.
-      reflexivity.
+      rewrite lift_lift_simplification by lia.
+      simpl.
+      rewrite subst_lift_simplification by lia.
+      rewrite subst_distributes_over_apply_parameters.
+      rewrite map_map.
+      rewrite map_length.
+      rewrite subst_lift_simplification by lia.
+      erewrite map_ext; intros.
+      * reflexivity.
+      * rewrite switch_bindings_behavior.
+        rewrite right_cycle_characterization.
+        simpl sequence.
+        simpl app.
+        repeat rewrite apply_parameters_cons.
+        rewrite apply_parameters_nil.
+        reflexivity.
 Qed.
 
 Local Lemma transition_ctx_jmp_helper:
@@ -232,15 +252,36 @@ Proof.
       replace (S k + 1) with (S (S k)); try lia.
       replace k with #h; try lia.
       f_equal.
-      unfold switch_bindings at 1.
+      (* Same as in the lemma above... TODO: move this property to its own lemma
+         to avoid code duplication, and, if possible, try to prove it with the
+         sigma tactic instead. *)
+      rewrite switch_bindings_behavior.
+      rewrite right_cycle_characterization.
       rewrite lift_distributes_over_apply_parameters.
+      simpl sequence.
+      simpl app.
+      rewrite apply_parameters_cons.
+      rewrite apply_parameters_cons.
+      rewrite apply_parameters_nil.
       rewrite subst_distributes_over_apply_parameters.
-      do 2 rewrite map_length.
       rewrite map_map; f_equal.
-      * symmetry.
-        apply map_switch_bindings_is_involutive.
-      * rewrite lift_lift_simplification; try lia.
-        rewrite subst_lift_simplification; try lia.
+      repeat rewrite map_length.
+      rewrite lift_lift_simplification by lia.
+      simpl.
+      rewrite subst_lift_simplification by lia.
+      rewrite subst_distributes_over_apply_parameters.
+      rewrite map_map.
+      repeat rewrite map_length.
+      rewrite subst_lift_simplification by lia.
+      erewrite map_ext; intros.
+      * rewrite map_switch_bindings_is_involutive.
+        reflexivity.
+      * rewrite switch_bindings_behavior.
+        rewrite right_cycle_characterization.
+        simpl sequence.
+        simpl app.
+        repeat rewrite apply_parameters_cons.
+        rewrite apply_parameters_nil.
         reflexivity.
 Qed.
 

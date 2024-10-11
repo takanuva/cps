@@ -4,6 +4,7 @@
 
 Require Import Relations.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.AbstractRewriting.

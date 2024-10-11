@@ -7,6 +7,7 @@ Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Export Local.Lambda.Calculus.
 Require Export Local.Lambda.PlotkinCBV.
 
@@ -93,7 +94,7 @@ Inductive anf: relation term :=
     evaluation E ->
     x = context_bvars E ->
     y <> context_bvars E ->
-    anf (APP (ABS t (context_lift 1 0 E (APP (lift 1 x y) x))) M)
+    anf (APP (ABS t (context_lift 1 0 E (APP (lift 1 x (bound y)) x))) M)
         (E (APP y (lift x 0 M))).
 
 (* Count the number of applications on the left-hand side of an application. *)
@@ -117,12 +118,13 @@ Lemma unnamed_subterms_lift:
   forall e i k,
   unnamed_subterms (lift i k e) = unnamed_subterms e.
 Proof.
-  induction e; simpl; intros.
-  - destruct (le_gt_dec k n); auto.
+  sigma.
+  induction e; sigma; simpl; intros.
+  - destruct (le_gt_dec k n); sigma; auto.
   - apply IHe.
   - rewrite IHe1, IHe2.
     destruct e1; simpl; auto.
-    destruct (le_gt_dec k n); auto.
+    destruct (le_gt_dec k n); sigma; auto.
   - reflexivity.
   - reflexivity.
   - reflexivity.
@@ -141,7 +143,7 @@ Proof.
     rewrite IHh; destruct h; simpl; auto.
   - rewrite unnamed_subterms_lift.
     rewrite IHh; destruct f; simpl; auto.
-    destruct (le_gt_dec k n); auto.
+    destruct (le_gt_dec k n); sigma; auto.
   - reflexivity.
   - reflexivity.
   - reflexivity.
@@ -193,6 +195,7 @@ Proof.
     destruct H; simpl.
     + auto.
     + rewrite unnamed_subterms_lift.
+      sigma; simpl.
       lia.
     + auto.
     + auto.
@@ -211,7 +214,17 @@ Proof.
     clear H0 H1.
     induction H; simpl.
     + rewrite unnamed_subterms_lift.
-      destruct (le_gt_dec x y); auto.
+      destruct (le_gt_dec x y); simpl.
+      * sigma; simpl.
+        (* TODO: is there any way to simplify this step? *)
+        replace (@inst term term _ _ _ (subst_lift x)) with
+          (@lift term term _ _ x 0) by auto.
+        now rewrite unnamed_subterms_lift.
+      * sigma; simpl.
+        (* TODO: is there any way to simplify this step? *)
+        replace (@inst term term _ _ _ (subst_lift x)) with
+          (@lift term term _ _ x 0) by auto.
+        now rewrite unnamed_subterms_lift.
     + rewrite <- IHevaluation.
       (* I was not expecting this to work, but... hey! It did! *)
       destruct f; simpl; lia.
@@ -234,10 +247,10 @@ Lemma is_beta_lift:
   is_beta (lift i k e) = is_beta e.
 Proof.
   destruct e; simpl; intros.
-  - destruct (le_gt_dec k n); auto.
+  - destruct (le_gt_dec k n); sigma; auto.
   - reflexivity.
   - destruct e1; simpl; auto.
-    destruct (le_gt_dec k n); auto.
+    destruct (le_gt_dec k n); sigma; auto.
   - reflexivity.
   - reflexivity.
   - reflexivity.
@@ -284,9 +297,8 @@ Proof.
     eapply rst_trans.
     apply rst_step.
     apply full_beta.
-    simpl.
-    (* Sure. *)
-    admit.
+    simpl; sigma.
+    eauto with cps.
   - eapply rst_trans.
     apply rst_step.
     apply full_application_right.
@@ -295,26 +307,19 @@ Proof.
     eapply rst_trans.
     apply rst_step.
     apply full_beta.
-    simpl.
-    (* Sure. *)
-    admit.
+    simpl; sigma.
+    eauto with cps.
   - apply rst_sym.
     eapply rst_trans.
     apply rst_step.
     apply full_beta.
-    simpl.
-    replace (lift 0 0 M) with M.
-    replace (lift 0 0 N) with N.
-    (* Yep! *)
-    admit.
-    admit.
-    admit.
+    simpl; sigma.
+    eauto with cps.
   - eapply rst_trans.
     apply rst_step.
     apply full_beta.
-    simpl.
-    (* Sure. *)
-    admit.
+    simpl; sigma.
+    eauto with cps.
   - eapply rst_trans.
     apply rst_step.
     apply full_beta.
@@ -324,14 +329,7 @@ Proof.
     rewrite Nat.add_0_r.
     rewrite context_lift_bvars.
     rewrite <- H0.
-    destruct (le_gt_dec x y).
-    destruct (lt_eq_lt_dec x x) as [ [ ? | ? ] | ? ]; try lia.
-    simpl.
-    destruct (lt_eq_lt_dec x (S y)) as [ [ ? | ? ] | ? ]; try lia.
+    sigma.
     (* Of course! *)
-    admit.
-    destruct (lt_eq_lt_dec x x) as [ [ ? | ? ] | ? ]; try lia.
-    simpl.
-    destruct (lt_eq_lt_dec x y) as [ [ ? | ? ] | ? ]; try lia.
     admit.
 Admitted.

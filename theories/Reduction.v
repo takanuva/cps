@@ -7,10 +7,11 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
-Require Import Local.Syntax.
-Require Import Local.Metatheory.
 (* TODO: perhaps some definitions should be moved to Syntax. *)
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
+Require Import Local.Syntax.
+Require Import Local.Metatheory.
 Require Import Local.Context.
 Require Import Local.Equational.
 
@@ -203,12 +204,11 @@ Lemma beta_apply_parameters:
   beta (apply_parameters xs k a) (apply_parameters xs k b).
 Proof.
   induction xs; intros.
-  - simpl.
-    assumption.
-  - simpl.
+  - unfold apply_parameters.
+    now sigma.
+  - do 2 rewrite apply_parameters_cons.
     apply beta_subst.
-    apply IHxs.
-    assumption.
+    now apply IHxs.
 Qed.
 
 Global Hint Resolve beta_apply_parameters: cps.
@@ -474,6 +474,8 @@ Proof.
   admit.
 Admitted.
 
+Global Hint Resolve smol_lift: cps.
+
 Lemma smol_subst:
   forall a b,
   smol a b ->
@@ -483,6 +485,8 @@ Proof.
   (* TODO: There's a similar proof on [Axiomatic.v]! *)
   admit.
 Admitted.
+
+Global Hint Resolve smol_subst: cps.
 
 Lemma smol_apply_parameters:
   forall a b,
@@ -495,13 +499,14 @@ Proof.
   generalize dependent b.
   generalize dependent a.
   induction xs; intros.
-  - simpl.
-    assumption.
-  - simpl.
+  - unfold apply_parameters.
+    now sigma.
+  - do 2 rewrite apply_parameters_cons.
     apply smol_subst.
-    apply IHxs.
-    assumption.
+    now apply IHxs.
 Qed.
+
+Global Hint Resolve smol_apply_parameters: cps.
 
 Lemma not_free_smol:
   forall b c,
@@ -729,13 +734,12 @@ Lemma step_apply_parameters:
   [a => b] ->
   [apply_parameters xs k a => apply_parameters xs k b].
 Proof.
-  induction xs; intros.
-  - simpl.
-    assumption.
-  - simpl.
-    apply step_subst.
-    apply IHxs.
-    assumption.
+  intros.
+  apply step_characterization in H as [ ? | ? ].
+  - apply step_beta.
+    auto with cps.
+  - apply step_smol.
+    auto with cps.
 Qed.
 
 Global Hint Resolve step_apply_parameters: cps.
@@ -1370,7 +1374,7 @@ Proof.
     reflexivity.
   - rewrite right_cycle_void.
     reflexivity.
-  - unfold right_cycle; simpl.
+  - rewrite right_cycle_characterization.
     destruct (le_gt_dec (k + i) n).
     + rewrite lift_bound_ge; try lia.
       rewrite lift_bound_ge; try lia.
@@ -1387,6 +1391,8 @@ Proof.
       * rewrite lift_bound_ge; try lia.
         rewrite apply_parameters_app; simpl.
         rewrite sequence_length.
+        rewrite apply_parameters_cons.
+        rewrite apply_parameters_nil.
         rewrite subst_bound_lt by lia.
         rewrite apply_parameters_high_sequence_bound_in by lia.
         reflexivity.
@@ -1511,7 +1517,7 @@ Proof.
   - rewrite subst_distributes_over_jump; f_equal.
     + rewrite subst_bound_eq; try lia.
       rewrite lift_bound_ge; try lia.
-      f_equal; lia.
+      simpl; f_equal; lia.
     + induction xs; simpl; auto.
       f_equal; auto.
       rewrite subst_lift_simplification; try lia.
@@ -1613,7 +1619,7 @@ Proof.
     rewrite subst_distributes_over_apply_parameters.
     rewrite map_length, Nat.add_0_r.
     f_equal; simpl.
-    + clear H.
+    + f_equal; clear H.
       induction xs; simpl; auto.
       f_equal; auto.
       rewrite subst_lift_simplification; auto.

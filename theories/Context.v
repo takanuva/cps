@@ -8,6 +8,7 @@ Require Export Setoid.
 Require Export Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 

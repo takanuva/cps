@@ -9,6 +9,7 @@ Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Pi.Calculus.
 
 Set Primitive Projections.

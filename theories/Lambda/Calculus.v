@@ -9,6 +9,7 @@ Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 
 Import ListNotations.
 
@@ -78,66 +79,130 @@ Proof.
     inversion H.
 Qed.
 
-Fixpoint lift (i: nat) (k: nat) (e: term): term :=
+Fixpoint traverse g k e: term :=
   match e with
   | bound n =>
-    if le_gt_dec k n then
-      bound (i + n)
-    else
-      bound n
+    g k n 
   | abstraction t b =>
-    abstraction t (lift i (S k) b)
+    abstraction t (traverse g (S k) b)
   | application f x =>
-    application (lift i k f) (lift i k x)
+    application (traverse g k f) (traverse g k x)
   | pair e f =>
-    pair (lift i k e) (lift i k f)
+    pair (traverse g k e) (traverse g k f)
   | proj1 e =>
-    proj1 (lift i k e)
+    proj1 (traverse g k e)
   | proj2 e =>
-    proj2 (lift i k e)
+    proj2 (traverse g k e)
   | delay e =>
-    delay (lift i k e)
+    delay (traverse g k e)
   | force e =>
-    force (lift i k e)
+    force (traverse g k e)
   end.
 
-Fixpoint subst (p: term) (k: nat) (q: term): term :=
-  match q with
-  | bound n =>
-    match lt_eq_lt_dec k n with
-    | inleft (left _) => bound (pred n)
-    | inleft (right _) => lift k 0 p
-    | inright _ => bound n
-    end
-  | abstraction t b =>
-    abstraction t (subst p (S k) b)
-  | application f x =>
-    application (subst p k f) (subst p k x)
-  | pair e f =>
-    pair (subst p k e) (subst p k f)
-  | proj1 e =>
-    proj1 (subst p k e)
-  | proj2 e =>
-    proj2 (subst p k e)
-  | delay e =>
-    delay (subst p k e)
-  | force e =>
-    force (subst p k e)
-  end.
+Global Instance lambda_dbVar: dbVar term :=
+  bound.
+
+Global Instance lambda_dbTraverse: dbTraverse term term :=
+  traverse.
+
+Global Instance lambda_dbVarLaws: dbVarLaws term.
+Proof.
+  split; auto.
+Qed.
+
+Global Instance lambda_dbTraverseLaws: dbTraverseLaws term term.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - generalize dependent k.
+    induction x; simpl; auto; intros;
+    f_equal; auto.
+  - apply (H k (bound n)).
+  - generalize dependent j.
+    generalize dependent k.
+    induction x; simpl; auto; intros;
+    try now (f_equal; auto).
+    + apply (H 0).
+    + f_equal.
+      apply IHx; intros.
+      replace (l + S k) with (S l + k) by lia.
+      replace (l + S j) with (S l + j) by lia.
+      apply H.
+  - generalize dependent k.
+    induction x; simpl; intros; auto;
+    f_equal; auto.
+Qed.
+
+Lemma bound_var_equality_stuff:
+  forall n,
+  bound n = var n.
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_abstraction:
+  forall s t b,
+  inst s (abstraction t b) = abstraction t (s 1 b).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_application:
+  forall s f x,
+  inst s (application f x) = application (inst s f) (inst s x).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_pair:
+  forall s e f,
+  inst s (pair e f) = pair (inst s e) (inst s f).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_proj1:
+  forall s e,
+  inst s (proj1 e) = proj1 (inst s e).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_proj2:
+  forall s e,
+  inst s (proj2 e) = proj2 (inst s e).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_delay:
+  forall s e,
+  inst s (delay e) = delay (inst s e).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_force:
+  forall s e,
+  inst s (force e) = force (inst s e).
+Proof.
+  auto.
+Qed.
+
+Global Hint Rewrite bound_var_equality_stuff using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_abstraction using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_application using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_pair using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_proj1 using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_proj2 using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_delay using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_force using sigma_solver: sigma.
 
 Lemma lift_zero_e_equals_e:
   forall e k,
   lift 0 k e = e.
 Proof.
-  induction e; simpl; intros.
-  - now destruct (le_gt_dec k n).
-  - now rewrite IHe.
-  - now rewrite IHe1, IHe2.
-  - now rewrite IHe1, IHe2.
-  - now rewrite IHe.
-  - now rewrite IHe.
-  - now rewrite IHe.
-  - now rewrite IHe.
+  intros.
+  now sigma.
 Qed.
 
 Lemma lift_lift_permutation:
@@ -146,36 +211,9 @@ Lemma lift_lift_permutation:
   lift i k (lift j l e) =
     lift j (i + l) (lift i k e).
 Proof.
-  induction e; simpl; intros.
-  - destruct (le_gt_dec l n);
-    simpl;
-    destruct (le_gt_dec k n);
-    simpl;
-    destruct (le_gt_dec k (j + n));
-    simpl;
-    destruct (le_gt_dec (i + l) (i + n));
-    simpl;
-    destruct (le_gt_dec (i + l) n);
-    simpl;
-    try lia;
-    f_equal; lia.
-  - f_equal.
-    replace (S (i + l)) with (i + S l); try lia.
-    apply IHe; lia.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
+  intros.
+  sigma.
+  repeat (progress f_equal; try lia).
 Qed.
 
 Lemma lift_lift_simplification:
@@ -185,27 +223,9 @@ Lemma lift_lift_simplification:
   lift i k (lift j l e) =
   lift (i + j) l e.
 Proof.
-  induction e; simpl; intros.
-  - destruct (le_gt_dec l n); simpl;
-    destruct (le_gt_dec k (j + n)); simpl;
-    destruct (le_gt_dec k n); simpl;
-    f_equal; lia.
-  - f_equal.
-    apply IHe; lia.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
+  intros.
+  sigma.
+  repeat (progress f_equal; try lia).
 Qed.
 
 Lemma subst_lift_simplification:
@@ -215,32 +235,9 @@ Lemma subst_lift_simplification:
   subst y p (lift (S i) k e) =
   lift i k e.
 Proof.
-  induction e; simpl; intros.
-  - destruct (le_gt_dec k n); simpl.
-    + destruct (lt_eq_lt_dec p (S (i + n))) as [ [ ? | ? ] | ? ]; simpl.
-      * reflexivity.
-      * exfalso; lia.
-      * exfalso; lia.
-    + destruct (lt_eq_lt_dec p n) as [ [ ? | ? ] | ? ]; simpl.
-      * exfalso; lia.
-      * exfalso; lia.
-      * reflexivity.
-  - f_equal.
-    apply IHe; lia.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    + now apply IHe1.
-    + now apply IHe2.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
-  - f_equal.
-    now apply IHe.
+  intros.
+  sigma.
+  repeat (progress f_equal; try lia).
 Qed.
 
 Fixpoint size (e: term): nat :=
@@ -267,15 +264,16 @@ Lemma size_lift:
   forall e i k,
   size (lift i k e) = size e.
 Proof.
+  sigma.
   induction e; simpl; intros.
-  - destruct (le_gt_dec k n); auto.
-  - auto.
-  - auto.
-  - auto.
-  - auto.
-  - auto.
-  - auto.
-  - auto.
+  - destruct (le_gt_dec k n); now sigma.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
+  - sigma; simpl; auto.
 Qed.
 
 Inductive subterm: relation term :=
@@ -447,26 +445,28 @@ Lemma context_lift_is_sound:
   lift i k (h e) =
     context_lift i k h (lift i (context_bvars h + k) e).
 Proof.
+  sigma.
   induction h; simpl; intros.
   - reflexivity.
-  - f_equal; rewrite plus_n_Sm.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
+  - rewrite plus_n_Sm.
+    sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
 Qed.
 
 Lemma context_lift_depth:
@@ -532,26 +532,28 @@ Lemma context_subst_is_sound:
   subst y k (h e) =
     context_subst y k h (subst y (context_bvars h + k) e).
 Proof.
+  sigma.
   induction h; simpl; intros.
   - reflexivity.
-  - f_equal; rewrite plus_n_Sm.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
-  - f_equal.
-    apply IHh.
+  - rewrite plus_n_Sm.
+    sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
+  - sigma; rewrite IHh.
+    repeat (progress f_equal; try lia).
 Qed.
 
 Lemma context_subst_depth:
@@ -658,19 +660,24 @@ Lemma not_free_lift:
   forall e p k j,
   not_free (p + j) e <-> not_free (p + k + j) (lift k j e).
 Proof.
-  induction e; split; intros.
-  - simpl.
-    destruct (le_gt_dec j n).
+  sigma.
+  induction e; split; sigma; intros.
+  - destruct (le_gt_dec j n).
     + dependent destruction H.
+      sigma.
       constructor; lia.
-    + constructor; lia.
-  - simpl in H.
+    + sigma.
+      constructor; lia.
+  - (* TODO: we might rewrite this once I make a "sigma in" tactic... *)
+    generalize dependent H.
     destruct (le_gt_dec j n).
-    + dependent destruction H.
+    + sigma; intros.
+      dependent destruction H.
       constructor; lia.
-    + constructor; lia.
+    + sigma; intros.
+      constructor; lia.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     replace (S (p + k + j)) with (p + k + S j); try lia.
     apply IHe.
     replace (p + S j) with (S (p + j)); try lia.
@@ -682,7 +689,7 @@ Proof.
     replace (p + k + S j) with (S (p + k + j)); try lia.
     assumption.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     + now apply IHe1.
     + now apply IHe2.
   - dependent destruction H.
@@ -690,7 +697,7 @@ Proof.
     + now apply IHe1 with k.
     + now apply IHe2 with k.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     + now apply IHe1.
     + now apply IHe2.
   - dependent destruction H.
@@ -698,25 +705,25 @@ Proof.
     + now apply IHe1 with k.
     + now apply IHe2 with k.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     now apply IHe.
   - dependent destruction H.
     constructor.
     now apply IHe with k.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     now apply IHe.
   - dependent destruction H.
     constructor.
     now apply IHe with k.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     now apply IHe.
   - dependent destruction H.
     constructor.
     now apply IHe with k.
   - dependent destruction H.
-    simpl; constructor.
+    constructor.
     now apply IHe.
   - dependent destruction H.
     constructor.
@@ -746,25 +753,26 @@ Lemma lifting_more_than_n_makes_not_free_n:
   n < k + i ->
   not_free n (lift i k e).
 Proof.
-  induction e; simpl; intros.
+  sigma.
+  induction e; intros.
   - destruct (le_gt_dec k n).
-    + constructor; lia.
-    + constructor; lia.
-  - constructor.
+    + sigma; constructor; lia.
+    + sigma; constructor; lia.
+  - sigma; constructor.
     apply IHe; lia.
-  - constructor.
+  - sigma; constructor.
     + apply IHe1; lia.
     + apply IHe2; lia.
-  - constructor.
+  - sigma; constructor.
     + apply IHe1; lia.
     + apply IHe2; lia.
-  - constructor.
+  - sigma; constructor.
     apply IHe; lia.
-  - constructor.
+  - sigma; constructor.
     apply IHe; lia.
-  - constructor.
+  - sigma; constructor.
     apply IHe; lia.
-  - constructor.
+  - sigma; constructor.
     apply IHe; lia.
 Qed.
 
@@ -925,23 +933,33 @@ Lemma subst_linear_substitution:
   subst y k (h (k + context_bvars h)) =
   subst y k (h (lift (1 + k + context_bvars h) 0 y)).
 Proof.
-  induction h; simpl; intros.
+  sigma.
+  induction h; intros.
   - rewrite Nat.add_0_r.
     destruct (lt_eq_lt_dec k k) as [ [ ? | _ ] | ? ].
     + exfalso; lia.
-    + rewrite subst_lift_simplification by lia.
-      reflexivity.
+    + simpl; sigma.
+      repeat (progress f_equal; try lia).
     + exfalso; lia.
   - replace (k + S (context_bvars h)) with (S k + (context_bvars h)) by lia.
+    simpl; sigma.
     now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
-  - now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
+  - simpl; sigma.
+    now rewrite IHh.
 Qed.
 
 Lemma free_usage_isnt_zero:

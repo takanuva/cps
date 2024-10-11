@@ -7,10 +7,11 @@ Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
-Require Import Local.AbstractRewriting.
 Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Observational.
@@ -410,7 +411,7 @@ Record reducibility (g: env) (R: env -> candidate): Prop := {
     join 0 h g ->
     forall e,
     R h e ->
-    R g (subst 0 0 e);
+    R g (subst (bound 0) 0 e);
   reducibility_normalization:
     forall c,
     R g c ->
@@ -503,6 +504,8 @@ Section Reducibility.
         reflexivity.
       + simpl.
         rewrite lift_lift_simplification by lia.
+        rewrite apply_parameters_cons.
+        rewrite apply_parameters_nil.
         rewrite subst_lift_simplification by lia.
         admit.
     (* Case: negation type. *)
@@ -857,16 +860,17 @@ Section Reducibility.
         (* Now, H2 holds our goal. We just have to tweak it a bit. *)
         rewrite switch_bindings_distributes_over_bind in H2.
         rewrite switch_bindings_distributes_over_jump in H2.
-        unfold switch_bindings at 1 2 in H2; simpl in H2.
+        rewrite switch_bindings_characterization in H2; simpl in H2.
         rewrite lift_bound_lt in H2 by lia.
         rewrite subst_bound_lt in H2 by lia.
+        rewrite switch_bindings_characterization in H2; simpl in H2.
         replace (S (S (S n))) with (1 + (2 + n)) in H2 by lia.
         rewrite <- lift_lift_permutation in H2 by lia.
         replace (S n) with (1 + n) in H2 by lia.
         rewrite <- lift_and_subst_commute in H2 by lia.
-        fold (switch_bindings n (switch_bindings n x)) in H2.
+        rewrite <- switch_bindings_characterization in H2.
         rewrite switch_bindings_is_involutive in H2.
-        replace (switch_bindings n base) with base in H2 by now compute.
+        replace (switch_bindings n base) with base in H2 by auto.
         rewrite Nat.add_comm in H2.
         (* There we go! *)
         assumption.
@@ -919,7 +923,7 @@ Section Reducibility.
     join 0 h g ->
     forall e,
     L h e ->
-    L g (subst 0 0 e).
+    L g (subst (bound 0) 0 e).
   Proof.
     intros.
     dependent destruction H0.
@@ -963,7 +967,7 @@ Section Reducibility.
       (* We are free to pick any fresh variable in this one. *)
       specialize (H0 0).
       apply reducibility_normalization in H0.
-      + set (b := (jump 0 [lift 1 0 0])).
+      + set (b := (jump 0 [lift 1 0 (bound 0)])).
         apply SN_preimage with (fun c => bind b [base] c); auto with cps.
       + apply IH; auto.
     (* Case: negation type. *)
@@ -1146,8 +1150,10 @@ Lemma L_apply_parameters:
   L (ps ++ g) (apply_parameters xs (length ps) c).
 Proof.
   induction 1; simpl; intros.
-  - assumption.
-  - dependent destruction H1.
+  - rewrite apply_parameters_nil.
+    assumption.
+  - rewrite apply_parameters_cons.
+    dependent destruction H1.
     specialize (IHForall2 H2 (ps ++ [y])).
     do 2 rewrite <- app_assoc in IHForall2.
     apply IHForall2 in H5; simpl in H5.
