@@ -27,9 +27,9 @@ Inductive term: Set :=
   | inactive
   | restriction (t: type) (p: term)
   | parallel (p: term) (q: term)
-  | input (k: nat) (ts: list type) (p: term)
   | output (k: nat) (ns: list nat)
-  | replication (p: term).
+  | input (k: nat) (ts: list type) (p: term)
+  | repl_input (k: nat) (ts: list type) (p: term).
 
 Definition bound_output (n: nat) (ts: list type) (p: term) :=
   let fix sequence i n :=
@@ -48,12 +48,12 @@ Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
     restriction t (traverse f (S k) p)
   | parallel p q =>
     parallel (traverse f k p) (traverse f k q)
-  | input n ts p =>
-    input (f k n) ts (traverse f (length ts + k) p)
   | output n ns =>
     output (f k n) (map (f k) ns)
-  | replication p =>
-    replication (traverse f k p)
+  | input n ts p =>
+    input (f k n) ts (traverse f (length ts + k) p)
+  | repl_input n ts p =>
+    repl_input (f k n) ts (traverse f (length ts + k) p)
   end.
 
 Global Instance pi_dbTraverse: dbTraverse term nat :=
@@ -79,42 +79,21 @@ Proof.
       replace (l + S j) with (S l + j) by lia.
       apply H.
     + apply H with (l := 0).
+    + induction ns; auto; simpl; f_equal; auto.
+      apply H with (l := 0).
+    + apply H with (l := 0).
     + apply IHx; intros.
       do 2 rewrite Nat.add_assoc.
       apply H.
     + apply H with (l := 0).
-    + induction ns; auto; simpl; f_equal; auto.
-      apply H with (l := 0).
+    + apply IHx; intros.
+      do 2 rewrite Nat.add_assoc.
+      apply H.
   - generalize dependent k.
     induction x; intros; simpl; auto;
     f_equal; auto.
     now rewrite map_map.
 Qed.
-
-(* Lemma type_eq_dec:
-  forall t1 t2: type,
-  { t1 = t2 } + { t1 <> t2 }.
-Proof.
-  fix H 1.
-  destruct t1, t2.
-  destruct m, m0.
-  - destruct list_eq_dec with type ts ts0.
-    + exact H.
-    + left; now subst.
-    + right; intro.
-      dependent destruction H0.
-      contradiction.
-  - right; intro.
-    dependent destruction H0.
-  - right; intro.
-    dependent destruction H0.
-  - destruct list_eq_dec with type ts ts0.
-    + exact H.
-    + left; now subst.
-    + right; intro.
-      dependent destruction H0.
-      contradiction.
-Qed. *)
 
 Definition inverse (m: mode): mode :=
   match m with
@@ -196,22 +175,34 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n p ->
     not_free n q ->
     not_free n (parallel p q)
-  | not_free_input:
-    forall n k ts p,
-    n <> k ->
-    not_free (length ts + n) p ->
-    not_free n (input k ts p)
   | not_free_output:
     forall n k ns,
     n <> k ->
     Forall (fun m => n <> m) ns ->
     not_free n (output k ns)
-  | not_free_replication:
-    forall n p,
-    not_free n (replication p).
+  | not_free_input:
+    forall n k ts p,
+    n <> k ->
+    not_free (length ts + n) p ->
+    not_free n (input k ts p)
+  | not_free_repl_input:
+    forall n k ts p,
+    n <> k ->
+    not_free (length ts + n) p ->
+    not_free n (repl_input k ts p).
 
 Definition free (n: nat) (e: term): Prop :=
   ~not_free n e.
 
 Definition closed (e: term): Prop :=
   forall n, not_free n e.
+
+(* TODO: define structural congruence. *)
+
+(* TODO: define canonical forms. *)
+
+(* TODO: define reduction. *)
+
+(* TODO: define barbed congruence. *)
+
+(* TODO: define and try to prove equational theory...? *)
