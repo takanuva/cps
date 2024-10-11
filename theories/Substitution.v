@@ -8,9 +8,9 @@ Require Import Arith.
 Require Import Relations.
 Require Import Morphisms.
 
+Set Implicit Arguments.
 Import ListNotations.
 
-Set Implicit Arguments.
 Local Generalizable Variables X Y.
 
 Inductive substitution {Y}: Type :=
@@ -43,7 +43,7 @@ Section Core.
   Context {X: Type}.
   Context {Y: Type}.
 
-  Context `{vY: dbVar Y}.
+  Context {vY: dbVar Y}.
 
   Definition lift_fun i k n: Y :=
     if le_gt_dec k n then
@@ -51,12 +51,12 @@ Section Core.
     else
       var n.
 
-  Context `{tYY: dbTraverse X Y}.
+  Context {tYY: dbTraverse X Y}.
 
   Definition lift i k: X -> X :=
     traverse (lift_fun i) k.
 
-  Context `{tXY: dbTraverse Y Y}.
+  Context {tXY: dbTraverse Y Y}.
 
   Fixpoint inst_fun s: nat -> nat -> Y :=
     fun k n =>
@@ -259,7 +259,7 @@ Section DeBruijn.
     - now simplify decidable cases.
   Qed.
 
-  Lemma sigma_lift_zero:
+  Local Lemma sigma_lift_zero:
     forall k x,
     lift 0 k x = x.
   Proof.
@@ -282,7 +282,7 @@ Section DeBruijn.
 
   Local Lemma sigma_upn_simpl:
     forall i k s x,
-    subst_upn i s k x = s (i + k) x.
+    subst_upn i s k x = s (k + i) x.
   Proof.
     intros.
     apply traverse_ext; intros.
@@ -293,15 +293,14 @@ Section DeBruijn.
   Qed.
 
   Local Lemma sigma_inst_comp:
-    forall s t x,
-    inst (subst_comp s t) x = inst t (inst s x).
+    forall s t k x,
+    subst_comp s t k x = t k (s k x).
   Proof.
     intros.
-    unfold inst, inst_rec; simpl.
+    unfold inst_rec; simpl.
     rewrite traverse_fun.
     apply traverse_ext; intros.
-    rewrite Nat.add_0_r.
-    destruct (le_gt_dec l n).
+    destruct (le_gt_dec (l + k) n).
     - reflexivity.
     - rewrite sigma_bvar_simpl by lia.
       rewrite traverse_var.
@@ -311,9 +310,17 @@ Section DeBruijn.
   Local Lemma sigma_lift_inst_commute:
     forall s i k j x,
     k <= j ->
-    lift i k (s j x) = s (i + j) (lift i k x).
+    subst_lift i k (s j x) = s (i + j) (subst_lift i k x).
   Proof.
-    admit.
+    induction s; simpl; intros.
+    - now do 2 rewrite sigma_ids_simpl.
+    - admit.
+    - admit.
+    - do 2 rewrite sigma_inst_comp.
+      now rewrite IHs2, IHs1.
+    - do 2 rewrite sigma_upn_simpl.
+      rewrite IHs by lia.
+      f_equal; lia.
   Admitted.
 
 End DeBruijn.
@@ -333,7 +340,7 @@ Section Sigma.
   Context {tXY: dbTraverse X Y}.
   Context {vYLaws: @dbVarLaws Y vY tYY}.
   Context {tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
-  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
+  Context {tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
 
   (* Replace de Bruijn substitution notation to the default instantiation. *)
 
@@ -343,8 +350,7 @@ Section Sigma.
   Proof.
     intros.
     unfold inst.
-    rewrite sigma_upn_simpl by auto.
-    now rewrite Nat.add_0_r.
+    now rewrite sigma_upn_simpl by auto.
   Qed.
 
   (* Id: x[I] = x *)
@@ -456,13 +462,11 @@ Section Sigma.
       inst (subst_comp s (subst_lift i)) (var (n - i)).
   Proof.
     intros.
-    rewrite sigma_inst_comp by auto.
     unfold inst.
-    rewrite <- sigma_lift_unfold.
+    rewrite sigma_inst_comp by auto.
     rewrite sigma_lift_inst_commute by auto.
-    unfold lift, inst_rec.
+    unfold inst_rec.
     do 2 rewrite traverse_var; simpl.
-    unfold lift_fun; simpl.
     rewrite traverse_var.
     f_equal; lia.
   Qed.
@@ -475,8 +479,12 @@ Section Sigma.
       inst (subst_comp s (subst_comp (subst_lift i) t)) (var (n - i)).
   Proof.
     intros.
+    unfold inst.
     rewrite sigma_inst_comp by auto.
+    fold (inst (subst_upn i s) (var n)).
+    fold (inst t (inst (subst_upn i s) (var n))).
     rewrite subst_RVarLift1 by auto.
+    unfold inst.
     now repeat rewrite sigma_inst_comp by auto.
   Qed.
 
@@ -486,6 +494,7 @@ Section Sigma.
     inst t (inst s x) = inst (subst_comp s t) x.
   Proof.
     intros.
+    unfold inst.
     now rewrite sigma_inst_comp by auto.
   Qed.
 
@@ -765,7 +774,8 @@ Section Sigma.
     induction xs; simpl; intros.
     - reflexivity.
     - rewrite IHxs; f_equal.
-      now apply sigma_upn_simpl.
+      rewrite sigma_upn_simpl by auto.
+      f_equal; lia.
   Qed.
 
   Lemma bsmap_length:
@@ -952,12 +962,12 @@ Section Tests.
   Implicit Types s t u v: @substitution Y.
   Implicit Types n m i k j l: nat.
 
-  Context `{vY: dbVar Y}.
-  Context `{tYY: dbTraverse Y Y}.
-  Context `{tXY: dbTraverse X Y}.
-  Context `{vYLaws: @dbVarLaws Y vY tYY}.
-  Context `{tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
-  Context `{tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
+  Context {vY: dbVar Y}.
+  Context {tYY: dbTraverse Y Y}.
+  Context {tXY: dbTraverse X Y}.
+  Context {vYLaws: @dbVarLaws Y vY tYY}.
+  Context {tYYLaws: @dbTraverseLaws Y Y vY tYY tYY}.
+  Context {tXYLaws: @dbTraverseLaws X Y vY tXY tYY}.
 
   (* Lets first check the laws for the sigma SP calculus... we note that these
      differ a bit from the paper because they take non-zero indexes to be zero
