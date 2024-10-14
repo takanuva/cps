@@ -29,16 +29,21 @@ Inductive term: Set :=
   | parallel (p: term) (q: term)
   | output (k: nat) (ns: list nat)
   | input (k: nat) (ts: list type) (p: term)
-  | repl_input (k: nat) (ts: list type) (p: term).
+  | replicated_input (k: nat) (ts: list type) (p: term).
+
+Notation poly_restriction :=
+  (fold_left (fun e t => restriction t e)).
+
+Fixpoint sequence i n :=
+  match n with
+  | 0 => []
+  | S m => i :: sequence (1 + i) m
+  end.
 
 Definition bound_output (n: nat) (ts: list type) (p: term) :=
-  let fix sequence i n :=
-    match n with
-    | 0 => []
-    | S m => i :: sequence (1 + i) m
-    end
-  in fold_left (fun e t => restriction t e) ts
-    (parallel (output (length ts + n) (sequence 0 (length ts))) p).
+  (* TODO: reuse this from the CPS-calculus? *)
+  poly_restriction ts (parallel (output (length ts + n)
+                                (sequence 0 (length ts))) p).
 
 Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
   match e with
@@ -52,8 +57,8 @@ Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
     output (f k n) (map (f k) ns)
   | input n ts p =>
     input (f k n) ts (traverse f (length ts + k) p)
-  | repl_input n ts p =>
-    repl_input (f k n) ts (traverse f (length ts + k) p)
+  | replicated_input n ts p =>
+    replicated_input (f k n) ts (traverse f (length ts + k) p)
   end.
 
 Global Instance pi_dbTraverse: dbTraverse term nat :=
@@ -185,11 +190,11 @@ Inductive not_free: nat -> term -> Prop :=
     n <> k ->
     not_free (length ts + n) p ->
     not_free n (input k ts p)
-  | not_free_repl_input:
+  | not_free_replicated_input:
     forall n k ts p,
     n <> k ->
     not_free (length ts + n) p ->
-    not_free n (repl_input k ts p).
+    not_free n (replicated_input k ts p).
 
 Definition free (n: nat) (e: term): Prop :=
   ~not_free n e.
@@ -197,11 +202,51 @@ Definition free (n: nat) (e: term): Prop :=
 Definition closed (e: term): Prop :=
   forall n, not_free n e.
 
-(* TODO: define structural congruence. *)
+(* ... *)
+
+Inductive structural: relation term := .
 
 (* TODO: define canonical forms. *)
 
-(* TODO: define reduction. *)
+Inductive step: relation term :=
+  | step_linear:
+    (* x<y> | x(z).p -> p[y/z] *)
+    forall x ys ts p,
+    length ys = length ts ->
+    step (parallel (output x ys) (input x ts p))
+         (inst (subst_app ys subst_ids) p)
+  | step_replicated:
+    (* x<y> | !x(z).p -> p[y/z] | !x(z).p *)
+    forall x ys ts p,
+    length ys = length ts ->
+    step (parallel (output x ys) (replicated_input x ts p))
+         (parallel (inst (subst_app ys subst_ids) p) (replicated_input x ts p))
+  | step_restriction:
+    forall t p q,
+    step p q ->
+    step (restriction t p) (restriction t q)
+  | step_parallel:
+    forall p q r,
+    step p q ->
+    step (parallel p r) (parallel q r)
+  | step_structural:
+    forall p1 p2 q1 q2,
+    rst(structural) p1 p2 ->
+    step p2 q1 ->
+    rst(structural) q1 q2 ->
+    step p1 p2.
+
+Goal
+  (* Let's check that the bound output version, [y] p | x(y).q -> (\y)(p | q),
+     as described in Honda's paper, is derivable with the above definitions. *)
+  forall ts x p q,
+  step (parallel (bound_output x ts p) (input x ts p))
+       (poly_restriction ts (parallel p q)).
+Proof.
+  induction ts using rev_ind; intros.
+  - admit.
+  - admit.
+Admitted.
 
 (* TODO: define barbed congruence. *)
 
