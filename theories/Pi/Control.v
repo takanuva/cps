@@ -736,7 +736,7 @@ Inductive typing: mode -> term -> env -> Prop :=
        edge and thus all variables must be active. *)
     env_hiding (length ts) g h ->
     env_prefix n (channel I ts) h i ->
-    typing I (replicated_input n ts p) i.
+    typing I (replication n ts p) i.
 
 Lemma typing_env_wellformed:
   forall m p g,

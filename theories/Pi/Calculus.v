@@ -30,7 +30,7 @@ Inductive term: Set :=
   | parallel (p: term) (q: term)
   | output (k: nat) (ns: list nat)
   | input (k: nat) (ts: list type) (p: term)
-  | replicated_input (k: nat) (ts: list type) (p: term).
+  | replication (k: nat) (ts: list type) (p: term).
 
 Local Notation poly_restriction :=
   (fold_left (fun e t => restriction t e)).
@@ -58,8 +58,8 @@ Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
     output (f k n) (map (f k) ns)
   | input n ts p =>
     input (f k n) ts (traverse f (length ts + k) p)
-  | replicated_input n ts p =>
-    replicated_input (f k n) ts (traverse f (length ts + k) p)
+  | replication n ts p =>
+    replication (f k n) ts (traverse f (length ts + k) p)
   end.
 
 Global Instance pi_dbTraverse: dbTraverse term nat :=
@@ -178,7 +178,7 @@ Inductive context: Set :=
   | context_parallel_left (p: context) (q: term)
   | context_parallel_right (p: term) (q: context)
   | context_input (n: nat) (ts: list type) (p: context)
-  | context_replicated_input (n: nat) (ts: list type) (p: context).
+  | context_replication (n: nat) (ts: list type) (p: context).
 
 Fixpoint apply_context (h: context) (e: term): term :=
   match h with
@@ -187,7 +187,7 @@ Fixpoint apply_context (h: context) (e: term): term :=
   | context_parallel_left p q => parallel (apply_context p e) q
   | context_parallel_right p q => parallel p (apply_context q e)
   | context_input n ts p => input n ts (apply_context p e)
-  | context_replicated_input n ts p => replicated_input n ts (apply_context p e)
+  | context_replication n ts p => replication n ts (apply_context p e)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -238,11 +238,11 @@ Inductive not_free: nat -> term -> Prop :=
     n <> k ->
     not_free (length ts + n) p ->
     not_free n (input k ts p)
-  | not_free_replicated_input:
+  | not_free_replication:
     forall n k ts p,
     n <> k ->
     not_free (length ts + n) p ->
-    not_free n (replicated_input k ts p).
+    not_free n (replication k ts p).
 
 Definition free (n: nat) (e: term): Prop :=
   ~not_free n e.
@@ -297,11 +297,11 @@ Inductive structural: relation term :=
     forall x ts p q,
     structural p q ->
     structural (input x ts p) (input x ts q)
-  | structural_replicated_input:
+  | structural_replication:
     (* if p = q, then !x(y).p = !x(y).q *)
     forall x ts p q,
     structural p q ->
-    structural (replicated_input x ts p) (replicated_input x ts q)
+    structural (replication x ts p) (replication x ts q)
   | structural_refl:
     (* p = p *)
     forall p,
@@ -359,8 +359,8 @@ Inductive step: relation term :=
     (* x<y> | !x(z).p -> p[y/z] | !x(z).p *)
     forall x ys ts p,
     length ys = length ts ->
-    step (parallel (output x ys) (replicated_input x ts p))
-         (parallel (inst (subst_app ys subst_ids) p) (replicated_input x ts p))
+    step (parallel (output x ys) (replication x ts p))
+         (parallel (inst (subst_app ys subst_ids) p) (replication x ts p))
   | step_restriction:
     (* if p -> q, then (\x)p -> (\x)q *)
     forall t p q,
