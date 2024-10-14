@@ -31,7 +31,7 @@ Inductive term: Set :=
   | input (k: nat) (ts: list type) (p: term)
   | replicated_input (k: nat) (ts: list type) (p: term).
 
-Notation poly_restriction :=
+Local Notation poly_restriction :=
   (fold_left (fun e t => restriction t e)).
 
 Fixpoint sequence i n :=
@@ -99,6 +99,12 @@ Proof.
     f_equal; auto.
     now rewrite map_map.
 Qed.
+
+Definition switch_bindings: substitution :=
+  subst_app [1; 0] (subst_lift 2).
+
+Definition remove_binding: substitution :=
+  subst_cons 0 subst_ids.
 
 Definition inverse (m: mode): mode :=
   match m with
@@ -243,14 +249,6 @@ Definition free (n: nat) (e: term): Prop :=
 Definition closed (e: term): Prop :=
   forall n, not_free n e.
 
-(* ... *)
-
-Definition switch_bindings: substitution :=
-  subst_app [1; 0] (subst_lift 2).
-
-Definition remove_binding: substitution :=
-  subst_cons 0 subst_ids.
-
 Inductive structural: relation term :=
   | structural_parallel_inactive:
     (* p | 0 = p *)
@@ -357,6 +355,11 @@ Proof.
   - admit.
 Admitted.
 
-(* TODO: define barbed congruence. *)
+Definition label: Set := mode * nat.
 
-(* TODO: define and try to prove equational theory...? *)
+Inductive observable: term -> label -> Prop :=
+  (* TODO: observability predicate. *)
+  .
+
+Definition barb: relation term :=
+  barbed_congruence step observable apply_context.
