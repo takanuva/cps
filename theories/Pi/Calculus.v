@@ -318,9 +318,9 @@ Inductive structural: relation term :=
     structural q r ->
     structural p r.
 
-Instance structural_is_an_equivalence: Equivalence structural.
+Global Instance structural_is_an_equivalence: Equivalence structural.
 Proof.
-  split; intros.
+  split.
   - exact structural_refl.
   - exact structural_sym.
   - exact structural_trans.
@@ -338,6 +338,25 @@ Proof.
   - transitivity (parallel q r).
     + now constructor.
     + constructor.
+Qed.
+
+Lemma structural_context:
+  forall (h: context) p q,
+  structural p q ->
+  structural (h p) (h q).
+Proof.
+  induction h; simpl; intros.
+  - assumption.
+  - constructor.
+    now apply IHh.
+  - constructor.
+    now apply IHh.
+  - apply structural_parallel_right.
+    now apply IHh.
+  - constructor.
+    now apply IHh.
+  - constructor.
+    now apply IHh.
 Qed.
 
 (* TODO: check the structural rule x[y] z[w] p = z[w] x[y] p. *)
@@ -401,7 +420,8 @@ Goal
        (poly_restriction ts (parallel p q)).
 Proof.
   induction ts using rev_ind; intros.
-  - admit.
+  - simpl.
+    admit.
   - admit.
 Admitted.
 
@@ -411,5 +431,52 @@ Inductive observable: term -> label -> Prop :=
   (* TODO: observability predicate. *)
   .
 
+Lemma structural_is_barb_preserving:
+  forall p l,
+  observable p l ->
+  forall q,
+  structural p q ->
+  observable q l.
+Proof.
+  admit.
+Admitted.
+
 Definition barb: relation term :=
   barbed_congruence step observable apply_context.
+
+Global Instance barb_is_an_equivalence: Equivalence barb.
+Proof.
+  split.
+  - apply barbed_congruence_refl.
+  - apply barbed_congruence_sym.
+  - apply barbed_congruence_trans.
+Qed.
+
+Lemma structural_congruence_is_a_barbed_simulation:
+  barbed_simulation step observable structural.
+Proof.
+  split; repeat intro.
+  - exists c.
+    + apply rt_step.
+      eapply step_structural.
+      * symmetry.
+        eassumption.
+      * eassumption.
+      * reflexivity.
+    + reflexivity.
+  - exists b.
+    + apply rt_refl.
+    + now apply structural_is_barb_preserving with a.
+Qed.
+
+Lemma barb_structural:
+  inclusion structural barb.
+Proof.
+  intros x y ?.
+  exists structural.
+  - clear H h x y.
+    apply symmetric_barbed_simulation_is_bisimulation.
+    + apply structural_congruence_is_a_barbed_simulation.
+    + exact structural_sym.
+  - now apply structural_context.
+Qed.
