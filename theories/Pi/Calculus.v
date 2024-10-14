@@ -329,19 +329,38 @@ Inductive step: relation term :=
     step (parallel (output x ys) (replicated_input x ts p))
          (parallel (inst (subst_app ys subst_ids) p) (replicated_input x ts p))
   | step_restriction:
+    (* if p -> q, then (\x)p -> (\x)q *)
     forall t p q,
     step p q ->
     step (restriction t p) (restriction t q)
-  | step_parallel:
+  | step_parallel_left:
+    (* if p -> q, then p | r -> q | r *)
     forall p q r,
     step p q ->
     step (parallel p r) (parallel q r)
   | step_structural:
-    forall p1 p2 q1 q2,
-    rst(structural) p1 p2 ->
-    step p2 q1 ->
-    rst(structural) q1 q2 ->
-    step p1 p2.
+    (* if p = q, q -> r, and r = s, then p -> s *)
+    forall p q r s,
+    rst(structural) p q ->
+    step q r ->
+    rst(structural) r s ->
+    step p s.
+
+Lemma step_parallel_right:
+  (* if p -> q, then r | p -> r | q *)
+  forall p q r,
+  step p q ->
+  step (parallel r p) (parallel r q).
+Proof.
+  intros.
+  eapply step_structural.
+  - apply rst_step.
+    apply structural_parallel_commutative.
+  - apply step_parallel_left.
+    eassumption.
+  - apply rst_step.
+    apply structural_parallel_commutative.
+Qed.
 
 Goal
   (* Let's check that the bound output version, [y] p | x(y).q -> (\y)(p | q),
