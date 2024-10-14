@@ -263,6 +263,12 @@ Inductive structural: relation term :=
     structural p q ->
     structural (replicated_input x ts p) (replicated_input x ts q).
 
+(* TODO: check the structural rule x[y] z[w] p = z[w] x[y] p. *)
+
+(* TODO: check the structural rule (\z)x[y] p = x[y] (\z)p. *)
+
+(* TODO: check the structural rule x[y] (p | q) = x[y] p | q. *)
+
 (* TODO: define canonical forms. Oh boy. *)
 
 Inductive step: relation term :=
