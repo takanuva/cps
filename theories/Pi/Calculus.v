@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import Setoid.
 Require Import List.
 Require Import Relations.
 Require Import Equality.
@@ -291,11 +292,6 @@ Inductive structural: relation term :=
     forall p q r,
     structural p q ->
     structural (parallel p r) (parallel q r)
-  | structural_parallel_right:
-    (* if p = q, then r | p = r | q *)
-    forall p q r,
-    structural p q ->
-    structural (parallel r p) (parallel r q)
   | structural_input:
     (* if p = q, then x(y).p = x(y).q *)
     forall x ts p q,
@@ -305,7 +301,44 @@ Inductive structural: relation term :=
     (* if p = q, then !x(y).p = !x(y).q *)
     forall x ts p q,
     structural p q ->
-    structural (replicated_input x ts p) (replicated_input x ts q).
+    structural (replicated_input x ts p) (replicated_input x ts q)
+  | structural_refl:
+    (* p = p *)
+    forall p,
+    structural p p
+  | structural_sym:
+    (* if p = q, then q = p *)
+    forall p q,
+    structural p q ->
+    structural q p
+  | structural_trans:
+    (* if p = q and q = r, then p = r *)
+    forall p q r,
+    structural p q ->
+    structural q r ->
+    structural p r.
+
+Instance structural_is_an_equivalence: Equivalence structural.
+Proof.
+  split; intros.
+  - exact structural_refl.
+  - exact structural_sym.
+  - exact structural_trans.
+Qed.
+
+Lemma structural_parallel_right:
+  (* if p = q, then r | p = r | q *)
+  forall p q r,
+  structural p q ->
+  structural (parallel r p) (parallel r q).
+Proof.
+  intros.
+  transitivity (parallel p r).
+  - constructor.
+  - transitivity (parallel q r).
+    + now constructor.
+    + constructor.
+Qed.
 
 (* TODO: check the structural rule x[y] z[w] p = z[w] x[y] p. *)
 
@@ -341,9 +374,9 @@ Inductive step: relation term :=
   | step_structural:
     (* if p = q, q -> r, and r = s, then p -> s *)
     forall p q r s,
-    rst(structural) p q ->
+    structural p q ->
     step q r ->
-    rst(structural) r s ->
+    structural r s ->
     step p s.
 
 Lemma step_parallel_right:
@@ -354,12 +387,10 @@ Lemma step_parallel_right:
 Proof.
   intros.
   eapply step_structural.
-  - apply rst_step.
-    apply structural_parallel_commutative.
+  - apply structural_parallel_commutative.
   - apply step_parallel_left.
     eassumption.
-  - apply rst_step.
-    apply structural_parallel_commutative.
+  - apply structural_parallel_commutative.
 Qed.
 
 Goal
