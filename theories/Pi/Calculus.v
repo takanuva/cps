@@ -204,9 +204,66 @@ Definition closed (e: term): Prop :=
 
 (* ... *)
 
-Inductive structural: relation term := .
+Definition switch_bindings: substitution :=
+  subst_app [1; 0] (subst_lift 2).
 
-(* TODO: define canonical forms. *)
+Definition remove_binding: substitution :=
+  subst_cons 0 subst_ids.
+
+Inductive structural: relation term :=
+  | structural_parallel_inactive:
+    (* p | 0 = p *)
+    forall p,
+    structural (parallel p inactive)
+               p
+  | structural_parallel_commutative:
+    (* p | q = q | p *)
+    forall p q,
+    structural (parallel p q)
+               (parallel q p)
+  | structural_paralllel_associative:
+    (* (p | q) | r = p | (q | r) *)
+    forall p q r,
+    structural (parallel (parallel p q) r)
+               (parallel p (parallel q r))
+  | structural_restriction_inactive:
+    (* (\x)0 = 0 *)
+    forall t,
+    structural (restriction t inactive)
+               inactive
+  | structural_restriction_switch:
+    (* (\x)(\y)p = (\y)(\x)p *)
+    forall t u p,
+    structural (restriction t (restriction u p))
+               (restriction u (restriction t (switch_bindings 0 p)))
+  | structural_extrusion:
+    (* (\x)(p | q) = (\x)p | q, given x not free in q *)
+    forall t p q,
+    not_free 0 q ->
+    structural (restriction t (parallel p q))
+               (parallel (restriction t p) (remove_binding 0 q))
+  | structural_restriction:
+    forall t p q,
+    structural p q ->
+    structural (restriction t p) (restriction t q)
+  | structural_parallel_left:
+    forall p q r,
+    structural p q ->
+    structural (parallel p r) (parallel q r)
+  | structural_parallel_right:
+    forall p q r,
+    structural p q ->
+    structural (parallel r p) (parallel r q)
+  | structural_input:
+    forall x ts p q,
+    structural p q ->
+    structural (input x ts p) (input x ts q)
+  | structural_replicated_input:
+    forall x ts p q,
+    structural p q ->
+    structural (replicated_input x ts p) (replicated_input x ts q).
+
+(* TODO: define canonical forms. Oh boy. *)
 
 Inductive step: relation term :=
   | step_linear:
