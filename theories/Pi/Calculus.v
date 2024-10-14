@@ -165,7 +165,48 @@ Definition get_mode (t: type): mode :=
 
 (* TODO: define subterm? *)
 
-(* TODO: define context. *)
+Inductive context: Set :=
+  | context_hole
+  | context_restriction (t: type) (p: context)
+  | context_parallel_left (p: context) (q: term)
+  | context_parallel_right (p: term) (q: context)
+  | context_input (n: nat) (ts: list type) (p: context)
+  | context_replicated_input (n: nat) (ts: list type) (p: context).
+
+Fixpoint apply_context (h: context) (e: term): term :=
+  match h with
+  | context_hole => e
+  | context_restriction t p => restriction t (apply_context p e)
+  | context_parallel_left p q => parallel (apply_context p e) q
+  | context_parallel_right p q => parallel p (apply_context q e)
+  | context_input n ts p => input n ts (apply_context p e)
+  | context_replicated_input n ts p => replicated_input n ts (apply_context p e)
+  end.
+
+Coercion apply_context: context >-> Funclass.
+
+Definition context_bound_output (n: nat) (ts: list type) (p: context) :=
+  fold_left (fun e t => context_restriction t e) ts
+    (context_parallel_right
+      (output (length ts + n) (sequence 0 (length ts))) p).
+
+Lemma apply_context_bound_output_is_sound:
+  forall ts n h e,
+  context_bound_output n ts h e = bound_output n ts (h e).
+Proof.
+  intros.
+  unfold bound_output.
+  unfold context_bound_output.
+  generalize (output (length ts + n) (sequence 0 (length ts))) as p.
+  clear n.
+  generalize dependent e.
+  generalize dependent h.
+  induction ts using rev_ind; intros.
+  - simpl.
+    reflexivity.
+  - do 2 rewrite fold_left_app; simpl.
+    f_equal; apply IHts.
+Qed.
 
 Inductive not_free: nat -> term -> Prop :=
   | not_free_inactive:
@@ -243,22 +284,27 @@ Inductive structural: relation term :=
     structural (restriction t (parallel p q))
                (parallel (restriction t p) (remove_binding 0 q))
   | structural_restriction:
+    (* if p = q, then (\x)p = (\x)q *)
     forall t p q,
     structural p q ->
     structural (restriction t p) (restriction t q)
   | structural_parallel_left:
+    (* if p = q, then p | r = q | r *)
     forall p q r,
     structural p q ->
     structural (parallel p r) (parallel q r)
   | structural_parallel_right:
+    (* if p = q, then r | p = r | q *)
     forall p q r,
     structural p q ->
     structural (parallel r p) (parallel r q)
   | structural_input:
+    (* if p = q, then x(y).p = x(y).q *)
     forall x ts p q,
     structural p q ->
     structural (input x ts p) (input x ts q)
   | structural_replicated_input:
+    (* if p = q, then !x(y).p = !x(y).q *)
     forall x ts p q,
     structural p q ->
     structural (replicated_input x ts p) (replicated_input x ts q).
