@@ -77,6 +77,38 @@ Proof.
     inversion H.
 Qed.
 
+Lemma env_wellformed_isomorphism:
+  forall g1 g2,
+  env_wellformed g1 ->
+  isomorphic g1 g2 ->
+  env_wellformed g2.
+Proof.
+  constructor; intros.
+  - destruct H1 as (t, (u, ?)).
+    apply H0 in H1.
+    destruct env_wellformed_domain with g1 i j as (ts, ?).
+    + assumption.
+    + now exists t, u.
+    + exists ts.
+      now apply H0.
+  - destruct H1 as (t, (u, ?)).
+    apply H0 in H1.
+    destruct env_wellformed_codomain with g1 i j as (ts, ?).
+    + assumption.
+    + now exists t, u.
+    + exists ts.
+      now apply H0.
+  - apply H0 in H1, H2.
+    now apply env_wellformed_unique with g1 i.
+  - intro x.
+    induction (env_wellformed_acyclic g1 H) with x.
+    constructor; intros.
+    apply H2.
+    destruct H3 as (t, (u, ?)).
+    exists t, u.
+    now apply H0.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Inductive type_composition: type -> type -> type -> Prop :=
