@@ -32,17 +32,21 @@ Inductive term: Set :=
   | input (k: nat) (ts: list type) (p: term)
   | replication (k: nat) (ts: list type) (p: term).
 
+(* TODO: probably better to remove this notation. *)
 Local Notation poly_restriction :=
   (fold_left (fun e t => restriction t e)).
 
+(* TODO: reuse this from the CPS-calculus? *)
 Fixpoint sequence i n :=
   match n with
   | 0 => []
   | S m => i :: sequence (1 + i) m
   end.
 
+(* As we don't have overline in ASCII, we'll denote free asynchronous output by
+   x[y] p in the following, as we recall that x[y] p = (\y)(x<y> | p). *)
+
 Definition bound_output (n: nat) (ts: list type) (p: term) :=
-  (* TODO: reuse this from the CPS-calculus? *)
   poly_restriction ts (parallel (output (length ts + n)
                                 (sequence 0 (length ts))) p).
 
