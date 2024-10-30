@@ -3,10 +3,16 @@
 (******************************************************************************)
 
 Require Import List.
+Require Import Setoid.
+Require Import Relations.
 Require Import Equality.
 Set Implicit Arguments.
 
 Import ListNotations.
+
+Arguments reflexive {A}.
+Arguments symmetric {A}.
+Arguments transitive {A}.
 
 Section Algebraic.
 
@@ -96,6 +102,41 @@ Section Algebraic.
       forall v1 v2,
       has_edge g1 v1 v2 <-> has_edge g2 v1 v2
   }.
+
+  Lemma isomorphic_refl:
+    forall {V},
+    reflexive (@isomorphic V).
+  Proof.
+    constructor; split; auto.
+  Qed.
+
+  Lemma isomorphic_sym:
+    forall {V},
+    symmetric (@isomorphic V).
+  Proof.
+    constructor; split; firstorder.
+  Qed.
+
+  Lemma isomorphic_trans:
+    forall {V},
+    transitive (@isomorphic V).
+  Proof.
+    constructor; split; intros.
+    - now apply H0, H.
+    - now apply H, H0.
+    - now apply H0, H.
+    - now apply H, H0.
+  Qed.
+
+  Global Instance isomorphic_is_an_equivalence:
+    forall {V},
+    Equivalence (@isomorphic V).
+  Proof.
+    constructor.
+    - exact isomorphic_refl.
+    - exact isomorphic_sym.
+    - exact isomorphic_trans.
+  Qed.
 
   Lemma overlay_is_commutative:
     forall {V} (g1 g2: graph V),
