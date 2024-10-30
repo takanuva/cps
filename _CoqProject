@@ -2,7 +2,6 @@
 
 theories/Prelude.v
 theories/Syntax.v
-# Temporary file for exploring
 theories/Substitution.v
 theories/Metatheory.v
 theories/AbstractRewriting.v
@@ -34,5 +33,6 @@ theories/Lambda/Control.v
 # theories/Simulation.v
 # Ignore this for now...
 # theories/FullAbstraction.v
+theories/Pi/Graph.v
 theories/Pi/Calculus.v
 theories/Pi/Control.v
