@@ -97,6 +97,60 @@ Section Algebraic.
       has_edge g1 v1 v2 <-> has_edge g2 v1 v2
   }.
 
+  Lemma overlay_is_commutative:
+    forall {V} (g1 g2: graph V),
+    isomorphic (overlay g1 g2) (overlay g2 g1).
+  Proof.
+    constructor; split; intros.
+    - dependent destruction H.
+      + now apply has_vertex_overlay_right.
+      + now apply has_vertex_overlay_left.
+    - dependent destruction H.
+      + now apply has_vertex_overlay_right.
+      + now apply has_vertex_overlay_left.
+    - dependent destruction H.
+      + now apply has_edge_overlay_right.
+      + now apply has_edge_overlay_left.
+    - dependent destruction H.
+      + now apply has_edge_overlay_right.
+      + now apply has_edge_overlay_left.
+  Qed.
+
+  Lemma overlay_is_associative:
+    forall {V} (g1 g2 g3: graph V),
+    isomorphic (overlay g1 (overlay g2 g3)) (overlay (overlay g1 g2) g3).
+  Proof.
+    constructor; split; intros.
+    - dependent destruction H.
+      + apply has_vertex_overlay_left.
+        now apply has_vertex_overlay_left.
+      + dependent destruction H.
+        * apply has_vertex_overlay_left.
+          now apply has_vertex_overlay_right.
+        * now apply has_vertex_overlay_right.
+    - dependent destruction H.
+      + dependent destruction H.
+        * now apply has_vertex_overlay_left.
+        * apply has_vertex_overlay_right.
+          now apply has_vertex_overlay_left.
+      + apply has_vertex_overlay_right.
+        now apply has_vertex_overlay_right.
+    - dependent destruction H.
+      + apply has_edge_overlay_left.
+        now apply has_edge_overlay_left.
+      + dependent destruction H.
+        * apply has_edge_overlay_left.
+          now apply has_edge_overlay_right.
+        * now apply has_edge_overlay_right.
+    - dependent destruction H.
+      + dependent destruction H.
+        * now apply has_edge_overlay_left.
+        * apply has_edge_overlay_right.
+          now apply has_edge_overlay_left.
+      + apply has_edge_overlay_right.
+        now apply has_edge_overlay_right.
+  Qed.
+
   Definition edge {V} v1 v2: graph V :=
     connect (vertex v1) (vertex v2).
 
