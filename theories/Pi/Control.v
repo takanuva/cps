@@ -323,7 +323,7 @@ Qed.
 Fixpoint env_extend (g: env) (k: nat) (ts: list type): env :=
   match ts with
   | [] => g
-  | t :: ts => overlay (env_extend g (1 + k) ts) (vertex (k, t))
+  | t :: ts => overlay (env_extend g k ts) (vertex (length ts + k, t))
   end.
 
 (* -------------------------------------------------------------------------- *)

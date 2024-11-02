@@ -107,10 +107,11 @@ Section Interpretation.
     | interpret_env_nil:
       interpret_env [] empty
     | interpret_env_cons:
-      forall t ts c cs,
+      forall t ts c cs k,
       interpret_type t c ->
       interpret_env ts cs ->
-      interpret_env (t :: ts) (overlay cs (env_singleton (length ts) c)).
+      k = (length ts) ->
+      interpret_env (t :: ts) (overlay cs (env_singleton k c)).
 
   Lemma interpret_env_free_name:
     forall g a,
@@ -123,12 +124,12 @@ Section Interpretation.
     - intros (t, ?).
       inversion H0.
     - intros (u, ?).
-      unfold env_singleton, env_type in H2.
-      dependent destruction H2.
+      unfold env_singleton, env_type in H3.
+      dependent destruction H3.
       + eapply IHinterpret_env with n.
         * lia.
         * now exists u.
-      + dependent destruction H2.
+      + dependent destruction H3.
         lia.
   Qed.
 
@@ -141,9 +142,28 @@ Section Interpretation.
     - dependent destruction H.
       apply empty_is_wellformed.
     - dependent destruction H.
-      (* We know that c won't appear in cs. *)
+      (* We know that c won't appear in cs. There will be a similar case in the
+         [Control.v] file, take the lemma from there once it's finished! *)
       admit.
   Admitted.
+
+  Lemma interpret_env_extend:
+    forall ts cs,
+    Forall2 interpret_type ts cs ->
+    forall g a,
+    interpret_env g a ->
+    interpret_env (ts ++ g) (env_extend a (length g) cs).
+  Proof.
+    induction 1; simpl; intros.
+    - assumption.
+    - constructor.
+      + assumption.
+      + now apply IHForall2.
+      + rewrite app_length.
+        erewrite Forall2_length with _ l l'.
+        * reflexivity.
+        * eassumption.
+  Qed.
 
   Lemma local_environment_coherence:
     forall g,
@@ -163,8 +183,7 @@ Section Interpretation.
           dependent destruction H2.
           apply H0; exists t1.
           assumption.
-        * (* So, t1 = t2. *)
-          admit.
+        * admit.
       + dependent destruction H2.
         * dependent destruction H1.
           dependent destruction H2.
@@ -235,7 +254,17 @@ Section Interpretation.
               +++ constructor; eauto.
                   econstructor; eauto.
           --- apply typing_in with (g := a).
-              +++ admit.
+              +++ (* While interpreting the CPS-calculus into the pi-calculus,
+                     [[b { k<x> = c }]] becomes [(\k)([b] | !k(x).[c])], with
+                     the condition that [k] doesn't appear free in [c]. This
+                     amounts to the lift in [H2] and to the [1 + ...] in the
+                     goal. *)
+                  subst.
+                  (* Let's specialize our hypothesis to see how it rolls... *)
+                  specialize (IHinterpret2 (ts ++ g)).
+                  specialize (IHinterpret2 (env_extend a (length g) cs)).
+                  specialize (IHinterpret2 H3_0).
+                  admit.
               +++ replace (i2l (1 + length g) 0) with (length g) by lia.
                   apply interpret_env_free_name with g.
                   *** assumption.
