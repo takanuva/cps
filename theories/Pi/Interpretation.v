@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
@@ -132,7 +133,9 @@ Section Interpretation.
   Qed.
 
   Lemma local_environment_coherence:
-    forall g k,
+    forall g,
+    env_wellformed g ->
+    forall k,
     ~has_free_name g k ->
     forall t,
     env_coherent
@@ -140,25 +143,63 @@ Section Interpretation.
       (connect (env_singleton k t) g).
   Proof.
     constructor; intros.
-    - unfold env_type in H0, H1.
-      dependent destruction H0.
-      + dependent destruction H1.
+    - unfold env_type in H1, H2.
+      dependent destruction H1.
+      + dependent destruction H2.
         * exfalso.
-          dependent destruction H1.
-          apply H; exists t1.
+          dependent destruction H2.
+          apply H0; exists t1.
           assumption.
         * (* So, t1 = t2. *)
           admit.
-      + dependent destruction H1.
-        * dependent destruction H0.
-          dependent destruction H1.
+      + dependent destruction H2.
+        * dependent destruction H1.
+          dependent destruction H2.
           (* Yeah... *)
           admit.
         * exfalso.
-          dependent destruction H0.
-          apply H; exists t2.
+          dependent destruction H1.
+          apply H0; exists t2.
           assumption.
-    - admit.
+    - intro x.
+      induction env_wellformed_acyclic with g x; auto.
+      constructor; intros.
+      destruct H3.
+      + destruct H3 as (u, (v, ?)).
+        dependent destruction H3.
+        * apply H2.
+          now exists u, v.
+        * exfalso.
+          inversion H3.
+      + destruct H3 as (u, (v, ?)).
+        dependent destruction H3.
+        * exfalso.
+          inversion H3.
+        * apply H2.
+          now exists u, v.
+        * dependent destruction H3.
+          (* We have to check one more step! TODO: refactor me, please. *)
+          constructor; intros z ?.
+          destruct H3.
+          --- destruct H3 as (w1, (w2, ?)).
+              dependent destruction H3.
+              +++ exfalso.
+                  apply H0.
+                  exists w2.
+                  now apply graph_vertex_from_edge_right with (z, w1).
+              +++ exfalso.
+                  inversion H3.
+          --- destruct H3 as (w1, (w2, ?)).
+              dependent destruction H3.
+              +++ exfalso.
+                  inversion H3.
+              +++ exfalso.
+                  apply H0.
+                  exists w2.
+                  now apply graph_vertex_from_edge_right with (z, w1).
+              +++ exfalso.
+                  apply H0.
+                  now exists w2.
   Admitted.
 
   Lemma interpretation_preserves_typing:
@@ -189,9 +230,11 @@ Section Interpretation.
               +++ now apply interpret_forall_generates_output with ts.
           --- replace (i2l (1 + length g) 0) with (length g) by lia.
               apply local_environment_coherence.
-              apply interpret_env_free_name with g.
-              +++ assumption.
-              +++ lia.
+              +++ (* Sure, there aren't even edges! *)
+                  admit.
+              +++ apply interpret_env_free_name with g.
+                  *** assumption.
+                  *** lia.
           --- constructor.
         * constructor.
           now apply interpret_forall_generates_output with ts.
