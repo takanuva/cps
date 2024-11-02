@@ -131,6 +131,17 @@ Section Interpretation.
         lia.
   Qed.
 
+  Lemma local_environment_coherence:
+    forall g k,
+    ~has_free_name g k ->
+    forall t,
+    env_coherent
+      (overlay g (env_singleton k (dual t)))
+      (connect (env_singleton k t) g).
+  Proof.
+    admit.
+  Admitted.
+
   Lemma interpretation_preserves_typing:
     forall b p,
     interpret b p ->
@@ -158,11 +169,18 @@ Section Interpretation.
                   *** lia.
               +++ now apply interpret_forall_generates_output with ts.
           --- replace (i2l (1 + length g) 0) with (length g) by lia.
-              admit.
+              apply local_environment_coherence.
+              apply interpret_env_free_name with g.
+              +++ assumption.
+              +++ lia.
           --- constructor.
-        * admit.
-        * admit.
-      + admit.
+        * constructor.
+          now apply interpret_forall_generates_output with ts.
+        * replace (i2l (1 + length g) 0) with (length g) by lia.
+          apply env_composition_vertex_inversion.
+          admit.
+      + replace (i2l (1 + length g) 0) with (length g) by lia.
+        admit.
   Admitted.
 
 End Interpretation.
