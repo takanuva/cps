@@ -480,7 +480,8 @@ Inductive typing: mode -> term -> env -> nat -> Prop :=
     typing O p (env_extend g k ts) (length ts + k) ->
     ~has_free_name g (i2l k x) ->
     Forall (alternating O) ts ->
-    typing I (replication x ts p) (connect (env_singleton x (channel I ts)) g) k
+    typing I (replication x ts p)
+      (connect (env_singleton (i2l k x) (channel I ts)) g) k
   (* Rule for free output:
 
               x: ?(ts) >< (ys: ~ts)

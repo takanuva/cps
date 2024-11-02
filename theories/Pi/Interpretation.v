@@ -157,7 +157,8 @@ Section Interpretation.
                   *** assumption.
                   *** lia.
               +++ now apply interpret_forall_generates_output with ts.
-          --- admit.
+          --- replace (i2l (1 + length g) 0) with (length g) by lia.
+              admit.
           --- constructor.
         * admit.
         * admit.
