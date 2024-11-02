@@ -132,6 +132,19 @@ Section Interpretation.
         lia.
   Qed.
 
+  Lemma interpret_env_is_wellformed:
+    forall g a,
+    interpret_env g a ->
+    env_wellformed a.
+  Proof.
+    induction g; intros.
+    - dependent destruction H.
+      apply empty_is_wellformed.
+    - dependent destruction H.
+      (* We know that c won't appear in cs. *)
+      admit.
+  Admitted.
+
   Lemma local_environment_coherence:
     forall g,
     env_wellformed g ->
@@ -231,7 +244,7 @@ Section Interpretation.
           --- replace (i2l (1 + length g) 0) with (length g) by lia.
               apply local_environment_coherence.
               +++ (* Sure, there aren't even edges! *)
-                  admit.
+                  now apply interpret_env_is_wellformed with g.
               +++ apply interpret_env_free_name with g.
                   *** assumption.
                   *** lia.
