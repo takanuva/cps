@@ -320,6 +320,14 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
+Fixpoint env_extend (g: env) (k: nat) (ts: list type): env :=
+  match ts with
+  | [] => g
+  | t :: ts => overlay (env_extend g (1 + k) ts) (vertex (k, t))
+  end.
+
+(* -------------------------------------------------------------------------- *)
+
 Definition env_singleton (n: nat) (t: type): env :=
   vertex (n, t).
 
@@ -394,7 +402,11 @@ Definition env_mode (m: mode) (g: env): Prop :=
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive typing: mode -> term -> env -> Prop :=
+(* Convert a de Bruijn index to level. *)
+Notation i2l k i := (k - i - 1).
+
+(* *)
+Inductive typing: mode -> term -> env -> nat -> Prop :=
   (* Rule for typing an inactive process:
 
       ------------ (ZERO)
@@ -404,7 +416,8 @@ Inductive typing: mode -> term -> env -> Prop :=
      mode (clearly, there's no active output). In order to add unused (output)
      variables, we will use weakening. *)
   | typing_zero:
-    typing I inactive empty
+    forall k,
+    typing I inactive empty k
   (* Rule for typing the composition of two processes:
 
         |-(m) p |> G    |-(n) q |> H    G >< H
@@ -418,12 +431,12 @@ Inductive typing: mode -> term -> env -> Prop :=
      won't be defined (we don't add this explicitly in the hypotheses as Honda
      et al. do). *)
   | typing_par:
-    forall m n o p q g h,
-    typing m p g ->
-    typing n q h ->
+    forall m n o p q g h k,
+    typing m p g k ->
+    typing n q h k ->
     env_coherent g h ->
     mode_composition m n o ->
-    typing o (parallel p q) (env_composition g h)
+    typing o (parallel p q) (env_composition g h) k
   (* Rule for typing name restriction:
 
          |-(m) p |> G     G(x) = ti
@@ -434,12 +447,11 @@ Inductive typing: mode -> term -> env -> Prop :=
      action type [G] such that [x: ti] is a vertex within it. Note that this
      will require that the name [x] is defined as a replicated input in [p]. *)
   | typing_res:
-    forall m p g t,
-    typing m p g ->
+    forall m p g k t,
+    typing m p g (1 + k) ->
     alternating I t ->
-    (* TODO: which level is variable 0...? *)
-    env_type g 42 t ->
-    typing m (restriction t p) (env_hiding g 42)
+    env_type g k t -> (* Notice: k = i2l (1 + k) 0! *)
+    typing m (restriction t p) (env_hiding g k) k
   (* Rule for weakening, which is explicit:
 
         |-(m) p |> G   x undefined in G
@@ -451,30 +463,29 @@ Inductive typing: mode -> term -> env -> Prop :=
      defined in [G] and if [t] is an output type. Basically, it says that we may
      ignore any unused free variables which have output types. *)
   | typing_weak:
-    forall m p g n t,
-    typing m p g ->
+    forall m p g k n t,
+    typing m p g k ->
+    n < k ->
     alternating O t ->
     ~has_free_name g n ->
-    typing m p (env_composition g (env_singleton n t))
-  (*
-       |-O p |> G, ys: ts    md(G) = ?
-    ------------------------------------- (IN)
-      |-I !x(ys: ts).p |> x: !(ts) -> G
+    typing m p (overlay g (env_singleton n t)) k
+  (* Rule for input:
+
+         |-O p |> G, ys: ts    md(G) = ?
+      ------------------------------------- (IN)
+        |-I !x(ys: ts).p |> x: !(ts) -> G
   *)
-  (* | typing_in: (* TODO: fix this! *)
-    forall p g n ts h i,
-    typing O p g ->
-    nth (length ts + n) g None = None ->
-    env_mode O g ->
+  | typing_in:
+    forall x ts p g k,
+    typing O p (env_extend g k ts) (length ts + k) ->
+    ~has_free_name g (i2l k x) ->
     Forall (alternating O) ts ->
-    (* We're hiding ys from G, which only had output types, so it can't have any
-       edge and thus all variables must be active. *)
-    env_hiding (length ts) g h ->
-    env_prefix n (channel I ts) h i ->
-    typing I (replication n ts p) i *)
-  (*
-    --------------------------------------- (FOUT)
-      |-O x<ys> |> (x: ?(ts)) * (ys: ~ts)
+    typing I (replication x ts p) (connect (env_singleton x (channel I ts)) g) k
+  (* Rule for free output:
+
+              x: ?(ts) >< (ys: ~ts)
+     --------------------------------------- (FOUT)
+       |-O x<ys> |> (x: ?(ts)) * (ys: ~ts)
 
     Note that in here we do not expect the names in ys to be all different, and,
     because of that, if y_i = y_j, then we expect t_i = t_j.
@@ -486,7 +497,13 @@ Inductive typing: mode -> term -> env -> Prop :=
     this rule to cover this possibility.
   *)
   (* | typing_out:
-  *).
+  *)
+  | typing_iso:
+    (* We close the typing rules up to graph isomorphism on action types. *)
+    forall m p g h n,
+    typing m p g n ->
+    isomorphic g h ->
+    typing m p h n.
 
 (*
 Lemma typing_bout:
@@ -498,20 +515,19 @@ Lemma typing_bout:
 *)
 
 Definition typed (p: term): Prop :=
-  exists m g,
-  typing m p g.
+  exists m g k,
+  typing m p g k.
 
 Lemma typing_env_wellformed:
-  forall m p g,
-  typing m p g ->
+  forall m p g k,
+  typing m p g k ->
   env_wellformed g.
 Proof.
   induction 1.
   - apply empty_is_wellformed.
   - now apply env_composition_preserves_wellformedness.
   - now apply env_hiding_preserves_wellformedness.
-  - apply env_composition_preserves_wellformedness.
-    + admit.
-    + assumption.
-    + apply env_singleton_is_wellformed.
+  - admit.
+  - admit.
+  - now apply env_wellformed_isomorphism with g.
 Admitted.

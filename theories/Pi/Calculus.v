@@ -50,6 +50,12 @@ Definition bound_output (n: nat) (ts: list type) (p: term) :=
   poly_restriction ts (parallel (output (length ts + n)
                                 (sequence 0 (length ts))) p).
 
+(* A local environment, i.e., (\k)(p | !k<x>.q). We do not necessarily assume
+   here that k won't appear free in q, but that's usually what we want. *)
+
+Definition local_env p ts q :=
+  restriction (channel I ts) (parallel p (replication 0 ts q)).
+
 Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
   match e with
   | inactive =>
