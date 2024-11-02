@@ -139,7 +139,26 @@ Section Interpretation.
       (overlay g (env_singleton k (dual t)))
       (connect (env_singleton k t) g).
   Proof.
-    admit.
+    constructor; intros.
+    - unfold env_type in H0, H1.
+      dependent destruction H0.
+      + dependent destruction H1.
+        * exfalso.
+          dependent destruction H1.
+          apply H; exists t1.
+          assumption.
+        * (* So, t1 = t2. *)
+          admit.
+      + dependent destruction H1.
+        * dependent destruction H0.
+          dependent destruction H1.
+          (* Yeah... *)
+          admit.
+        * exfalso.
+          dependent destruction H0.
+          apply H; exists t2.
+          assumption.
+    - admit.
   Admitted.
 
   Lemma interpretation_preserves_typing:
