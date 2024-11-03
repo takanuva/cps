@@ -183,11 +183,14 @@ Section Interpretation.
           dependent destruction H2.
           apply H0; exists t1.
           assumption.
-        * admit.
+        * (* We have a unique output type, so [t1 = t2] and they compose. *)
+          admit.
       + dependent destruction H2.
         * dependent destruction H1.
           dependent destruction H2.
-          (* Yeah... *)
+          (* In here, [t2] is an output type. So its composition with its dual
+             exists and it's equal to its dual. *)
+          exists (dual t2).
           admit.
         * exfalso.
           dependent destruction H1.
@@ -286,5 +289,32 @@ Section Interpretation.
       + replace (i2l (1 + length g) 0) with (length g) by lia.
         admit.
   Admitted.
+
+  Lemma interpretation_reflects_typing:
+    forall b p,
+    interpret b p ->
+    forall g a,
+    Control.typing O p a (length g) ->
+    interpret_env g a ->
+    TypeSystem.typing g b void.
+  Proof.
+    (* TODO: I suspect we'll need an equivalent type system to make this work,
+       where the typing rules follow the structure of the terms by subsuming
+       both graph isomorphism and local weakening. Alternatively, this could be
+       seem as an induction scheme for the original type system. *)
+    admit.
+  Admitted.
+
+  Theorem control_correspondence:
+    forall b p,
+    interpret b p ->
+    forall g a,
+    interpret_env g a ->
+    TypeSystem.typing g b void <-> Control.typing O p a (length g).
+  Proof.
+    split; intros.
+    - now apply interpretation_preserves_typing with b.
+    - now apply interpretation_reflects_typing with p a.
+  Qed.
 
 End Interpretation.
