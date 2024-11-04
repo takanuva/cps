@@ -537,3 +537,119 @@ Proof.
   - admit.
   - now apply env_wellformed_isomorphism with g.
 Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+Instance env_dbTraverse: dbTraverse env nat :=
+  fun f k g =>
+    graph_bind (fun v => vertex (f k (fst v), snd v)) g.
+
+Instance env_dbTraverseLaws: dbTraverseLaws env nat.
+Proof.
+  split; unfold Substitution.traverse; intros.
+  - unfold env_dbTraverse, graph_bind.
+    induction x; simpl.
+    + reflexivity.
+    + rewrite H.
+      now destruct v.
+    + now rewrite IHx1, IHx2.
+    + now rewrite IHx1, IHx2.
+  - specialize (H k (vertex (n, channel O []))).
+    now dependent destruction H.
+  - unfold env_dbTraverse, graph_bind.
+    induction x; simpl.
+    + reflexivity.
+    + now rewrite H with (l := 0).
+    + now rewrite IHx1, IHx2.
+    + now rewrite IHx1, IHx2.
+  - unfold env_dbTraverse, graph_bind.
+    induction x; simpl.
+    + reflexivity.
+    + reflexivity.
+    + now rewrite IHx1, IHx2.
+    + now rewrite IHx1, IHx2.
+Qed.
+
+Lemma inst_env_empty:
+  forall s,
+  inst s empty = empty.
+Proof.
+  auto.
+Qed.
+
+Global Hint Rewrite inst_env_empty using sigma_solver: sigma.
+
+Lemma typing_lift:
+  forall m p g k,
+  typing m p g k ->
+  forall n l,
+  n < k ->
+  l = lift 1 (i2l k n) k ->
+  typing m (lift 1 n p) (lift 1 (i2l k n) g) l.
+Proof.
+  sigma.
+  induction 1; intros; subst.
+  - sigma.
+    (* TODO: why doesn't sigma solve this??? *)
+    autorewrite with sigma.
+    constructor.
+  - eapply typing_iso.
+    + sigma.
+      eapply typing_par.
+      * now apply IHtyping1.
+      * now apply IHtyping2.
+      * admit.
+      * assumption.
+    + admit.
+  - eapply typing_iso.
+    + sigma.
+      eapply typing_res.
+      * admit.
+      * assumption.
+      * admit.
+    + admit.
+  - rename n0 into j.
+    eapply typing_iso.
+    + apply typing_weak with (n := lift 1 (i2l k j) n).
+      * now apply IHtyping.
+      * replace n with (var n) by auto.
+        replace k with (var k) at 3 by auto.
+        destruct (le_gt_dec (i2l k j) n).
+        --- sigma.
+            (* TODO: make sigma do this! *)
+            unfold var, nat_dbVar, id.
+            lia.
+        --- sigma.
+            (* TODO: make sigma do this! *)
+            unfold var, nat_dbVar, id.
+            lia.
+      * eassumption.
+      * admit.
+    + admit.
+  - eapply typing_iso.
+    + sigma.
+      apply typing_in.
+      * eapply typing_iso.
+        --- apply IHtyping.
+            +++ lia.
+            +++ destruct (le_gt_dec (i2l k n) k).
+                *** replace k with (var k) at 2 by auto.
+                    replace (length ts + k) with (var (length ts + k)) at 2
+                      by auto.
+                    sigma.
+                    (* TODO: make sigma do this! *)
+                    unfold var, nat_dbVar, id.
+                    lia.
+                *** now sigma.
+        --- admit.
+      * admit.
+      * eassumption.
+      * assumption.
+    + (* Oh God... *)
+      admit.
+  - rename n0 into j.
+    eapply typing_iso.
+    + now apply IHtyping.
+    + (* Sure. *)
+      admit.
+Admitted.

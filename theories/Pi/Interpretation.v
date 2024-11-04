@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import Arith.
 Require Import Relations.
 Require Import Equality.
 Require Import Local.Prelude.
@@ -212,11 +213,26 @@ Section Interpretation.
 
   Local Lemma local_env_lift_typing:
     forall m a k cs p,
+    k > 0 ->
     typing m p (env_extend a k cs) (length cs + k) ->
     typing m (lift 1 (length cs) p)
       (env_extend a (1 + k) cs) (length cs + (1 + k)).
   Proof.
-    admit.
+    intros.
+    eapply typing_iso.
+    - replace (length cs + (1 + k)) with (1 + (length cs + k)) by lia.
+      apply typing_lift.
+      + eassumption.
+      + lia.
+      + (* TODO: make sigma solve this! *)
+        replace (length cs + k) with (@var nat _ (length cs + k)) at 3 by auto.
+        sigma.
+        unfold var, nat_dbVar, id.
+        lia.
+    - (* We're missing a hypothesis, but [a] only has variables strictly less
+         than [k]. *)
+      replace (i2l (length cs + k) (length cs)) with (k - 1) by lia.
+      admit.
   Admitted.
 
   Lemma interpretation_preserves_typing:
@@ -252,11 +268,13 @@ Section Interpretation.
                   (* We need to apply a lifting and renaming here, as we're
                      introducing a previously unknown variable. *)
                   apply local_env_lift_typing.
-                  (* Then proceed by induction, modulo a few rewrites. *)
-                  erewrite <- Forall2_length with _ ts cs; eauto.
-                  rewrite <- app_length.
-                  apply IHinterpret2.
-                  now apply interpret_env_extend.
+                  *** (* This follows from logic soundness! *)
+                      admit.
+                  *** (* Then proceed by induction, modulo a few rewrites. *)
+                      erewrite <- Forall2_length with _ ts cs; eauto.
+                      rewrite <- app_length.
+                      apply IHinterpret2.
+                      now apply interpret_env_extend.
               +++ replace (i2l (1 + length g) 0) with (length g) by lia.
                   apply interpret_env_free_name with g.
                   *** assumption.

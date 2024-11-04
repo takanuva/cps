@@ -67,9 +67,9 @@ Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
   | output n ns =>
     output (f k n) (map (f k) ns)
   | input n ts p =>
-    input (f k n) ts (traverse f (length ts + k) p)
+    input (f k n) ts (traverse f (k + length ts) p)
   | replication n ts p =>
-    replication (f k n) ts (traverse f (length ts + k) p)
+    replication (f k n) ts (traverse f (k + length ts) p)
   end.
 
 Global Instance pi_dbTraverse: dbTraverse term nat :=
@@ -100,16 +100,73 @@ Proof.
     + apply H with (l := 0).
     + apply IHx; intros.
       do 2 rewrite Nat.add_assoc.
+      replace (l + k0 + length ts) with (l + length ts + k0) by lia.
+      replace (l + j + length ts) with (l + length ts + j) by lia.
       apply H.
     + apply H with (l := 0).
     + apply IHx; intros.
       do 2 rewrite Nat.add_assoc.
+      replace (l + k0 + length ts) with (l + length ts + k0) by lia.
+      replace (l + j + length ts) with (l + length ts + j) by lia.
       apply H.
   - generalize dependent k.
     induction x; intros; simpl; auto;
     f_equal; auto.
     now rewrite map_map.
 Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma inst_inactive:
+  forall s,
+  inst s inactive = inactive.
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_restriction:
+  forall s t p,
+  inst s (restriction t p) = restriction t (s 1 p).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_parallel:
+  forall s p q,
+  inst s (parallel p q) = parallel (s 0 p) (s 0 q).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_output:
+  forall s k xs,
+  inst s (output k xs) = output (s 0 k) (smap s 0 xs).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_input:
+  forall s k ts p,
+  inst s (input k ts p) = input (s 0 k) ts (s (length ts) p).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_replication:
+  forall s k ts p,
+  inst s (replication k ts p) = replication (s 0 k) ts (s (length ts) p).
+Proof.
+  auto.
+Qed.
+
+Global Hint Rewrite inst_inactive using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_restriction using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_parallel using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_output using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_input using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_replication using sigma_solver: sigma.
+
+(* -------------------------------------------------------------------------- *)
 
 Definition switch_bindings: substitution :=
   subst_app [1; 0] (subst_lift 2).
