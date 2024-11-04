@@ -210,6 +210,15 @@ Section Interpretation.
       admit.
   Admitted.
 
+  Local Lemma local_env_lift_typing:
+    forall m a k cs p,
+    typing m p (env_extend a k cs) (length cs + k) ->
+    typing m (lift 1 (length cs) p)
+      (env_extend a (1 + k) cs) (length cs + (1 + k)).
+  Proof.
+    admit.
+  Admitted.
+
   Lemma interpretation_preserves_typing:
     forall b p,
     interpret b p ->
@@ -240,7 +249,14 @@ Section Interpretation.
                   specialize (IHinterpret2 (ts ++ g)).
                   specialize (IHinterpret2 (env_extend a (length g) cs)).
                   specialize (IHinterpret2 H3_0).
-                  admit.
+                  (* We need to apply a lifting and renaming here, as we're
+                     introducing a previously unknown variable. *)
+                  apply local_env_lift_typing.
+                  (* Then proceed by induction, modulo a few rewrites. *)
+                  erewrite <- Forall2_length with _ ts cs; eauto.
+                  rewrite <- app_length.
+                  apply IHinterpret2.
+                  now apply interpret_env_extend.
               +++ replace (i2l (1 + length g) 0) with (length g) by lia.
                   apply interpret_env_free_name with g.
                   *** assumption.
