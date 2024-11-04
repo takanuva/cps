@@ -145,6 +145,17 @@ Proof.
     + f_equal; auto.
 Qed.
 
+Lemma channel_equals_double_dual:
+  forall m ts,
+  channel m ts = channel m (map dual (map dual ts)).
+Proof.
+  intros.
+  f_equal.
+  induction ts; auto.
+  simpl; f_equal; auto.
+  now rewrite dual_is_involutive.
+Qed.
+
 Inductive alternating: mode -> type -> Prop :=
   | alternating_input:
     forall ts,

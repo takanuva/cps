@@ -14,6 +14,8 @@ Require Import Local.Pi.Calculus.
 Require Import Local.Pi.Control.
 
 Global Hint Unfold env_edge: cps.
+Global Hint Resolve dual_is_involutive: cps.
+Global Hint Resolve channel_equals_double_dual: cps.
 
 Section Interpretation.
 
@@ -174,31 +176,34 @@ Section Interpretation.
     forall k,
     ~has_free_name g k ->
     forall t,
+    alternating I t ->
     env_coherent
       (overlay g (env_singleton k (dual t)))
       (connect (env_singleton k t) g).
   Proof.
     constructor; intros.
-    - unfold env_type in H2, H3.
-      dependent destruction H2.
-      + dependent destruction H3.
+    - unfold env_type in H3, H4.
+      dependent destruction H3.
+      + dependent destruction H4.
+        * exfalso.
+          dependent destruction H4.
+          apply H1; now exists t1.
+        * (* We have a unique output type, so [t1 = t2], and they compose. *)
+          exists t1.
+          rewrite env_wellformed_unique with g t2 t1 i; auto.
+          apply H0 in H3.
+          destruct t1; simpl in H3; subst.
+          now apply type_composition_oo with ts.
+      + dependent destruction H4.
+        * dependent destruction H3.
+          dependent destruction H4.
+          (* Trivial since t2 is an input type. *)
+          exists t2; destruct t2.
+          dependent destruction H2; simpl.
+          apply type_composition_oi with (map dual ts); auto with cps.
         * exfalso.
           dependent destruction H3.
-          apply H1; exists t1.
-          assumption.
-        * (* We have a unique output type, so [t1 = t2] and they compose. *)
-          admit.
-      + dependent destruction H3.
-        * dependent destruction H2.
-          dependent destruction H3.
-          (* In here, [t2] is an output type. So its composition with its dual
-             exists and it's equal to its dual. *)
-          exists (dual t2).
-          admit.
-        * exfalso.
-          dependent destruction H2.
-          apply H1; exists t2.
-          assumption.
+          apply H1; now exists t2.
     - intro x.
       constructor; intros.
       (* Trivially acyclic: all edges we have are from [k] to [|g|]! *)
@@ -250,6 +255,8 @@ Section Interpretation.
               +++ apply interpret_env_free_name with g.
                   *** assumption.
                   *** lia.
+              +++ constructor.
+                  now apply interpret_forall_generates_output with ts.
           --- constructor.
         * constructor.
           now apply interpret_forall_generates_output with ts.
