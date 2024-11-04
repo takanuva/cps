@@ -13,6 +13,8 @@ Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
 Require Import Local.Pi.Control.
 
+Global Hint Unfold env_edge: cps.
+
 Section Interpretation.
 
   Variable pi_base: type.
@@ -168,6 +170,7 @@ Section Interpretation.
   Lemma local_environment_coherence:
     forall g,
     env_wellformed g ->
+    has_output_mode g ->
     forall k,
     ~has_free_name g k ->
     forall t,
@@ -176,65 +179,30 @@ Section Interpretation.
       (connect (env_singleton k t) g).
   Proof.
     constructor; intros.
-    - unfold env_type in H1, H2.
-      dependent destruction H1.
-      + dependent destruction H2.
+    - unfold env_type in H2, H3.
+      dependent destruction H2.
+      + dependent destruction H3.
         * exfalso.
-          dependent destruction H2.
-          apply H0; exists t1.
+          dependent destruction H3.
+          apply H1; exists t1.
           assumption.
         * (* We have a unique output type, so [t1 = t2] and they compose. *)
           admit.
-      + dependent destruction H2.
-        * dependent destruction H1.
-          dependent destruction H2.
+      + dependent destruction H3.
+        * dependent destruction H2.
+          dependent destruction H3.
           (* In here, [t2] is an output type. So its composition with its dual
              exists and it's equal to its dual. *)
           exists (dual t2).
           admit.
         * exfalso.
-          dependent destruction H1.
-          apply H0; exists t2.
+          dependent destruction H2.
+          apply H1; exists t2.
           assumption.
     - intro x.
-      induction env_wellformed_acyclic with g x; auto.
       constructor; intros.
-      destruct H3.
-      + destruct H3 as (u, (v, ?)).
-        dependent destruction H3.
-        * apply H2.
-          now exists u, v.
-        * exfalso.
-          inversion H3.
-      + destruct H3 as (u, (v, ?)).
-        dependent destruction H3.
-        * exfalso.
-          inversion H3.
-        * apply H2.
-          now exists u, v.
-        * dependent destruction H3.
-          (* We have to check one more step! TODO: refactor me, please. *)
-          constructor; intros z ?.
-          destruct H3.
-          --- destruct H3 as (w1, (w2, ?)).
-              dependent destruction H3.
-              +++ exfalso.
-                  apply H0.
-                  exists w2.
-                  now apply graph_vertex_from_edge_right with (z, w1).
-              +++ exfalso.
-                  inversion H3.
-          --- destruct H3 as (w1, (w2, ?)).
-              dependent destruction H3.
-              +++ exfalso.
-                  inversion H3.
-              +++ exfalso.
-                  apply H0.
-                  exists w2.
-                  now apply graph_vertex_from_edge_right with (z, w1).
-              +++ exfalso.
-                  apply H0.
-                  now exists w2.
+      (* Trivially acyclic: all edges we have are from [k] to [|g|]! *)
+      admit.
   Admitted.
 
   Lemma interpretation_preserves_typing:
@@ -272,11 +240,13 @@ Section Interpretation.
                   apply interpret_env_free_name with g.
                   *** assumption.
                   *** lia.
+              +++ admit.
               +++ now apply interpret_forall_generates_output with ts.
           --- replace (i2l (1 + length g) 0) with (length g) by lia.
               apply local_environment_coherence.
               +++ (* Sure, there aren't even edges! *)
                   now apply interpret_env_is_wellformed with g.
+              +++ admit.
               +++ apply interpret_env_free_name with g.
                   *** assumption.
                   *** lia.

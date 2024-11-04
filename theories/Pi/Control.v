@@ -38,6 +38,10 @@ Definition has_free_name (g: env) (n: nat): Prop :=
   exists t,
   env_type g n t.
 
+Definition has_output_mode (g: env): Prop :=
+  forall n t,
+  env_type g n t -> get_mode t = O.
+
 Definition env_edge (g: env) (i: nat) (j: nat): Prop :=
   exists t u,
   has_edge g (i, t) (j, u).
@@ -471,14 +475,15 @@ Inductive typing: mode -> term -> env -> nat -> Prop :=
     typing m p (overlay g (env_singleton n t)) k
   (* Rule for input:
 
-         |-O p |> G, ys: ts    md(G) = ?
-      ------------------------------------- (IN)
-        |-I !x(ys: ts).p |> x: !(ts) -> G
+         |-O p |> G, ys: ts     G(x) is undefined     md(G) = ?
+      ----------------------------------------------------------- (IN)
+                   |-I !x(ys: ts).p |> x: !(ts) -> G
   *)
   | typing_in:
     forall x ts p g k,
     typing O p (env_extend g k ts) (length ts + k) ->
     ~has_free_name g (i2l k x) ->
+    has_output_mode g ->
     Forall (alternating O) ts ->
     typing I (replication x ts p)
       (connect (env_singleton (i2l k x) (channel I ts)) g) k
