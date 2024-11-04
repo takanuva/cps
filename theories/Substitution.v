@@ -325,6 +325,21 @@ Section DeBruijn.
 
 End DeBruijn.
 
+Global Instance nat_dbVarLaws: dbVarLaws.
+Proof.
+  split; intros.
+  reflexivity.
+Qed.
+
+Global Instance nat_dbTraverseLaws: dbTraverseLaws.
+Proof.
+  split; intros.
+  - apply H.
+  - apply H.
+  - apply H with (l := 0).
+  - reflexivity.
+Qed.
+
 Section Sigma.
 
   Variable X: Type.
