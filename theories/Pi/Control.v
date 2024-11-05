@@ -59,10 +59,26 @@ Record env_wellformed (g: env): Prop := {
     forall t u i,
     env_type g i t ->
     env_type g i u ->
-    t = u;
-  env_wellformed_acyclic:
-    well_founded (env_edge g)
+    t = u
 }.
+
+Lemma env_wellformed_acyclic:
+  forall g,
+  env_wellformed g ->
+  well_founded (env_edge g).
+Proof.
+  intros.
+  (* Given the domain and codomain constraints, paths can have length of at most
+     one; i.e., a vertex can't be both target and source of an edge. *)
+  intro x.
+  constructor; intros y ?.
+  constructor; intros z ?.
+  exfalso.
+  (* In here, [y] is the culprint. *)
+  apply env_wellformed_domain in H0 as (ts1, ?); auto.
+  apply env_wellformed_codomain in H1 as (ts2, ?); auto.
+  now eapply env_wellformed_unique with (u := channel O ts2) in H0.
+Qed.
 
 Lemma empty_is_wellformed:
   env_wellformed empty.
@@ -75,9 +91,6 @@ Proof.
     destruct H as (t, (u, ?)).
     inversion H.
   - exfalso.
-    inversion H.
-  - constructor; intros.
-    destruct H as (t, (u, ?)).
     inversion H.
 Qed.
 
@@ -104,13 +117,6 @@ Proof.
       now apply H0.
   - apply H0 in H1, H2.
     now apply env_wellformed_unique with g1 i.
-  - intro x.
-    induction (env_wellformed_acyclic g1 H) with x.
-    constructor; intros.
-    apply H2.
-    destruct H3 as (t, (u, ?)).
-    exists t, u.
-    now apply H0.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -234,13 +240,6 @@ Proof.
     + assert (t0 = t) by now apply env_wellformed_unique with g1 n.
       assert (u0 = u) by now apply env_wellformed_unique with g2 n.
       subst; now apply type_composition_is_a_function with t u.
-  - (* It's not true that composition preserves acyclicity of the graphs. The
-       proof comes directly from the hypothesis that they are coherent. We play
-       a simple bisimulation game. *)
-    intro x; apply env_coherent_acyclic in H.
-    induction H with x.
-    constructor; intros.
-    admit.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
@@ -307,19 +306,6 @@ Proof.
       eassumption.
     + eapply graph_induce_reflects_vertex.
       eassumption.
-  - (* Since [g] is acyclic, we can't possibly get a cycle by just removing
-       some vertices. We start from an arbitrary vertex [x]. If the opponent can
-       give us an [y] such that a vertex exists in the resulting graph from [x]
-       to [y], we can check that it already existed in [g] and keep following
-       the same path, known to be terminating. We win the game once the opponent
-       can't find more edges, either because it reached the same end as in [g]
-       or possibly earlier if it reached a removed vertex. *)
-    intro x.
-    induction env_wellformed_acyclic with g x; auto.
-    constructor; intros y (t, (u, ?)).
-    apply H1; exists t, u.
-    eapply graph_induce_reflects_edge.
-    eassumption.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -353,11 +339,6 @@ Proof.
     dependent destruction H.
     dependent destruction H0.
     reflexivity.
-  - (* Hey! Still no edges! Instant win in the bisimulation game. *)
-    intro x.
-    constructor; intros y (u, (v, ?)).
-    exfalso.
-    inversion H.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
