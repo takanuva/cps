@@ -8,6 +8,10 @@ Require Import Relations.
 Require Import Equality.
 Set Implicit Arguments.
 
+(** This library is based on the paper "Algebraic Graphs with Class (Functional
+    Pearl)" by Andrey Mokhov, and by his "algebraic-graphs" Haskell package,
+    found at: https://hackage.haskell.org/package/algebraic-graphs/. *)
+
 Import ListNotations.
 
 Arguments reflexive {A}.
