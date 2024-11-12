@@ -51,6 +51,22 @@ Definition introduced_vars (g: env): nat :=
 
 Local Coercion introduced_vars: env >-> nat.
 
+Lemma introduced_vars_overlay:
+  forall g1 g2,
+  introduced_vars (overlay g1 g2) =
+    max (introduced_vars g1) (introduced_vars g2).
+Proof.
+  auto.
+Qed.
+
+Lemma introduced_vars_connect:
+  forall g1 g2,
+  introduced_vars (connect g1 g2) =
+    max (introduced_vars g1) (introduced_vars g2).
+Proof.
+  auto.
+Qed.
+
 (* Goal
   forall i t g,
   env_type g i t ->
@@ -377,6 +393,13 @@ Fixpoint env_extend (g: env) (k: nat) (ts: list type): env :=
   | t :: ts => overlay (env_extend g k ts) (env_singleton (length ts + k) t)
   end.
 
+Lemma introduced_vars_singleton:
+  forall n t,
+  introduced_vars (env_singleton n t) = 1 + n.
+Proof.
+  auto.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 (* Lemma env_singleton_is_wellformed:
@@ -688,12 +711,29 @@ Proof.
     constructor.
   - exfalso.
     inversion H.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+  - apply free_parallel_inversion in H3.
+    destruct H3.
+    + apply IHtyping1 in H3.
+      admit.
+    + apply IHtyping2 in H3.
+      admit.
+  - intro.
+    dependent destruction H4.
+    rename n0 into k.
+    admit.
+  - apply free_restriction_inversion in H2.
+    apply IHtyping in H2.
+    admit.
+  - intro.
+    dependent destruction H3.
+    rename n into k.
+    apply IHtyping with (S k).
+    + admit.
+    + assumption.
+  - rename k0 into j.
+    admit.
+  - rename k0 into j.
+    admit.
   - admit.
   - admit.
   - admit.
@@ -717,78 +757,3 @@ Proof.
   - admit.
   - now apply env_wellformed_isomorphism with g.
 Admitted.
-
-(* Lemma typing_lift:
-  forall m p g k,
-  typing m p g k ->
-  forall n l,
-  n < k ->
-  l = lift 1 (i2l k n) k ->
-  typing m (lift 1 n p) (lift 1 (i2l k n) g) l.
-Proof.
-  sigma.
-  induction 1; intros; subst.
-  - sigma.
-    (* TODO: why doesn't sigma solve this??? *)
-    autorewrite with sigma.
-    constructor.
-  - eapply typing_iso.
-    + sigma.
-      eapply typing_par.
-      * now apply IHtyping1.
-      * now apply IHtyping2.
-      * admit.
-      * assumption.
-    + admit.
-  - eapply typing_iso.
-    + sigma.
-      eapply typing_res.
-      * admit.
-      * assumption.
-      * admit.
-    + admit.
-  - rename n0 into j.
-    eapply typing_iso.
-    + apply typing_weak with (n := lift 1 (i2l k j) n).
-      * now apply IHtyping.
-      * replace n with (var n) by auto.
-        replace k with (var k) at 3 by auto.
-        destruct (le_gt_dec (i2l k j) n).
-        --- sigma.
-            (* TODO: make sigma do this! *)
-            unfold var, nat_dbVar, id.
-            lia.
-        --- sigma.
-            (* TODO: make sigma do this! *)
-            unfold var, nat_dbVar, id.
-            lia.
-      * eassumption.
-      * admit.
-    + admit.
-  - eapply typing_iso.
-    + sigma.
-      apply typing_in.
-      * eapply typing_iso.
-        --- apply IHtyping.
-            +++ lia.
-            +++ destruct (le_gt_dec (i2l k n) k).
-                *** replace k with (var k) at 2 by auto.
-                    replace (length ts + k) with (var (length ts + k)) at 2
-                      by auto.
-                    sigma.
-                    (* TODO: make sigma do this! *)
-                    unfold var, nat_dbVar, id.
-                    lia.
-                *** now sigma.
-        --- admit.
-      * admit.
-      * eassumption.
-      * assumption.
-    + (* Oh God... *)
-      admit.
-  - rename n0 into j.
-    eapply typing_iso.
-    + now apply IHtyping.
-    + (* Sure. *)
-      admit.
-Admitted. *)
