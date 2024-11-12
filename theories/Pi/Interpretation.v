@@ -118,7 +118,7 @@ Section Interpretation.
       k = (length ts) ->
       interpret_env (t :: ts) (overlay cs (env_singleton k c)).
 
-  Lemma interpret_env_free_name:
+  (* Lemma interpret_env_free_name:
     forall g a,
     interpret_env g a ->
     forall n,
@@ -136,7 +136,7 @@ Section Interpretation.
         * now exists u.
       + dependent destruction H3.
         lia.
-  Qed.
+  Qed. *)
 
   Lemma interpret_env_is_wellformed:
     forall g a,
@@ -151,6 +151,19 @@ Section Interpretation.
          [Control.v] file, take the lemma from there once it's finished! *)
       admit.
   Admitted.
+
+  Lemma interpret_env_length:
+    forall g a,
+    interpret_env g a ->
+    length g = introduced_vars a.
+  Proof.
+    unfold introduced_vars.
+    induction 1; simpl.
+    - reflexivity.
+    - simpl in IHinterpret_env.
+      rewrite <- IHinterpret_env.
+      rewrite H1; lia.
+  Qed.
 
   Lemma interpret_env_extend:
     forall ts cs,
@@ -183,6 +196,7 @@ Section Interpretation.
       (connect (env_singleton k t) g).
   Proof.
     constructor; intros.
+    - admit.
     - unfold env_type in H3, H4.
       dependent destruction H3.
       + dependent destruction H4.
@@ -211,7 +225,7 @@ Section Interpretation.
       admit.
   Admitted.
 
-  Local Lemma local_env_lift_typing:
+  (* Local Lemma local_env_lift_typing:
     forall m a k cs p,
     k > 0 ->
     typing m p (env_extend a k cs) (length cs + k) ->
@@ -233,7 +247,7 @@ Section Interpretation.
          than [k]. *)
       replace (i2l (length cs + k) (length cs)) with (k - 1) by lia.
       admit.
-  Admitted.
+  Admitted. *)
 
   Lemma interpretation_preserves_typing:
     forall b p,
@@ -241,11 +255,12 @@ Section Interpretation.
     forall g a,
     TypeSystem.typing g b void ->
     interpret_env g a ->
-    Control.typing O p a (length g).
+    Control.typing O p a.
   Proof.
     induction 1; intros.
     - admit.
-    - dependent destruction H3.
+    - subst.
+      dependent destruction H3.
       unfold local_env.
       eapply typing_iso.
       + apply typing_res.
@@ -254,50 +269,29 @@ Section Interpretation.
               +++ assumption.
               +++ constructor; eauto.
                   econstructor; eauto.
-          --- apply typing_in with (g := a).
-              +++ (* While interpreting the CPS-calculus into the pi-calculus,
-                     [[b { k<x> = c }]] becomes [(\k)([b] | !k(x).[c])], with
-                     the condition that [k] doesn't appear free in [c]. This
-                     amounts to the lift in [H2] and to the [1 + ...] in the
-                     goal. *)
-                  subst.
-                  (* Let's specialize our hypothesis to see how it rolls... *)
-                  specialize (IHinterpret2 (ts ++ g)).
-                  specialize (IHinterpret2 (env_extend a (length g) cs)).
-                  specialize (IHinterpret2 H3_0).
-                  (* We need to apply a lifting and renaming here, as we're
-                     introducing a previously unknown variable. *)
-                  apply local_env_lift_typing.
-                  *** (* This follows from logic soundness! *)
-                      admit.
-                  *** (* Then proceed by induction, modulo a few rewrites. *)
-                      erewrite <- Forall2_length with _ ts cs; eauto.
-                      rewrite <- app_length.
-                      apply IHinterpret2.
+          --- (* This lifting in q, which means that a continuation doesn't
+                 appear free in its own definition, is remarkably convenient in
+                 here. It arises by the translation, syntactically, and it is
+                 required by the type system! *)
+              apply typing_in with (g := a).
+              +++ eapply IHinterpret2.
+                  *** eassumption.
+                  *** rewrite <- interpret_env_length with g a by auto.
                       now apply interpret_env_extend.
-              +++ replace (i2l (1 + length g) 0) with (length g) by lia.
-                  apply interpret_env_free_name with g.
-                  *** assumption.
-                  *** lia.
               +++ admit.
               +++ now apply interpret_forall_generates_output with ts.
-          --- replace (i2l (1 + length g) 0) with (length g) by lia.
-              apply local_environment_coherence.
-              +++ (* Sure, there aren't even edges! *)
-                  now apply interpret_env_is_wellformed with g.
-              +++ admit.
-              +++ apply interpret_env_free_name with g.
-                  *** assumption.
-                  *** lia.
-              +++ constructor.
-                  now apply interpret_forall_generates_output with ts.
+          --- replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
+              rewrite interpret_env_length with g a by auto.
+              (* This lift becomes a no-op! *)
+              admit.
           --- constructor.
         * constructor.
           now apply interpret_forall_generates_output with ts.
-        * replace (i2l (1 + length g) 0) with (length g) by lia.
+        * replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
+          (* We can simplify this a bit. *)
           apply env_composition_vertex_inversion.
           admit.
-      + replace (i2l (1 + length g) 0) with (length g) by lia.
+      + replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
         admit.
   Admitted.
 
@@ -305,7 +299,7 @@ Section Interpretation.
     forall b p,
     interpret b p ->
     forall g a,
-    Control.typing O p a (length g) ->
+    Control.typing O p a ->
     interpret_env g a ->
     TypeSystem.typing g b void.
   Proof.
@@ -321,10 +315,10 @@ Section Interpretation.
     interpret b p ->
     forall g a,
     interpret_env g a ->
-    TypeSystem.typing g b void <-> Control.typing O p a (length g).
+    TypeSystem.typing g b void <-> Control.typing O p a.
   Proof.
     split; intros.
-    - now apply interpretation_preserves_typing with b.
+    - now apply interpretation_preserves_typing with b g.
     - now apply interpretation_reflects_typing with p a.
   Qed.
 

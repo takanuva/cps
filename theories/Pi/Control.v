@@ -46,6 +46,37 @@ Definition env_edge (g: env) (i: nat) (j: nat): Prop :=
   exists t u,
   has_edge g (i, t) (j, u).
 
+Definition introduced_vars (g: env): nat :=
+  graph_fold 0 (fun v => 1 + fst v) max max g.
+
+Global Coercion introduced_vars: env >-> nat.
+
+(* Goal
+  forall i t g,
+  env_type g i t ->
+  i < introduced_vars g.
+Proof.
+  unfold introduced_vars; simpl.
+  induction g; simpl; intros.
+  - exfalso.
+    inversion H.
+  - unfold env_type in H.
+    dependent destruction H.
+    simpl; lia.
+  - unfold env_type in H.
+    dependent destruction H.
+    + specialize (IHg1 H).
+      lia.
+    + specialize (IHg2 H).
+      lia.
+  - unfold env_type in H.
+    dependent destruction H.
+    + specialize (IHg1 H).
+      lia.
+    + specialize (IHg2 H).
+      lia.
+Qed. *)
+
 Record env_wellformed (g: env): Prop := {
   env_wellformed_domain:
     forall i j,
@@ -59,7 +90,13 @@ Record env_wellformed (g: env): Prop := {
     forall t u i,
     env_type g i t ->
     env_type g i u ->
-    t = u
+    t = u;
+  env_wellformed_sequential:
+    forall n,
+    has_free_name g n ->
+    forall m,
+    m < n ->
+    has_free_name g m
 }.
 
 Lemma env_wellformed_acyclic:
@@ -92,6 +129,9 @@ Proof.
     inversion H.
   - exfalso.
     inversion H.
+  - exfalso.
+    destruct H as (t, ?).
+    inversion H.
 Qed.
 
 Lemma env_wellformed_isomorphism:
@@ -117,6 +157,14 @@ Proof.
       now apply H0.
   - apply H0 in H1, H2.
     now apply env_wellformed_unique with g1 i.
+  - destruct H1 as (t, ?).
+    apply H0 in H1.
+    destruct env_wellformed_sequential with g1 n m as (u, ?).
+    + assumption.
+    + now exists t.
+    + assumption.
+    + apply H0 in H3.
+      now exists u.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -170,12 +218,17 @@ Proof.
 Qed.
 
 Record env_coherent (g1: env) (g2: env): Prop := {
+  (* *)
+  env_coherent_length:
+    introduced_vars g1 = introduced_vars g2;
+  (* *)
   env_coherent_pointwise:
     forall i t1 t2,
     env_type g1 i t1 ->
     env_type g2 i t2 ->
     exists t3,
     type_composition t1 t2 t3;
+  (* *)
   env_coherent_acyclic:
     well_founded (union (env_edge g1) (env_edge g2))
 }.
@@ -240,6 +293,7 @@ Proof.
     + assert (t0 = t) by now apply env_wellformed_unique with g1 n.
       assert (u0 = u) by now apply env_wellformed_unique with g2 n.
       subst; now apply type_composition_is_a_function with t u.
+  - admit.
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
@@ -306,24 +360,28 @@ Proof.
       eassumption.
     + eapply graph_induce_reflects_vertex.
       eassumption.
-Qed.
-
-(* -------------------------------------------------------------------------- *)
-
-Fixpoint env_extend (g: env) (k: nat) (ts: list type): env :=
-  match ts with
-  | [] => g
-  | t :: ts => overlay (env_extend g k ts) (vertex (length ts + k, t))
-  end.
+  - (* For any name preserved, every smaller names are also preserved. *)
+    rename n0 into j.
+    destruct H0 as (t, ?).
+    admit.
+Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
 Definition env_singleton (n: nat) (t: type): env :=
   vertex (n, t).
 
-Lemma env_singleton_is_wellformed:
-  forall n t,
-  env_wellformed (env_singleton n t).
+Fixpoint env_extend (g: env) (k: nat) (ts: list type): env :=
+  match ts with
+  | [] => g
+  | t :: ts => overlay (env_extend g k ts) (env_singleton (length ts + k) t)
+  end.
+
+(* -------------------------------------------------------------------------- *)
+
+(* Lemma env_singleton_is_wellformed:
+  forall t,
+  env_wellformed (env_singleton 0 t).
 Proof.
   constructor; intros.
   - (* There are no edges. *)
@@ -339,7 +397,13 @@ Proof.
     dependent destruction H.
     dependent destruction H0.
     reflexivity.
-Qed.
+  - (* We're only using index zero. *)
+    exfalso.
+    destruct H as (t', ?).
+    unfold env_type, env_singleton in H.
+    dependent destruction H.
+    inversion H0.
+Qed. *)
 
 (* -------------------------------------------------------------------------- *)
 
@@ -387,140 +451,6 @@ Definition env_mode (m: mode) (g: env): Prop :=
 
 (* -------------------------------------------------------------------------- *)
 
-(* Convert a de Bruijn index to level. *)
-Notation i2l k i := (k - i - 1).
-
-(* *)
-Inductive typing: mode -> term -> env -> nat -> Prop :=
-  (* Rule for typing an inactive process:
-
-      ------------ (ZERO)
-        |-I 0 |>
-
-     The inactive process is only typeable in an empty action type, with input
-     mode (clearly, there's no active output). In order to add unused (output)
-     variables, we will use weakening. *)
-  | typing_zero:
-    forall k,
-    typing I inactive empty k
-  (* Rule for typing the composition of two processes:
-
-        |-(m) p |> G    |-(n) q |> H    G >< H
-      ------------------------------------------- (PAR)
-               |-(m * n) p | q |> G * H
-
-     Parallel composition first assumes that [p] and [q] are typeable. We check
-     then that their action types, [G] and [H] respectively, are coherent with
-     each other in order to avoid cycles and multiple inputs on the same name.
-     We note that the modes must be able to be composed together, otherwise this
-     won't be defined (we don't add this explicitly in the hypotheses as Honda
-     et al. do). *)
-  | typing_par:
-    forall m n o p q g h k,
-    typing m p g k ->
-    typing n q h k ->
-    env_coherent g h ->
-    mode_composition m n o ->
-    typing o (parallel p q) (env_composition g h) k
-  (* Rule for typing name restriction:
-
-         |-(m) p |> G     G(x) = ti
-      ------------------------------- (RES)
-           |-(m) (x: ti)p |> G/x
-
-     In order to type a restriction, we assume that [p] is typeable in some
-     action type [G] such that [x: ti] is a vertex within it. Note that this
-     will require that the name [x] is defined as a replicated input in [p]. *)
-  | typing_res:
-    forall m p g k t,
-    typing m p g (1 + k) ->
-    alternating I t ->
-    env_type g k t -> (* Notice: k = i2l (1 + k) 0! *)
-    typing m (restriction t p) (env_hiding g k) k
-  (* Rule for weakening, which is explicit:
-
-        |-(m) p |> G   x undefined in G
-      ----------------------------------- (WEAK)
-            |-(m) p |> G, x: ?(ts)
-
-     If [p] is typeable in some action type [G], it's also typeable in some
-     action type which extends [G] by adding a new vertex [x: t] if [x] isn't
-     defined in [G] and if [t] is an output type. Basically, it says that we may
-     ignore any unused free variables which have output types. *)
-  | typing_weak:
-    forall m p g k n t,
-    typing m p g k ->
-    n < k ->
-    alternating O t ->
-    ~has_free_name g n ->
-    typing m p (overlay g (env_singleton n t)) k
-  (* Rule for input:
-
-         |-O p |> G, ys: ts     G(x) is undefined     md(G) = ?
-      ----------------------------------------------------------- (IN)
-                   |-I !x(ys: ts).p |> x: !(ts) -> G
-  *)
-  | typing_in:
-    forall x ts p g k,
-    typing O p (env_extend g k ts) (length ts + k) ->
-    ~has_free_name g (i2l k x) ->
-    has_output_mode g ->
-    Forall (alternating O) ts ->
-    typing I (replication x ts p)
-      (connect (env_singleton (i2l k x) (channel I ts)) g) k
-  (* Rule for free output:
-
-              x: ?(ts) >< (ys: ~ts)
-     --------------------------------------- (FOUT)
-       |-O x<ys> |> (x: ?(ts)) * (ys: ~ts)
-
-    Note that in here we do not expect the names in ys to be all different, and,
-    because of that, if y_i = y_j, then we expect t_i = t_j.
-
-    It's also important to notice that we're not checking, individually, the
-    composition of each individual names. While this won't be a problem in here,
-    it would be in case we had linear types as in the linear pi-calculus studied
-    by Yoshida. If we are to consider the full thing, we might want to rework
-    this rule to cover this possibility.
-  *)
-  (* | typing_out:
-  *)
-  | typing_iso:
-    (* We close the typing rules up to graph isomorphism on action types. *)
-    forall m p g h n,
-    typing m p g n ->
-    isomorphic g h ->
-    typing m p h n.
-
-(*
-Lemma typing_bout:
-  (*
-        |-I P |> A, ys: ts     A >< x: ?(ts)
-    -------------------------------------------- (BOUT)
-            |-O x[ys] p |> A * x: ?(ts)
-  *)
-*)
-
-Definition typed (p: term): Prop :=
-  exists m g k,
-  typing m p g k.
-
-Lemma typing_env_wellformed:
-  forall m p g k,
-  typing m p g k ->
-  env_wellformed g.
-Proof.
-  induction 1.
-  - apply empty_is_wellformed.
-  - now apply env_composition_preserves_wellformedness.
-  - now apply env_hiding_preserves_wellformedness.
-  - admit.
-  - admit.
-  - now apply env_wellformed_isomorphism with g.
-Admitted.
-
-(* -------------------------------------------------------------------------- *)
-
 Instance env_dbTraverse: dbTraverse env nat :=
   fun f k g =>
     graph_bind (fun v => vertex (f k (fst v), snd v)) g.
@@ -560,7 +490,153 @@ Qed.
 
 Global Hint Rewrite inst_env_empty using sigma_solver: sigma.
 
-Lemma typing_lift:
+(* -------------------------------------------------------------------------- *)
+
+(* Convert a de Bruijn index to level. *)
+Local Notation i2l k i := (k - i - 1).
+
+(* *)
+Inductive typing: mode -> term -> env -> Prop :=
+  (* Rule for typing an inactive process:
+
+      ------------ (ZERO)
+        |-I 0 |>
+
+     The inactive process is only typeable in an empty action type, with input
+     mode (clearly, there's no active output). In order to add unused (output)
+     variables, we will use weakening, which has no change on the term. *)
+  | typing_zero:
+    typing I inactive empty
+  (* Rule for typing the composition of two processes:
+
+        |-(m) p |> G    |-(n) q |> H    G >< H
+      ------------------------------------------- (PAR)
+               |-(m * n) p | q |> G * H
+
+     Parallel composition first assumes that [p] and [q] are typeable. We check
+     then that their action types, [G] and [H] respectively, are coherent with
+     each other in order to avoid cycles and multiple inputs on the same name.
+     We note that the modes must be able to be composed together, otherwise this
+     won't be defined (we don't add this explicitly in the hypotheses as Honda
+     et al. do). As this definition is very awkward in a de Bruijn setting, we
+     consider a trivial new constraint that [G] and [H] must have the same names
+     defined in each (which can, of course, be done by weakening). *)
+  | typing_par:
+    forall m n o p q g h,
+    typing m p g ->
+    typing n q h ->
+    env_coherent g h ->
+    mode_composition m n o ->
+    typing o (parallel p q) (env_composition g h)
+  (* Rule for typing name restriction:
+
+         |-(m) p |> G     G(x) = ti
+      ------------------------------- (RES)
+           |-(m) (x: ti)p |> G/x
+
+     In order to type a restriction, we assume that [p] is typeable in some
+     action type [G] such that [x: ti] is a vertex within it. Note that this
+     will require that the name [x] is defined as a replicated input in [p]. *)
+  | typing_res:
+    forall m p g t,
+    typing m p g ->
+    alternating I t ->
+    env_type g (i2l g 0) t ->
+    typing m (restriction t p) (env_hiding g (i2l g 0))
+  (* Rule for weakening, which is explicit:
+
+        |-(m) p |> G   x undefined in G
+      ----------------------------------- (WEAK)
+            |-(m) p |> G, x: ?(ts)
+
+     If [p] is typeable in some action type [G], it's also typeable in some
+     action type which extends [G] by adding a new vertex [x: t] if [x] isn't
+     defined in [G] and if [t] is an output type. Basically, it says that we may
+     ignore any unused free variables which have output types. In a de Bruijn
+     setting, we make room for [x] by using a lift (both in the term and in the
+     graph, of course). *)
+  | typing_weak:
+    forall m p g k t,
+    typing m p g ->
+    alternating O t ->
+    typing m (lift 1 k p)
+      (overlay (env_singleton (i2l g k) t) (lift 1 (i2l g k) g))
+  (* Rule for input:
+
+         |-O p |> G, ys: ts     G(x) is undefined     md(G) = ?
+      ----------------------------------------------------------- (IN)
+                   |-I !x(ys: ts).p |> x: !(ts) -> G
+
+     As action types are identifiable up to graph isomorphism, we assume that
+     our continuation [p] is typeable in some action type [G] extended with
+     types for each of the input variables; in this, we also assume that [ys]
+     do not appear in [G] already. So, if [x] is undefined in [G] (and thus in
+     [p] too), for which we always make room by using a lift, and there is no
+     input type in [G], we can enclose [p] by the input of [ys] through [x],
+     making sure that [x] will have an input type now and that there will be
+     edges from it to every variable in [G]. *)
+  | typing_in:
+    forall x ts p g,
+    typing O p (env_extend g g ts) ->
+    has_output_mode g ->
+    Forall (alternating O) ts ->
+    typing I (replication x ts (lift 1 (x + length ts) p))
+      (* We note that we can derive that [g] doesn't mention [ys]. *)
+      (connect (* TODO: why are we adding 1 in here...? *)
+        (env_singleton (i2l (1 + g) x) (channel I ts))
+        (lift 1 (i2l (1 + g) x) g))
+  (* Rule for free output:
+
+              x: ?(ts) >< (ys: ~ts)
+     --------------------------------------- (FOUT)
+       |-O x<ys> |> (x: ?(ts)) * (ys: ~ts)
+
+    Note that in here we do not expect the names in ys to be all different, and,
+    because of that, if y_i = y_j, then we expect t_i = t_j.
+
+    It's also important to notice that we're not checking, individually, the
+    composition of each individual names. While this won't be a problem in here,
+    it would be in case we had linear types as in the linear pi-calculus studied
+    by Yoshida. If we are to consider the full thing, we might want to rework
+    this rule to cover this possibility.
+  *)
+  (* | typing_out:
+  *)
+  | typing_iso:
+    (* We close the typing rules up to graph isomorphism on action types. *)
+    forall m p g h,
+    typing m p g ->
+    isomorphic g h ->
+    typing m p h.
+
+(*
+Lemma typing_bout:
+  (*
+        |-I P |> A, ys: ts     A >< x: ?(ts)
+    -------------------------------------------- (BOUT)
+            |-O x[ys] p |> A * x: ?(ts)
+  *)
+*)
+
+Definition typed (p: term): Prop :=
+  exists m g,
+  typing m p g.
+
+Lemma typing_env_wellformed:
+  forall m p g,
+  typing m p g ->
+  env_wellformed g.
+Proof.
+  induction 1.
+  - apply empty_is_wellformed.
+  - now apply env_composition_preserves_wellformedness.
+  - now apply env_hiding_preserves_wellformedness.
+  - admit.
+  - admit.
+  - now apply env_wellformed_isomorphism with g.
+Admitted.
+
+(* Lemma typing_lift:
   forall m p g k,
   typing m p g k ->
   forall n l,
@@ -633,4 +709,4 @@ Proof.
     + now apply IHtyping.
     + (* Sure. *)
       admit.
-Admitted.
+Admitted. *)
