@@ -677,6 +677,29 @@ Lemma typing_bout:
   *)
 *)
 
+Lemma typing_types_free_vars:
+  forall m p g,
+  typing m p g ->
+  forall k,
+  free k p <-> k < g.
+Proof.
+  induction 1; split; intros.
+  - exfalso; apply H.
+    constructor.
+  - exfalso.
+    inversion H.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
+
 Definition typed (p: term): Prop :=
   exists m g,
   typing m p g.
