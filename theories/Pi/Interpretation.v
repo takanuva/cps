@@ -280,18 +280,22 @@ Section Interpretation.
                       now apply interpret_env_extend.
               +++ admit.
               +++ now apply interpret_forall_generates_output with ts.
-          --- replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
+          --- replace (1 + introduced_vars a - 0 - 1) with
+                (introduced_vars a) by lia.
               rewrite interpret_env_length with g a by auto.
               (* This lift becomes a no-op! *)
+              rewrite lifting_over_introduced_vars_is_noop by auto.
               admit.
           --- constructor.
         * constructor.
           now apply interpret_forall_generates_output with ts.
-        * replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
+        * replace (1 + introduced_vars a - 0 - 1) with
+            (introduced_vars a) by lia.
           (* We can simplify this a bit. *)
+          rewrite lifting_over_introduced_vars_is_noop by auto.
           apply env_composition_vertex_inversion.
           admit.
-      + replace (1 + a - 0 - 1) with (introduced_vars a) by lia.
+      + replace (1 + introduced_vars a - 0 - 1) with (introduced_vars a) by lia.
         admit.
   Admitted.
 

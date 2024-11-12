@@ -49,7 +49,7 @@ Definition env_edge (g: env) (i: nat) (j: nat): Prop :=
 Definition introduced_vars (g: env): nat :=
   graph_fold 0 (fun v => 1 + fst v) max max g.
 
-Global Coercion introduced_vars: env >-> nat.
+Local Coercion introduced_vars: env >-> nat.
 
 (* Goal
   forall i t g,
@@ -488,7 +488,66 @@ Proof.
   auto.
 Qed.
 
+Lemma inst_env_vertex:
+  forall s n t,
+  inst s (vertex (n, t)) = vertex (s 0 n, t).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_env_overlay:
+  forall s g1 g2,
+  inst s (overlay g1 g2) = overlay (s 0 g1) (s 0 g2).
+Proof.
+  auto.
+Qed.
+
+Lemma inst_env_connect:
+  forall s g1 g2,
+  inst s (connect g1 g2) = connect (s 0 g1) (s 0 g2).
+Proof.
+  auto.
+Qed.
+
 Global Hint Rewrite inst_env_empty using sigma_solver: sigma.
+Global Hint Rewrite inst_env_vertex using sigma_solver: sigma.
+Global Hint Rewrite inst_env_overlay using sigma_solver: sigma.
+Global Hint Rewrite inst_env_connect using sigma_solver: sigma.
+
+Lemma lifting_over_introduced_vars_is_noop:
+  forall (a: env) k n,
+  k >= a ->
+  lift n k a = a.
+Proof.
+  unfold introduced_vars; induction a; intros.
+  - sigma.
+    (* TODO: why sigma doesn't work here...? *)
+    autorewrite with sigma.
+    reflexivity.
+  - destruct v as (j, t); simpl in H.
+    (* TODO: why??? *)
+    sigma; autorewrite with sigma.
+    f_equal; f_equal; simpl.
+    (* Ok, this doesn't work because it's [j] and not [var j]... TODO: fix! *)
+    replace j with (var j) by auto.
+    now sigma.
+  - (* TODO: what is happening here? *)
+    sigma; autorewrite with sigma; simpl; f_equal.
+    + rewrite <- IHa1 with (k := k) (n := n) at 2.
+      * now sigma.
+      * simpl in H |- *; lia.
+    + rewrite <- IHa2 with (k := k) (n := n) at 2.
+      * now sigma.
+      * simpl in H |- *; lia.
+  - (* TODO: sigh... *)
+    sigma; autorewrite with sigma; simpl; f_equal.
+    + rewrite <- IHa1 with (k := k) (n := n) at 2.
+      * now sigma.
+      * simpl in H |- *; lia.
+    + rewrite <- IHa2 with (k := k) (n := n) at 2.
+      * now sigma.
+      * simpl in H |- *; lia.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
