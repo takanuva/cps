@@ -328,6 +328,84 @@ Definition free (n: nat) (e: term): Prop :=
 Definition closed (e: term): Prop :=
   forall n, not_free n e.
 
+(* TODO: check consistency with the rest of the codebase. *)
+
+Lemma free_not_free_dec:
+  forall p k,
+  { not_free k p } + { free k p }.
+Proof.
+  induction p; intros.
+  - left; constructor.
+  - destruct IHp with (S k).
+    + left; now constructor.
+    + right; intro.
+      dependent destruction H.
+      now apply f.
+  - destruct IHp1 with k.
+    + destruct IHp2 with k.
+      * left; now constructor.
+      * right; intro.
+        dependent destruction H.
+        now apply f.
+    + right; intro.
+      dependent destruction H.
+      now apply f.
+  - rename k0 into j.
+    destruct (Nat.eq_dec k j); subst.
+    + right; intro.
+      dependent destruction H.
+      contradiction.
+    + destruct Forall_dec with nat (fun m => j <> m) ns; intros.
+      * destruct (Nat.eq_dec j x); auto.
+      * left; now constructor.
+      * right; intro.
+        dependent destruction H.
+        contradiction.
+  - rename k0 into j.
+    destruct (Nat.eq_dec k j); subst.
+    + right; intro.
+      dependent destruction H.
+      contradiction.
+    + destruct IHp with (length ts + j).
+      * left; now constructor.
+      * right; intro.
+        dependent destruction H.
+        contradiction.
+  - rename k0 into j.
+    destruct (Nat.eq_dec k j); subst.
+    + right; intro.
+      dependent destruction H.
+      contradiction.
+    + destruct IHp with (length ts + j).
+      * left; now constructor.
+      * right; intro.
+        dependent destruction H.
+        contradiction.
+Qed.
+
+Lemma free_parallel_inversion:
+  forall k p q,
+  free k (parallel p q) ->
+  free k p \/ free k q.
+Proof.
+  intros.
+  destruct (free_not_free_dec p k).
+  - right; intro.
+    apply H.
+    now constructor.
+  - now left.
+Qed.
+
+Lemma free_restriction_inversion:
+  forall k t p,
+  free k (restriction t p) ->
+  free (1 + k) p.
+Proof.
+  intros; intro.
+  apply H.
+  now constructor.
+Qed.
+
 Inductive structural: relation term :=
   | structural_parallel_inactive:
     (* p | 0 = p *)
