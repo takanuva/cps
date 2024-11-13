@@ -44,13 +44,13 @@ Fixpoint sequence i n :=
   end.
 
 (* As we don't have overline in ASCII, we'll denote free asynchronous output by
-   x[y] p in the following, as we recall that x[y] p = (\y)(x<y> | p). *)
+   [x[y] p] in the following, as we recall that [x[y] p] is [(\y)(x<y> | p)]. *)
 
 Definition bound_output (n: nat) (ts: list type) (p: term) :=
   poly_restriction ts (parallel (output (length ts + n)
                                 (sequence 0 (length ts))) p).
 
-(* A local environment, i.e., (\k)(p | !k<x>.q). We do not necessarily assume
+(* A local environment, i.e., [(\k)(p | !k<x>.q)]. We do not necessarily assume
    here that k won't appear free in q, but that's usually what we want. *)
 
 Definition local_env p ts q :=
@@ -406,69 +406,95 @@ Proof.
   now constructor.
 Qed.
 
+Lemma free_input_inversion:
+  forall k x ts p,
+  free k (input x ts p) ->
+  k = x \/ free (length ts + k) p.
+Proof.
+  intros.
+  destruct (Nat.eq_dec k x); subst.
+  - now left.
+  - right; intro.
+    apply H.
+    now constructor.
+Qed.
+
+Lemma free_replication_inversion:
+  forall k x ts p,
+  free k (replication x ts p) ->
+  k = x \/ free (length ts + k) p.
+Proof.
+  intros.
+  destruct (Nat.eq_dec k x); subst.
+  - now left.
+  - right; intro.
+    apply H.
+    now constructor.
+Qed.
+
 Inductive structural: relation term :=
   | structural_parallel_inactive:
-    (* p | 0 = p *)
+    (* [p | 0] = [p] *)
     forall p,
     structural (parallel p inactive)
                p
   | structural_parallel_commutative:
-    (* p | q = q | p *)
+    (* [p | q] = [q | p] *)
     forall p q,
     structural (parallel p q)
                (parallel q p)
   | structural_paralllel_associative:
-    (* (p | q) | r = p | (q | r) *)
+    (* [(p | q) | r] = [p | (q | r)] *)
     forall p q r,
     structural (parallel (parallel p q) r)
                (parallel p (parallel q r))
   | structural_restriction_inactive:
-    (* (\x)0 = 0 *)
+    (* [(\x)0] = [0] *)
     forall t,
     structural (restriction t inactive)
                inactive
   | structural_restriction_switch:
-    (* (\x)(\y)p = (\y)(\x)p *)
+    (* [(\x)(\y)p] = [(\y)(\x)p] *)
     forall t u p,
     structural (restriction t (restriction u p))
                (restriction u (restriction t (switch_bindings 0 p)))
   | structural_extrusion:
-    (* (\x)(p | q) = (\x)p | q, given x not free in q *)
+    (* [(\x)(p | q)] = [(\x)p | q], given [x] not free in [q] *)
     forall t p q,
     not_free 0 q ->
     structural (restriction t (parallel p q))
                (parallel (restriction t p) (remove_binding 0 q))
   | structural_restriction:
-    (* if p = q, then (\x)p = (\x)q *)
+    (* if [p] = [q], then [(\x)p] = [(\x)q] *)
     forall t p q,
     structural p q ->
     structural (restriction t p) (restriction t q)
   | structural_parallel_left:
-    (* if p = q, then p | r = q | r *)
+    (* if [p] = [q], then [p | r] = [q | r] *)
     forall p q r,
     structural p q ->
     structural (parallel p r) (parallel q r)
   | structural_input:
-    (* if p = q, then x(y).p = x(y).q *)
+    (* if [p] = [q], then [x(y).p] = [x(y).q] *)
     forall x ts p q,
     structural p q ->
     structural (input x ts p) (input x ts q)
   | structural_replication:
-    (* if p = q, then !x(y).p = !x(y).q *)
+    (* if [p] = [q], then [!x(y).p] = [!x(y).q] *)
     forall x ts p q,
     structural p q ->
     structural (replication x ts p) (replication x ts q)
   | structural_refl:
-    (* p = p *)
+    (* [p] = [p] *)
     forall p,
     structural p p
   | structural_sym:
-    (* if p = q, then q = p *)
+    (* if [p] = [q], then [q] = [p] *)
     forall p q,
     structural p q ->
     structural q p
   | structural_trans:
-    (* if p = q and q = r, then p = r *)
+    (* if [p] = [q] and [q] = [r], then [p] = [r] *)
     forall p q r,
     structural p q ->
     structural q r ->
@@ -483,7 +509,7 @@ Proof.
 Qed.
 
 Lemma structural_parallel_right:
-  (* if p = q, then r | p = r | q *)
+  (* if [p] = [q], then [r | p ] = [r | q] *)
   forall p q r,
   structural p q ->
   structural (parallel r p) (parallel r q).
@@ -515,39 +541,39 @@ Proof.
     now apply IHh.
 Qed.
 
-(* TODO: check the structural rule x[y] z[w] p = z[w] x[y] p. *)
+(* TODO: check the structural rule [x[y] z[w] p] = [z[w] x[y] p]. *)
 
-(* TODO: check the structural rule (\z)x[y] p = x[y] (\z)p. *)
+(* TODO: check the structural rule [(\z)x[y] p] = [x[y] (\z)p]. *)
 
-(* TODO: check the structural rule x[y] (p | q) = x[y] p | q. *)
+(* TODO: check the structural rule [x[y] (p | q)] = [x[y] p | q]. *)
 
 (* TODO: define canonical forms. Oh boy. *)
 
 Inductive step: relation term :=
   | step_linear:
-    (* x<y> | x(z).p -> p[y/z] *)
+    (* [x<y> | x(z).p] -> [p[y/z]] *)
     forall x ys ts p,
     length ys = length ts ->
     step (parallel (output x ys) (input x ts p))
          (inst (subst_app ys subst_ids) p)
   | step_replicated:
-    (* x<y> | !x(z).p -> p[y/z] | !x(z).p *)
+    (* [x<y> | !x(z).p] -> [p[y/z] | !x(z).p] *)
     forall x ys ts p,
     length ys = length ts ->
     step (parallel (output x ys) (replication x ts p))
          (parallel (inst (subst_app ys subst_ids) p) (replication x ts p))
   | step_restriction:
-    (* if p -> q, then (\x)p -> (\x)q *)
+    (* if [p] -> [q], then [(\x)p] -> [(\x)q] *)
     forall t p q,
     step p q ->
     step (restriction t p) (restriction t q)
   | step_parallel_left:
-    (* if p -> q, then p | r -> q | r *)
+    (* if [p] -> [q], then [p | r] -> [q | r] *)
     forall p q r,
     step p q ->
     step (parallel p r) (parallel q r)
   | step_structural:
-    (* if p = q, q -> r, and r = s, then p -> s *)
+    (* if [p] = [q], [q] -> [r], and [r] = [s], then [p] -> [s] *)
     forall p q r s,
     structural p q ->
     step q r ->
@@ -555,7 +581,7 @@ Inductive step: relation term :=
     step p s.
 
 Lemma step_parallel_right:
-  (* if p -> q, then r | p -> r | q *)
+  (* if [p] -> [q], then [r | p] -> [r | q] *)
   forall p q r,
   step p q ->
   step (parallel r p) (parallel r q).
@@ -569,8 +595,9 @@ Proof.
 Qed.
 
 Goal
-  (* Let's check that the bound output version, [y] p | x(y).q -> (\y)(p | q),
-     as described in Honda's paper, is derivable with the above definitions. *)
+  (* Let's check that the bound output version, i.e., [[y] p | x(y).q] ->
+     [(\y)(p | q)], as described in Honda's paper, is derivable with the above
+     definitions. *)
   forall ts x p q,
   step (parallel (bound_output x ts p) (input x ts p))
        (poly_restriction ts (parallel p q)).
@@ -583,9 +610,11 @@ Admitted.
 
 Definition label: Set := mode * nat.
 
-Inductive observable: term -> label -> Prop :=
-  (* TODO: observability predicate. *)
-  .
+(* We define an asynchronous observability predicate, i.e., only output actions
+   are observable, but not input ones. This is distinct from the usual notion in
+   the full pi-calculus, but standard in the asynchonous one. Cf. "On Asynchrony
+   in Name-Passing Calculi". TODO: actually define it. *)
+Axiom observable: term -> label -> Prop.
 
 Lemma structural_is_barb_preserving:
   forall p l,

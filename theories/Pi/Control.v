@@ -704,39 +704,30 @@ Lemma typing_types_free_vars:
   forall m p g,
   typing m p g ->
   forall k,
-  free k p <-> k < g.
+  free k p -> k < g.
 Proof.
-  induction 1; split; intros.
+  induction 1; intros.
   - exfalso; apply H.
     constructor.
-  - exfalso.
-    inversion H.
   - apply free_parallel_inversion in H3.
     destruct H3.
     + apply IHtyping1 in H3.
       admit.
     + apply IHtyping2 in H3.
       admit.
-  - intro.
-    dependent destruction H4.
-    rename n0 into k.
-    admit.
   - apply free_restriction_inversion in H2.
     apply IHtyping in H2.
     admit.
-  - intro.
-    dependent destruction H3.
-    rename n into k.
-    apply IHtyping with (S k).
+  - rename k0 into j.
+    rewrite introduced_vars_overlay.
+    rewrite introduced_vars_singleton.
+    admit.
+  - apply free_replication_inversion in H2.
+    rewrite introduced_vars_connect.
+    rewrite introduced_vars_singleton.
+    destruct H2; subst.
     + admit.
-    + assumption.
-  - rename k0 into j.
-    admit.
-  - rename k0 into j.
-    admit.
-  - admit.
-  - admit.
-  - admit.
+    + admit.
   - admit.
 Admitted.
 
