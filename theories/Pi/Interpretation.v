@@ -9,6 +9,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.Syntax.
+Require Import Observational.
 Require Import Local.TypeSystem.
 Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
@@ -77,6 +78,34 @@ Section Interpretation.
     in interpret Syntax.ex1 p.
   Proof.
     repeat econstructor.
+  Qed.
+
+  Goal
+    forall b p,
+    interpret b p ->
+    forall k,
+    converges b k <-> observable p k.
+  Proof.
+    induction 1; split; intros.
+    - dependent destruction H1.
+      unfold is_variable in H.
+      dependent destruction H.
+      constructor.
+    - unfold is_variable in H.
+      dependent destruction H.
+      dependent destruction H1.
+      constructor.
+    - dependent destruction H3.
+      apply observable_restriction.
+      apply observable_parallel_left.
+      now apply IHinterpret1.
+    - unfold local_env in H3.
+      dependent destruction H3.
+      dependent destruction H3.
+      + constructor.
+        now apply IHinterpret1.
+      + exfalso.
+        inversion H3.
   Qed.
 
   Lemma interpret_generates_output:
