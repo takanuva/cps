@@ -608,22 +608,117 @@ Proof.
   - admit.
 Admitted.
 
-Definition label: Set := mode * nat.
-
 (* We define an asynchronous observability predicate, i.e., only output actions
    are observable, but not input ones. This is distinct from the usual notion in
-   the full pi-calculus, but standard in the asynchonous one. Cf. "On Asynchrony
-   in Name-Passing Calculi". TODO: actually define it. *)
-Axiom observable: term -> label -> Prop.
+   the full pi-calculus, where any actions are observable, but this is standard
+   in the asynchonous version (cf. "On Asynchrony in Name-Passing Calculi"). Of
+   course, this is remarkably convenient. *)
+Inductive observable: term -> nat -> Prop :=
+  | observable_output:
+    forall n ns,
+    observable (output n ns) n
+  | observable_restriction:
+    forall t p n,
+    observable p (S n) ->
+    observable (restriction t p) n
+  | observable_parallel_left:
+    forall p q n,
+    observable p n ->
+    observable (parallel p q) n
+  | observable_parallel_right:
+    forall p q n,
+    observable q n ->
+    observable (parallel p q) n.
 
 Lemma structural_is_barb_preserving:
-  forall p l,
-  observable p l ->
-  forall q,
+  forall p q,
   structural p q ->
-  observable q l.
+  forall n,
+  observable p n <-> observable q n.
 Proof.
-  admit.
+  induction 1; split; intros.
+  - dependent destruction H.
+    + assumption.
+    + exfalso.
+      inversion H.
+  - now apply observable_parallel_left.
+  - dependent destruction H.
+    + now apply observable_parallel_right.
+    + now apply observable_parallel_left.
+  - dependent destruction H.
+    + now apply observable_parallel_right.
+    + now apply observable_parallel_left.
+  - dependent destruction H.
+    + dependent destruction H.
+      * now apply observable_parallel_left.
+      * apply observable_parallel_right.
+        now apply observable_parallel_left.
+    + apply observable_parallel_right.
+      now apply observable_parallel_right.
+  - dependent destruction H.
+    + apply observable_parallel_left.
+      now apply observable_parallel_left.
+    + dependent destruction H.
+      * apply observable_parallel_left.
+        now apply observable_parallel_right.
+      * now apply observable_parallel_right.
+  - exfalso.
+    dependent destruction H.
+    inversion H.
+  - exfalso.
+    inversion H.
+  - dependent destruction H.
+    dependent destruction H.
+    do 2 apply observable_restriction.
+    (* This works for any injective substitution. *)
+    admit.
+  - dependent destruction H.
+    dependent destruction H.
+    do 2 apply observable_restriction.
+    (* Same as above. *)
+    admit.
+  - dependent destruction H0.
+    dependent destruction H0.
+    + apply observable_parallel_left.
+      now apply observable_restriction.
+    + apply observable_parallel_right.
+      (* Same as above. *)
+      admit.
+  - dependent destruction H0.
+    + dependent destruction H0.
+      apply observable_restriction.
+      now apply observable_parallel_left.
+    + apply observable_restriction.
+      (* Same as above. *)
+      admit.
+  - dependent destruction H0.
+    apply observable_restriction.
+    now apply IHstructural.
+  - dependent destruction H0.
+    apply observable_restriction.
+    now apply IHstructural.
+  - dependent destruction H0.
+    + apply observable_parallel_left.
+      now apply IHstructural.
+    + now apply observable_parallel_right.
+  - dependent destruction H0.
+    + apply observable_parallel_left.
+      now apply IHstructural.
+    + now apply observable_parallel_right.
+  - exfalso.
+    inversion H0.
+  - exfalso.
+    inversion H0.
+  - exfalso.
+    inversion H0.
+  - exfalso.
+    inversion H0.
+  - assumption.
+  - assumption.
+  - firstorder.
+  - firstorder.
+  - firstorder.
+  - firstorder.
 Admitted.
 
 Definition barb: relation term :=
