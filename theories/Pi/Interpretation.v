@@ -9,7 +9,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.Syntax.
-Require Import Observational.
+Require Import Local.Observational.
 Require Import Local.TypeSystem.
 Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
@@ -21,10 +21,16 @@ Global Hint Resolve channel_equals_double_dual: cps.
 
 Section Interpretation.
 
+  (* We did not define base types in the typesystem for the pi-calculus, so we
+     parametrize everything by some arbitrary interpretation for base types. *)
   Variable pi_base: type.
 
+  (* Of course, since the type system requires types to be I/O alternating, so
+     should be the case of anything that is taken to be the base type. *)
   Hypothesis pi_base_is_output: alternating O pi_base.
 
+  (* The CPS-calculus is defined as higher-order, so we make a relation stating
+     that a term is indeed some variable. *)
   Definition is_variable (k: pseudoterm) (n: nat): Prop :=
     k = bound n.
 
@@ -75,11 +81,16 @@ Section Interpretation.
           (replication 0
             [pB; cO [dual pB; dual pB]; pB]
             (output 1 [4; 0]))))
+    (* Check interpretation for example 1. *)
     in interpret Syntax.ex1 p.
   Proof.
+    (* Holds trivially by construction. *)
     repeat econstructor.
   Qed.
 
+  (* To be honest, it's amazing that this is true up to the same [k]; i.e., the
+     same number of variables is introduced in head position for both CPS term
+     and the resulting process for the interpretation. *)
   Goal
     forall b p,
     interpret b p ->
@@ -146,26 +157,6 @@ Section Interpretation.
       interpret_env ts cs ->
       k = (length ts) ->
       interpret_env (t :: ts) (overlay cs (env_singleton k c)).
-
-  (* Lemma interpret_env_free_name:
-    forall g a,
-    interpret_env g a ->
-    forall n,
-    n >= length g ->
-    ~has_free_name a n.
-  Proof.
-    induction 1; simpl; intros.
-    - intros (t, ?).
-      inversion H0.
-    - intros (u, ?).
-      unfold env_singleton, env_type in H3.
-      dependent destruction H3.
-      + eapply IHinterpret_env with n.
-        * lia.
-        * now exists u.
-      + dependent destruction H3.
-        lia.
-  Qed. *)
 
   Lemma interpret_env_is_wellformed:
     forall g a,
@@ -254,30 +245,6 @@ Section Interpretation.
       admit.
   Admitted.
 
-  (* Local Lemma local_env_lift_typing:
-    forall m a k cs p,
-    k > 0 ->
-    typing m p (env_extend a k cs) (length cs + k) ->
-    typing m (lift 1 (length cs) p)
-      (env_extend a (1 + k) cs) (length cs + (1 + k)).
-  Proof.
-    intros.
-    eapply typing_iso.
-    - replace (length cs + (1 + k)) with (1 + (length cs + k)) by lia.
-      apply typing_lift.
-      + eassumption.
-      + lia.
-      + (* TODO: make sigma solve this! *)
-        replace (length cs + k) with (@var nat _ (length cs + k)) at 3 by auto.
-        sigma.
-        unfold var, nat_dbVar, id.
-        lia.
-    - (* We're missing a hypothesis, but [a] only has variables strictly less
-         than [k]. *)
-      replace (i2l (length cs + k) (length cs)) with (k - 1) by lia.
-      admit.
-  Admitted. *)
-
   Lemma interpretation_preserves_typing:
     forall b p,
     interpret b p ->
@@ -339,11 +306,12 @@ Section Interpretation.
     (* TODO: I suspect we'll need an equivalent type system to make this work,
        where the typing rules follow the structure of the terms by subsuming
        both graph isomorphism and local weakening. Alternatively, this could be
-       seem as an induction scheme for the original type system. *)
+       seem as an induction scheme for the original type system (indeed, I
+       should define it as one). *)
     admit.
   Admitted.
 
-  Theorem control_correspondence:
+  Theorem control_calculus_typing_correspondence:
     forall b p,
     interpret b p ->
     forall g a,
