@@ -261,7 +261,7 @@ Section DeBruijn.
 
   Local Lemma sigma_lift_zero:
     forall k x,
-    lift 0 k x = x.
+    subst_lift 0 k x = x.
   Proof.
     intros.
     apply traverse_ids.
@@ -314,7 +314,8 @@ Section DeBruijn.
   Proof.
     induction s; simpl; intros.
     - now do 2 rewrite sigma_ids_simpl.
-    - admit.
+    - rename i into i1, i0 into i2.
+      admit.
     - admit.
     - do 2 rewrite sigma_inst_comp.
       now rewrite IHs2, IHs1.
@@ -524,8 +525,12 @@ Section Sigma.
     n = 0 ->
     subst_lift n ~ subst_ids.
   Proof.
-    admit.
-  Admitted.
+    clear vY tYY tXY vYLaws tYYLaws tXYLaws; repeat intro.
+    subst.
+    rewrite sigma_lift_zero by auto.
+    rewrite sigma_ids_simpl by auto.
+    reflexivity.
+  Qed.
 
   (* LiftZero (additional!): U^0(s) ~ s *)
   Lemma subst_LiftZero:
@@ -533,8 +538,13 @@ Section Sigma.
     n = 0 ->
     subst_upn n s ~ s.
   Proof.
-    admit.
-  Admitted.
+    clear vY tYY tXY vYLaws tYYLaws tXYLaws; repeat intro.
+    subst.
+    apply traverse_ext; simpl; intros.
+    destruct (le_gt_dec (l + k) n).
+    - reflexivity.
+    - now rewrite sigma_bvar_simpl by lia.
+  Qed.
 
   (* VarShift: (0, S) ~ I *)
   Lemma subst_VarShift:
