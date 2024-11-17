@@ -33,7 +33,7 @@ Inductive term: Set :=
   | replication (k: nat) (ts: list type) (p: term).
 
 (* TODO: probably better to remove this notation. *)
-Local Notation poly_restriction :=
+Definition poly_restriction: list type -> term -> term :=
   (fold_left (fun e t => restriction t e)).
 
 (* TODO: reuse this from the CPS-calculus? *)
@@ -289,7 +289,8 @@ Proof.
   induction ts using rev_ind; intros.
   - simpl.
     reflexivity.
-  - do 2 rewrite fold_left_app; simpl.
+  - unfold poly_restriction.
+    do 2 rewrite fold_left_app; simpl.
     f_equal; apply IHts.
 Qed.
 
@@ -459,11 +460,10 @@ Inductive structural: relation term :=
     structural (restriction t (restriction u p))
                (restriction u (restriction t (switch_bindings 0 p)))
   | structural_extrusion:
-    (* [(\x)(p | q)] = [(\x)p | q], given [x] not free in [q] *)
+    (* [(\x)p | q] = [(\x)(p | q)], given [x] not free in [q] *)
     forall t p q,
-    not_free 0 q ->
-    structural (restriction t (parallel p q))
-               (parallel (restriction t p) (remove_binding 0 q))
+    structural (parallel (restriction t p) q)
+               (restriction t (parallel p (lift 1 0 q)))
   | structural_restriction:
     (* if [p] = [q], then [(\x)p] = [(\x)q] *)
     forall t p q,
@@ -541,6 +541,43 @@ Proof.
     now apply IHh.
 Qed.
 
+Lemma structural_poly_restriction:
+  forall ts p q,
+  structural p q ->
+  structural (poly_restriction ts p) (poly_restriction ts q).
+Proof.
+  induction ts using rev_ind; intros.
+  - unfold poly_restriction; simpl.
+    assumption.
+  - unfold poly_restriction.
+    do 2 rewrite fold_left_app; simpl.
+    fold poly_restriction.
+    apply structural_restriction.
+    now apply IHts.
+Qed.
+
+Lemma structural_poly_extrusion:
+  forall ts p q,
+  structural (parallel (poly_restriction ts p) q)
+             (poly_restriction ts (parallel p (lift (length ts) 0 q))).
+Proof.
+  induction ts using rev_ind; intros.
+  - unfold poly_restriction; simpl.
+    sigma.
+    apply structural_refl.
+  - unfold poly_restriction.
+    do 2 rewrite fold_left_app; simpl.
+    fold poly_restriction.
+    eapply structural_trans.
+    + apply structural_extrusion.
+    + apply structural_restriction.
+      rewrite app_length; simpl.
+      replace (lift (length ts + 1) 0 q) with
+        (lift (length ts) 0 (lift 1 0 q)).
+      * apply IHts.
+      * now sigma.
+Qed.
+
 (* TODO: check the structural rule [x[y] z[w] p] = [z[w] x[y] p]. *)
 
 (* TODO: check the structural rule [(\z)x[y] p] = [x[y] (\z)p]. *)
@@ -594,18 +631,57 @@ Proof.
   - apply structural_parallel_commutative.
 Qed.
 
+Lemma step_poly_restriction:
+  forall ts p q,
+  step p q ->
+  step (poly_restriction ts p) (poly_restriction ts q).
+Proof.
+  induction ts using rev_ind; intros.
+  - unfold poly_restriction; simpl.
+    assumption.
+  - unfold poly_restriction.
+    do 2 rewrite fold_left_app; simpl.
+    fold poly_restriction.
+    apply step_restriction.
+    now apply IHts.
+Qed.
+
 Goal
   (* Let's check that the bound output version, i.e., [[y] p | x(y).q] ->
      [(\y)(p | q)], as described in Honda's paper, is derivable with the above
      definitions. *)
   forall ts x p q,
-  step (parallel (bound_output x ts p) (input x ts p))
+  step (parallel (bound_output x ts p) (input x ts q))
        (poly_restriction ts (parallel p q)).
 Proof.
-  induction ts using rev_ind; intros.
-  - simpl.
+  intros.
+  unfold bound_output.
+  assert (length ts = length ts) by reflexivity.
+  generalize dependent H.
+  generalize ts at 2 5 6 as us; intros.
+  eapply step_structural.
+  - eapply structural_trans.
+    + apply structural_poly_extrusion.
+    + apply structural_poly_restriction.
+      eapply structural_trans.
+      * apply structural_parallel_left.
+        apply structural_parallel_commutative.
+      * apply structural_paralllel_associative.
+  - apply step_poly_restriction.
+    apply step_parallel_right.
+    (* TODO: gotta fix this simplification in sigma! *)
+    replace x with (var x) at 2 by auto.
+    sigma.
+    apply step_linear.
+    (* TODO: this could be copied from the CPS-calculus implementation... *)
+    generalize 0; clear H.
+    induction us; simpl; intros.
+    + reflexivity.
+    + now f_equal.
+  - assert (length (sequence 0 (length us)) = length us) by admit.
+    sigma.
+    (* Clearly that's the identity substitution, this holds by reflexivity. *)
     admit.
-  - admit.
 Admitted.
 
 (* We define an asynchronous observability predicate, i.e., only output actions
@@ -677,18 +753,19 @@ Proof.
     do 2 apply observable_restriction.
     (* Same as above. *)
     admit.
-  - dependent destruction H0.
-    dependent destruction H0.
-    + apply observable_parallel_left.
-      now apply observable_restriction.
-    + apply observable_parallel_right.
-      (* Same as above. *)
-      admit.
-  - dependent destruction H0.
-    + dependent destruction H0.
+  - dependent destruction H.
+    + dependent destruction H.
       apply observable_restriction.
       now apply observable_parallel_left.
     + apply observable_restriction.
+      apply observable_parallel_right.
+      (* Same as above. *)
+      admit.
+  - dependent destruction H.
+    dependent destruction H.
+    + apply observable_parallel_left.
+      now apply observable_restriction.
+    + apply observable_parallel_right.
       (* Same as above. *)
       admit.
   - dependent destruction H0.
