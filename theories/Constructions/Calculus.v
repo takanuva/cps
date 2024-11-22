@@ -136,72 +136,57 @@ Inductive decl: Set :=
 Definition env: Set :=
   list decl.
 
-Inductive step (g: env): relation term :=
+Inductive step: env -> relation term :=
+  (* Beta reduction. *)
   | step_beta:
-    forall t e f,
+    forall g t e f,
     step g (application (abstraction t e) f) (subst f 0 e)
+  (* Zeta reduction. *)
   | step_zeta:
-    forall e t f,
+    forall g e t f,
     step g (definition e t f) (subst e 0 f)
+  (* Delta reduction. *)
   | step_delta:
-    forall t e n,
+    forall g t e n,
     item (decl_def e t) g n ->
     step g (bound n) (lift (S n) 0 e)
+  (* Congruence closure. *)
   | step_pi_type:
-    forall t1 t2 e,
+    forall g t1 t2 e,
     step g t1 t2 ->
     step g (pi t1 e) (pi t2 e)
   | step_pi_body:
-    forall t e1 e2,
-    step g e1 e2 ->
+    forall g t e1 e2,
+    step (decl_var t :: g) e1 e2 ->
     step g (pi t e1) (pi t e2)
   | step_abs_type:
-    forall t1 t2 e,
+    forall g t1 t2 e,
     step g t1 t2 ->
     step g (abstraction t1 e) (abstraction t2 e)
   | step_abs_body:
-    forall t e1 e2,
-    step g e1 e2 ->
+    forall g t e1 e2,
+    step (decl_var t :: g) e1 e2 ->
     step g (abstraction t e1) (abstraction t e2)
   | step_app_left:
-    forall e1 e2 f,
+    forall g e1 e2 f,
     step g e1 e2 ->
     step g (application e1 f) (application e2 f)
   | step_app_right:
-    forall e f1 f2,
+    forall g e f1 f2,
     step g f1 f2 ->
     step g (application e f1) (application e f2)
   | step_def_val:
-    forall e1 e2 t f,
+    forall g e1 e2 t f,
     step g e1 e2 ->
     step g (definition e1 t f) (definition e2 t f)
   | step_def_type:
-    forall e t1 t2 f,
+    forall g e t1 t2 f,
     step g t1 t2 ->
     step g (definition e t1 f) (definition e t2 f)
   | step_def_body:
-    forall e t f1 f2,
-    step g f1 f2 ->
+    forall g e t f1 f2,
+    step (decl_def e t :: g) f1 f2 ->
     step g (definition e t f1) (definition e t f2).
-
-Lemma step_context:
-  forall g e1 e2,
-  step g e1 e2 ->
-  forall h: context,
-  step g (h e1) (h e2).
-Proof.
-  induction h; simpl; intros.
-  - assumption.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-  - now constructor.
-Qed.
 
 Conjecture step_is_confluent: forall g, confluent (step g).
 
