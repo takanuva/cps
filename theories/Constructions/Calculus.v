@@ -197,7 +197,8 @@ Inductive step: env -> relation term :=
     step (decl_def e t :: g) f1 f2 ->
     step g (definition e t f1) (definition e t f2).
 
-Conjecture step_is_confluent: forall g, confluent (step g).
+Conjecture step_is_confluent:
+  forall g, confluent (step g).
 
 Inductive conv: env -> relation term :=
   | conv_join:
@@ -390,3 +391,7 @@ Proof.
   - assumption.
   - assumption.
 Qed.
+
+Conjecture strong_normalization:
+  forall g e t,
+  typing g e t -> SN (step g) e.
