@@ -19,7 +19,7 @@ Variant universe: Set :=
 
 Inductive term: Set :=
   (* Sorts. *)
-  | sort (u: universe)
+  | sort (s: universe)
   (* Variables. *)
   | bound (n: nat)
   (* Products. *)
@@ -292,10 +292,11 @@ Inductive typing: env -> relation term :=
              G |- x : T
   *)
   | typing_bound:
-    forall g n d t,
+    forall g n d t u,
     valid_env g ->
     item (d, t) g n ->
-    typing g (bound n) (lift (1 + n) 0 t)
+    u = lift (1 + n) 0 t ->
+    typing g (bound n) u
   (*
        G, X: T |- U : s
     ----------------------
@@ -374,6 +375,18 @@ with valid_env: env -> Prop :=
     typing g e t ->
     typing g t (sort s) ->
     valid_env (decl_def e t :: g).
+
+Goal
+  (* Polymorphic identity type: |- \X: Prop.\x: X.x : Pi X: Prop.X -> X. *)
+  let G := [] in
+  let e := abstraction (sort prop) (abstraction (bound 0) (bound 0)) in
+  let t := pi (sort prop) (pi (bound 0) (bound 1)) in
+  typing G e t.
+Proof.
+  simpl.
+  repeat econstructor.
+  now vm_compute.
+Qed.
 
 Lemma valid_env_typing:
   forall g e t,
