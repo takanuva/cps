@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Arith.
+Require Import Equality.
 Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
@@ -200,14 +201,44 @@ Inductive conv: env -> relation term :=
     forall g e1 e2 t f1 f2,
     rt(step g) e1 (abstraction t f1) ->
     rt(step g) e2 f2 ->
-    conv (decl_var t :: g) f1 (application f2 (bound 0)) ->
+    conv (decl_var t :: g) f1 (application (lift 1 0 f2) (bound 0)) ->
     conv g e1 e2
   | conv_eta_right:
     forall g e1 e2 t f1 f2,
     rt(step g) e1 f1 ->
     rt(step g) e2 (abstraction t f2) ->
-    conv (decl_var t :: g) (application f1 (bound 0)) f2 ->
+    conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2.
+
+(* Lemma step_abs_inversion:
+  forall g t1 e1 f,
+  step g (abstraction t1 e1) f ->
+  exists t2 e2,
+  f = abstraction t2 e2.
+Proof.
+  intros.
+  dependent destruction H.
+  - do 2 eexists.
+    reflexivity.
+  - do 2 eexists.
+    reflexivity.
+Qed.
+
+Lemma rt_step_abs_inversion:
+  forall g t1 e1 f,
+  rt(step g) (abstraction t1 e1) f ->
+  exists t2 e2,
+  f = abstraction t2 e2.
+Proof.
+  intros.
+  dependent induction H.
+  - now apply step_abs_inversion with g t1 e1.
+  - now exists t1, e1.
+  - edestruct IHclos_refl_trans1 as (t2, (e2, ?)).
+    + reflexivity.
+    + subst.
+      now apply IHclos_refl_trans2 with t2 e2.
+Qed. *)
 
 Lemma conv_refl:
   forall g,
