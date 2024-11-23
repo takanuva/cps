@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import List.
 Require Import Arith.
 Require Import Equality.
 Require Import Relations.
@@ -10,9 +11,11 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
 
+Import ListNotations.
+
 Variant universe: Set :=
   | prop
-  | type (n: nat).
+  | type.
 
 Inductive term: Set :=
   (* Sorts. *)
@@ -20,7 +23,7 @@ Inductive term: Set :=
   (* Variables. *)
   | bound (n: nat)
   (* Products. *)
-  | pi (t: term) (e: term)
+  | pi (t: term) (u: term)
   | abstraction (t: term) (e: term)
   | application (e: term) (f: term)
   | definition (e: term) (t: term) (f: term).
@@ -31,8 +34,8 @@ Fixpoint traverse g k e: term :=
     sort u
   | bound n =>
     g k n 
-  | pi t e =>
-    pi (traverse g k t) (traverse g (S k) e)
+  | pi t u =>
+    pi (traverse g k t) (traverse g (S k) u)
   | abstraction t e =>
     abstraction (traverse g k t) (traverse g (S k) e)
   | application e f =>
@@ -94,8 +97,8 @@ Qed.
 
 Inductive context: Set :=
   | context_hole
-  | context_pi_type (t: context) (e: term)
-  | context_pi_body (t: term) (e: context)
+  | context_pi_type (t: context) (u: term)
+  | context_pi_body (t: term) (u: context)
   | context_abs_type (t: context) (e: term)
   | context_abs_body (t: term) (e: context)
   | context_app_left (f: context) (e: term)
@@ -108,10 +111,10 @@ Fixpoint apply_context (h: context) (x: term): term :=
   match h with
   | context_hole =>
     x
-  | context_pi_type t e =>
-    pi (apply_context t x) e
-  | context_pi_body t e =>
-    pi t (apply_context e x)
+  | context_pi_type t u =>
+    pi (apply_context t x) u
+  | context_pi_body t u =>
+    pi t (apply_context u x)
   | context_abs_type t e =>
     abstraction (apply_context t x) e
   | context_abs_body t e =>
@@ -130,9 +133,14 @@ Fixpoint apply_context (h: context) (x: term): term :=
 
 Coercion apply_context: context >-> Funclass.
 
-Inductive decl: Set :=
-  | decl_var (t: term)
-  | decl_def (e: term) (t: term).
+Definition decl: Set :=
+  option term * term.
+
+Definition decl_var (t: term): decl :=
+  (None, t).
+
+Definition decl_def (e: term) (t: term): decl :=
+  (Some e, t).
 
 Definition env: Set :=
   list decl.
@@ -150,16 +158,16 @@ Inductive step: env -> relation term :=
   | step_delta:
     forall g t e n,
     item (decl_def e t) g n ->
-    step g (bound n) (lift (S n) 0 e)
+    step g (bound n) (lift (1 + n) 0 e)
   (* Congruence closure. *)
   | step_pi_type:
-    forall g t1 t2 e,
+    forall g t1 t2 u,
     step g t1 t2 ->
-    step g (pi t1 e) (pi t2 e)
+    step g (pi t1 u) (pi t2 u)
   | step_pi_body:
-    forall g t e1 e2,
-    step (decl_var t :: g) e1 e2 ->
-    step g (pi t e1) (pi t e2)
+    forall g t u1 u2,
+    step (decl_var t :: g) u1 u2 ->
+    step g (pi t u1) (pi t u2)
   | step_abs_type:
     forall g t1 t2 e,
     step g t1 t2 ->
@@ -266,3 +274,119 @@ Lemma conv_trans:
 Proof.
   admit.
 Admitted.
+
+Inductive typing: env -> relation term :=
+  (*
+           |- G
+    --------------------
+      G |- Prop : Type
+  *)
+  | typing_prop:
+    forall g,
+    valid_env g ->
+    typing g (sort prop) (sort type)
+  (*
+      (x: T) or (x = e: T) in G
+    -----------------------------
+             G |- x : T
+  *)
+  | typing_bound:
+    forall g n d t,
+    valid_env g ->
+    item (d, t) g n ->
+    typing g (bound n) (lift (1 + n) 0 t)
+  (*
+       G, X: T |- U : s
+    ----------------------
+      G |- Pi X: T.U : s
+  *)
+  | typing_pi:
+    forall g t u s,
+    typing (decl_var t :: g) u (sort s) ->
+    typing g (pi t u) (sort s)
+  (*
+          G, x: T |- e: U
+    ----------------------------
+      G |- \x: T.e : Pi x: T.U
+  *)
+  | typing_abs:
+    forall g t e u,
+    typing (decl_var t :: g) e u ->
+    typing g (abstraction t e) (pi t u)
+  (*
+      G |- f : Pi x: T.U     G |- e : T
+    -------------------------------------
+              G |- f e : U[e/x]
+  *)
+  | typing_app:
+    forall g f e t u,
+    typing g f (pi t u) ->
+    typing g e t ->
+    typing g (application f e) (subst e 0 u)
+  (*
+      G |- e : T     G, x = e: T |- f : U
+    ---------------------------------------
+        G |- let x = e: T in f : U[e/x]
+  *)
+  | typing_def:
+    forall g e f t u,
+    typing g e t ->
+    typing (decl_def e t :: g) f u ->
+    typing g (definition e t f) (subst e 0 u)
+  (*
+      G |- e : T     G |- U : s     G |- T = U
+    --------------------------------------------
+                     G |- e : U
+  *)
+  | typing_conv:
+    forall g e t u s,
+    typing g e t ->
+    typing g u (sort s) ->
+    conv g t u ->
+    typing g e u
+
+with valid_env: env -> Prop :=
+  (*
+    --------
+      |- .
+  *)
+  | valid_env_nil:
+    valid_env []
+  (*
+      |- G     G |- T: s
+    -----------------------
+          |- G, x: T
+  *)
+  | valid_env_var:
+    forall g t s,
+    valid_env g ->
+    typing g t (sort s) ->
+    valid_env (decl_var t :: g)
+  (*
+      |- G     G |- e : T     G |- T : s
+    --------------------------------------
+              |- G, x = e: T
+  *)
+  | valid_env_def:
+    forall g e t s,
+    valid_env g ->
+    typing g e t ->
+    typing g t (sort s) ->
+    valid_env (decl_def e t :: g).
+
+Lemma valid_env_typing:
+  forall g e t,
+  typing g e t ->
+  valid_env g.
+Proof.
+  induction 1.
+  - assumption.
+  - assumption.
+  - dependent destruction IHtyping.
+    assumption.
+  - dependent destruction IHtyping.
+    assumption.
+  - assumption.
+  - assumption.
+  - assumption.
+Qed.
