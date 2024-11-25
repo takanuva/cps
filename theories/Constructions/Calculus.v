@@ -200,6 +200,116 @@ Inductive step: env -> relation term :=
 Conjecture step_is_confluent:
   forall g, confluent (step g).
 
+Lemma declaration_existance_is_decidable:
+  forall g n,
+  { exists e t, item (decl_def e t) g n } +
+    { ~exists e t, item (decl_def e t) g n }.
+Proof.
+  induction g; intros.
+  - right; intros (e, (t, ?)).
+    inversion H.
+  - destruct n.
+    + clear IHg.
+      destruct a.
+      destruct o.
+      * rename t0 into e.
+        left.
+        do 2 eexists.
+        constructor.
+      * right; intros (e, (u, ?)).
+        inversion H.
+    + destruct IHg with n.
+      * left.
+        destruct e as (e, (t, ?)).
+        do 2 eexists.
+        constructor.
+        eassumption.
+      * right; intros (e, (t, ?)).
+        dependent destruction H.
+        firstorder.
+Qed.
+
+Lemma abstraction_is_decidable:
+  forall e,
+  { exists t f, e = abstraction t f } + { ~exists t f, e = abstraction t f }.
+Proof.
+  admit.
+Admitted.
+
+Lemma step_is_decidable:
+  forall e g,
+  { exists f, step g e f } + { ~exists f, step g e f }.
+Proof.
+  induction e; intros.
+  - right; intros (f, ?).
+    inversion H.
+  - destruct declaration_existance_is_decidable with g n.
+    + left.
+      destruct e as (e, (t, ?)).
+      eexists.
+      eapply step_delta.
+      eassumption.
+    + right; intros (f, ?).
+      dependent destruction H.
+      firstorder.
+  - destruct IHe1 with g.
+    + left.
+      destruct e as (f, ?).
+      eexists.
+      apply step_pi_type.
+      eassumption.
+    + destruct IHe2 with (decl_var e1 :: g).
+      * left.
+        destruct e as (f, ?).
+        eexists.
+        apply step_pi_body.
+        eassumption.
+      * right; intros (f, ?).
+        dependent destruction H; firstorder.
+  - destruct IHe1 with g.
+    + left.
+      destruct e as (f, ?).
+      eexists.
+      apply step_abs_type.
+      eassumption.
+    + destruct IHe2 with (decl_var e1 :: g).
+      * left.
+        destruct e as (f, ?).
+        eexists.
+        apply step_abs_body.
+        eassumption.
+      * right; intros (f, ?).
+        dependent destruction H; firstorder.
+  - destruct IHe1 with g.
+    + (* There's a redex on the left, so this can't be itself a redex. *)
+      left.
+      destruct e as (f, ?).
+      eexists.
+      apply step_app_left.
+      eassumption.
+    + (* Before reducing on the right, is this a beta-redex? *)
+      destruct abstraction_is_decidable with e1.
+      * (* It is... *)
+        left.
+        destruct e as (t, (e, ?)); subst.
+        eexists.
+        apply step_beta.
+      * (* Is there a redex on the right...? *)
+        destruct IHe2 with g.
+        (* TODO: refactor me, at some point... *)
+        --- left.
+            destruct e as (f, ?).
+            eexists.
+            apply step_app_right.
+            eassumption.
+        --- (* I really wish Coq had FOUR proof levels... *)
+            right; intros (f, ?).
+            dependent destruction H; eauto with cps.
+  - (* There's always a zeta-redex in here! *)
+    left; eexists.
+    apply step_zeta.
+Qed.
+
 Inductive conv: env -> relation term :=
   | conv_join:
     forall g e1 e2 f,
