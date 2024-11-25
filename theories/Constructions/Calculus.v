@@ -197,6 +197,10 @@ Inductive step: env -> relation term :=
     step (decl_def e t :: g) f1 f2 ->
     step g (definition e t f1) (definition e t f2).
 
+(* I can, of course, prove that this reduction relation is confluent. However,
+   that will require a lot of code and a lot of time that I don't have at the
+   moment. I might be tempted to come back here at some point and follow the
+   procedure in the "Coq Coq Correct!" paper to actually prove this. *)
 Conjecture step_is_confluent:
   forall g, confluent (step g).
 
@@ -389,6 +393,8 @@ Lemma conv_trans:
   forall g,
   transitive (conv g).
 Proof.
+  (* Bowman's paper says this is transitive, and, intuitively, I agree. I'm not
+     really sure yet how to prove this, tho. I'll come back here later. *)
   admit.
 Admitted.
 
@@ -530,6 +536,27 @@ Qed.
 Conjecture strong_normalization:
   forall g e t,
   typing g e t -> SN (step g) e.
+
+(* For typeable terms, the normal form is computable. *)
+Lemma normal_form_is_decidable:
+  forall g e t,
+  typing g e t ->
+  exists2 f,
+  rt(step g) e f & normal (step g) f.
+Proof.
+  intros.
+  apply strong_normalization in H.
+  induction H using SN_ind.
+  destruct step_is_decidable with x g as [ (y, ?) | ? ].
+  - destruct H2 with y as (z, ?, ?).
+    + now apply t_step.
+    + exists z; eauto with cps.
+  - exists x.
+    + apply rt_refl.
+    + intros y ?.
+      apply n.
+      now exists y.
+Qed.
 
 (* Following "A New Extraction for Coq", we define a type scheme as something
    that necessarily becomes a type. For example, the term [Pi X: Type, X -> X]
