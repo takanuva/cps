@@ -376,15 +376,21 @@ with valid_env: env -> Prop :=
     typing g t (sort s) ->
     valid_env (decl_def e t :: g).
 
+(* Coq term: [\X: Prop.\x: X.x]. *)
+Example polymorphic_id_term: term :=
+  abstraction (sort prop) (abstraction (bound 0) (bound 0)).
+
+(* Coq term: [Pi X: Prop.X -> X]. *)
+Example polymorphic_id_type: term :=
+  pi (sort prop) (pi (bound 0) (bound 1)).
+
+(* Let's check typeability. *)
 Goal
-  (* Polymorphic identity type: |- \X: Prop.\x: X.x : Pi X: Prop.X -> X. *)
-  let G := [] in
-  let e := abstraction (sort prop) (abstraction (bound 0) (bound 0)) in
-  let t := pi (sort prop) (pi (bound 0) (bound 1)) in
-  typing G e t.
+  typing [] polymorphic_id_term polymorphic_id_type.
 Proof.
   simpl.
   repeat econstructor.
+  (* Of course! *)
   now vm_compute.
 Qed.
 
@@ -408,3 +414,46 @@ Qed.
 Conjecture strong_normalization:
   forall g e t,
   typing g e t -> SN (step g) e.
+
+(* Following "A New Extraction for Coq", we define a type scheme as something
+   that necessarily becomes a type. For example, the term [Pi X: Type, X -> X]
+   in Coq is a type scheme because it can't ever generate a term. On the other
+   hand, [Pi X: Type, Pi x: X, x] is not a type scheme: it may generate a type,
+   if applied, e.g., to [Prop], but it may generate a term, if applied, e.g.,
+   to [nat]. Of course, this distinction happens because of cumulativity, since
+   there are no unique types anymore. In the lack of cumulativity, as we will
+   check, there's a simpler syntactical distinction that we may use. *)
+
+Inductive generates_type: term -> Prop :=
+  | generates_type_sort:
+    forall s,
+    generates_type (sort s)
+  | generates_type_pi:
+    forall t u,
+    generates_type u ->
+    generates_type (pi t u).
+
+Inductive type_scheme: term -> Prop :=
+  | type_scheme_mk:
+    forall g e t,
+    typing g e t ->
+    generates_type t ->
+    type_scheme e.
+
+Goal
+  type_scheme polymorphic_id_type.
+Proof.
+  apply type_scheme_mk with [] (sort prop).
+  - repeat econstructor.
+    now vm_compute.
+  - constructor.
+Qed.
+
+Goal
+  ~type_scheme polymorphic_id_term.
+Proof.
+  intro.
+  dependent destruction H.
+  (* We need a few inversion lemmas... *)
+  admit.
+Admitted.
