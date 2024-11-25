@@ -233,8 +233,14 @@ Lemma abstraction_is_decidable:
   forall e,
   { exists t f, e = abstraction t f } + { ~exists t f, e = abstraction t f }.
 Proof.
-  admit.
-Admitted.
+  destruct e.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - left; eauto with cps.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+Qed.
 
 Lemma step_is_decidable:
   forall e g,
