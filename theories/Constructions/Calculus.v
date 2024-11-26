@@ -28,6 +28,8 @@ Inductive term: Set :=
   | application (e: term) (f: term)
   | definition (e: term) (t: term) (f: term).
 
+Local Coercion sort: universe >-> term.
+
 Fixpoint traverse g k e: term :=
   match e with
   | sort u =>
@@ -600,3 +602,104 @@ Proof.
   (* We need a few inversion lemmas... *)
   admit.
 Admitted.
+
+(* We follow the usual definition of syntactic classes for terms, types and
+   kinds in the calculus of constructions. These syntactic classes give us an
+   equivalent formulation of the syntax which is guaranteed by typing, as we
+   shall verify. Most interestingly, terms can't be type schemes, but types and
+   kinds need to be, which is quite convenient. We will promptly ignore the
+   distinction between type variables and term variables. TODO: do we want the
+   classification to live in Prop...? *)
+
+Variant class: Set :=
+  | class_kind
+  | class_type
+  | class_term.
+
+(* TODO: classify let definitions. *)
+Inductive stratify: class -> term -> Prop :=
+  (* [Prop] *)
+  | stratify_prop:
+    stratify class_kind prop
+  (* [Pi x: T.S] *)
+  | stratify_pi_type_kind:
+    forall t u,
+    stratify class_type t ->
+    stratify class_kind u ->
+    stratify class_kind (pi t u)
+  (* [Pi X: S.S] *)
+  | stratify_pi_kind_kind:
+    forall t u,
+    stratify class_kind t ->
+    stratify class_kind u ->
+    stratify class_kind (pi t u)
+  (* [X] *)
+  | stratify_bound_type:
+    forall n,
+    stratify class_type (bound n)
+  (* [Pi x: T.T] *)
+  | stratify_pi_type_type:
+    forall t u,
+    stratify class_type t ->
+    stratify class_type u ->
+    stratify class_type (pi t u)
+  (* [Pi X: S.T] *)
+  | stratify_pi_kind_type:
+    forall t u,
+    stratify class_kind t ->
+    stratify class_type u ->
+    stratify class_type (pi t u)
+  (* [\x: T.T] *)
+  | stratify_abs_type_type:
+    forall t u,
+    stratify class_type t ->
+    stratify class_type u ->
+    stratify class_type (abstraction t u)
+  (* [\X: S.T] *)
+  | stratify_abs_sort_type:
+    forall t u,
+    stratify class_kind t ->
+    stratify class_type u ->
+    stratify class_type (abstraction t u)
+  (* [T e] *)
+  | stratify_app_type_term:
+    forall t e,
+    stratify class_type t ->
+    stratify class_term e ->
+    stratify class_type (application t e)
+  (* [T T] *)
+  | stratify_app_type_type:
+    forall t u,
+    stratify class_type t ->
+    stratify class_type u ->
+    stratify class_type (application t u)
+  (* [x] *)
+  | stratify_bound_term:
+    forall n,
+    stratify class_term (bound n)
+  (* [\x: T.e] *)
+  | stratify_abs_type_term:
+    forall t e,
+    stratify class_type t ->
+    stratify class_term e ->
+    stratify class_term (abstraction t e)
+  (* [\X: S.e] *)
+  | stratify_abs_sort_term:
+    forall t e,
+    stratify class_kind t ->
+    stratify class_term e ->
+    stratify class_term (abstraction t e)
+  (* [e e] *)
+  | stratify_app_term_term:
+    forall e f,
+    stratify class_term e ->
+    stratify class_term f ->
+    stratify class_term (application e f)
+  (* [e T] *)
+  | stratify_app_term_type:
+    forall e t,
+    stratify class_term e ->
+    stratify class_type t ->
+    stratify class_term (application e t).
+
+Global Coercion stratify: class >-> Funclass.
