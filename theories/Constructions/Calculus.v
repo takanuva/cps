@@ -140,3 +140,18 @@ Definition decl_def (e: term) (t: term): decl :=
 
 Definition env: Set :=
   list decl.
+
+Inductive value: term -> Prop :=
+  | value_sort:
+    forall s,
+    value (sort s)
+  | value_bound:
+    forall n,
+    value (bound n)
+  | value_pi:
+    forall t u,
+    value u ->
+    value (pi t u)
+  | value_abstraction:
+    forall t e,
+    value (abstraction t e).
