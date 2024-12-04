@@ -17,22 +17,27 @@ Import ListNotations.
    if applied, e.g., to [Prop], but it may generate a term, if applied, e.g.,
    to [nat]. Of course, this distinction happens because of cumulativity, since
    there are no unique types anymore. In the lack of cumulativity, as we will
-   check, there's a simpler syntactical distinction that we may use. *)
+   check, there's a simpler syntactical distinction that we may use. This is
+   called an arity in the MetaCoq project and the "Coq Coq Correct!" paper. *)
 
-Inductive ends_in_sort: term -> Prop :=
-  | ends_in_sort_now:
+Inductive is_arity: term -> Prop :=
+  | is_arity_now:
     forall s,
-    ends_in_sort (sort s)
-  | ends_in_sort_later:
+    is_arity (sort s)
+  | is_arity_pi:
     forall t u,
-    ends_in_sort u ->
-    ends_in_sort (pi t u).
+    is_arity u ->
+    is_arity (pi t u)
+  | is_arity_def:
+    forall v t u,
+    is_arity u ->
+    is_arity (definition v t u).
 
 Inductive type_scheme: term -> Prop :=
   | type_scheme_mk:
     forall g e t,
     typing g e t ->
-    ends_in_sort t ->
+    is_arity t ->
     type_scheme e.
 
 Goal
