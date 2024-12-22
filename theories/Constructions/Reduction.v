@@ -35,6 +35,7 @@ Proof.
       now exists y.
 Qed.
 
+(*
 (* Call-by-value evaluation contexts. *)
 Inductive evaluation_context: context -> Prop :=
   | evaluation_context_hole:
@@ -57,3 +58,29 @@ Inductive evaluation_context: context -> Prop :=
     value v ->
     evaluation_context f ->
     evaluation_context (context_def_body v t f).
+*)
+
+Axiom boolean: term.
+
+(* We can't properly define this relation the standard way as it would violate
+   the strict positivity rule. Instead, we use a trick similar to Sangiorgi's
+   definition of stratified strong bisimilarity (Definition 2.2.10 on the "The
+   pi-calculus: A Theory of Mobile Processes"). By induction on some natural
+   number, we count how many times the (CONV) rule will be necessary; then we
+   define that two terms are observationally equivalent if they are equivalent
+   no matter for every possible number of steps we need. *)
+
+Fixpoint observational_approx (n: nat): env -> term -> relation term :=
+  fun g t e1 e2 =>
+    match n with
+    | 0 => True
+    | S m =>
+        forall h: context ,
+        (* context_typing (observational_approx m) h (g, t) ([], boolean) -> *)
+        (* Reduce to the same value! *)
+        True
+   end.
+
+Definition observational: env -> term -> relation term :=
+  fun g t e1 e2 =>
+    forall n, observational_approx n g t e1 e2.
