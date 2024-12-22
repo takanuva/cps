@@ -6,6 +6,7 @@ Require Import List.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.Constructions.Calculus.
+Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 
 Import ListNotations.
@@ -36,7 +37,7 @@ Inductive is_arity: term -> Prop :=
 Inductive type_scheme: term -> Prop :=
   | type_scheme_mk:
     forall g e t,
-    typing g e t ->
+    typing typed_conv g e t ->
     is_arity t ->
     type_scheme e.
 

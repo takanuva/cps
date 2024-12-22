@@ -150,6 +150,7 @@ Inductive value: term -> Prop :=
     value (bound n)
   | value_pi:
     forall t u,
+    (* TODO: this binds, so we might want a weak head normal form...? *)
     value u ->
     value (pi t u)
   | value_abstraction:

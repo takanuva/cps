@@ -2,17 +2,22 @@
 (*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import List.
+Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Normalization.
 
+Import ListNotations.
+
 (* For typeable terms, the normal form is computable. *)
 Lemma normal_form_is_decidable:
   forall g e t,
-  typing g e t ->
+  typing typed_conv g e t ->
   exists2 f,
   rt(step g) e f & normal (step g) f.
 Proof.

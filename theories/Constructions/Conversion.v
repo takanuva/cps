@@ -254,3 +254,6 @@ Proof.
      really sure yet how to prove this, tho. I'll come back here later. *)
   admit.
 Admitted.
+
+Definition typed_conv (g: env) (t: term): relation term :=
+  conv g.
