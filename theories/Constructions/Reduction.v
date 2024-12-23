@@ -36,6 +36,8 @@ Proof.
 Qed.
 
 (*
+  It should be enough to use an evaluation context rather than an arbitrary one.
+
 (* Call-by-value evaluation contexts. *)
 Inductive evaluation_context: context -> Prop :=
   | evaluation_context_hole:
@@ -61,10 +63,18 @@ Inductive evaluation_context: context -> Prop :=
 *)
 
 Axiom boolean: term.
+Axiom bool_tt: term.
+Axiom bool_ff: term.
+
+Axiom cbn: relation term.
+
+Definition eval: relation term :=
+  fun e v =>
+    rst(cbn) e v /\ value v.
 
 (* We can't properly define this relation the standard way as it would violate
    the strict positivity rule. Instead, we use a trick similar to Sangiorgi's
-   definition of stratified strong bisimilarity (Definition 2.2.10 on the "The
+   definition of stratified strong bisimilarity (definition 2.2.10 on the "The
    pi-calculus: A Theory of Mobile Processes"). By induction on some natural
    number, we count how many times the (CONV) rule will be necessary; then we
    define that two terms are observationally equivalent if they are equivalent
@@ -75,12 +85,42 @@ Fixpoint observational_approx (n: nat): env -> term -> relation term :=
     match n with
     | 0 => True
     | S m =>
-        forall h: context ,
-        (* context_typing (observational_approx m) h (g, t) ([], boolean) -> *)
-        (* Reduce to the same value! *)
-        True
+        forall (h: context) v,
+        typing (observational_approx m) [] (h e1) boolean ->
+        typing (observational_approx m) [] (h e2) boolean ->
+        eval (h e1) v <-> eval (h e2) v
    end.
 
 Definition observational: env -> term -> relation term :=
   fun g t e1 e2 =>
+    (* We take the intersection of all approximations. *)
     forall n, observational_approx n g t e1 e2.
+
+Lemma observational_is_consistent:
+  forall g t,
+  ~(forall e1 e2, observational g t e1 e2).
+Proof.
+  repeat intro.
+  specialize (H bool_tt bool_ff 1).
+  unfold observational_approx in H; simpl in H.
+  specialize (H context_hole bool_tt).
+  destruct H as (?, _); simpl.
+  - admit.
+  - admit.
+  - simpl in H.
+    destruct H.
+    + split.
+      * apply rst_refl.
+      * admit.
+    + (* H is an absurd! *)
+      admit.
+Admitted.
+
+Lemma observational_is_conservative:
+  forall g e t,
+  typing typed_conv g e t ->
+  typing observational g e t.
+Proof.
+  (* Mutual induction with valid environment...? *)
+  admit.
+Admitted.
