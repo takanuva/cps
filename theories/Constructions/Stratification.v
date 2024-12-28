@@ -37,7 +37,7 @@ Inductive is_arity: term -> Prop :=
 Inductive type_scheme: term -> Prop :=
   | type_scheme_mk:
     forall g e t,
-    typing typed_conv g e t ->
+    typing g e t typed_conv ->
     is_arity t ->
     type_scheme e.
 

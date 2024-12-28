@@ -17,7 +17,7 @@ Import ListNotations.
 (* For typeable terms, the normal form is computable. *)
 Lemma normal_form_is_decidable:
   forall g e t,
-  typing typed_conv g e t ->
+  typing g e t typed_conv ->
   exists2 f,
   rt(step g) e f & normal (step g) f.
 Proof.
@@ -86,8 +86,8 @@ Fixpoint observational_approx (n: nat): env -> term -> relation term :=
     | 0 => True
     | S m =>
         forall (h: context) v,
-        typing (observational_approx m) [] (h e1) boolean ->
-        typing (observational_approx m) [] (h e2) boolean ->
+        typing [] (h e1) boolean (observational_approx m)->
+        typing [] (h e2) boolean (observational_approx m) ->
         eval (h e1) v <-> eval (h e2) v
    end.
 
@@ -118,8 +118,8 @@ Admitted.
 
 Lemma observational_is_conservative:
   forall g e t,
-  typing typed_conv g e t ->
-  typing observational g e t.
+  typing g e t typed_conv ->
+  typing g e t observational.
 Proof.
   (* Mutual induction with valid environment...? *)
   admit.

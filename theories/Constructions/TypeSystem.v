@@ -13,18 +13,18 @@ Require Import Local.Constructions.Conversion.
 
 Import ListNotations.
 
-(* QUANTIFY OVER EQUALITY
-   MAKE OBSERVATIONAL EQUALITY NOT RELY ON BETA BUT ITSELF
-   On the paper we can discuss the choice of full beta for CBV *)
-
-Definition type_equality: Type :=
+Definition typing_equivalence: Type :=
   env -> term -> relation term.
 
 Section TypeSystem.
 
-  Variable R: type_equality.
+  Variant typing_judgement: Set :=
+    | valid_env (g: env)
+    | typing (g: env) (e: term) (t: term).
 
-  Inductive typing: env -> relation term :=
+  Variable R: typing_equivalence.
+
+  Inductive infer: typing_judgement -> Prop :=
     (*
              |- G
       --------------------
@@ -32,8 +32,8 @@ Section TypeSystem.
     *)
     | typing_prop:
       forall g,
-      valid_env g ->
-      typing g (sort prop) (sort type)
+      infer (valid_env g) ->
+      infer (typing g prop type)
     (*
         (x: T) or (x = e: T) in G
       -----------------------------
@@ -41,10 +41,10 @@ Section TypeSystem.
     *)
     | typing_bound:
       forall g n d t u,
-      valid_env g ->
+      infer (valid_env g) ->
       item (d, t) g n ->
       u = lift (1 + n) 0 t ->
-      typing g (bound n) u
+      infer (typing g (bound n) u)
     (*
          G, X: T |- U : s
       ----------------------
@@ -52,17 +52,17 @@ Section TypeSystem.
     *)
     | typing_pi:
       forall g t u s,
-      typing (decl_var t :: g) u (sort s) ->
-      typing g (pi t u) (sort s)
+      infer (typing (decl_var t :: g) u (sort s)) ->
+      infer (typing g (pi t u) (sort s))
     (*
-            G, x: T |- e: U
+            G, x: T |- e : U
       ----------------------------
         G |- \x: T.e : Pi x: T.U
     *)
     | typing_abs:
       forall g t e u,
-      typing (decl_var t :: g) e u ->
-      typing g (abstraction t e) (pi t u)
+      infer (typing (decl_var t :: g) e u) ->
+      infer (typing g (abstraction t e) (pi t u))
     (*
         G |- f : Pi x: T.U     G |- e : T
       -------------------------------------
@@ -70,9 +70,9 @@ Section TypeSystem.
     *)
     | typing_app:
       forall g f e t u,
-      typing g f (pi t u) ->
-      typing g e t ->
-      typing g (application f e) (subst e 0 u)
+      infer (typing g f (pi t u)) ->
+      infer (typing g e t) ->
+      infer (typing g (application f e) (subst e 0 u))
     (*
         G |- e : T     G, x = e: T |- f : U
       ---------------------------------------
@@ -80,9 +80,9 @@ Section TypeSystem.
     *)
     | typing_def:
       forall g e f t u,
-      typing g e t ->
-      typing (decl_def e t :: g) f u ->
-      typing g (definition e t f) (subst e 0 u)
+      infer (typing g e t) ->
+      infer (typing (decl_def e t :: g) f u) ->
+      infer (typing g (definition e t f) (subst e 0 u))
     (*
         G |- e : T     G |- U : s     G |- T R U : s
       ------------------------------------------------
@@ -90,28 +90,26 @@ Section TypeSystem.
     *)
     | typing_conv:
       forall g e t u s,
-      typing g e t ->
-      typing g u (sort s) ->
+      infer (typing g e t) ->
+      infer (typing g u (sort s)) ->
       R g (sort s) t u ->
-      typing g e u
-
-  with valid_env: env -> Prop :=
+      infer (typing g e u)
     (*
       --------
         |- .
     *)
     | valid_env_nil:
-      valid_env []
+      infer (valid_env [])
     (*
-        |- G     G |- T: s
+        |- G     G |- T : s
       -----------------------
             |- G, x: T
     *)
     | valid_env_var:
       forall g t s,
-      valid_env g ->
-      typing g t (sort s) ->
-      valid_env (decl_var t :: g)
+      infer (valid_env g) ->
+      infer (typing g t (sort s)) ->
+      infer (valid_env (decl_var t :: g))
     (*
         |- G     G |- e : T     G |- T : s
       --------------------------------------
@@ -119,10 +117,10 @@ Section TypeSystem.
     *)
     | valid_env_def:
       forall g e t s,
-      valid_env g ->
-      typing g e t ->
-      typing g t (sort s) ->
-      valid_env (decl_def e t :: g).
+      infer (valid_env g) ->
+      infer (typing g e t) ->
+      infer (typing g t (sort s)) ->
+      infer (valid_env (decl_def e t :: g)).
 
   (* Coq term: [\X: Prop.\x: X.x]. *)
   Example polymorphic_id_term: term :=
@@ -134,7 +132,7 @@ Section TypeSystem.
 
   (* Let's check typeability. *)
   Goal
-    typing [] polymorphic_id_term polymorphic_id_type.
+    infer (typing [] polymorphic_id_term polymorphic_id_type).
   Proof.
     simpl.
     repeat econstructor.
@@ -144,19 +142,35 @@ Section TypeSystem.
 
 End TypeSystem.
 
+Definition lift_judgement (j: typing_judgement): typing_equivalence -> Prop :=
+  fun R => infer R j.
+
+Global Coercion lift_judgement: typing_judgement >-> Funclass.
+
+Definition get_environment (j: typing_judgement): env :=
+  match j with
+  | valid_env g => g
+  | typing g _ _ => g
+  end.
+
+Coercion get_environment: typing_judgement >-> env.
+
 Lemma valid_env_typing:
-  forall R g e t,
-  typing R g e t ->
-  valid_env R g.
+  forall R j,
+  infer R j ->
+  valid_env j R.
 Proof.
-  induction 1.
+  induction 1; simpl.
   - assumption.
   - assumption.
-  - dependent destruction IHtyping.
+  - dependent destruction IHinfer.
     assumption.
-  - dependent destruction IHtyping.
+  - dependent destruction IHinfer.
     assumption.
   - assumption.
   - assumption.
   - assumption.
+  - constructor.
+  - now apply valid_env_var with s.
+  - now apply valid_env_def with s.
 Qed.
