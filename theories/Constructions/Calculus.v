@@ -11,12 +11,18 @@ Variant universe: Set :=
   | prop
   | type (n: nat).
 
-Definition sort_of_product (s1: universe) (s2: universe) :=
+Definition supremum (s1: universe) (s2: universe) :=
   match s1, s2 with
-  | _, prop => prop
-  | prop, type n => type n
+  | _, prop => s1
+  | prop, _ => s2
   | type n, type m => type (max n m)
   end.
+
+Definition sort_of_product (s1: universe) (s2: universe) :=
+  if s2 (* is prop *) then
+    prop
+  else
+    supremum s1 s2.
 
 Inductive term: Set :=
   (* Sorts. *)
