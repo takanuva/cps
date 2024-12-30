@@ -217,20 +217,8 @@ Lemma valid_env_typing:
   infer R j ->
   valid_env j R.
 Proof.
-  induction 1; simpl.
-  - assumption.
-  - assumption.
-  - dependent destruction IHinfer2.
-    assumption.
-  - dependent destruction IHinfer.
-    assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
+  induction 1; simpl; auto.
+  - now dependent destruction IHinfer.
   - constructor.
   - now apply valid_env_var with s.
   - now apply valid_env_def with s.
