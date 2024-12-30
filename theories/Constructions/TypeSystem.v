@@ -57,11 +57,13 @@ Section TypeSystem.
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
     (*
-         G |- T : s1     G, X: T |- U : s2
+         G |- T : s1     G, x: T |- U : s2
       --------------------------------------
-             G |- Pi X: T.U : s1 o s2
+             G |- Pi x: T.U : s1 o s2
     *)
     | typing_pi:
+      (* Sort of products will deal with impredicativity for prop, and will get
+         the right universe level otherwise. *)
       forall g t u s1 s2 s3,
       infer (typing g t (sort s1)) ->
       infer (typing (decl_var t :: g) u (sort s2)) ->
@@ -96,6 +98,48 @@ Section TypeSystem.
       infer (typing g e t) ->
       infer (typing (decl_def e t :: g) f u) ->
       infer (typing g (definition e t f) (subst e 0 u))
+    (*
+        G |- T: s1     G, x: T |- U: s2
+      -----------------------------------
+          G |- Sigma x: T.U : s1 & s2
+    *)
+    | typing_sigma:
+      forall g t u s1 s2 s3,
+      infer (typing g t (sort s1)) ->
+      infer (typing (decl_var t :: g) u (sort s2)) ->
+      s3 = supremum s1 s2 ->
+      infer (typing g (sigma t u) s3)
+    (*
+               G |- e : T     G |- f : U[e/x]
+      ------------------------------------------------
+        G |- (e, f) as (Sigma x: T.U) : Sigma x: T.U
+    *)
+    | typing_pair:
+      (* Notice we require the typing annotation in the pair to keep the type
+         unique; this is similar to how it's encoded in Coq and how it was done
+         by Luo. The "x" used in the hypothesis would come from there. *)
+      forall g e f t u,
+      infer (typing g e t) ->
+      infer (typing g f (subst e 0 u)) ->
+      infer (typing g (pair e f (sigma t u)) (sigma t u))
+    (*
+        G |- e : Sigma x: T.U
+      -------------------------
+           G |- proj1 e : T
+    *)
+    | typing_proj1:
+      forall g e t u,
+      infer (typing g e (sigma t u)) ->
+      infer (typing g (proj1 e) t)
+    (*
+           G |- e : Sigma x: T.U
+      -------------------------------
+        G |- proj2 e : U[proj1 e/x]
+    *)
+    | typing_proj2:
+      forall g e t u,
+      infer (typing g e (sigma t u)) ->
+      infer (typing g (proj2 e) (subst (proj1 e) 0 u))
     (*
         G |- e : T     G |- U : s     G |- T R U : s
       ------------------------------------------------
@@ -180,6 +224,10 @@ Proof.
     assumption.
   - dependent destruction IHinfer.
     assumption.
+  - assumption.
+  - assumption.
+  - assumption.
+  - assumption.
   - assumption.
   - assumption.
   - assumption.
