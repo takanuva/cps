@@ -9,7 +9,14 @@ Require Import Local.Substitution.
 
 Variant universe: Set :=
   | prop
-  | type.
+  | type (n: nat).
+
+Definition sort_of_product (s1: universe) (s2: universe) :=
+  match s1, s2 with
+  | _, prop => prop
+  | prop, type n => type n
+  | type n, type m => type (max n m)
+  end.
 
 Inductive term: Set :=
   (* Sorts. *)
@@ -150,8 +157,6 @@ Inductive value: term -> Prop :=
     value (bound n)
   | value_pi:
     forall t u,
-    (* TODO: this binds, so we might want a weak head normal form...? *)
-    value u ->
     value (pi t u)
   | value_abstraction:
     forall t e,

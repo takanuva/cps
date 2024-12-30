@@ -13,6 +13,17 @@ Require Import Local.Constructions.Conversion.
 
 Import ListNotations.
 
+(*
+Compute
+  fun e P (a: e = true -> P true) (b: false = e -> P false) =>
+    (if e as c return ((c = true -> P true) -> (false = c -> P false) -> P c) then
+       fun (x : true = true -> P true) (_ : false = true -> P false) =>
+         x eq_refl
+     else
+       fun (_ : false = true -> P true) (x : false = false -> P false) =>
+         x eq_refl) a b.
+*)
+
 Definition typing_equivalence: Type :=
   env -> term -> relation term.
 
@@ -26,14 +37,14 @@ Section TypeSystem.
 
   Inductive infer: typing_judgement -> Prop :=
     (*
-             |- G
-      --------------------
-        G |- Prop : Type
+               |- G
+      ----------------------
+        G |- Prop : Type 0
     *)
     | typing_prop:
       forall g,
       infer (valid_env g) ->
-      infer (typing g prop type)
+      infer (typing g prop (type 0))
     (*
         (x: T) or (x = e: T) in G
       -----------------------------
@@ -46,14 +57,16 @@ Section TypeSystem.
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
     (*
-         G, X: T |- U : s
-      ----------------------
-        G |- Pi X: T.U : s
+         G |- T : s1     G, X: T |- U : s2
+      --------------------------------------
+             G |- Pi X: T.U : s1 o s2
     *)
     | typing_pi:
-      forall g t u s,
-      infer (typing (decl_var t :: g) u (sort s)) ->
-      infer (typing g (pi t u) (sort s))
+      forall g t u s1 s2 s3,
+      infer (typing g t (sort s1)) ->
+      infer (typing (decl_var t :: g) u (sort s2)) ->
+      s3 = sort_of_product s1 s2 ->
+      infer (typing g (pi t u) s3)
     (*
             G, x: T |- e : U
       ----------------------------
@@ -163,7 +176,7 @@ Proof.
   induction 1; simpl.
   - assumption.
   - assumption.
-  - dependent destruction IHinfer.
+  - dependent destruction IHinfer2.
     assumption.
   - dependent destruction IHinfer.
     assumption.

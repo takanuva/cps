@@ -46,7 +46,10 @@ Goal
 Proof.
   apply type_scheme_mk with [] (sort prop).
   - repeat econstructor.
-    now vm_compute.
+    + now vm_compute.
+    + now vm_compute.
+    + now vm_compute.
+    + now vm_compute.
   - constructor.
 Qed.
 
