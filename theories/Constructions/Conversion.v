@@ -59,7 +59,35 @@ Inductive step: env -> relation term :=
   | step_def_body:
     forall g e t f1 f2,
     step (decl_def e t :: g) f1 f2 ->
-    step g (definition e t f1) (definition e t f2).
+    step g (definition e t f1) (definition e t f2)
+  | step_sigma_type:
+    forall g t1 t2 u,
+    step g t1 t2 ->
+    step g (sigma t1 u) (sigma t2 u)
+  | step_sigma_body:
+    forall g t u1 u2,
+    step (decl_var t :: g) u1 u2 ->
+    step g (sigma t u1) (sigma t u2)
+  | step_pair_left:
+    forall g e1 e2 f t,
+    step g e1 e2 ->
+    step g (pair e1 f t) (pair e2 f t)
+  | step_pair_right:
+    forall g e f1 f2 t,
+    step g f1 f2 ->
+    step g (pair e f1 t) (pair e f2 t)
+  | step_pair_type:
+    forall g e f t1 t2,
+    step g t1 t2 ->
+    step g (pair e f t1) (pair e f t2)
+  | step_proj1:
+    forall g e1 e2,
+    step g e1 e2 ->
+    step g (proj1 e1) (proj1 e2)
+  | step_proj2:
+    forall g e1 e2,
+    step g e1 e2 ->
+    step g (proj2 e1) (proj2 e2).
 
 Lemma declaration_existance_is_decidable:
   forall g n,
@@ -99,6 +127,10 @@ Proof.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
   - left; eauto with cps.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
 Qed.
@@ -175,6 +207,59 @@ Proof.
   - (* There's always a zeta-redex in here! *)
     left; eexists.
     apply step_zeta.
+  - destruct IHe1 with g.
+    + left.
+      destruct e as (f, ?).
+      eexists.
+      apply step_sigma_type.
+      eassumption.
+    + destruct IHe2 with (decl_var e1 :: g).
+      * left.
+        destruct e as (f, ?).
+        eexists.
+        apply step_sigma_body.
+        eassumption.
+      * right; intros (f, ?).
+        dependent destruction H; firstorder.
+  - (* We go in lexicographic order, as the term is written in full. *)
+    destruct IHe1 with g.
+    + left.
+      destruct e as (f, ?).
+      eexists.
+      apply step_pair_left.
+      eassumption.
+    + destruct IHe2 with g.
+      * left.
+        destruct e as (f, ?).
+        eexists.
+        apply step_pair_right.
+        eassumption.
+      * (* TODO: please, refactor me... *)
+        destruct IHe3 with g.
+        --- left.
+            destruct e as (f, ?).
+            eexists.
+            apply step_pair_type.
+            eassumption.
+        --- right.
+            intros (f, ?).
+            dependent destruction H; firstorder.
+  - destruct IHe with g.
+    + left.
+      destruct e0 as (f, ?).
+      eexists.
+      apply step_proj1.
+      eassumption.
+    + right; intros (f, ?).
+      dependent destruction H; firstorder.
+  - destruct IHe with g.
+    + left.
+      destruct e0 as (f, ?).
+      eexists.
+      apply step_proj2.
+      eassumption.
+    + right; intros (f, ?).
+      dependent destruction H; firstorder.
 Qed.
 
 Inductive conv: env -> relation term :=
@@ -250,10 +335,12 @@ Lemma conv_trans:
   forall g,
   transitive (conv g).
 Proof.
-  (* Bowman's paper says this is transitive, and, intuitively, I agree. I'm not
-     really sure yet how to prove this, tho. I'll come back here later. *)
+  (* TODO: Bowman's paper says this is transitive, and, intuitively, I agree.
+     I'm not really sure yet how to prove this, tho. I'll come back here later.
+  *)
   admit.
 Admitted.
 
 Definition typed_conv (g: env) (t: term): relation term :=
+  (* Simply ignore the type. *)
   conv g.

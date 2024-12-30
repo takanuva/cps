@@ -33,7 +33,12 @@ Inductive term: Set :=
   | pi (t: term) (u: term)
   | abstraction (t: term) (e: term)
   | application (e: term) (f: term)
-  | definition (e: term) (t: term) (f: term).
+  | definition (e: term) (t: term) (f: term)
+  (* Pairs. *)
+  | sigma (t: term) (u: term)
+  | pair (e: term) (f: term) (t: term)
+  | proj1 (e: term)
+  | proj2 (e: term).
 
 Global Coercion sort: universe >-> term.
 
@@ -51,6 +56,14 @@ Fixpoint traverse g k e: term :=
     application (traverse g k e) (traverse g k f)
   | definition e t f =>
     definition (traverse g k e) (traverse g k t) (traverse g (S k) f)
+  | sigma t u =>
+    sigma (traverse g k t) (traverse g (S k) u)
+  | pair e f t =>
+    pair (traverse g k e) (traverse g k f) (traverse g k t)
+  | proj1 e =>
+    proj1 (traverse g k e)
+  | proj2 e =>
+    proj2 (traverse g k e)
   end.
 
 Global Instance cc_dbVar: dbVar term :=
@@ -99,6 +112,13 @@ Proof.
         replace (l + S k) with (S l + k) by lia.
         replace (l + S j) with (S l + j) by lia.
         apply H.
+    + f_equal.
+      * apply IHx1; intros.
+        apply H.
+      * apply IHx2; intros.
+        replace (l + S k) with (S l + k) by lia.
+        replace (l + S j) with (S l + j) by lia.
+        apply H.
   - generalize dependent k.
     induction x; simpl; intros; auto;
     f_equal; auto.
@@ -114,7 +134,14 @@ Inductive context: Set :=
   | context_app_right (f: term) (e: context)
   | context_def_val (e: context) (t: term) (f: term)
   | context_def_type (e: term) (t: context) (f: term)
-  | context_def_body (e: term) (t: term) (f: context).
+  | context_def_body (e: term) (t: term) (f: context)
+  | context_sigma_type (t: context) (u: term)
+  | context_sigma_body (t: term) (u: context)
+  | context_pair_left (e: context) (f: term) (t: term)
+  | context_pair_right (e: term) (f: context) (t: term)
+  | context_pair_type (e: term) (f: term) (t: context)
+  | context_proj1 (e: context)
+  | context_proj2 (e: context).
 
 Fixpoint apply_context (h: context) (x: term): term :=
   match h with
@@ -138,6 +165,20 @@ Fixpoint apply_context (h: context) (x: term): term :=
     definition e (apply_context t x) f
   | context_def_body e t f =>
     definition e t (apply_context f x)
+  | context_sigma_type t u =>
+    sigma (apply_context t x) u
+  | context_sigma_body t u =>
+    sigma t (apply_context u x)
+  | context_pair_left e f t =>
+    pair (apply_context e x) f t
+  | context_pair_right e f t =>
+    pair e (apply_context f x) t
+  | context_pair_type e f t =>
+    pair e f (apply_context t x)
+  | context_proj1 e =>
+    proj1 (apply_context e x)
+  | context_proj2 e =>
+    proj2 (apply_context e x)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -166,4 +207,12 @@ Inductive value: term -> Prop :=
     value (pi t u)
   | value_abstraction:
     forall t e,
-    value (abstraction t e).
+    value (abstraction t e)
+  | value_sigma:
+    forall t u,
+    value (sigma t u)
+  | value_pair:
+    forall e f t,
+    value e ->
+    value f ->
+    value (pair e f t).
