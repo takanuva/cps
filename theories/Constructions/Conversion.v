@@ -23,6 +23,13 @@ Inductive step: env -> relation term :=
     forall g t e n,
     item (decl_def e t) g n ->
     step g (bound n) (lift (1 + n) 0 e)
+  (* Pi reductions. *)
+  | step_pi1:
+    forall g e f t,
+    step g (proj1 (pair e f t)) e
+  | step_pi2:
+    forall g e f t,
+    step g (proj2 (pair e f t)) f
   (* Congruence closure. *)
   | step_pi_type:
     forall g t1 t2 u,
@@ -119,10 +126,10 @@ Proof.
 Qed.
 
 Lemma abstraction_is_decidable:
-  forall e,
-  { exists t f, e = abstraction t f } + { ~exists t f, e = abstraction t f }.
+  forall x,
+  { exists t e, x = abstraction t e } + { ~exists t e, x = abstraction t e }.
 Proof.
-  destruct e.
+  destruct x.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
@@ -133,6 +140,23 @@ Proof.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
+Qed.
+
+Lemma pair_is_decidable:
+  forall x,
+  { exists e f t, x = pair e f t } + { ~exists e f t, x = pair e f t }.
+Proof.
+  destruct x.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - left; eauto with cps.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
 Qed.
 
 Lemma step_is_decidable:
@@ -250,16 +274,38 @@ Proof.
       eexists.
       apply step_proj1.
       eassumption.
-    + right; intros (f, ?).
-      dependent destruction H; firstorder.
+    + (* Do we have a projection? *)
+      destruct pair_is_decidable with e.
+      * (* We do! *)
+        left.
+        destruct e0 as (e2, (f, (t, ?))); subst.
+        eexists.
+        apply step_pi1.
+      * (* No reduction. *)
+        right; intros (f, ?).
+        dependent destruction H.
+        (* TODO: refactor me... not sure why firstorder doesn't work. *)
+        --- apply n0; now do 3 eexists.
+        --- apply n; now exists e2.
   - destruct IHe with g.
     + left.
       destruct e0 as (f, ?).
       eexists.
       apply step_proj2.
       eassumption.
-    + right; intros (f, ?).
-      dependent destruction H; firstorder.
+    + (* Do we have a projection? *)
+      destruct pair_is_decidable with e.
+      * (* We do! *)
+        left.
+        destruct e0 as (e2, (f, (t, ?))); subst.
+        eexists.
+        apply step_pi2.
+      * (* No reduction. *)
+        right; intros (f, ?).
+        dependent destruction H.
+        (* TODO: refactor me... not sure why firstorder doesn't work. *)
+        --- apply n0; now do 3 eexists.
+        --- apply n; now exists e2.
 Qed.
 
 Inductive conv: env -> relation term :=
