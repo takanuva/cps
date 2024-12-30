@@ -75,7 +75,9 @@ Variant class: Set :=
   | class_type
   | class_term.
 
-(* TODO: classify let definitions. *)
+(*
+
+(* TODO: classify let definitions and pairs. *)
 Inductive stratify: class -> term -> Prop :=
   (* [Prop] *)
   | stratify_prop:
@@ -162,3 +164,5 @@ Inductive stratify: class -> term -> Prop :=
     stratify class_term (application e t).
 
 Global Coercion stratify: class >-> Funclass.
+
+*)
