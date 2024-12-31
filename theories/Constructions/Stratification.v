@@ -5,6 +5,7 @@
 Require Import List.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
@@ -17,9 +18,10 @@ Import ListNotations.
    hand, [Pi X: Type, Pi x: X, x] is not a type scheme: it may generate a type,
    if applied, e.g., to [Prop], but it may generate a term, if applied, e.g.,
    to [nat]. Of course, this distinction happens because of cumulativity, since
-   there are no unique types anymore. In the lack of cumulativity, as we will
-   check, there's a simpler syntactical distinction that we may use. This is
-   called an arity in the MetaCoq project and the "Coq Coq Correct!" paper. *)
+   there are no unique types anymore (or, rather, a universe of types may also
+   contain terms). In the lack of cumulativity, as we will check, there's a
+   simpler syntactical distinction that we may use. This is called an arity in
+   the MetaCoq project and the "Coq Coq Correct!" paper. *)
 
 Inductive is_arity: term -> Prop :=
   | is_arity_now:
@@ -31,7 +33,7 @@ Inductive is_arity: term -> Prop :=
     is_arity (pi t u)
   | is_arity_def:
     forall v t u,
-    is_arity u ->
+    is_arity (subst v 0 u) ->
     is_arity (definition v t u).
 
 Inductive type_scheme: term -> Prop :=
@@ -59,6 +61,14 @@ Proof.
   intro.
   dependent destruction H.
   (* We need a few inversion lemmas... *)
+  admit.
+Admitted.
+
+(* TODO: _dec or _is_decidable...? *)
+Lemma is_arity_is_decidable:
+  forall t,
+  { is_arity t } + { ~is_arity t }.
+Proof.
   admit.
 Admitted.
 
