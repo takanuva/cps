@@ -21,7 +21,8 @@ Import ListNotations.
    there are no unique types anymore (or, rather, a universe of types may also
    contain terms). In the lack of cumulativity, as we will check, there's a
    simpler syntactical distinction that we may use. This is called an arity in
-   the MetaCoq project and the "Coq Coq Correct!" paper. *)
+   the MetaCoq project and the "Coq Coq Correct!" paper. We do not assume here
+   that arities are well-typed (though they must be!). *)
 
 Inductive is_arity: term -> Prop :=
   | is_arity_now:
@@ -31,9 +32,11 @@ Inductive is_arity: term -> Prop :=
     forall t u,
     is_arity u ->
     is_arity (pi t u)
+  (* Note that this constructor will not appear in normal forms. *)
   | is_arity_def:
     forall v t u,
-    is_arity (subst v 0 u) ->
+    (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. *)
+    is_arity u ->
     is_arity (definition v t u).
 
 Inductive type_scheme: term -> Prop :=
@@ -64,13 +67,37 @@ Proof.
   admit.
 Admitted.
 
-(* TODO: _dec or _is_decidable...? *)
+(* TODO: _dec or _is_decidable...? Also, TODO: not sure I'll need this. *)
 Lemma is_arity_is_decidable:
   forall t,
   { is_arity t } + { ~is_arity t }.
 Proof.
+  induction t.
+  - left; constructor.
+  - right; inversion 1.
+  - destruct IHt2.
+    + left; now constructor.
+    + right; now inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - destruct IHt3.
+    + left; now constructor.
+    + right; now inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+Qed.
+
+Lemma validity:
+  forall g e t,
+  typing g e t typed_conv ->
+  type_scheme t.
+Proof.
   admit.
 Admitted.
+
+(* ---------------------------------------------------------------------------*)
 
 (* We follow the usual definition of syntactic classes for terms, types and
    kinds in the calculus of constructions. These syntactic classes give us an
