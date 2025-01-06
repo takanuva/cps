@@ -191,10 +191,18 @@ Section TypeSystem.
   Goal
     infer (typing [] polymorphic_id_term polymorphic_id_type).
   Proof.
-    simpl.
     repeat econstructor.
     (* Of course! *)
     now vm_compute.
+  Qed.
+
+  (* Are we safe with higher sigma types? *)
+  Goal
+    infer (typing [] (sigma prop (bound 0)) (type 0)).
+  Proof.
+    repeat econstructor.
+    - now vm_compute.
+    - now vm_compute.
   Qed.
 
 End TypeSystem.
