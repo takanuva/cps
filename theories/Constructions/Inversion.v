@@ -38,3 +38,63 @@ Proof.
     + now apply conv_sym.
     + now apply IHinfer1.
 Qed.
+
+Lemma typing_bound_inv:
+  forall g n t,
+  typing g (bound n) t R ->
+  exists2 x,
+  item x g n & conv g t (lift (1 + n) 0 (snd x)).
+Proof.
+  intros.
+  dependent induction H.
+  - clear IHinfer; destruct d.
+    + eexists.
+      * eassumption.
+      * simpl.
+        apply conv_refl.
+    + eexists.
+      * eassumption.
+      * simpl.
+        apply conv_refl.
+  - clear IHinfer2.
+    specialize (IHinfer1 _ _ _ eq_refl JMeq_refl) as (x, ?, ?).
+    exists x.
+    + assumption.
+    + rename t0 into u.
+      apply conv_trans with u.
+      * now apply conv_sym.
+      * assumption.
+Qed.
+
+Lemma typing_unique:
+  forall g e t1,
+  typing g e t1 R ->
+  forall t2,
+  typing g e t2 R ->
+  conv g t1 t2.
+Proof.
+  intros until 1.
+  dependent induction H; intros.
+  - clear IHinfer.
+    apply typing_prop_inv in H0.
+    now apply conv_sym.
+  - clear IHinfer.
+    destruct typing_bound_inv with g n t2.
+    + assumption.
+    + assert (x = (d, t)) by now apply item_unique with g n.
+      dependent destruction H4.
+      simpl in H3.
+      now apply conv_sym.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl _ H2).
+    apply conv_trans with t.
+    + now apply conv_sym.
+    + assumption.
+Admitted.
