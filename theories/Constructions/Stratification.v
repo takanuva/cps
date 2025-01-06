@@ -97,6 +97,15 @@ Proof.
   admit.
 Admitted.
 
+(* Validity says that if [G |- e : t], then [t] is a type scheme, thus there is
+   some arity [a] such that [G |- t : a]. As arities are products, this means
+   that there is an [s] such [G |- a : s]... how can we decide what receives or
+   not negations during the translation, specially if we allow comulativity?
+
+   IDEA: can we "fix" this by not caring...? E.g., could we, instead of using a
+   type such as [~(x: T, ~U)], simply use [Pi x: T.U]? Then we really don't have
+   to translate anything... *)
+
 (* ---------------------------------------------------------------------------*)
 
 (* We follow the usual definition of syntactic classes for terms, types and
