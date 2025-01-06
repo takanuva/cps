@@ -231,3 +231,5 @@ Proof.
   - now apply valid_env_var with s.
   - now apply valid_env_def with s.
 Qed.
+
+(* TODO: should we conjecture subject reduction...? *)

@@ -14,3 +14,12 @@ Require Import Local.Constructions.Conversion.
 
 Conjecture step_is_confluent:
   forall g, confluent (step g).
+
+Corollary step_is_church_rosser:
+  forall g,
+  church_rosser (step g).
+Proof.
+  intros.
+  apply confluence_implies_church_rosser.
+  apply step_is_confluent.
+Qed.
