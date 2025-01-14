@@ -129,3 +129,18 @@ Proof.
   (* Mutual induction with valid environment...? *)
   admit.
 Admitted.
+
+Lemma extensionality:
+  forall g f1 f2 a b,
+  typing g f1 (pi a b) typed_conv ->
+  typing g f2 (pi a b) typed_conv ->
+  (forall x, typing g x a typed_conv ->
+    observational g (subst x 0 b) (application f1 x) (application f2 x)) ->
+  observational g (pi a b) f1 f2.
+Proof.
+  unfold observational.
+  destruct n; simpl; repeat intro.
+  - easy.
+  - specialize H1 with (n := S n); simpl in H1.
+    admit.
+Admitted.
