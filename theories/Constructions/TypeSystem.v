@@ -13,17 +13,6 @@ Require Import Local.Constructions.Conversion.
 
 Import ListNotations.
 
-(*
-Compute
-  fun e P (a: e = true -> P true) (b: false = e -> P false) =>
-    (if e as c return ((c = true -> P true) -> (false = c -> P false) -> P c) then
-       fun (x : true = true -> P true) (_ : false = true -> P false) =>
-         x eq_refl
-     else
-       fun (_ : false = true -> P true) (x : false = false -> P false) =>
-         x eq_refl) a b.
-*)
-
 Definition typing_equivalence: Type :=
   env -> term -> relation term.
 
@@ -141,6 +130,46 @@ Section TypeSystem.
       infer (typing g e (sigma t u)) ->
       infer (typing g (proj2 e) (subst (proj1 e) 0 u))
     (*
+             |- G
+      -------------------
+        G |- bool: Prop
+    *)
+    | typing_bool:
+      forall g,
+      infer (valid_env g) ->
+      infer (typing g boolean (sort prop))
+    (*
+            |- G
+      -----------------
+        G |- tt: bool
+    *)
+    | typing_true:
+      forall g,
+      infer (valid_env g) ->
+      infer (typing g bool_tt boolean)
+    (*
+            |- G
+      -----------------
+        G |- ff: bool
+    *)
+    | typing_false:
+      forall g,
+      infer (valid_env g) ->
+      infer (typing g bool_ff boolean)
+    (*
+             G |- e : bool        G, x: bool |- t : s
+          G |- f1 : t[true/x]     G |- f2 : t[false/x]
+      ----------------------------------------------------
+        G |- if e as x return t then f1 else f2 : t[e/x]
+    *)
+    | typing_if:
+      forall g e t s f1 f2,
+      infer (typing g e boolean) ->
+      infer (typing (decl_var boolean :: g) t (sort s)) ->
+      infer (typing g f1 (subst bool_tt 0 t)) ->
+      infer (typing g f2 (subst bool_ff 0 t)) ->
+      infer (typing g (bool_if e t f1 f2) (subst e 0 t))
+    (*
         G |- e : T     G |- U : s     G |- T R U : s
       ------------------------------------------------
                          G |- e : U
@@ -232,4 +261,4 @@ Proof.
   - now apply valid_env_def with s.
 Qed.
 
-(* TODO: should we conjecture subject reduction...? *)
+(* TODO: should we conjecture subject reduction? Prove it...? *)
