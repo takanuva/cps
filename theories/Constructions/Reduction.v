@@ -62,10 +62,6 @@ Inductive evaluation_context: context -> Prop :=
     evaluation_context (context_def_body v t f).
 *)
 
-Axiom boolean: term.
-Axiom bool_tt: term.
-Axiom bool_ff: term.
-
 Axiom cbn: relation term.
 
 Definition eval: relation term :=
