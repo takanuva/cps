@@ -38,7 +38,12 @@ Inductive term: Set :=
   | sigma (t: term) (u: term)
   | pair (e: term) (f: term) (t: term)
   | proj1 (e: term)
-  | proj2 (e: term).
+  | proj2 (e: term)
+  (* Booleans. *)
+  | boolean
+  | bool_tt
+  | bool_ff
+  | bool_if (e: term) (t: term) (f1: term) (f2: term).
 
 Global Coercion sort: universe >-> term.
 
@@ -64,6 +69,15 @@ Fixpoint traverse g k e: term :=
     proj1 (traverse g k e)
   | proj2 e =>
     proj2 (traverse g k e)
+  | boolean =>
+    boolean
+  | bool_tt =>
+    bool_tt
+  | bool_ff =>
+    bool_ff
+  | bool_if e t f1 f2 =>
+    let rec := traverse in
+    bool_if (rec g k e) (rec g (S k) t) (rec g k f1) (rec g k f2)
   end.
 
 Global Instance cc_dbVar: dbVar term :=
@@ -119,6 +133,17 @@ Proof.
         replace (l + S k) with (S l + k) by lia.
         replace (l + S j) with (S l + j) by lia.
         apply H.
+    + f_equal.
+      * apply IHx1; intros.
+        apply H.
+      * apply IHx2; intros.
+        replace (l + S k) with (S l + k) by lia.
+        replace (l + S j) with (S l + j) by lia.
+        apply H.
+      * apply IHx3; intros.
+        apply H.
+      * apply IHx4; intros.
+        apply H.
   - generalize dependent k.
     induction x; simpl; intros; auto;
     f_equal; auto.
@@ -141,7 +166,11 @@ Inductive context: Set :=
   | context_pair_right (e: term) (f: context) (t: term)
   | context_pair_type (e: term) (f: term) (t: context)
   | context_proj1 (e: context)
-  | context_proj2 (e: context).
+  | context_proj2 (e: context)
+  | context_if_term (e: context) (t: term) (f1: term) (f2: term)
+  | context_if_type (e: term) (t: context) (f1: term) (f2: term)
+  | context_if_then (e: term) (t: term) (f1: context) (f2: term)
+  | context_if_else (e: term) (t: term) (f1: term) (f2: context).
 
 Fixpoint apply_context (h: context) (x: term): term :=
   match h with
@@ -179,6 +208,14 @@ Fixpoint apply_context (h: context) (x: term): term :=
     proj1 (apply_context e x)
   | context_proj2 e =>
     proj2 (apply_context e x)
+  | context_if_term e t f1 f2 =>
+    bool_if (apply_context e x) t f1 f2
+  | context_if_type e t f1 f2 =>
+    bool_if e (apply_context t x) f1 f2
+  | context_if_then e t f1 f2 =>
+    bool_if e t (apply_context f1 x) f2
+  | context_if_else e t f1 f2 =>
+    bool_if e t f1 (apply_context f2 x)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -215,4 +252,8 @@ Inductive value: term -> Prop :=
     forall e f t,
     value e ->
     value f ->
-    value (pair e f t).
+    value (pair e f t)
+  | value_true:
+    value bool_tt
+  | value_false:
+    value bool_ff.

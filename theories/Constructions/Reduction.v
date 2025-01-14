@@ -86,7 +86,7 @@ Fixpoint observational_approx (n: nat): env -> term -> relation term :=
     | 0 => True
     | S m =>
         forall (h: context) v,
-        typing [] (h e1) boolean (observational_approx m)->
+        typing [] (h e1) boolean (observational_approx m) ->
         typing [] (h e2) boolean (observational_approx m) ->
         eval (h e1) v <-> eval (h e2) v
    end.

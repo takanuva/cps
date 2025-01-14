@@ -88,6 +88,10 @@ Proof.
   - right; inversion 1.
   - right; inversion 1.
   - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
 Qed.
 
 Lemma validity:

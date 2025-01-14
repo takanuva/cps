@@ -30,7 +30,14 @@ Inductive step: env -> relation term :=
   | step_pi2:
     forall g e f t,
     step g (proj2 (pair e f t)) f
-  (* Congruence closure. *)
+  (* Iota reductions. *)
+  | step_tt:
+    forall g t f1 f2,
+    step g (bool_if bool_tt t f1 f2) f1
+  | step_ff:
+    forall g t f1 f2,
+    step g (bool_if bool_ff t f1 f2) f2
+  (* Congruence closure... many rules! *)
   | step_pi_type:
     forall g t1 t2 u,
     step g t1 t2 ->
@@ -94,7 +101,23 @@ Inductive step: env -> relation term :=
   | step_proj2:
     forall g e1 e2,
     step g e1 e2 ->
-    step g (proj2 e1) (proj2 e2).
+    step g (proj2 e1) (proj2 e2)
+  | step_if_term:
+    forall g e1 e2 t f1 f2,
+    step g e1 e2 ->
+    step g (bool_if e1 t f1 f2) (bool_if e2 t f1 f2)
+  | step_if_type:
+    forall g e t1 t2 f1 f2,
+    step g t1 t2 ->
+    step g (bool_if e t1 f1 f2) (bool_if e t2 f1 f2)
+  | step_if_then:
+    forall g e t f11 f12 f2,
+    step g f11 f12 ->
+    step g (bool_if e t f11 f2) (bool_if e t f12 f2)
+  | step_if_else:
+    forall g e t f1 f21 f22,
+    step g f21 f22 ->
+    step g (bool_if e t f1 f21) (bool_if e t f1 f22).
 
 Lemma declaration_existance_is_decidable:
   forall g n,
@@ -140,6 +163,10 @@ Proof.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
   - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
+  - right; intros (t, (f, ?)); easy.
 Qed.
 
 Lemma pair_is_decidable:
@@ -155,6 +182,10 @@ Proof.
   - right; intros (e, (f, (t, ?))); easy.
   - right; intros (e, (f, (t, ?))); easy.
   - left; eauto with cps.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
+  - right; intros (e, (f, (t, ?))); easy.
   - right; intros (e, (f, (t, ?))); easy.
   - right; intros (e, (f, (t, ?))); easy.
 Qed.
@@ -306,7 +337,15 @@ Proof.
         (* TODO: refactor me... not sure why firstorder doesn't work. *)
         --- apply n0; now do 3 eexists.
         --- apply n; now exists e2.
-Qed.
+  - right; intros (f, ?).
+    inversion H.
+  - right; intros (f, ?).
+    inversion H.
+  - right; intros (f, ?).
+    inversion H.
+  - (* TODO: do we have an iota reduction here...? *)
+    admit.
+Admitted.
 
 Inductive conv: env -> relation term :=
   | conv_join:
@@ -326,36 +365,6 @@ Inductive conv: env -> relation term :=
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2.
-
-(* Lemma step_abs_inversion:
-  forall g t1 e1 f,
-  step g (abstraction t1 e1) f ->
-  exists t2 e2,
-  f = abstraction t2 e2.
-Proof.
-  intros.
-  dependent destruction H.
-  - do 2 eexists.
-    reflexivity.
-  - do 2 eexists.
-    reflexivity.
-Qed.
-
-Lemma rt_step_abs_inversion:
-  forall g t1 e1 f,
-  rt(step g) (abstraction t1 e1) f ->
-  exists t2 e2,
-  f = abstraction t2 e2.
-Proof.
-  intros.
-  dependent induction H.
-  - now apply step_abs_inversion with g t1 e1.
-  - now exists t1, e1.
-  - edestruct IHclos_refl_trans1 as (t2, (e2, ?)).
-    + reflexivity.
-    + subst.
-      now apply IHclos_refl_trans2 with t2 e2.
-Qed. *)
 
 Lemma conv_refl:
   forall g,
