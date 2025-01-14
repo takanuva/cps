@@ -97,18 +97,27 @@ Lemma observational_is_consistent:
   ~(forall e1 e2, observational g t e1 e2).
 Proof.
   repeat intro.
+  (* Assume the relation is degenerate; so [true ~ false]. *)
   specialize (H bool_tt bool_ff 1).
   unfold observational_approx in H; simpl in H.
+  (* On every context, they return the same value; we pick the empty context and
+     the truth value. *)
   specialize (H context_hole bool_tt).
+  (* Now we observe... *)
   destruct H as (?, _); simpl.
-  - admit.
-  - admit.
-  - simpl in H.
+  - (* True is typable, obviously. *)
+    repeat constructor.
+  - (* False is also typable, obviously. *)
+    repeat constructor.
+  - (* If [true] reduces to [true] (trivial), then [false] reduces to [true]:
+       that's an absurd! *)
+    simpl in H.
     destruct H.
     + split.
       * apply rst_refl.
-      * admit.
-    + (* H is an absurd! *)
+      * constructor.
+    + (* By confluence, [true] and [false] would need to converge, but they
+         can't. *)
       admit.
 Admitted.
 
