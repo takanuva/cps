@@ -1,10 +1,11 @@
 -Q theories Local
 
 theories/Prelude.v
-theories/Syntax.v
-theories/Substitution.v
-theories/Metatheory.v
 theories/AbstractRewriting.v
+theories/Substitution.v
+theories/Generic.v
+theories/Syntax.v
+theories/Metatheory.v
 theories/Context.v
 theories/Equational.v
 theories/Reduction.v
