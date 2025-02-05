@@ -1,4 +1,4 @@
--R theories Local
+-Q theories Local
 
 theories/Prelude.v
 theories/Syntax.v
