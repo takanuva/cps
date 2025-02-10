@@ -7,7 +7,86 @@ Require Import Program.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
 
+(*
+  WIP! WIP! WIP! WIP! WIP! WIP! WIP!
+
+  The purpose of this file is to come up with a generic representation that we
+  may use for the CPS-calculus' types, so that I can play with different type
+  systems and still use the same representation. We're starting with the AACMM
+  model, but we may deviate from that a bit (as the goals are different).
+
+  Sources:
+  - https://arxiv.org/pdf/1804.00119
+  - https://gallais.github.io/pdf/icfp18.pdf
+*)
+
 Import ListNotations.
+
+Inductive Description (I: Type): Type :=
+  | branch (A: Type) (f: A -> Description I)
+  | child (is: list I) (i: I) (d: Description I)
+  | done (i: I).
+
+Fixpoint reindex {I J: Type} (g: I -> J) (d: Description I): Description J :=
+  match d with
+  | branch _ A f => branch J A (fun a => reindex g (f a))
+  | child _ is i d => child J (map g is) (g i) (reindex g d)
+  | done _ i => done J (g i)
+  end.
+
+Section Interpretation.
+
+  Variable I: Type.
+
+  Definition iscoped: Type :=
+    I -> list I -> Type.
+
+  Fixpoint interpret (d: Description I): (list I -> iscoped) -> iscoped :=
+    fun X i G =>
+      match d with
+      | branch _ A d => { a: A & interpret (d a) X i G }
+      | child _ is i d => X is i G * interpret d X i G
+      | done _ j => i = j
+      end%type.
+
+  Definition adjust {A: Type} (f: A -> A) (T: A -> Type) (a: A): Type :=
+    T (f a).
+
+  Definition scope: iscoped -> list I -> iscoped :=
+    fun T D i =>
+      adjust (fun G => D ++ G) (T i).
+
+  (* Coq is not happy with this description! Positivity checker is too weak! *)
+
+  (* Inductive Term (d: Description I): iscoped :=
+    | term_var:
+      forall i is,
+      nat -> Term d i is
+    | term_con:
+      forall i is,
+      interpret d (scope (Term d)) i is -> Term d i is. *)
+
+End Interpretation.
+
+Axiom X: iscoped True.
+Definition S: list True -> iscoped True := scope True X.
+
+Definition UTLC: Description True :=
+  branch _ bool (fun b =>
+    if b then
+      child _ [] I (child _ [] I (done _ I))
+    else
+      child _ [I] I (done _ I)).
+
+Goal
+  interpret True UTLC S I [].
+Proof.
+  compute.
+  exists true.
+  admit.
+Admitted.
+
+(*
 
 Variant binder: Set :=
   | bound
@@ -93,3 +172,5 @@ Section Example.
     abs (var 0).
 
 End Example.
+
+*)
