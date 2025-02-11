@@ -3,7 +3,8 @@
 theories/Prelude.v
 theories/AbstractRewriting.v
 theories/Substitution.v
-theories/Generic.v
+# Ignore for now...
+# theories/Generic.v
 theories/Syntax.v
 theories/Metatheory.v
 theories/Context.v
