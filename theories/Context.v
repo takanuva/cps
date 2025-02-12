@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -11,6 +11,8 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
+
+Import ListNotations.
 
 Definition LEFT (R: relation pseudoterm): Prop :=
   forall b1 b2 ts c,
@@ -36,8 +38,8 @@ Class Congruence (R: relation pseudoterm) := {
 
 Inductive context: Set :=
   | context_hole
-  | context_left (b: context) (ts: list pseudoterm) (c: pseudoterm)
-  | context_right (b: pseudoterm) (ts: list pseudoterm) (c: context).
+  | context_left (b: context) (ts: list pseudotype) (c: pseudoterm)
+  | context_right (b: pseudoterm) (ts: list pseudotype) (c: context).
 
 Global Hint Constructors context: cps.
 
@@ -48,9 +50,9 @@ Proof.
   decide equality.
   - apply pseudoterm_eq_dec.
   - apply list_eq_dec.
-    apply pseudoterm_eq_dec.
+    apply pseudotype_eq_dec.
   - apply list_eq_dec.
-    apply pseudoterm_eq_dec.
+    apply pseudotype_eq_dec.
   - apply pseudoterm_eq_dec.
 Qed.
 
@@ -373,10 +375,12 @@ Fixpoint context_lift i k h: context :=
     context_hole
   | context_left b ts c =>
     context_left (context_lift i (S k) b)
-      (traverse_list (lift i) k ts) (lift i (k + length ts) c)
+      (* TODO: fix lifting. *)
+      ts (lift i (k + length ts) c)
   | context_right b ts c =>
     context_right (lift i (S k) b)
-      (traverse_list (lift i) k ts) (context_lift i (k + length ts) c)
+      (* TODO: fixt lifting. *)
+      ts (context_lift i (k + length ts) c)
   end.
 
 Lemma same_path_context_lift:
@@ -387,12 +391,10 @@ Proof.
   - reflexivity.
   - constructor.
     + apply IHh.
-    + rewrite traverse_list_length.
-      reflexivity.
+    + reflexivity.
   - constructor.
     + apply IHh.
-    + rewrite traverse_list_length.
-      reflexivity.
+    + reflexivity.
 Qed.
 
 Global Hint Resolve same_path_context_lift: cps.
@@ -419,9 +421,8 @@ Lemma context_lift_bvars:
 Proof.
   induction h; simpl; intros.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite traverse_list_length.
-    rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Fixpoint context_subst y k h: context :=
@@ -430,10 +431,12 @@ Fixpoint context_subst y k h: context :=
     context_hole
   | context_left b ts c =>
     context_left (context_subst y (S k) b)
-      (traverse_list (subst y) k ts) (subst y (k + length ts) c)
+      (* TODO: fix subst. *)
+      ts (subst y (k + length ts) c)
   | context_right b ts c =>
     context_right (subst y (S k) b)
-      (traverse_list (subst y) k ts) (context_subst y (k + length ts) c)
+      (* TODO: fix subst. *)
+      ts (context_subst y (k + length ts) c)
   end.
 
 Lemma same_path_context_subst:
@@ -444,12 +447,10 @@ Proof.
   - reflexivity.
   - constructor.
     + apply IHh.
-    + rewrite traverse_list_length.
-      reflexivity.
+    + reflexivity.
   - constructor.
     + apply IHh.
-    + rewrite traverse_list_length.
-      reflexivity.
+    + reflexivity.
 Qed.
 
 Global Hint Resolve same_path_context_subst: cps.
@@ -476,9 +477,8 @@ Lemma context_subst_bvars:
 Proof.
   induction h; simpl; intros.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite traverse_list_length.
-    rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Fixpoint context_right_cycle n k h: context :=
@@ -487,11 +487,12 @@ Fixpoint context_right_cycle n k h: context :=
     context_hole
   | context_left b ts c =>
     context_left (context_right_cycle n (S k) b)
-      (traverse_list (right_cycle n) k ts) (right_cycle n (k + length ts) c)
+      (* TODO: fix right_cycle. *)
+      ts (right_cycle n (k + length ts) c)
   | context_right b ts c =>
     context_right (right_cycle n (S k) b)
-      (traverse_list (right_cycle n) k ts)
-        (context_right_cycle n (k + length ts) c)
+      (* TODO: fix right_cycle. *)
+      ts (context_right_cycle n (k + length ts) c)
   end.
 
 Lemma context_right_cycle_is_sound:
@@ -519,8 +520,7 @@ Proof.
   - reflexivity.
   - f_equal.
     apply IHh.
-  - rewrite traverse_list_length; f_equal.
-    apply IHh.
+  - now rewrite IHh.
 Qed.
 
 Lemma context_right_cycle_depth:
@@ -536,10 +536,12 @@ Fixpoint context_switch_bindings k h: context :=
     context_hole
   | context_left b ts c =>
     context_left (context_switch_bindings (S k) b)
-      (traverse_list switch_bindings k ts) (switch_bindings (k + length ts) c)
+      (* TODO: fix switch_bindings. *)
+      ts (switch_bindings (k + length ts) c)
   | context_right b ts c =>
     context_right (switch_bindings (S k) b)
-      (traverse_list switch_bindings k ts) (context_switch_bindings (k + length ts) c)
+      (* TODO: fix switch_bindings. *)
+      ts (context_switch_bindings (k + length ts) c)
   end.
 
 Lemma context_switch_bindings_is_sound:
@@ -567,8 +569,7 @@ Proof.
   - reflexivity.
   - f_equal.
     apply IHh.
-  - rewrite traverse_list_length; f_equal.
-    apply IHh.
+  - now rewrite IHh.
 Qed.
 
 Global Hint Resolve context_switch_bindings_bvars: cps.
@@ -601,22 +602,10 @@ Proof.
   - reflexivity.
   - f_equal.
     + apply IHh.
-    + clear IHh.
-      induction ts; auto.
-      simpl; f_equal; auto.
-      do 2 rewrite traverse_list_length.
-      apply switch_bindings_is_involutive.
-    + rewrite traverse_list_length.
-      apply switch_bindings_is_involutive.
+    + apply switch_bindings_is_involutive.
   - f_equal.
     + apply switch_bindings_is_involutive.
-    + clear IHh.
-      induction ts; auto.
-      simpl; f_equal; auto.
-      do 2 rewrite traverse_list_length.
-      apply switch_bindings_is_involutive.
-    + rewrite traverse_list_length.
-      apply IHh.
+    + apply IHh.
 Qed.
 
 Inductive context_equals_lift h e1 i k: Prop :=
@@ -650,7 +639,6 @@ Proof.
       edestruct IHh as (r, ?, ?, e3, ?); eauto.
       eexists (context_left r ts0 _) e3; simpl.
       * constructor; auto.
-        rewrite traverse_list_length; auto.
       * f_equal; auto.
       * rewrite H1; f_equal.
         lia.
@@ -666,8 +654,7 @@ Proof.
       edestruct IHh as (r, ?, ?, e3, ?); eauto.
       eexists (context_right _ ts0 r) e3; simpl.
       * constructor; auto.
-        rewrite traverse_list_length; auto.
       * f_equal; auto.
       * rewrite H1; f_equal.
-        rewrite traverse_list_length; lia.
+        lia.
 Qed.
