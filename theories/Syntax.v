@@ -137,7 +137,7 @@ Qed.
 
 (* TODO: is this definition still needed...? *)
 
-Definition traverse_list f k: list pseudoterm -> list pseudoterm :=
+Definition traverse_list {T} f k: list T -> list T :=
   fold_right (fun t ts =>
     f (length ts + k) t :: ts) [].
 
@@ -148,7 +148,7 @@ Fixpoint traverse f k e: pseudoterm :=
   | jump x xs =>
     jump (traverse f k x) (map (traverse f k) xs)
   | bind b ts c =>
-    (* TODO: for now, types don't contain variables... *)
+    (* TODO: for now, types don't contain term variables... *)
     bind (traverse f (S k) b) ((* traverse_list (traverse f) k *) ts)
       (traverse f (k + length ts) c)
   end.
