@@ -133,6 +133,14 @@ Proof.
   auto.
 Qed. *)
 
+Lemma lift_distributes_over_type:
+  forall i k x ts,
+  lift i k (type x ts) =
+    type x (traverse_type x (lift i) k ts).
+Proof.
+  auto.
+Qed.
+
 Lemma lift_distributes_over_jump:
   forall i k x xs,
   lift i k (jump x xs) =
@@ -195,10 +203,18 @@ Proof with modulo_arith.
   sigma...
 Qed.
 
-Lemma subst_distributes_over_negation:
+(* Lemma subst_distributes_over_negation:
   forall y k ts,
   subst y k (negation ts) =
     negation (traverse_list (subst y) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma subst_distributes_over_type:
+  forall y k x ts,
+  subst y k (type x ts) =
+    type x (traverse_type x (subst y) k ts).
 Proof.
   auto.
 Qed.
@@ -849,6 +865,14 @@ Qed.
 Proof.
   auto.
 Qed. *)
+
+Lemma right_cycle_distributes_over_type:
+  forall n k x ts,
+  right_cycle n k (type x ts) =
+    type x (traverse_type x (right_cycle n) k ts).
+Proof.
+  auto.
+Qed.
 
 Lemma right_cycle_distributes_over_jump:
   forall n p k xs,
