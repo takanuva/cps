@@ -4,6 +4,7 @@
 
 Require Import List.
 Require Import Arith.
+Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
@@ -13,27 +14,31 @@ Import ListNotations.
 (** ** Syntax
 
     In the original formulation for this code, such as presented in the ICFP 24
-    paper, we had types directly encoded in the syntax for terms. In order to
-    properly reuse the proofs for different type systems (such as simple types
-    and dependent types), we now use a distinct definition. *)
+    paper [...], we had types directly encoded in the syntax for terms. [...] *)
 
-Inductive pseudotype: Set :=
-  | base
-  | negation (ts: list pseudotype)
+Variant type_tag: Set :=
+  | VOID
+  | BASE
+  | NEGATION.
 
-(** We give a higher order definition for the syntax of the CPS-calculus, in a
-    way inspired by how dependent type theories are usually given. This was
-    originally done so because we wanted to simplify the de Bruijn arithmetic
-    stuff. However, now that we got the sigma library doing most of the work,
-    there's no reason for this anymore and this code can shift to a first order
-    presentation. TODO: define atomics and do it. *)
+(** [...]. *)
 
-with pseudoterm: Set :=
+Inductive pseudoterm: Set :=
   | bound (n: nat)
+  | type (x: type_tag) (xs: list pseudoterm)
   | jump (f: pseudoterm) (xs: list pseudoterm)
-  | bind (b: pseudoterm) (ts: list pseudotype) (c: pseudoterm).
+  | bind (b: pseudoterm) (ts: list pseudoterm) (c: pseudoterm).
 
 Coercion bound: nat >-> pseudoterm.
+
+Global Notation void :=
+  (type VOID []).
+
+Global Notation base :=
+  (type BASE []).
+
+Global Notation negation ts :=
+  (type NEGATION ts).
 
 (** A simple example.
 
@@ -59,97 +64,107 @@ Example ex1: pseudoterm :=
     [base; negation [base; base]; base]
       (jump 1 [bound 3; bound 0])).
 
-(** We define a predicate stating that a pseudoterm appears inside a pseudotype,
-    as in the dependent cases, to simplify the inductive hypotheses. *)
+(** ... *)
 
-Inductive dependent: pseudoterm -> pseudotype -> Prop :=
-  (* For now, we don't define any dependent types, so this is empty. *).
-
-Definition Dep (P: pseudoterm -> Prop) (t: pseudotype): Prop :=
-  forall b, dependent b t -> P b.
-
-(** As we have lists inside our pseudoterms, we'll need a stronger induction
-    principle for it, stating that propositions are kept inside those lists. *)
-
-Definition pseudoterm_deepind:
+Lemma pseudoterm_deepind:
   forall P: pseudoterm -> Prop,
-  forall f1:
-    (forall n, P (bound n)),
-  forall f2:
-    (forall k xs, P k -> Forall P xs -> P (jump k xs)),
-  forall f3:
-    (forall b ts c, P b -> Forall (Dep P) ts -> P c -> P (bind b ts c)),
+  forall f1: (forall n, P (bound n)),
+  forall f2: (forall x ts, Forall P ts -> P (type x ts)),
+  forall f3: (forall k xs, P k -> Forall P xs -> P (jump k xs)),
+  forall f4: (forall b ts c, P b -> Forall P ts -> P c -> P (bind b ts c)),
   forall e,
   P e.
 Proof.
-  do 4 intro; fix H 1.
-  destruct e.
+  do 5 intro.
+  fix IH 1; destruct e.
   (* Case: bound. *)
   - apply f1.
+  (* Case: type. *)
+  - apply f2.
+    induction xs.
+    + constructor.
+    + constructor; auto.
   (* Case: jump. *)
-  - apply f2; auto.
-    induction xs; auto.
-  (* Case: bind. *)
   - apply f3; auto.
+    induction xs.
+    + constructor.
+    + constructor; auto.
+  (* Case: bind. *)
+  - apply f4; auto.
     induction ts.
     + constructor.
     + constructor; auto.
-      unfold Dep; intros.
-      inversion H0.
-Defined.
+Qed.
 
 (** Equality on pseudoterms (and pseudotypes) is decidable. *)
 
 Lemma pseudoterm_eq_dec:
   forall b c: pseudoterm,
-  { b = c } + { b <> c }
-with pseudotype_eq_dec:
-  forall t u: pseudotype,
-  { t = u } + { t <> u }.
+  { b = c } + { b <> c }.
 Proof with try now (right; congruence).
-  - destruct b; destruct c...
-    (* Case: bound. *)
-    + rename n into n1, n0 into n2.
-      destruct Nat.eq_dec with n1 n2...
-      left; congruence.
-    (* Case: jump. *)
-    + rename xs into xs1, xs0 into xs2.
-      destruct list_eq_dec with pseudoterm xs1 xs2...
-      * exact pseudoterm_eq_dec.
-      * destruct pseudoterm_eq_dec with b c...
-        left; congruence.
-    (* Case: bind. *)
-    + rename ts into ts1, ts0 into ts2.
-      destruct list_eq_dec with pseudotype ts1 ts2...
-      * exact pseudotype_eq_dec.
-      * destruct pseudoterm_eq_dec with b1 c1...
-        destruct pseudoterm_eq_dec with b2 c2...
-        left; congruence.
-  - destruct t; destruct u...
-    (* Case: base. *)
-    + now left.
-    (* Case: negation. *)
-    + rename ts into ts1, ts0 into ts2.
-      destruct list_eq_dec with pseudotype ts1 ts2...
-      * exact pseudotype_eq_dec.
-      * left; congruence.
+  fix IH 1; intros.
+  destruct b; destruct c...
+  (* Case: bound. *)
+  - destruct Nat.eq_dec with n n0...
+    subst; now left.
+  (* Case: type. *)
+  - assert ({ x = x0 } + { x <> x0 }) as [ ? | ? ]...
+    + decide equality.
+    + assert ({ xs = xs0 } + { xs <> xs0 }) as [ ? | ? ]...
+      * now apply list_eq_dec.
+      * subst; now left.
+  (* Case: jump. *)
+  - destruct IH with b c...
+    assert ({ xs = xs0 } + { xs <> xs0 }) as [ ? | ? ]...
+    + now apply list_eq_dec.
+    + subst; now left.
+  (* Case: bind. *)
+  - destruct IH with b1 c1...
+    destruct IH with b2 c2...
+    assert ({ ts = ts0 } + { ts <> ts0 }) as [ ? | ? ]...
+    + now apply list_eq_dec.
+    + subst; now left.
 Qed.
 
-(* TODO: is this definition still needed...? *)
+(* TODO: do we actually need this anymore...? Try removing this definition! *)
 
 Definition traverse_list {T} f k: list T -> list T :=
-  fold_right (fun t ts =>
-    f (length ts + k) t :: ts) [].
+  fold_right (fun t ts => f (length ts + k) t :: ts) [].
+
+Definition type_binder x i :=
+  match x, i with
+  | VOID, _ => 0
+  | BASE, _ => 0
+  | NEGATION, _ => i
+  end.
+
+Definition traverse_type {T} x f k: list T -> list T :=
+  fold_right (fun t ts => f (type_binder x (length ts) + k) t :: ts) [].
+
+Local Goal
+  forall {T} f k ts,
+  @map T T (f k) ts = @traverse_type T BASE f k ts.
+Proof.
+  auto.
+Qed.
+
+Local Goal
+  forall {T} f k ts,
+  @traverse_list T f k ts = @traverse_type T NEGATION f k ts.
+Proof.
+  auto.
+Qed.
 
 Fixpoint traverse f k e: pseudoterm :=
   match e with
   | bound n =>
     f k n
+  | type x ts =>
+    type x (traverse_type x (traverse f) k ts)
   | jump x xs =>
     jump (traverse f k x) (map (traverse f k) xs)
   | bind b ts c =>
-    (* TODO: for now, types don't contain term variables... *)
-    bind (traverse f (S k) b) ((* traverse_list (traverse f) k *) ts)
+    bind (traverse f (S k) b) (traverse_list (traverse f) k ts)
       (traverse f (k + length ts) c)
   end.
 
@@ -161,9 +176,18 @@ Global Instance pseudoterm_dbTraverse: dbTraverse pseudoterm pseudoterm :=
 
 (* -------------------------------------------------------------------------- *)
 
+(* TODO: rename... or, appropriately, find a way for sigma to derive this. *)
+
 Lemma bound_var_equality_stuff:
   forall n,
   bound n = var n.
+Proof.
+  auto.
+Qed.
+
+Lemma inst_distributes_over_type:
+  forall s x ts,
+  inst s (type x ts) = type x (traverse_type x s 0 ts).
 Proof.
   auto.
 Qed.
@@ -177,12 +201,13 @@ Qed.
 
 Lemma inst_distributes_over_bind:
   forall s b ts c,
-  inst s (bind b ts c) = bind (s 1 b) ts (s (length ts) c).
+  inst s (bind b ts c) = bind (s 1 b) (bsmap s 0 ts) (s (length ts) c).
 Proof.
   auto.
 Qed.
 
 Global Hint Rewrite bound_var_equality_stuff using sigma_solver: sigma.
+Global Hint Rewrite inst_distributes_over_type using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_jump using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_bind using sigma_solver: sigma.
 
@@ -193,6 +218,8 @@ Definition apply_parameters (ys: list pseudoterm): substitution :=
 
 Definition switch_bindings: substitution :=
   subst_app [bound 1; bound 0] (subst_lift 2).
+
+(* TODO: there's a "seq" fixpoint on Coq's List module. We should use it! *)
 
 Fixpoint sequence (i: nat) (n: nat): list pseudoterm :=
   match n with
@@ -222,28 +249,32 @@ Inductive not_free: nat -> pseudoterm -> Prop :=
   | not_free_bound:
     forall n m,
     n <> m -> not_free n m
+  | not_free_type:
+    forall x n ts,
+    not_free_list x n ts ->
+    not_free n (type x ts)
   | not_free_jump:
     forall n x ts,
     not_free n x ->
-    Forall (not_free n) ts -> not_free n (jump x ts)
+    Forall (not_free n) ts ->
+    not_free n (jump x ts)
   | not_free_bind:
     forall n b ts c,
     not_free (S n) b ->
-    (* TODO: types don't have variables... yet. *)
-    (* not_free_list n ts -> *)
+    not_free_list NEGATION n ts ->
     not_free (length ts + n) c ->
     not_free n (bind b ts c)
 
-(* Checks a list in a telescope-like fashion. *)
-with not_free_list: nat -> list pseudoterm -> Prop :=
+(* Checks a list following a type binder descriptor. *)
+with not_free_list: type_tag -> nat -> list pseudoterm -> Prop :=
   | not_free_list_nil:
-    forall n,
-    not_free_list n []
+    forall x n,
+    not_free_list x n []
   | not_free_list_cons:
-    forall n t ts,
-    not_free (length ts + n) t ->
-    not_free_list n ts ->
-    not_free_list n (t :: ts).
+    forall x n t ts,
+    not_free (type_binder x (length ts) + n) t ->
+    not_free_list x n ts ->
+    not_free_list x n (t :: ts).
 
 Global Hint Constructors not_free: cps.
 Global Hint Constructors not_free_list: cps.
