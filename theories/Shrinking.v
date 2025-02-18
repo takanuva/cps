@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -13,6 +13,8 @@ Require Import Local.Context.
 Require Import Local.Metatheory.
 Require Import Local.Equational.
 Require Import Local.Reduction.
+
+Import ListNotations.
 
 Record shrinking (R: relation pseudoterm): Prop := {
   shrinking_termination:
