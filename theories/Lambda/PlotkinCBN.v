@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -20,6 +20,8 @@ Require Import Local.Shrinking.
 Require Import Local.TypeSystem.
 Require Import Local.Normalization.
 Require Export Local.Lambda.Calculus.
+
+Import ListNotations.
 
 Module CPS := Local.Syntax.
 
@@ -386,7 +388,7 @@ Proof.
     + constructor.
       * constructor; lia.
       * do 2 constructor; lia.
-    + do 3 constructor.
+    + repeat constructor.
     + dependent destruction H0.
       apply IHcbn_cps; try lia.
       replace (S n) with (n + 1) in H0; try lia.
@@ -408,7 +410,7 @@ Proof.
       apply not_free_lift.
       rewrite Nat.add_comm.
       assumption.
-    + do 2 constructor.
+    + repeat constructor.
     + repeat (try constructor; try lia).
       simpl; eapply IHcbn_cps2; auto.
       replace (S (S n)) with (n + 2 + 0); try lia.
@@ -634,10 +636,7 @@ Local Lemma technical1:
 Proof.
   (* TODO: sigma CAN'T solve this one! Figure out why! *)
   induction b using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - rename n0 into m.
     destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
     + rewrite Metatheory.lift_bound_ge by lia.
@@ -660,16 +659,19 @@ Proof.
       rewrite Metatheory.subst_bound_lt by lia.
       rewrite Metatheory.subst_bound_lt by lia.
       reflexivity.
-  - rewrite lift_distributes_over_negation.
-    do 2 rewrite subst_distributes_over_negation.
+  (* Case: type. *)
+  - rewrite lift_distributes_over_type.
+    do 2 rewrite subst_distributes_over_type.
     f_equal.
     induction H; simpl.
     + reflexivity.
     + f_equal; auto.
-      repeat rewrite traverse_list_length.
-      replace (length l + S k) with (S (length l + k)) by lia.
+      repeat rewrite traverse_type_length.
+      replace (type_binder x (length l) + S k) with
+        (S (type_binder x (length l) + k)) by lia.
       rewrite H; f_equal.
       now rewrite Nat.add_assoc.
+  (* Case: jump. *)
   - rewrite lift_distributes_over_jump.
     do 2 rewrite subst_distributes_over_jump.
     f_equal.
@@ -678,6 +680,7 @@ Proof.
       induction H; simpl.
       * reflexivity.
       * f_equal; eauto.
+  (* Case: bind. *)
   - rewrite lift_distributes_over_bind.
     do 2 rewrite subst_distributes_over_bind.
     f_equal.
