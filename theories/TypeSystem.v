@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,6 +14,8 @@ Require Import Local.Metatheory.
 Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Observational.
+
+Import ListNotations.
 
 (** ** Type system *)
 
@@ -120,16 +122,15 @@ Lemma simple_types_ignore_substitution:
   t = inst s t.
 Proof.
   induction t using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - inversion H.
   - dependent destruction H0.
-    sigma; f_equal.
-    induction H; auto.
-    dependent destruction H0.
-    sigma; f_equal; auto.
+    + reflexivity.
+    + sigma; f_equal.
+      induction H; auto.
+      dependent destruction H0.
+      simpl; f_equal.
+      * sigma; auto.
+      * auto.
   - inversion H0.
   - inversion H0.
 Qed.
@@ -170,10 +171,6 @@ Lemma not_free_typing:
   not_free k b.
 Proof.
   induction b using pseudoterm_deepind; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - dependent destruction H.
     apply item_valid_index in H0.
     constructor.
@@ -271,10 +268,6 @@ Lemma typing_lift:
   typing h (lift (length us) k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - dependent destruction H.
     destruct (le_gt_dec k n).
     + rewrite lift_bound_ge; try lia.
@@ -363,10 +356,6 @@ Lemma typing_switch_bindings:
   typing h (switch_bindings n e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - rename n0 into m.
     dependent destruction H.
     (* TODO: there's gotta be a better way... *)
@@ -469,10 +458,6 @@ Lemma typing_subst0:
   typing h (subst (bound 0) n e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - rename n0 into m.
     dependent destruction H.
     destruct (lt_eq_lt_dec m n) as [ [ ? | ? ] | ? ].
@@ -634,10 +619,6 @@ Lemma typing_remove_binding:
   typing h (remove_binding k e) t.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - dependent destruction H.
     unfold remove_binding.
     destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
