@@ -315,10 +315,18 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
-Lemma apply_parameters_distributes_over_negation:
+(* Lemma apply_parameters_distributes_over_negation:
   forall ys k ts,
   apply_parameters ys k (negation ts) =
     negation (traverse_list (apply_parameters ys) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma apply_parameters_distributes_over_type:
+  forall ys k x ts,
+  apply_parameters ys k (type x ts) =
+    type x (traverse_type x (apply_parameters ys) k ts).
 Proof.
   auto.
 Qed.
