@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -19,6 +19,8 @@ Require Import Local.TypeSystem.
 Require Import Local.Conservation.
 Require Import Local.Structural.
 Require Import Local.Shrinking.
+
+Import ListNotations.
 
 (** ** Normalization. *)
 
@@ -128,7 +130,7 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Local Notation candidate :=
+Global Notation candidate :=
   (pseudoterm -> Prop).
 
 (*
@@ -205,10 +207,10 @@ Proof.
   - intros.
     destruct x; simpl; auto.
     destruct p; simpl; auto.
-    + rewrite H.
-      reflexivity.
-    + do 2 rewrite H.
-      reflexivity.
+    destruct x0; auto.
+    + destruct xs; auto.
+      now rewrite H.
+    + now repeat rewrite H.
 Qed.
 
 Lemma L_sub_composition:
@@ -223,10 +225,10 @@ Proof.
   - intros.
     destruct x; simpl; auto.
     destruct p; simpl; auto.
-    + rewrite H.
-      reflexivity.
-    + do 2 rewrite H.
-      reflexivity.
+    destruct x0; auto.
+    + destruct xs; auto.
+      now rewrite H.
+    + now repeat rewrite H.
 Qed.
 
 Inductive wellbehaved: env -> context -> Prop :=
