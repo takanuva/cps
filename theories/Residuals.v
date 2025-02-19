@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -13,32 +13,22 @@ Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
 
+Import ListNotations.
+
 (** ** Residuals *)
 
 Inductive redexes: Set :=
-  | redexes_type
-  | redexes_prop
-  | redexes_base
-  | redexes_void
   | redexes_bound (n: nat)
-  | redexes_negation (ts: list pseudoterm)
+  | redexes_type (x: type_tag) (ts: list pseudoterm)
   | redexes_jump (r: bool) (f: pseudoterm) (xs: list pseudoterm)
   | redexes_bind (b: redexes) (ts: list pseudoterm) (c: redexes).
 
 Fixpoint mark (e: pseudoterm): redexes :=
   match e with
-  | type =>
-    redexes_type
-  | prop =>
-    redexes_prop
-  | base =>
-    redexes_base
-  | void =>
-    redexes_void
   | bound n =>
     redexes_bound n
-  | negation ts =>
-    redexes_negation ts
+  | type x ts =>
+    redexes_type x ts
   | jump f xs =>
     redexes_jump false f xs
   | bind b ts c =>
@@ -47,18 +37,10 @@ Fixpoint mark (e: pseudoterm): redexes :=
 
 Fixpoint unmark (e: redexes): pseudoterm :=
   match e with
-  | redexes_type =>
-    type
-  | redexes_prop =>
-    prop
-  | redexes_base =>
-    base
-  | redexes_void =>
-    void
   | redexes_bound n =>
     n
-  | redexes_negation ts =>
-    negation ts
+  | redexes_type x ts =>
+    type x ts
   | redexes_jump r f xs =>
     jump f xs
   | redexes_bind b ts c =>
@@ -79,10 +61,6 @@ Lemma mark_is_injective:
   a = b.
 Proof.
   induction a; intros.
-  - destruct b; simpl in H; now inversion H.
-  - destruct b; simpl in H; now inversion H.
-  - destruct b; simpl in H; now inversion H.
-  - destruct b; simpl in H; now inversion H.
   - destruct b; simpl in H; now inversion H.
   - destruct b; simpl in H; now inversion H.
   - destruct b; simpl in H; now inversion H.
@@ -115,17 +93,11 @@ Proof.
   split; unfold Substitution.traverse; intros.
   - generalize dependent k.
     induction x; intros; simpl.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
-    + simpl.
-      rewrite H.
-      reflexivity.
+    + now rewrite H.
     + f_equal.
       induction ts; auto.
       simpl; f_equal; auto.
-      rewrite traverse_list_length.
+      rewrite traverse_type_length.
       now apply traverse_ids.
     + f_equal.
       * now apply traverse_ids.
@@ -142,16 +114,12 @@ Proof.
   - generalize dependent j.
     generalize dependent k.
     induction x; intros; simpl.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
     + f_equal.
       apply (H 0).
     + f_equal.
       induction ts; auto.
       simpl; f_equal; auto.
-      repeat rewrite traverse_list_length.
+      repeat rewrite traverse_type_length.
       apply traverse_ext; intros.
       now do 2 rewrite Nat.add_assoc.
     + f_equal.
@@ -175,18 +143,13 @@ Proof.
         apply H.
   - generalize dependent k.
     induction x; intros; simpl.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
     + generalize (g k n) as x; intros.
       generalize dependent k.
       induction x; simpl; intros; auto.
       now rewrite IHx1, IHx2.
     + f_equal.
       induction ts; auto.
-      simpl.
-      repeat rewrite traverse_list_length.
+      simpl; repeat rewrite traverse_type_length.
       f_equal; auto.
       apply traverse_fun.
     + f_equal.
@@ -211,9 +174,9 @@ Proof.
   auto.
 Qed.
 
-Lemma inst_distributes_over_redexes_negation:
-  forall s ts,
-  inst s (redexes_negation ts) = redexes_negation (bsmap s 0 ts).
+Lemma inst_distributes_over_redexes_type:
+  forall s x ts,
+  inst s (redexes_type x ts) = redexes_type x (traverse_type x s 0 ts).
 Proof.
   auto.
 Qed.
@@ -234,7 +197,7 @@ Proof.
 Qed.
 
 Global Hint Rewrite redexes_bound_var_equality_stuff using sigma_solver: sigma.
-Global Hint Rewrite inst_distributes_over_redexes_negation using sigma_solver:
+Global Hint Rewrite inst_distributes_over_redexes_type using sigma_solver:
   sigma.
 Global Hint Rewrite inst_distributes_over_redexes_jump using sigma_solver:
   sigma.
@@ -248,10 +211,6 @@ Lemma mark_inst_is_sound:
   mark (inst s c) = inst s (mark c).
 Proof.
   induction c; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - simpl.
     now sigma.
   - reflexivity.
@@ -288,20 +247,12 @@ Proof.
 Qed.
 
 Inductive compatible: relation redexes :=
-  | compatible_type:
-    compatible redexes_type redexes_type
-  | compatible_prop:
-    compatible redexes_prop redexes_prop
-  | compatible_base:
-    compatible redexes_base redexes_base
-  | compatible_void:
-    compatible redexes_void redexes_void
   | compatible_bound:
     forall n,
     compatible (redexes_bound n) (redexes_bound n)
-  | compatible_negation:
-    forall ts,
-    compatible (redexes_negation ts) (redexes_negation ts)
+  | compatible_type:
+    forall x ts,
+    compatible (redexes_type x ts) (redexes_type x ts)
   | compatible_jump:
     forall r1 r2 f xs,
     compatible (redexes_jump r1 f xs) (redexes_jump r2 f xs)
@@ -320,6 +271,7 @@ Proof.
   split; intros.
   - induction H; simpl; congruence.
   - generalize dependent c.
+    (* We probably could make a better proof here... *)
     induction b;
     intros;
     destruct c;
@@ -409,27 +361,15 @@ Local Notation blank n :=
   (repeat None n).
 
 Inductive residuals: residuals_env -> redexes -> redexes -> redexes -> Prop :=
-  | residuals_type:
-    forall g,
-    residuals g redexes_type redexes_type redexes_type
-  | residuals_prop:
-    forall g,
-    residuals g redexes_prop redexes_prop redexes_prop
-  | residuals_base:
-    forall g,
-    residuals g redexes_base redexes_base redexes_base
-  | residuals_void:
-    forall g,
-    residuals g redexes_void redexes_void redexes_void
   | residuals_bound:
     forall g n,
     residuals g (redexes_bound n) (redexes_bound n) (redexes_bound n)
-  | residuals_negation:
-    forall g ts,
+  | residuals_type:
+    forall g x ts,
     residuals g
-      (redexes_negation ts)
-      (redexes_negation ts)
-      (redexes_negation ts)
+      (redexes_type x ts)
+      (redexes_type x ts)
+      (redexes_type x ts)
   | residuals_jump:
     forall g r k xs,
     residuals g
@@ -468,18 +408,6 @@ Lemma residuals_is_unique:
   residuals g a b c2 -> c1 = c2.
 Proof.
   induction a; simpl; intros.
-  - dependent destruction H.
-    dependent destruction H0.
-    reflexivity.
-  - dependent destruction H.
-    dependent destruction H0.
-    reflexivity.
-  - dependent destruction H.
-    dependent destruction H0.
-    reflexivity.
-  - dependent destruction H.
-    dependent destruction H0.
-    reflexivity.
   - dependent destruction H.
     dependent destruction H0.
     reflexivity.
@@ -662,13 +590,11 @@ Lemma residuals_apply_parameters:
     (apply_parameters xs k c2) (apply_parameters xs k c3).
 Proof.
   induction 1; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - admit.
-  - admit.
-  - do 2 rewrite redexes_apply_parameters_distributes_over_jump.
+  - sigma.
+    apply residuals_term.
+  - sigma.
+    constructor.
+  - sigma.
     constructor.
   - rename xs0 into ys, k into n, k0 into k, g into h, g0 into g.
     do 2 rewrite redexes_apply_parameters_distributes_over_jump.
@@ -702,7 +628,8 @@ Proof.
       (* Adjust the term a bit... *)
       rewrite redexes_apply_parameters_distributes_over_itself.
       admit.
-  - admit.
+  - repeat rewrite redexes_apply_parameters_distributes_over_bind.
+    admit.
 Admitted.
 
 Lemma residuals_lift:
@@ -731,32 +658,12 @@ Lemma cube:
   residuals q c rp d.
 Proof.
   induction 1; inversion_clear 1; intros.
-  (* Case: (type, type). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  (* Case: (prop, prop). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  (* Case: (base, base). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  (* Case: (void, void). *)
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
   (* Case: (bound, bound). *)
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
     constructor.
-  (* Case: (negation, negation). *)
+  (* Case: (type, type). *)
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
@@ -909,10 +816,6 @@ Proof.
   - constructor.
   - constructor.
   - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
   - eapply compatible_env_inversion in H0 as (d, ?, ?); eauto.
     assert (c0 = d) by eauto with cps; subst.
     apply compatible_apply_parameters.
@@ -966,14 +869,6 @@ Proof.
   - dependent destruction H0.
     eauto with cps.
   - dependent destruction H0.
-    eauto with cps.
-  - dependent destruction H0.
-    eauto with cps.
-  - dependent destruction H0.
-    eauto with cps.
-  - dependent destruction H0.
-    eauto with cps.
-  - dependent destruction H0.
     eapply compatible_env_inversion in H1 as (d, ?, ?); eauto.
     eexists.
     constructor.
@@ -1006,14 +901,6 @@ Local Lemma generalized_regularity_preservation:
   exists d, residuals q c c d.
 Proof.
   induction 1; intros.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
   - dependent destruction H.
     eauto with cps.
   - dependent destruction H.
@@ -1147,10 +1034,6 @@ Proof.
   - constructor.
   - constructor.
   - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
     apply item_insert_tail.
     assumption.
   - constructor.
@@ -1166,10 +1049,6 @@ Lemma residuals_zero_marks:
   r = t.
 Proof.
   induction 1; simpl; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - reflexivity.
   - reflexivity.
   - reflexivity.
@@ -1200,16 +1079,10 @@ Proof.
   induction r; simpl; intros.
   - reflexivity.
   - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - now destruct r.
   - f_equal.
-    + apply IHr1.
-      lia.
-    + apply IHr2.
-      lia.
+    + apply IHr1; lia.
+    + apply IHr2; lia.
 Qed.
 
 Global Hint Resolve mark_unmark_is_sound: cps.
@@ -1287,20 +1160,12 @@ Notation RAP xs k c := (apply_parameters xs 0 (lift (S k) (length xs) c)).
 (* -------------------------------------------------------------------------- *)
 
 Inductive subset: relation redexes :=
-  | subset_type:
-    subset redexes_type redexes_type
-  | subset_prop:
-    subset redexes_prop redexes_prop
-  | subset_base:
-    subset redexes_base redexes_base
-  | subset_void:
-    subset redexes_void redexes_void
   | subset_bound:
     forall n,
     subset (redexes_bound n) (redexes_bound n)
-  | subset_negation:
-    forall xs,
-    subset (redexes_negation xs) (redexes_negation xs)
+  | subset_type:
+    forall x ts,
+    subset (redexes_type x ts) (redexes_type x ts)
   | subset_jump:
     forall k xs,
     subset (redexes_jump false k xs) (redexes_jump false k xs)
@@ -1322,10 +1187,6 @@ Lemma subset_residuals_zero_marks:
   subset r s.
 Proof.
   induction 1; simpl; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
   - constructor.
   - constructor.
   - destruct r.
@@ -1360,14 +1221,6 @@ Local Lemma generalized_regular_subset:
   exists c, residuals h a s c.
 Proof.
   induction 1; intros.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
-  - dependent destruction H.
-    eauto with cps.
   - dependent destruction H.
     eauto with cps.
   - dependent destruction H.
@@ -1415,22 +1268,6 @@ Lemma partial_development:
   residuals g1 rt st rs.
 Proof.
   induction 1; intros.
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
-  - dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1.
-    constructor.
   - dependent destruction H.
     dependent destruction H0.
     dependent destruction H1.
@@ -1539,10 +1376,6 @@ Lemma development_reduces_weight:
   redexes_weight h s < redexes_weight h r.
 Proof.
   induction 1; intros.
-  - inversion H0.
-  - inversion H0.
-  - inversion H0.
-  - inversion H0.
   - inversion H0.
   - inversion H0.
   - inversion H0.
