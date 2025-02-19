@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -15,6 +15,8 @@ Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.Shrinking.
 Require Import Local.Residuals.
+
+Import ListNotations.
 
 (** ** Parallel reduction *)
 
@@ -179,10 +181,6 @@ Proof.
   induction r; simpl; intros.
   - constructor.
   - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
   - destruct r.
     + constructor.
     + constructor.
@@ -197,10 +195,6 @@ Lemma redexes_pick:
   { s | subset s r & redexes_count s = 1 }.
 Proof.
   induction r; intros.
-  - exfalso; inversion H.
-  - exfalso; inversion H.
-  - exfalso; inversion H.
-  - exfalso; inversion H.
   - exfalso; inversion H.
   - exfalso; inversion H.
   - destruct r.
@@ -245,10 +239,6 @@ Lemma unmark_inst:
   unmark (inst s r) = inst s (unmark r).
 Proof.
   induction r; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - simpl; sigma.
     now rewrite unmark_mark_is_sound.
   - reflexivity.
@@ -345,10 +335,6 @@ Proof.
   (* Follow by induction, looking for the marked jump while building up the
      context around it. *)
   induction r; simpl; intros.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
   - inversion H.
   - inversion H.
   - (* Is this jump marked? *)
