@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Arith.
@@ -12,6 +12,8 @@ Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Residuals.
 Require Import Local.Confluence.
+
+Import ListNotations.
 
 (* Anything that is a bisimulation on parallel reduction should preserve jump
    reduction. *)
