@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -50,7 +50,7 @@ Inductive type_scheme: term -> Prop :=
 Goal
   type_scheme polymorphic_id_type.
 Proof.
-  apply type_scheme_mk with [] (sort prop).
+  apply type_scheme_mk with [] (sort iset).
   - repeat econstructor.
     + now vm_compute.
     + now vm_compute.
@@ -129,7 +129,7 @@ Variant class: Set :=
 Inductive stratify: class -> term -> Prop :=
   (* [Prop] *)
   | stratify_prop:
-    stratify class_kind prop
+    stratify class_kind iset
   (* [Pi x: T.S] *)
   | stratify_pi_type_kind:
     forall t u,

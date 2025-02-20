@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -25,9 +25,9 @@ Proof.
   assumption.
 Qed.
 
-Lemma typing_prop_inv:
+Lemma typing_iset_inv:
   forall g t,
-  typing g prop t R ->
+  typing g iset t R ->
   conv g t (type 0).
 Proof.
   intros.
@@ -76,7 +76,7 @@ Proof.
   intros until 1.
   dependent induction H; intros.
   - clear IHinfer.
-    apply typing_prop_inv in H0.
+    apply typing_iset_inv in H0.
     now apply conv_sym.
   - clear IHinfer.
     destruct typing_bound_inv with g n t2.

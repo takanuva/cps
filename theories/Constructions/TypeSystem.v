@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -28,12 +28,12 @@ Section TypeSystem.
     (*
                |- G
       ----------------------
-        G |- Prop : Type 0
+        G |- Set : Type 0
     *)
-    | typing_prop:
+    | typing_iset:
       forall g,
       infer (valid_env g) ->
-      infer (typing g prop (type 0))
+      infer (typing g iset (type 0))
     (*
         (x: T) or (x = e: T) in G
       -----------------------------
@@ -132,12 +132,12 @@ Section TypeSystem.
     (*
              |- G
       -------------------
-        G |- bool: Prop
+        G |- bool: Set
     *)
     | typing_bool:
       forall g,
       infer (valid_env g) ->
-      infer (typing g boolean (sort prop))
+      infer (typing g boolean (sort iset))
     (*
             |- G
       -----------------
@@ -210,11 +210,11 @@ Section TypeSystem.
 
   (* Coq term: [\X: Prop.\x: X.x]. *)
   Example polymorphic_id_term: term :=
-    abstraction (sort prop) (abstraction (bound 0) (bound 0)).
+    abstraction (sort iset) (abstraction (bound 0) (bound 0)).
 
   (* Coq term: [Pi X: Prop.X -> X]. *)
   Example polymorphic_id_type: term :=
-    pi (sort prop) (pi (bound 0) (bound 1)).
+    pi (sort iset) (pi (bound 0) (bound 1)).
 
   (* Let's check typeability. *)
   Goal
@@ -227,7 +227,7 @@ Section TypeSystem.
 
   (* Are we safe with higher sigma types? *)
   Goal
-    infer (typing [] (sigma prop (bound 0)) (type 0)).
+    infer (typing [] (sigma iset (bound 0)) (type 0)).
   Proof.
     repeat econstructor.
     - now vm_compute.

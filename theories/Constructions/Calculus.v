@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -8,19 +8,19 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 
 Variant universe: Set :=
-  | prop
+  | iset
   | type (n: nat).
 
 Definition supremum (s1: universe) (s2: universe) :=
   match s1, s2 with
-  | _, prop => s1
-  | prop, _ => s2
+  | _, iset => s1
+  | iset, _ => s2
   | type n, type m => type (max n m)
   end.
 
 Definition sort_of_product (s1: universe) (s2: universe) :=
-  if s2 (* is prop *) then
-    prop
+  if s2 (* is iset *) then
+    iset
   else
     supremum s1 s2.
 
