@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,6 +14,8 @@ Require Import Local.Context.
 Require Import Local.Reduction.
 Require Import Local.Equational.
 Require Import Local.Observational.
+
+Import ListNotations.
 
 (* A runtime value, which is either a continuation closure, a suspended
    computation, or undefined. *)
@@ -375,10 +377,6 @@ Proof.
   constructor; intros.
   - generalize dependent k.
     induction x using pseudoterm_deepind; simpl; intros.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
-    + reflexivity.
     + reflexivity.
     + f_equal.
       list induction over H.
@@ -794,7 +792,7 @@ Qed.
 
 Local Hint Resolve corresponding_decrease: cps.
 
-Goal
+Local Goal
   forall f r s k t,
   `{proper f} ->
   corresponding f r s k t ->
@@ -808,14 +806,6 @@ Proof.
   intros.
   rewrite proper_respects_structure; simpl.
   destruct c.
-  - simpl.
-    constructor.
-  - simpl.
-    constructor.
-  - simpl.
-    constructor.
-  - simpl.
-    constructor.
   - apply H0.
   - simpl.
     constructor.
@@ -843,10 +833,6 @@ Proof.
   intros.
   rewrite proper_respects_structure.
   destruct c; simpl.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
   - apply H0.
   - constructor.
   - intros m ?H ?H; simpl in H2.
@@ -904,22 +890,10 @@ Proof.
   generalize dependent c.
   induction t using lt_wf_ind.
   destruct c; intros.
-  (* Case: type. *)
-  - inversion H0.
-  (* Case: prop. *)
-  - inversion H0.
-  (* Case: base. *)
-  - inversion H0.
-  (* Case: void. *)
-  - inversion H0.
   (* Case: bound. *)
   - simpl in H0.
     remember (f k n) as x.
     destruct x.
-    + inversion H0.
-    + inversion H0.
-    + inversion H0.
-    + inversion H0.
     + rename n0 into m.
       specialize (H1 n).
       rewrite <- Heqx in H1; simpl in H1.
@@ -950,7 +924,7 @@ Proof.
       * apply item_nth with U; auto.
         congruence.
       * apply H1; auto.
-  (* Case: negation. *)
+  (* Case: type. *)
   - inversion H0.
   (* Case: jump. *)
   - simpl in H0.
@@ -1093,17 +1067,13 @@ Proof.
   split; intros.
   - generalize dependent k.
     induction x using pseudoterm_deepind; intros.
-    + apply apply_parameters_type.
-    + apply apply_parameters_prop.
-    + apply apply_parameters_base.
-    + apply apply_parameters_void.
     + reflexivity.
     + unfold RAP.
-      rewrite lift_distributes_over_negation.
-      rewrite apply_parameters_distributes_over_negation.
+      rewrite lift_distributes_over_type.
+      rewrite apply_parameters_distributes_over_type.
       simpl; f_equal.
       induction H; simpl; auto.
-      repeat rewrite traverse_list_length.
+      repeat rewrite traverse_type_length.
       f_equal; auto.
       rewrite Nat.add_assoc.
       apply H.

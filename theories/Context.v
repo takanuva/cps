@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2022 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -11,6 +11,8 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.Syntax.
 Require Import Local.Metatheory.
+
+Import ListNotations.
 
 Definition LEFT (R: relation pseudoterm): Prop :=
   forall b1 b2 ts c,
@@ -26,11 +28,13 @@ Global Hint Unfold RIGHT: cps.
 
 Class Congruence (R: relation pseudoterm) := {
   (* A congruence is an equivalence relation. *)
-  Congruence_Equivalence :> Equivalence R;
+  Congruence_Equivalence: Equivalence R;
   (* It also is preserved by any contexts. *)
   Congruence_Left: LEFT R;
   Congruence_Right: RIGHT R
 }.
+
+Global Existing Instance Congruence_Equivalence.
 
 (** ** One-hole contexts. *)
 
@@ -320,6 +324,7 @@ Lemma context_difference:
          /\ same_path r u
          /\ s y = u x.
 Proof.
+  (* TODO: could we refactor this to avoid intuition...? *)
   induction h; destruct r; simpl; intros.
   (* Case: (context_hole, context_hole). *)
   - exfalso; auto.
@@ -335,36 +340,36 @@ Proof.
     + congruence.
     + eassumption.
     + exists (context_left s ts0 c0); simpl.
-      intuition.
+      intuition auto with *.
       * f_equal; eassumption.
       * edestruct H3 as (u, ?).
         exists (context_left u ts0 c0); simpl.
-        intuition; f_equal; eauto.
+        intuition auto with *; f_equal; eauto.
   (* Case: (context_left, context_right). *)
   - clear IHh.
     dependent destruction H0.
     eexists (context_left h ts0 (r x)).
-    intuition.
-    eexists (context_right (h y) ts0 r); intuition.
+    intuition auto with *.
+    eexists (context_right (h y) ts0 r); intuition auto with *.
   (* Case: (context_right, context_hole). *)
   - discriminate.
   (* Case: (context_right, context_left). *)
   - clear IHh.
     dependent destruction H0.
     eexists (context_right (r x) ts0 h).
-    intuition.
-    eexists (context_left r ts0 (h y)); intuition.
+    intuition auto with *.
+    eexists (context_left r ts0 (h y)); intuition auto with *.
   (* Case: (context_right, context_right). *)
   - dependent destruction H0.
     edestruct IHh with (r := r) as (s, ?).
     + congruence.
     + eassumption.
     + exists (context_right b0 ts0 s); simpl.
-      intuition.
+      intuition auto with *.
       * f_equal; eassumption.
       * edestruct H3 as (u, ?).
         exists (context_right b0 ts0 u); simpl.
-        intuition; f_equal; eauto.
+        intuition auto with *; f_equal; eauto.
 Qed.
 
 Fixpoint context_lift i k h: context :=

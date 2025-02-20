@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 (* TODO: as we move to a substitution algebra, most of this file will be either
@@ -12,12 +12,24 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.Syntax.
 
+Import ListNotations.
+
 Local Ltac modulo_arith :=
   repeat (progress f_equal; try lia).
 
 Lemma traverse_list_length:
-  forall f k xs,
-  length (traverse_list f k xs) = length xs.
+  forall {T} f k xs,
+  length (@traverse_list T f k xs) = length xs.
+Proof.
+  intros.
+  induction xs; simpl.
+  - reflexivity.
+  - f_equal; assumption.
+Qed.
+
+Lemma traverse_type_length:
+  forall {T} x f k xs,
+  length (@traverse_type T x f k xs) = length xs.
 Proof.
   intros.
   induction xs; simpl.
@@ -48,7 +60,7 @@ Proof.
     + apply H with (l := 0).
     + f_equal.
       list induction over H.
-      repeat rewrite traverse_list_length.
+      repeat rewrite traverse_type_length.
       apply H; intros h n.
       now do 2 rewrite Nat.add_assoc.
     + f_equal; auto.
@@ -72,7 +84,7 @@ Proof.
     induction x using pseudoterm_deepind; eauto with cps; simpl; intros.
     + f_equal.
       list induction over H.
-      repeat rewrite traverse_list_length.
+      repeat rewrite traverse_type_length.
       apply H.
     + f_equal; auto.
       list induction over H.
@@ -113,10 +125,18 @@ Proof.
       lia.
 Qed.
 
-Lemma lift_distributes_over_negation:
+(* Lemma lift_distributes_over_negation:
   forall i k ts,
   lift i k (negation ts) =
     negation (traverse_list (lift i) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma lift_distributes_over_type:
+  forall i k x ts,
+  lift i k (type x ts) =
+    type x (traverse_type x (lift i) k ts).
 Proof.
   auto.
 Qed.
@@ -183,10 +203,18 @@ Proof with modulo_arith.
   sigma...
 Qed.
 
-Lemma subst_distributes_over_negation:
+(* Lemma subst_distributes_over_negation:
   forall y k ts,
   subst y k (negation ts) =
     negation (traverse_list (subst y) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma subst_distributes_over_type:
+  forall y k x ts,
+  subst y k (type x ts) =
+    type x (traverse_type x (subst y) k ts).
 Proof.
   auto.
 Qed.
@@ -287,10 +315,18 @@ Proof.
   apply subst_addition_distributes_over_itself.
 Qed.
 
-Lemma apply_parameters_distributes_over_negation:
+(* Lemma apply_parameters_distributes_over_negation:
   forall ys k ts,
   apply_parameters ys k (negation ts) =
     negation (traverse_list (apply_parameters ys) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma apply_parameters_distributes_over_type:
+  forall ys k x ts,
+  apply_parameters ys k (type x ts) =
+    type x (traverse_type x (apply_parameters ys) k ts).
 Proof.
   auto.
 Qed.
@@ -387,10 +423,7 @@ Lemma lifting_over_n_preserves_not_free_n:
 Proof.
   sigma.
   induction e using pseudoterm_deepind; intros.
-  - assumption.
-  - assumption.
-  - assumption.
-  - assumption.
+  (* Case: bound. *)
   - dependent destruction H.
     rename n0 into m.
     destruct (le_gt_dec k n).
@@ -400,16 +433,17 @@ Proof.
     + sigma.
       constructor.
       assumption.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; constructor.
     induction H.
     + constructor.
     + dependent destruction H0.
-      sigma; constructor.
-      * rewrite bsmap_length.
-        apply H; auto.
-        lia.
-      * now apply IHForall.
+      simpl; constructor; auto.
+      rewrite traverse_type_length.
+      sigma; apply H; auto.
+      lia.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; constructor.
     + now apply IHe.
@@ -417,6 +451,7 @@ Proof.
       * constructor.
       * dependent destruction H1.
         sigma; constructor; auto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; constructor.
     + apply IHe1; auto.
@@ -427,7 +462,7 @@ Proof.
       * dependent destruction H0.
         sigma; constructor; auto.
         rewrite bsmap_length.
-        apply H; auto.
+        apply H; auto; simpl.
         lia.
     + rewrite bsmap_length.
       apply IHe2; auto.
@@ -436,6 +471,7 @@ Qed.
 
 (* Clearly, if we're lifiting [e]'s var above [k] by [i], anything equal or
    greater than [k] and smaller than [k + i] is free. *)
+
 Lemma lifting_more_than_n_makes_not_free_n:
   forall e i k n,
   n >= k ->
@@ -444,10 +480,7 @@ Lemma lifting_more_than_n_makes_not_free_n:
 Proof.
   sigma.
   induction e using pseudoterm_deepind; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
+  (* Case: bound. *)
   - rename n0 into m.
     destruct (le_gt_dec k n).
     + sigma.
@@ -456,22 +489,25 @@ Proof.
     + sigma.
       constructor.
       lia.
+  (* Case: type. *)
   - sigma; constructor.
     induction H.
     + constructor.
-    + sigma; constructor; auto.
-      rewrite bsmap_length.
-      apply H; lia.
+    + simpl; constructor; auto.
+      rewrite traverse_type_length.
+      sigma; apply H; lia.
+  (* Case: jump. *)
   - sigma; constructor.
     + now apply IHe.
     + induction H.
       * constructor.
       * sigma; constructor; auto.
+  (* Case: bind. *)
   - sigma; constructor.
     + apply IHe1; lia.
     + induction H.
       * constructor.
-      * sigma; constructor; auto.
+      * sigma; constructor; simpl; auto.
         rewrite bsmap_length.
         apply H; lia.
     + rewrite bsmap_length.
@@ -487,10 +523,7 @@ Lemma substing_over_n_preserves_not_free_n:
 Proof.
   sigma.
   induction e using pseudoterm_deepind; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
+  (* Case: bound. *)
   - dependent destruction H.
     rename n0 into m.
     destruct (lt_eq_lt_dec k n) as [ [ ? | ? ] | ? ].
@@ -498,19 +531,21 @@ Proof.
       constructor.
       lia.
     + sigma.
-      (* Oh... *)
+      (* Oh... makes sence. *)
       replace (inst (subst_lift k)) with (lift k 0) by auto.
       apply lifting_more_than_n_makes_not_free_n; lia.
     + sigma.
       now constructor.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; constructor.
     induction H.
     + constructor.
     + dependent destruction H0.
-      sigma; constructor; auto.
-      rewrite bsmap_length.
-      apply H; auto; lia.
+      simpl; constructor; auto.
+      rewrite traverse_type_length.
+      sigma; apply H; auto; lia.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; constructor.
     + now apply IHe.
@@ -518,6 +553,7 @@ Proof.
       * constructor.
       * dependent destruction H1.
         sigma; constructor; auto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; constructor.
     + apply IHe1; auto; lia.
@@ -525,7 +561,7 @@ Proof.
       induction H.
       * constructor.
       * dependent destruction H0.
-        sigma; constructor; auto.
+        sigma; constructor; simpl; auto.
         rewrite bsmap_length.
         apply H; auto; lia.
     + rewrite bsmap_length.
@@ -548,27 +584,29 @@ Proof with modulo_arith.
   generalize dependent i.
   (* There we go... *)
   induction e using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - dependent destruction H.
     rename n0 into m.
     destruct (le_gt_dec m n).
     + now sigma.
     + now sigma.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; f_equal.
     induction H.
     + reflexivity.
     + dependent destruction H0.
-      sigma; f_equal; auto.
+      simpl; repeat rewrite traverse_type_length.
+      f_equal; auto.
+      sigma; now apply H.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; f_equal; auto.
     induction H.
     + reflexivity.
     + dependent destruction H1.
       sigma; f_equal; auto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; f_equal.
     + now apply IHe1.
@@ -605,29 +643,31 @@ Proof.
   generalize dependent p.
   generalize dependent k.
   generalize dependent y.
-  (* There we go... *)
+  (* Again, there we go... *)
   induction e using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - dependent destruction H.
     rename n0 into m.
     destruct (le_gt_dec m n).
     + now sigma.
     + now sigma.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; f_equal.
     induction H.
     + reflexivity.
     + dependent destruction H0.
-      sigma; f_equal; auto.
+      simpl; repeat rewrite traverse_type_length.
+      f_equal; auto.
+      sigma; now apply H.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; f_equal; auto.
     induction H.
     + reflexivity.
     + dependent destruction H1.
       sigma; f_equal; auto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; f_equal.
     + now apply IHe1.
@@ -826,66 +866,18 @@ Proof with modulo_arith.
   lia.
 Qed.
 
-Lemma apply_parameters_type:
-  forall xs k,
-  apply_parameters xs k type = type.
-Proof.
-  auto.
-Qed.
-
-Lemma right_cycle_type:
-  forall i k,
-  right_cycle i k type = type.
-Proof.
-  auto.
-Qed.
-
-Lemma apply_parameters_prop:
-  forall xs k,
-  apply_parameters xs k prop = prop.
-Proof.
-  auto.
-Qed.
-
-Lemma right_cycle_prop:
-  forall i k,
-  right_cycle i k prop = prop.
-Proof.
-  auto.
-Qed.
-
-Lemma apply_parameters_base:
-  forall xs k,
-  apply_parameters xs k base = base.
-Proof.
-  auto.
-Qed.
-
-Lemma right_cycle_base:
-  forall i k,
-  right_cycle i k base = base.
-Proof.
-  auto.
-Qed.
-
-Lemma apply_parameters_void:
-  forall xs k,
-  apply_parameters xs k void = void.
-Proof.
-  auto.
-Qed.
-
-Lemma right_cycle_void:
-  forall i k,
-  right_cycle i k void = void.
-Proof.
-  auto.
-Qed.
-
-Lemma right_cycle_distributes_over_negation:
+(* Lemma right_cycle_distributes_over_negation:
   forall n k ts,
   right_cycle n k (negation ts) =
     negation (traverse_list (right_cycle n) k ts).
+Proof.
+  auto.
+Qed. *)
+
+Lemma right_cycle_distributes_over_type:
+  forall n k x ts,
+  right_cycle n k (type x ts) =
+    type x (traverse_type x (right_cycle n) k ts).
 Proof.
   auto.
 Qed.
@@ -918,13 +910,13 @@ Proof.
   now sigma.
 Qed.
 
-Lemma switch_bindings_distributes_over_negation:
+(* Lemma switch_bindings_distributes_over_negation:
   forall k ts,
   switch_bindings k (negation ts) =
     negation (traverse_list switch_bindings k ts).
 Proof.
   auto.
-Qed.
+Qed. *)
 
 Lemma switch_bindings_distributes_over_jump:
   forall p k xs,
@@ -1024,24 +1016,25 @@ Proof with modulo_arith.
   replace (k - k) with 0 by lia; simpl.
   generalize dependent k.
   induction e using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - destruct (le_gt_dec k n).
     + destruct (le_gt_dec (S k) n).
       * sigma...
       * sigma...
     + sigma...
+  (* Case: type. *)
   - sigma; f_equal.
     induction H.
     + reflexivity.
-    + sigma; f_equal; auto.
+    + simpl; f_equal; auto.
+      sigma; auto.
+  (* Case: jump. *)
   - sigma; f_equal.
     + apply IHe.
     + induction H.
       * reflexivity.
       * sigma; f_equal; auto.
+  (* Case: bind. *)
   - sigma; f_equal.
     + apply IHe1.
     + induction H.
@@ -1102,25 +1095,28 @@ Proof with modulo_arith.
   generalize dependent k.
   generalize dependent i.
   induction e using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - destruct (le_gt_dec k n);
+  (* Case: bound. *)
+  - (* Could we optimize this? Perhaps, but it works. *)
+    destruct (le_gt_dec k n);
     destruct (le_gt_dec (S k) n);
     destruct (le_gt_dec (S (S k)) n);
     destruct (le_gt_dec i (n - k - 2));
     try (exfalso; lia);
     sigma...
+  (* Case: type. *)
   - sigma; f_equal.
     induction H.
     + reflexivity.
-    + sigma; f_equal; auto.
+    + simpl; f_equal; auto.
+      repeat rewrite traverse_type_length.
+      sigma; auto.
+  (* Case: jump. *)
   - sigma; f_equal.
     + apply IHe.
     + induction H.
       * reflexivity.
       * sigma; f_equal; auto.
+  (* Case: bind. *)
   - sigma; f_equal.
     + apply IHe1.
     + induction H.
@@ -1144,22 +1140,22 @@ Proof.
   generalize dependent a.
   sigma.
   induction c using pseudoterm_deepind; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
+  (* Case: bound. *)
   - destruct (le_gt_dec j n).
     + dependent destruction H.
       sigma; constructor; lia.
     + sigma; constructor; lia.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; constructor.
     induction H.
     + constructor.
     + dependent destruction H0.
-      sigma; constructor; auto.
-      rewrite bsmap_length.
+      simpl; constructor; auto.
+      rewrite traverse_type_length.
+      sigma.
       eapply H; eauto; lia.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; constructor.
     + eapply IHc; eauto.
@@ -1167,6 +1163,7 @@ Proof.
       * constructor.
       * dependent destruction H1.
         sigma; constructor; eauto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; constructor.
     + eapply IHc1; eauto; lia.
@@ -1175,8 +1172,8 @@ Proof.
       * constructor.
       * dependent destruction H0.
         sigma; constructor; auto.
-        rewrite bsmap_length.
-        eapply H; eauto; lia.
+        simpl; rewrite bsmap_length.
+        eapply H; eauto; simpl; lia.
     + rewrite bsmap_length.
       eapply IHc2; eauto; lia.
 Qed.
@@ -1225,10 +1222,7 @@ Proof.
   generalize dependent a.
   sigma.
   induction c using pseudoterm_deepind; intros.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
+  (* Case: bound. *)
   - unfold apply_parameters.
     destruct (le_gt_dec k n).
     + sigma.
@@ -1254,14 +1248,16 @@ Proof.
             +++ sigma.
                 apply IHForall; lia.
     + sigma; constructor; lia.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; constructor.
     induction H.
     + constructor.
     + dependent destruction H0.
-      sigma; constructor; auto.
-      rewrite bsmap_length.
-      eapply H; eauto; lia.
+      simpl; constructor; auto.
+      rewrite traverse_type_length.
+      sigma; eapply H; eauto; lia.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; constructor.
     + eapply IHc; eauto.
@@ -1270,6 +1266,7 @@ Proof.
       * dependent destruction H1.
         sigma; constructor; auto.
         eapply H; eauto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; constructor.
     + eapply IHc1; eauto; lia.
@@ -1278,8 +1275,8 @@ Proof.
       * constructor.
       * dependent destruction H0.
         sigma; constructor; auto.
-        rewrite bsmap_length.
-        eapply H; eauto; lia.
+        simpl; rewrite bsmap_length.
+        eapply H; eauto; simpl; lia.
     + rewrite bsmap_length.
       eapply IHc2; eauto; lia.
 Qed.
@@ -1290,17 +1287,17 @@ Lemma remove_binding_size:
   size (remove_binding k b) = size b.
 Proof with modulo_arith.
   induction b; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - unfold remove_binding.
     destruct (le_gt_dec k n).
     + dependent destruction H.
       now sigma.
     + now sigma.
+  (* Case: type. *)
   - reflexivity.
+  (* Case: jump. *)
   - reflexivity.
+  (* Case: bind. *)
   - dependent destruction H.
     unfold remove_binding.
     rewrite subst_distributes_over_bind; simpl.
@@ -1351,10 +1348,7 @@ Proof with modulo_arith.
   replace (S (S k) - k - 1) with 1 by lia.
   generalize dependent k.
   induction e using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - unfold switch_bindings.
     destruct (le_gt_dec k n).
     + remember (n - k) as o.
@@ -1362,12 +1356,16 @@ Proof with modulo_arith.
       * now sigma.
       * destruct o; sigma...
     + now sigma.
+  (* Case: type. *)
   - sigma; f_equal.
     induction H; auto.
-    sigma; f_equal; auto.
+    simpl; sigma; f_equal; auto.
+    now repeat rewrite traverse_type_length.
+  (* Case: jump. *)
   - sigma; f_equal; auto.
     induction H; auto.
     sigma; f_equal; auto.
+  (* Case: bind. *)
   - sigma; f_equal; auto.
     induction H; auto.
     sigma; f_equal; auto.

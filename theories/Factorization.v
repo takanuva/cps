@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Relations.
@@ -12,6 +12,8 @@ Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.Residuals.
 Require Import Local.Confluence.
+
+Import ListNotations.
 
 (* The following method is present on the "Factorization and Normalization,
    Essentially" paper, and was hinted to me by dr. Accattoli through private
@@ -52,20 +54,12 @@ Qed.
 Global Hint Resolve step_inner: cps.
 
 Inductive leftmost_marked: bool -> redexes -> Prop :=
-  | leftmost_marked_type:
-    leftmost_marked false redexes_type
-  | leftmost_marked_prop:
-    leftmost_marked false redexes_prop
-  | leftmost_marked_base:
-    leftmost_marked false redexes_base
-  | leftmost_marked_void:
-    leftmost_marked false redexes_void
   | leftmost_marked_bound:
     forall n,
     leftmost_marked false (redexes_bound n)
-  | leftmost_marked_negation:
-    forall ts,
-    leftmost_marked false (redexes_negation ts)
+  | leftmost_marked_type:
+    forall x ts,
+    leftmost_marked false (redexes_type x ts)
   | leftmost_marked_jump:
     forall r k xs,
     leftmost_marked r (redexes_jump r k xs)
@@ -79,10 +73,6 @@ Lemma leftmost_marked_mark:
   leftmost_marked false (mark b).
 Proof.
   induction b; simpl.
-  - constructor.
-  - constructor.
-  - constructor.
-  - constructor.
   - constructor.
   - constructor.
   - constructor.

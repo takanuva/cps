@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,6 +14,8 @@ Require Import Local.Syntax.
 Require Import Local.Metatheory.
 Require Import Local.Context.
 Require Import Local.Equational.
+
+Import ListNotations.
 
 (** ** Beta (generalized jump) reduction. *)
 
@@ -387,7 +389,7 @@ Proof.
         apply context_is_injective in x; auto.
         inversion x; lia.
       * edestruct context_difference as (s, (?, ?)); eauto.
-        eexists (context_left s ts c); intuition.
+        eexists (context_left s ts c); intuition auto with *.
         simpl; f_equal; eassumption.
     + destruct IHh with n xs b2; eauto with arith.
       rewrite H1.
@@ -526,10 +528,7 @@ Proof.
     generalize O as o; simpl.
     unfold remove_binding.
     induction b using pseudoterm_deepind; intros.
-    + constructor.
-    + constructor.
-    + constructor.
-    + constructor.
+    (* Case: bound. *)
     + dependent destruction H.
       dependent destruction H0_.
       rename n0 into m.
@@ -539,20 +538,24 @@ Proof.
       * exfalso; lia.
       * rewrite subst_bound_lt; auto.
         constructor; lia.
-    + rewrite subst_distributes_over_negation.
-      constructor.
+    (* Case: type. *)
+    + rewrite subst_distributes_over_type.
       dependent destruction H0.
       dependent destruction H0_.
+      constructor.
       induction H; auto with cps.
-      simpl.
+      simpl; rewrite traverse_type_length.
       dependent destruction H0.
       dependent destruction H3.
       constructor; auto.
-      rewrite traverse_list_length.
-      replace (length l + (k + n)) with (k + (length l + n)); try lia.
+      rewrite traverse_type_length.
+      replace (type_binder x (length l) + (k + n)) with
+        (k + (type_binder x (length l) + n)) by lia.
       apply H; auto.
-      replace (S (k + (length l + n))) with (length l + S (k + n)); try lia.
+      replace (S (k + (type_binder x (length l) + n))) with
+        (type_binder x (length l) + S (k + n)) by lia.
       assumption.
+    (* Case: jump. *)
     + rewrite subst_distributes_over_jump.
       dependent destruction H0.
       dependent destruction H0_.
@@ -564,6 +567,7 @@ Proof.
         dependent destruction H1.
         dependent destruction H3.
         constructor; auto.
+    (* Case: bind. *)
     + rewrite subst_distributes_over_bind.
       dependent destruction H0.
       dependent destruction H0_1.
@@ -576,7 +580,7 @@ Proof.
         simpl.
         dependent destruction H0.
         dependent destruction H3.
-        constructor; auto.
+        constructor; auto; simpl.
         rewrite traverse_list_length.
         replace (length l + (k + n)) with (k + (length l + n)); try lia.
         apply H; auto.
@@ -1175,13 +1179,13 @@ Inductive not_free_context: nat -> context -> Prop :=
   | not_free_context_left:
     forall k b ts c,
     not_free_context (S k) b ->
-    not_free_list k ts ->
+    not_free_list NEGATION k ts ->
     not_free (k + length ts) c ->
     not_free_context k (context_left b ts c)
   | not_free_context_right:
     forall k b ts c,
     not_free (S k) b ->
-    not_free_list k ts ->
+    not_free_list NEGATION k ts ->
     not_free_context (k + length ts) c ->
     not_free_context k (context_right b ts c).
 
@@ -1366,14 +1370,7 @@ Lemma right_cycle_lift_simplification:
   right_cycle i k (lift 1 (k + i) e) = lift 1 k e.
 Proof.
   induction e using pseudoterm_deepind; intros.
-  - rewrite right_cycle_type.
-    reflexivity.
-  - rewrite right_cycle_prop.
-    reflexivity.
-  - rewrite right_cycle_base.
-    reflexivity.
-  - rewrite right_cycle_void.
-    reflexivity.
+  (* Case: bound. *)
   - rewrite right_cycle_characterization.
     destruct (le_gt_dec (k + i) n).
     + rewrite lift_bound_ge; try lia.
@@ -1399,19 +1396,22 @@ Proof.
       * rewrite lift_bound_lt by lia.
         rewrite apply_parameters_bound_lt by lia.
         reflexivity.
-  - do 2 rewrite lift_distributes_over_negation.
-    rewrite right_cycle_distributes_over_negation.
+  (* Case: type. *)
+  - do 2 rewrite lift_distributes_over_type.
+    rewrite right_cycle_distributes_over_type.
     f_equal.
     induction H; simpl; auto.
-    do 3 rewrite traverse_list_length.
+    repeat rewrite traverse_type_length.
     f_equal; auto.
     rewrite Nat.add_assoc.
     apply H.
+  (* Case: jump. *)
   - do 2 rewrite lift_distributes_over_jump.
     rewrite right_cycle_distributes_over_jump.
     f_equal.
     + apply IHe.
     + list induction over H.
+  (* Case: bind. *)
   - do 2 rewrite lift_distributes_over_bind.
     rewrite right_cycle_distributes_over_bind.
     f_equal.
@@ -1570,7 +1570,7 @@ Proof.
         induction ts; simpl; try now constructor.
         constructor; auto.
         rewrite traverse_list_length.
-        apply lifting_more_than_n_makes_not_free_n; lia.
+        apply lifting_more_than_n_makes_not_free_n; simpl; lia.
       * rewrite traverse_list_length.
         apply lifting_more_than_n_makes_not_free_n; lia.
     + constructor.
@@ -1579,7 +1579,7 @@ Proof.
         induction ts; simpl; try now constructor.
         constructor; auto.
         rewrite traverse_list_length.
-        apply lifting_more_than_n_makes_not_free_n; lia.
+        apply lifting_more_than_n_makes_not_free_n; simpl; lia.
       * rewrite traverse_list_length.
         apply IHh.
   - apply sema_bind_left.

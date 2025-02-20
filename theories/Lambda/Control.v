@@ -18,7 +18,9 @@ Require Import Local.Equational.
 Require Import Local.Reduction.
 Require Import Local.TypeSystem.
 
-Local Notation N := negation.
+Import ListNotations.
+
+Local Notation N ts := (negation ts).
 
 (* TODO: I *really* gotta make a tactics file for automating reduction steps. *)
 
@@ -35,16 +37,11 @@ Lemma foobar_sound:
   b = (fst (foobar b)) (snd (foobar b)).
 Proof.
   induction b.
-  reflexivity.
-  reflexivity.
-  reflexivity.
-  reflexivity.
-  reflexivity.
-  reflexivity.
-  reflexivity.
-  simpl.
-  rewrite IHb1 at 1.
-  reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - reflexivity.
+  - simpl.
+    now rewrite IHb1 at 1.
 Defined.
 
 Section Control.

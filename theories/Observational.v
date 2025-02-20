@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -18,6 +18,8 @@ Require Import Local.Confluence.
 Require Import Local.Factorization.
 Require Import Local.Structural.
 Require Import Local.Shrinking.
+
+Import ListNotations.
 
 (** ** Observational theory *)
 

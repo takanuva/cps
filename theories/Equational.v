@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,6 +14,8 @@ Require Import Local.Substitution.
 Require Import Local.Metatheory.
 Require Import Local.AbstractRewriting.
 Require Import Local.Context.
+
+Import ListNotations.
 
 (** ** Equational Theory *)
 
@@ -39,7 +41,7 @@ Global Hint Unfold ETA: cps.
 
 Definition DISTR (R: relation pseudoterm): Prop :=
   forall b ms m ns n,
-  not_free_list 0 ms ->
+  not_free_list NEGATION 0 ms ->
   R (bind (bind b ms m) ns n)
     (bind (bind
       (switch_bindings 0 b)
@@ -71,7 +73,7 @@ Global Hint Unfold GC: cps.
 Definition FLOAT_LEFT (R: relation pseudoterm): Prop :=
   forall b ms m ns n,
   not_free (length ms) m ->
-  not_free_list 0 ms ->
+  not_free_list NEGATION 0 ms ->
   R (bind (bind b ms m) ns n)
     (bind (bind
       (switch_bindings 0 b)
@@ -85,7 +87,7 @@ Definition FLOAT_LEFT (R: relation pseudoterm): Prop :=
 Definition FLOAT_RIGHT (R: relation pseudoterm): Prop :=
   forall b ms m ns n,
   not_free 1 b ->
-  not_free_list 0 ms ->
+  not_free_list NEGATION 0 ms ->
   R (bind (bind b ms m) ns n)
     (bind
       (* Is this the same as remove_binding 1 b? *)
@@ -257,7 +259,7 @@ Example ex2: pseudoterm :=
 Goal [ex1 == ex2].
 Proof.
   apply sema_distr.
-  do 3 constructor.
+  repeat constructor.
 Qed.
 
 Local Lemma axiom_recjmp_helper:
@@ -282,7 +284,7 @@ Local Lemma axiom_distr_helper:
   x5 = traverse_list (lift 1) 0 ns ->
   x6 = traverse_list (lift (length ms)) 0 ns ->
   x7 = traverse_list remove_binding 0 ms ->
-  not_free_list 0 ms ->
+  not_free_list NEGATION 0 ms ->
   axiom (bind (bind b ms m) ns n) (bind (bind x1 x5 x2) x7 (bind x3 x6 x4)).
 Proof.
   intros.
@@ -381,7 +383,7 @@ Proof.
       rewrite traverse_list_length.
       rewrite Nat.add_0_r in H0 |- *.
       apply lifting_over_n_preserves_not_free_n; auto.
-      lia.
+      simpl; lia.
   (* Case: axiom_eta. *)
   - rename k into j, k0 into k.
     rewrite lift_distributes_over_bind.
@@ -483,7 +485,7 @@ Proof.
       rewrite traverse_list_length.
       rewrite Nat.add_0_r in H0 |- *.
       apply substing_over_n_preserves_not_free_n; auto.
-      lia.
+      simpl; lia.
   (* Case: axiom_eta. *)
   - rename k into j, k0 into k.
     rewrite subst_distributes_over_bind.
@@ -584,7 +586,11 @@ Proof.
     admit.
 Admitted.
 
-(* TODO: you know what to do here. *)
+(* TODO: you know what to do here.
+
+   I'm an idiot and I forgot to write down what I was supposed to do here... so,
+   before I forget yet again, check up on the definition for FLOAT_RIGHT and fix
+   it. *)
 
 Goal
   forall b k,
@@ -598,24 +604,25 @@ Proof.
   replace (k - k) with 0 by lia; simpl.
   generalize dependent k.
   induction b using pseudoterm_deepind; intros.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
+  (* Case: bound. *)
   - destruct (le_gt_dec (1 + k) n).
     + dependent destruction H.
       sigma; f_equal; lia.
     + destruct (le_gt_dec k n).
       * sigma; f_equal; lia.
       * now sigma.
+  (* Case: type. *)
   - dependent destruction H0.
     sigma; f_equal.
     induction H.
-    + now sigma.
+    + reflexivity.
     + dependent destruction H0.
+      simpl; repeat rewrite traverse_type_length.
       sigma; f_equal; auto.
       apply H.
-      now replace (S (length l + k)) with (length l + S k) by lia.
+      set (n := type_binder x (length l)).
+      now replace (S (n + k)) with (n + S k) by lia.
+  (* Case: jump. *)
   - dependent destruction H0.
     sigma; f_equal.
     + now eapply IHb.
@@ -623,6 +630,7 @@ Proof.
       * reflexivity.
       * dependent destruction H1.
         sigma; f_equal; auto.
+  (* Case: bind. *)
   - dependent destruction H0.
     sigma; f_equal.
     + now apply IHb1.
@@ -698,33 +706,31 @@ Local Lemma technical5:
   apply_parameters (high_sequence n) k (lift (1 + n) (k + n) c) = lift 1 k c.
 Proof.
   induction c using pseudoterm_deepind; intros.
-  - rewrite apply_parameters_type.
-    reflexivity.
-  - rewrite apply_parameters_prop.
-    reflexivity.
-  - rewrite apply_parameters_base.
-    reflexivity.
-  - rewrite apply_parameters_void.
-    reflexivity.
+  (* Case: bound. *)
   - rename n0 into m.
     destruct (le_gt_dec k n).
     + destruct (le_gt_dec (m + k) n).
       * apply technical3; auto.
       * apply technical4; auto.
     + apply technical1; auto.
-  - do 2 rewrite lift_distributes_over_negation.
-    rewrite apply_parameters_distributes_over_negation.
+  (* Case: type. *)
+  - unfold apply_parameters; sigma.
     f_equal.
     induction H; auto.
     simpl; f_equal; auto.
-    do 3 rewrite traverse_list_length.
-    rewrite Nat.add_assoc.
+    repeat rewrite traverse_type_length.
+    sigma; rewrite Nat.add_assoc.
+    (* TODO: please fix after creating a "sigma in" tactic... *)
+    generalize dependent H.
+    sigma; intros.
     apply H.
+  (* Case: jump. *)
   - do 2 rewrite lift_distributes_over_jump.
     rewrite apply_parameters_distributes_over_jump.
     f_equal.
     + apply IHc.
     + list induction over H.
+  (* Case: bind. *)
   - do 2 rewrite lift_distributes_over_bind.
     rewrite apply_parameters_distributes_over_bind.
     rewrite traverse_list_length.
@@ -777,7 +783,7 @@ Proof.
     + constructor.
     + constructor; auto.
       rewrite traverse_list_length.
-      apply lifting_more_than_n_makes_not_free_n; lia.
+      apply lifting_more_than_n_makes_not_free_n; simpl; lia.
   - apply sema_bind_right.
     rewrite traverse_list_length.
     rewrite lift_bound_ge; auto.
@@ -810,7 +816,7 @@ Proof.
       simpl; constructor; auto.
       rewrite traverse_list_length.
       rewrite Nat.add_0_r.
-      apply lifting_more_than_n_makes_not_free_n; lia.
+      apply lifting_more_than_n_makes_not_free_n; simpl; lia.
   - (* The term is finally in the form [b { M } { N }], which is what we want,
        but we still need to prove that as the term form is a bit different. *)
     apply sema_eq; f_equal.

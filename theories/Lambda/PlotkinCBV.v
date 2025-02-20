@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -22,6 +22,8 @@ Require Import Local.Shrinking.
 Require Import Local.TypeSystem.
 Require Import Local.Normalization.
 (* Require Export Local.Lambda.Calculus. *)
+
+Import ListNotations.
 
 (* -------------------------------------------------------------------------- *)
 (* S K E T C H ! TODO: if correct, move to somewhere else, please. I'm tired. *)
@@ -508,7 +510,7 @@ Proof.
     + constructor.
       * constructor; lia.
       * do 2 constructor; lia.
-    + do 3 constructor.
+    + repeat constructor.
     + dependent destruction H0.
       apply IHcbv_cps; try lia.
       replace (S n) with (n + 1) in H0; try lia.
@@ -530,7 +532,7 @@ Proof.
       apply not_free_lift.
       rewrite Nat.add_comm.
       assumption.
-    + do 2 constructor.
+    + repeat constructor.
     + repeat (simpl; try constructor; try lia).
       simpl; eapply IHcbv_cps2; auto.
       replace (S (S n)) with (n + 2 + 0); try lia.
@@ -803,9 +805,14 @@ Proof.
     apply star_ctxjmp.
     reflexivity.
   - simpl.
+    (* TODO: I think there's an issue with sigma; change this once I fix it! *)
+    rewrite lift_distributes_over_bind.
+    rewrite lift_distributes_over_jump.
+    rewrite apply_parameters_distributes_over_bind.
+    rewrite apply_parameters_distributes_over_jump.
     unfold apply_parameters.
-    sigma.
-    replace (inst _ void) with void by auto.
+    simpl; sigma.
+    (* Back to the proof... *)
     apply star_bind_left.
     replace (jump (var 0) [var (S (S (S m)))]) with
       (Context.context_hole (jump 0 [CPS.bound (S (S (S m)))])) by auto.
@@ -814,7 +821,7 @@ Proof.
   - simpl.
     unfold apply_parameters.
     sigma.
-    do 3 constructor.
+    repeat constructor.
 Qed.
 
 Local Lemma technical2:
