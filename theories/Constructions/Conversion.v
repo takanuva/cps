@@ -364,7 +364,16 @@ Inductive conv: env -> relation term :=
     rt(step g) e1 f1 ->
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
-    conv g e1 e2.
+    conv g e1 e2
+  (* TODO: according to Coq's [kernel/conversion.ml], this also should be a
+     congruence relation! In fact, they don't reduce everything and then check
+     for eta; they reduce to weak-head normal form, then check for eta e keep
+     going; if they see two pi types or two lambdas, then they reduce those to
+     weak-head normal form and keep going. This way they can equate terms such
+     like [P f] and [P (fun x => f x)]. I strongly believe that simply turning
+     this relation into a congruence is enough to characterize this behavior,
+     but then again we'd have to prove that the this equality is producible by
+     such algorithm. Also: surjective pairing comes into play this way. *).
 
 Lemma conv_refl:
   forall g,
