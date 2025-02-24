@@ -47,3 +47,5 @@ theories/Constructions/Normalization.v
 theories/Constructions/Inversion.v
 theories/Constructions/Stratification.v
 theories/Constructions/Reduction.v
+theories/Constructions.v
+theories/Dependent.v

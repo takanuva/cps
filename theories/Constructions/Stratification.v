@@ -47,7 +47,7 @@ Inductive type_scheme: term -> Prop :=
     is_arity t ->
     type_scheme e.
 
-Goal
+(* Goal
   type_scheme polymorphic_id_type.
 Proof.
   apply type_scheme_mk with [] (sort iset).
@@ -66,7 +66,7 @@ Proof.
   dependent destruction H.
   (* We need a few inversion lemmas... *)
   admit.
-Admitted.
+Admitted. *)
 
 (* TODO: _dec or _is_decidable...? Also, TODO: not sure I'll need this. *)
 Lemma is_arity_is_decidable:
