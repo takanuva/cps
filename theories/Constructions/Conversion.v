@@ -347,6 +347,22 @@ Proof.
     admit.
 Admitted.
 
+(* This relation is mentioned in Coq's documentation and in Bowman's papers.
+
+   The documentation doesn't seem to suggest this is a congruence relation, but,
+   according to Coq's [kernel/conversion.ml], it should be. In their conversion
+   procedure they convert arrays of terms (representing n-ary applications) to
+   their weak-head normal form and then compare the leftmost item; if it's a pi
+   or a lambda or a constructor, in both sides, they keep going and do this for
+   the arguments. At this point, if only one side is a lambda, or only one side
+   is a primitive record, they try to eta expand as described. I believe that
+   simply turning this relation into a congruence is enough to characterize this
+   behavior, having the algorithm as a decision procedure, but then again we'd
+   have to prove this. As we do not have arbitrary record types, we "specialize"
+   the rules for the case of surjective pairing of sigma types. Remember that
+   terms that are checked for convertibility by the typechecking algorithm are
+   already expected to have the same type. *)
+
 Inductive conv: env -> relation term :=
   | conv_join:
     forall g e1 e2 f,
@@ -365,15 +381,20 @@ Inductive conv: env -> relation term :=
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2
-  (* TODO: according to Coq's [kernel/conversion.ml], this also should be a
-     congruence relation! In fact, they don't reduce everything and then check
-     for eta; they reduce to weak-head normal form, then check for eta e keep
-     going; if they see two pi types or two lambdas, then they reduce those to
-     weak-head normal form and keep going. This way they can equate terms such
-     like [P f] and [P (fun x => f x)]. I strongly believe that simply turning
-     this relation into a congruence is enough to characterize this behavior,
-     but then again we'd have to prove that the this equality is producible by
-     such algorithm. Also: surjective pairing comes into play this way. *).
+  | conv_sur_left:
+    forall g e1 p q t e2 f,
+    rt(step g) e1 (pair p q t) ->
+    rt(step g) e2 f ->
+    conv g p (proj1 f) ->
+    conv g q (proj2 f) ->
+    conv g e1 e2
+  | conv_sur_right:
+    forall g e1 p q t e2 f,
+    rt(step g) e1 f ->
+    rt(step g) e2 (pair p q t) ->
+    conv g (proj1 f) p ->
+    conv g (proj2 f) q ->
+    conv g e1 e2.
 
 Lemma conv_refl:
   forall g,
@@ -393,6 +414,8 @@ Proof.
   - now apply conv_join with f.
   - eapply conv_eta_right; eauto with cps.
   - eapply conv_eta_left; eauto with cps.
+  - eapply conv_sur_right; eauto with cps.
+  - eapply conv_sur_left; eauto with cps.
 Qed.
 
 Lemma conv_trans:
@@ -404,6 +427,18 @@ Proof.
   *)
   admit.
 Admitted.
+
+Lemma surjective_pairing:
+  forall g e t,
+  conv g (pair (proj1 e) (proj2 e) t) e.
+Proof.
+  intros.
+  eapply conv_sur_left.
+  - apply rt_refl.
+  - apply rt_refl.
+  - apply conv_refl.
+  - apply conv_refl.
+Qed.
 
 Definition typed_conv (g: env) (t: term): relation term :=
   (* Simply ignore the type. *)
