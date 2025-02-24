@@ -19,11 +19,13 @@ Import ListNotations.
    hand, [Pi X: Type, Pi x: X, x] is not a type scheme: it may generate a type,
    if applied, e.g., to [Prop], but it may generate a term, if applied, e.g.,
    to [nat]. Of course, this distinction happens because of cumulativity, since
-   there are no unique types anymore (or, rather, a universe of types may also
-   contain terms). In the lack of cumulativity, as we will check, there's a
-   simpler syntactical distinction that we may use. This is called an arity in
-   the MetaCoq project and the "Coq Coq Correct!" paper. We do not assume here
-   that arities are well-typed (though they must be!). *)
+   there are no unique types anymore (or, rather, a universe of types may have
+   both large and small types).
+
+   Independent if we use cumulativity or not, we may check that there's a
+   syntactic way to check for type schemes: their types are typeable by arities,
+   as they are called in the MetaCoq project and the "Coq Coq Correct!" paper.
+   We do not assume here that arities are well-typed (though they must be!). *)
 
 Inductive is_arity: term -> Prop :=
   | is_arity_now:
@@ -40,12 +42,15 @@ Inductive is_arity: term -> Prop :=
     is_arity u ->
     is_arity (definition v t u).
 
-Inductive type_scheme: term -> Prop :=
-  | type_scheme_mk:
+Inductive type_scheme (R: typing_equivalence): term -> Prop :=
+  | type_scheme_sort:
+    forall s,
+    type_scheme R (sort s)
+  | type_scheme_make:
     forall g e t,
-    typing g e t typed_conv ->
+    typing g e t R ->
     is_arity t ->
-    type_scheme e.
+    type_scheme R e.
 
 (* Goal
   type_scheme polymorphic_id_type.
@@ -68,8 +73,7 @@ Proof.
   admit.
 Admitted. *)
 
-(* TODO: _dec or _is_decidable...? Also, TODO: not sure I'll need this. *)
-Lemma is_arity_is_decidable:
+Lemma is_arity_is_dec:
   forall t,
   { is_arity t } + { ~is_arity t }.
 Proof.
@@ -94,13 +98,64 @@ Proof.
   - right; inversion 1.
 Qed.
 
-Lemma validity:
-  forall g e t,
-  typing g e t typed_conv ->
-  type_scheme t.
+Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
+  forall d n,
+  item d g n -> exists s, typing g (lift (S n) 0 (snd d)) (sort s) R.
+
+Theorem sorting:
+  forall R j,
+  infer R j ->
+  match j with
+  | valid_env g => schemes_only R g
+  | typing g e t => t = sort (type 0) \/ exists s, typing g t (sort s) R
+  end.
 Proof.
-  admit.
+  induction 1; intros.
+  - now left.
+  - right; subst.
+    destruct IHinfer with (d, t) n as (s, ?).
+    + assumption.
+    + now exists s.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - repeat intro.
+    exfalso.
+    inversion H.
+  - clear IHinfer2.
+    repeat intro.
+    dependent destruction H1; simpl.
+    + admit.
+    + specialize (IHinfer1 _ _ H1) as (s2, ?).
+      exists s2.
+      (* Weakening! *)
+      admit.
+  - admit.
 Admitted.
+
+Corollary validity:
+  forall R g e t,
+  typing g e t R ->
+  type_scheme R t.
+Proof.
+  intros.
+  apply sorting in H as [ ? | (s, ?) ].
+  - subst.
+    constructor.
+  - constructor 2 with g (sort s).
+    + assumption.
+    + constructor.
+Qed.
 
 (* Validity says that if [G |- e : t], then [t] is a type scheme, thus there is
    some arity [a] such that [G |- t : a]. As arities are products, this means
