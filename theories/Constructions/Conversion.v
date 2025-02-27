@@ -62,7 +62,7 @@ Inductive step: env -> relation term :=
     forall g e f1 f2,
     step g f1 f2 ->
     step g (application e f1) (application e f2)
-  | step_def_val:
+  | step_def_term:
     forall g e1 e2 t f,
     step g e1 e2 ->
     step g (definition e1 t f) (definition e2 t f)
@@ -108,7 +108,7 @@ Inductive step: env -> relation term :=
     step g (bool_if e1 t f1 f2) (bool_if e2 t f1 f2)
   | step_if_type:
     forall g e t1 t2 f1 f2,
-    step g t1 t2 ->
+    step (decl_var boolean :: g) t1 t2 ->
     step g (bool_if e t1 f1 f2) (bool_if e t2 f1 f2)
   | step_if_then:
     forall g e t f11 f12 f2,
@@ -119,9 +119,11 @@ Inductive step: env -> relation term :=
     step g f21 f22 ->
     step g (bool_if e t f1 f21) (bool_if e t f1 f22).
 
+Global Hint Constructors step: cps.
+
 Lemma declaration_existance_is_decidable:
   forall g n,
-  { exists e t, item (decl_def e t) g n } +
+  { e | exists t, item (decl_def e t) g n } +
     { ~exists e t, item (decl_def e t) g n }.
 Proof.
   induction g; intros.
@@ -133,229 +135,178 @@ Proof.
       destruct o.
       * rename t0 into e.
         left.
-        do 2 eexists.
+        exists e, t.
         constructor.
       * right; intros (e, (u, ?)).
         inversion H.
     + destruct IHg with n.
       * left.
-        destruct e as (e, (t, ?)).
-        do 2 eexists.
+        destruct s as (e, ?H).
+        exists e.
+        destruct H as (t, ?H).
+        exists t.
         constructor.
-        eassumption.
+        assumption.
       * right; intros (e, (t, ?)).
         dependent destruction H.
         firstorder.
 Qed.
 
+Local Hint Extern 4 (~(_ = _)) => discriminate: cps.
+
 Lemma abstraction_is_decidable:
+  forall P: term -> Type,
+  forall f1: (forall t e, P (abstraction t e)),
+  forall f2: (forall x, (forall t e, x <> abstraction t e) -> P x),
   forall x,
-  { exists t e, x = abstraction t e } + { ~exists t e, x = abstraction t e }.
+  P x.
 Proof.
-  destruct x.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - left; eauto with cps.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
-  - right; intros (t, (f, ?)); easy.
+  induction x; auto with cps.
 Qed.
 
 Lemma pair_is_decidable:
+  forall P: term -> Type,
+  forall f1: (forall t e f, P (pair t e f)),
+  forall f2: (forall x, (forall t e f, x <> pair t e f) -> P x),
   forall x,
-  { exists e f t, x = pair e f t } + { ~exists e f t, x = pair e f t }.
+  P x.
 Proof.
-  destruct x.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - left; eauto with cps.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
-  - right; intros (e, (f, (t, ?))); easy.
+  induction x; auto with cps.
 Qed.
 
-Lemma step_is_decidable:
-  forall e g,
-  { exists f, step g e f } + { ~exists f, step g e f }.
+Lemma bool_value_is_decidable:
+  forall P: term -> Type,
+  forall f1: P bool_tt,
+  forall f2: P bool_ff,
+  forall f3: (forall x, x <> bool_tt -> x <> bool_ff -> P x),
+  forall x,
+  P x.
 Proof.
+  induction x; auto with cps.
+Qed.
+
+(* Pick a reduct for a term, arbitrarily defined in a call-by-name order in a
+   computationally relevant way, or return a proof that there is none. *)
+
+Lemma step_is_decidable:
+  forall g e,
+  { f | step g e f } + { normal (step g) e }.
+Proof with eauto with cps.
+  intros.
+  generalize dependent g.
   induction e; intros.
-  - right; intros (f, ?).
-    inversion H.
-  - destruct declaration_existance_is_decidable with g n.
-    + left.
-      destruct e as (e, (t, ?)).
-      eexists.
-      eapply step_delta.
-      eassumption.
-    + right; intros (f, ?).
-      dependent destruction H.
-      firstorder.
-  - destruct IHe1 with g.
-    + left.
-      destruct e as (f, ?).
-      eexists.
-      apply step_pi_type.
-      eassumption.
-    + destruct IHe2 with (decl_var e1 :: g).
-      * left.
-        destruct e as (f, ?).
-        eexists.
-        apply step_pi_body.
-        eassumption.
-      * right; intros (f, ?).
-        dependent destruction H; firstorder.
-  - destruct IHe1 with g.
-    + left.
-      destruct e as (f, ?).
-      eexists.
-      apply step_abs_type.
-      eassumption.
-    + destruct IHe2 with (decl_var e1 :: g).
-      * left.
-        destruct e as (f, ?).
-        eexists.
-        apply step_abs_body.
-        eassumption.
-      * right; intros (f, ?).
-        dependent destruction H; firstorder.
-  - destruct IHe1 with g.
-    + (* There's a redex on the left, so this can't be itself a redex. *)
-      left.
-      destruct e as (f, ?).
-      eexists.
-      apply step_app_left.
-      eassumption.
-    + (* Before reducing on the right, is this a beta-redex? *)
-      destruct abstraction_is_decidable with e1.
-      * (* It is... *)
-        left.
-        destruct e as (t, (e, ?)); subst.
-        eexists.
-        apply step_beta.
-      * (* Is there a redex on the right...? *)
-        destruct IHe2 with g.
-        (* TODO: refactor me, at some point... *)
-        --- left.
-            destruct e as (f, ?).
-            eexists.
-            apply step_app_right.
-            eassumption.
-        --- (* I really wish Coq had FOUR proof levels... *)
-            right; intros (f, ?).
-            dependent destruction H; eauto with cps.
-  - (* There's always a zeta-redex in here! *)
-    left; eexists.
-    apply step_zeta.
-  - destruct IHe1 with g.
-    + left.
-      destruct e as (f, ?).
-      eexists.
-      apply step_sigma_type.
-      eassumption.
-    + destruct IHe2 with (decl_var e1 :: g).
-      * left.
-        destruct e as (f, ?).
-        eexists.
-        apply step_sigma_body.
-        eassumption.
-      * right; intros (f, ?).
-        dependent destruction H; firstorder.
-  - (* We go in lexicographic order, as the term is written in full. *)
-    destruct IHe1 with g.
-    + left.
-      destruct e as (f, ?).
-      eexists.
-      apply step_pair_left.
-      eassumption.
-    + destruct IHe2 with g.
-      * left.
-        destruct e as (f, ?).
-        eexists.
-        apply step_pair_right.
-        eassumption.
-      * (* TODO: please, refactor me... *)
-        destruct IHe3 with g.
-        --- left.
-            destruct e as (f, ?).
-            eexists.
-            apply step_pair_type.
-            eassumption.
-        --- right.
-            intros (f, ?).
-            dependent destruction H; firstorder.
-  - destruct IHe with g.
-    + left.
-      destruct e0 as (f, ?).
-      eexists.
-      apply step_proj1.
-      eassumption.
-    + (* Do we have a projection? *)
-      destruct pair_is_decidable with e.
-      * (* We do! *)
-        left.
-        destruct e0 as (e2, (f, (t, ?))); subst.
-        eexists.
-        apply step_pi1.
-      * (* No reduction. *)
-        right; intros (f, ?).
-        dependent destruction H.
-        (* TODO: refactor me... not sure why firstorder doesn't work. *)
-        --- apply n0; now do 3 eexists.
-        --- apply n; now exists e2.
-  - destruct IHe with g.
-    + left.
-      destruct e0 as (f, ?).
-      eexists.
-      apply step_proj2.
-      eassumption.
-    + (* Do we have a projection? *)
-      destruct pair_is_decidable with e.
-      * (* We do! *)
-        left.
-        destruct e0 as (e2, (f, (t, ?))); subst.
-        eexists.
-        apply step_pi2.
-      * (* No reduction. *)
-        right; intros (f, ?).
-        dependent destruction H.
-        (* TODO: refactor me... not sure why firstorder doesn't work. *)
-        --- apply n0; now do 3 eexists.
-        --- apply n; now exists e2.
-  - right; intros (f, ?).
-    inversion H.
-  - right; intros (f, ?).
-    inversion H.
-  - right; intros (f, ?).
-    inversion H.
-  - (* TODO: do we have an iota reduction here...? *)
-    admit.
-Admitted.
+  (* Case: sort. *)
+  - (* Sorts are atomics, of course. *)
+    right; easy.
+  (* Case: bound. *)
+  - (* A variable can reduce if and only if the environment defines it. *)
+    destruct declaration_existance_is_decidable with g n as [ (e, ?H) | ?H ].
+    + (* It does, so we have a delta reduction. *)
+      left; eexists.
+      destruct H as (t, ?H)...
+    + (* There's no definition, so no reduction either. *)
+      right; intros x ?.
+      inversion H0; firstorder.
+  (* Case: pi. *)
+  - (* Check subterms, left to right. *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with (decl_var e1 :: g) as [ (x, ?H) | ?H ]...
+    (* We're in normal form. *)
+    right; intros x ?.
+    inversion H1; firstorder.
+  (* Case: abstraction. *)
+  - (* Check subterms, left to right. *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with (decl_var e1 :: g) as [ (x, ?H) | ?H ]...
+    (* We're in normal form. *)
+    right; intros x ?.
+    inversion H1; firstorder.
+  (* Case: application. *)
+  - (* In the standard reduction sequence, we reduce a redex as soon as it
+       appears. So we'll check if we have a beta-redex right away. *)
+    destruct e1 using abstraction_is_decidable...
+    (* There's no beta-redex, check subterms. *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with g as [ (x, ?H) | ?H ]...
+    (* We're in normal form. *)
+    right; intros x ?.
+    inversion H2.
+    + subst; now apply H with t e.
+    + firstorder.
+    + firstorder.
+  (* Case: definition. *)
+  - (* Easy. This is always a zeta-redex! *)
+    left...
+  (* Case: sigma. *)
+  - (* Check subterms, left to right. *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with (decl_var e1 :: g) as [ (x, ?H) | ?H ]...
+    (* We're in normal form. *)
+    right; intros x ?.
+    inversion H1; firstorder.
+  (* Case: pair. *)
+  - (* Check subterms, left to right. *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with g as [ (x, ?H) | ?H ]...
+    destruct IHe3 with g as [ (x, ?H) | ?H ]...
+    (* We're in normal form. *)
+    right; intros x ?.
+    inversion H2; firstorder.
+  (* Case: proj1. *)
+  - (* Do we have a pi-redex? *)
+    destruct e using pair_is_decidable...
+    (* Either our subterm has a redex, or we're in normal form. *)
+    destruct IHe with g as [ (x, ?H) | ?H ]...
+    right; intros x ?.
+    inversion H1.
+    + subst; now apply H with x f t.
+    + firstorder.
+  (* Case: proj2. *)
+  - (* Exact same thing as the case for proj1 above. *)
+    destruct e using pair_is_decidable...
+    destruct IHe with g as [ (x, ?H) | ?H ]...
+    right; intros x ?.
+    inversion H1.
+    + subst; rename e0 into e.
+      now apply H with e x t.
+    + firstorder.
+  (* Case: boolean. *)
+  - (* This is a const, so it's already in normal form. *)
+    right; easy.
+  (* Case: bool_tt. *)
+  - (* Same as above. *)
+    right; easy.
+  (* Case: bool_ff. *)
+  - (* Same as above too. *)
+    right; easy.
+  (* Case: bool_if. *)
+  - (* We first check for the existence of an iota-redex in here... *)
+    destruct e1 using bool_value_is_decidable...
+    (* Check now for subterms... *)
+    destruct IHe1 with g as [ (x, ?H) | ?H ]...
+    destruct IHe2 with (decl_var boolean :: g) as [ (x, ?H) | ?H ]...
+    destruct IHe3 with g as [ (x, ?H) | ?H ]...
+    destruct IHe4 with g as [ (x, ?H) | ?H ]...
+    (* The term is in normal form. *)
+    right; intros x ?.
+    inversion H5.
+    + subst; contradiction.
+    + subst; contradiction.
+    + firstorder.
+    + firstorder.
+    + firstorder.
+    + firstorder.
+Qed.
 
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
 
    The documentation doesn't seem to suggest this is a congruence relation, but,
    according to Coq's [kernel/conversion.ml], it should be. In their conversion
-   procedure they convert arrays of terms (representing n-ary applications) to
-   their weak-head normal form and then compare the leftmost item; if it's a pi
-   or a lambda or a constructor, in both sides, they keep going and do this for
-   the arguments. At this point, if only one side is a lambda, or only one side
-   is a primitive record, they try to eta expand as described. I believe that
+   procedure they convert arrays of terms to their weak-head normal form and
+   then compare the leftmost item; if it's a pi, a lambda, a constructor or etc,
+   equal in both sides, they keep going (e.g., in an application). So, at this
+   point, if only one side is a lambda, or only one side is a primitive record,
+   they try to eta expand as described (symmetrically, indeed). I believe that
    simply turning this relation into a congruence is enough to characterize this
    behavior, having the algorithm as a decision procedure, but then again we'd
    have to prove this. As we do not have arbitrary record types, we "specialize"
