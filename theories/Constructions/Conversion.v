@@ -390,7 +390,3 @@ Proof.
   - apply conv_refl.
   - apply conv_refl.
 Qed.
-
-Definition typed_conv (g: env) (t: term): relation term :=
-  (* Simply ignore the type. *)
-  conv g.

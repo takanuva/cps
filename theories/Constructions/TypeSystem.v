@@ -14,7 +14,7 @@ Require Import Local.Constructions.Conversion.
 Import ListNotations.
 
 Definition typing_equivalence: Type :=
-  env -> term -> relation term.
+  env -> relation term.
 
 Section TypeSystem.
 
@@ -170,15 +170,15 @@ Section TypeSystem.
       infer (typing g f2 (subst bool_ff 0 t)) ->
       infer (typing g (bool_if e t f1 f2) (subst e 0 t))
     (*
-        G |- e : T     G |- U : s     G |- T R U : s
-      ------------------------------------------------
-                         G |- e : U
+        G |- e : T     G |- U : s     G |- T R U
+      --------------------------------------------
+                       G |- e : U
     *)
     | typing_conv:
       forall g e t u s,
       infer (typing g e t) ->
       infer (typing g u (sort s)) ->
-      R g (sort s) t u ->
+      R g t u ->
       infer (typing g e u)
     (*
       --------

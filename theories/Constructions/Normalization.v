@@ -16,4 +16,4 @@ Require Import Local.Constructions.TypeSystem.
 
 Conjecture strong_normalization:
   forall g e t,
-  typing g e t typed_conv -> SN (step g) e.
+  typing g e t conv -> SN (step g) e.

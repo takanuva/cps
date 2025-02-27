@@ -13,11 +13,9 @@ Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Confluence.
 Require Import Local.Constructions.Normalization.
 
-Local Notation R := typed_conv.
-
 Lemma typing_type_inv:
   forall g n t,
-  ~typing g (type n) t R.
+  ~typing g (type n) t conv.
 Proof.
   repeat intro.
   dependent induction H.
@@ -27,7 +25,7 @@ Qed.
 
 Lemma typing_iset_inv:
   forall g t,
-  typing g iset t R ->
+  typing g iset t conv ->
   conv g t (type 0).
 Proof.
   intros.
@@ -41,7 +39,7 @@ Qed.
 
 Lemma typing_bound_inv:
   forall g n t,
-  typing g (bound n) t R ->
+  typing g (bound n) t conv ->
   exists2 x,
   item x g n & conv g t (lift (1 + n) 0 (snd x)).
 Proof.
@@ -68,9 +66,9 @@ Qed.
 
 Lemma typing_unique:
   forall g e t1,
-  typing g e t1 R ->
+  typing g e t1 conv ->
   forall t2,
-  typing g e t2 R ->
+  typing g e t2 conv ->
   conv g t1 t2.
 Proof.
   intros until 1.

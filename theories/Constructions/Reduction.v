@@ -18,7 +18,7 @@ Import ListNotations.
 
 Lemma normal_form_is_decidable:
   forall g e t,
-  typing g e t typed_conv ->
+  typing g e t conv ->
   exists2 f,
   rt(step g) e f & normal (step g) f.
 Proof.
@@ -76,8 +76,8 @@ Definition eval: relation term :=
    define that two terms are observationally equivalent if they are equivalent
    no matter for every possible number of steps we need. *)
 
-Fixpoint observational_approx (n: nat): env -> term -> relation term :=
-  fun g t e1 e2 =>
+Fixpoint observational_approx (n: nat): env -> relation term :=
+  fun g e1 e2 =>
     match n with
     | 0 => True
     | S m =>
@@ -87,14 +87,14 @@ Fixpoint observational_approx (n: nat): env -> term -> relation term :=
         eval (h e1) v <-> eval (h e2) v
    end.
 
-Definition observational: env -> term -> relation term :=
-  fun g t e1 e2 =>
+Definition observational: env -> relation term :=
+  fun g e1 e2 =>
     (* We take the intersection of all approximations. *)
-    forall n, observational_approx n g t e1 e2.
+    forall n, observational_approx n g e1 e2.
 
 Lemma observational_is_consistent:
-  forall g t,
-  ~(forall e1 e2, observational g t e1 e2).
+  forall g,
+  ~(forall e1 e2, observational g e1 e2).
 Proof.
   repeat intro.
   (* Assume the relation is degenerate; so [true ~ false]. *)
@@ -123,7 +123,7 @@ Admitted.
 
 Lemma observational_is_conservative:
   forall g e t,
-  typing g e t typed_conv ->
+  typing g e t conv ->
   typing g e t observational.
 Proof.
   (* Mutual induction with valid environment...? *)
@@ -132,11 +132,11 @@ Admitted.
 
 Lemma extensionality:
   forall g f1 f2 a b,
-  typing g f1 (pi a b) typed_conv ->
-  typing g f2 (pi a b) typed_conv ->
-  (forall x, typing g x a typed_conv ->
-    observational g (subst x 0 b) (application f1 x) (application f2 x)) ->
-  observational g (pi a b) f1 f2.
+  typing g f1 (pi a b) conv ->
+  typing g f2 (pi a b) conv ->
+  (forall x, typing g x a conv ->
+    observational g (application f1 x) (application f2 x)) ->
+  observational g f1 f2.
 Proof.
   unfold observational.
   destruct n; simpl; repeat intro.
