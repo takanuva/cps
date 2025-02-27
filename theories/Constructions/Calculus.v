@@ -257,3 +257,5 @@ Inductive value: term -> Prop :=
     value bool_tt
   | value_false:
     value bool_ff.
+
+Global Hint Constructors value: cps.

@@ -87,10 +87,12 @@ Fixpoint observational_approx (n: nat): env -> relation term :=
         eval (h e1) v <-> eval (h e2) v
    end.
 
+Local Notation approx := observational_approx.
+
 Definition observational: env -> relation term :=
   fun g e1 e2 =>
     (* We take the intersection of all approximations. *)
-    forall n, observational_approx n g e1 e2.
+    forall n, approx n g e1 e2.
 
 Lemma observational_is_consistent:
   forall g,
@@ -113,24 +115,62 @@ Proof.
        that's an absurd! *)
     simpl in H.
     destruct H.
-    + split.
-      * apply rst_refl.
-      * constructor.
-    + (* By confluence, [true] and [false] would need to converge, but they
-         can't. *)
+    + split; auto with cps.
+    + (* ... *)
       admit.
 Admitted.
 
-Lemma observational_is_conservative:
-  forall g e t,
-  typing g e t conv ->
-  typing g e t observational.
+Lemma observational_conv:
+  forall g e f,
+  conv g e f ->
+  observational g e f.
 Proof.
-  (* Mutual induction with valid environment...? *)
-  admit.
+  (* Since this is the intersection of all approximations, we need to show that
+     this is valid for every level. We can do this by case analysis. *)
+  unfold observational.
+  destruct n; simpl; intros.
+  (* Case: zero. *)
+  - trivial.
+  (* Case: succ. *)
+  - split; intros (?, ?).
+    + admit.
+    + admit.
 Admitted.
 
-Lemma extensionality:
+Lemma observational_is_conservative:
+  forall j,
+  infer conv j ->
+  infer observational j.
+Proof.
+  (* We simply reconstruct the proof tree, judgement by judgement. *)
+  induction 1.
+  - now apply typing_iset.
+  - now apply typing_bound with d t.
+  - now apply typing_pi with s1 s2.
+  - now apply typing_abs.
+  - now apply typing_app with t.
+  - now apply typing_def.
+  - now apply typing_sigma with s1 s2.
+  - now apply typing_pair.
+  - now apply typing_proj1 with u.
+  - now apply typing_proj2 with t.
+  - now apply typing_bool.
+  - now apply typing_true.
+  - now apply typing_false.
+  - now apply typing_if with s.
+  - (* The only difference in the structure is on the (CONV) rule, which will
+       require us to show that [t] and [u] are observationally equivalent; this
+       follows directly since, by our hypothesis, they are convertible. *)
+    apply typing_conv with t s.
+    + assumption.
+    + assumption.
+    + now apply observational_conv.
+  - apply valid_env_nil.
+  - now apply valid_env_var with s.
+  - now apply valid_env_def with s.
+Qed.
+
+Theorem extensionality:
   forall g f1 f2 a b,
   typing g f1 (pi a b) conv ->
   typing g f2 (pi a b) conv ->
@@ -138,9 +178,6 @@ Lemma extensionality:
     observational g (application f1 x) (application f2 x)) ->
   observational g f1 f2.
 Proof.
-  unfold observational.
-  destruct n; simpl; repeat intro.
-  - easy.
-  - specialize H1 with (n := S n); simpl in H1.
-    admit.
+  unfold observational; intros.
+  admit.
 Admitted.
