@@ -315,23 +315,27 @@ Qed.
    already expected to have the same type. *)
 
 Inductive conv: env -> relation term :=
+  (* Common reduct. *)
   | conv_join:
     forall g e1 e2 f,
     rt(step g) e1 f ->
     rt(step g) e2 f ->
     conv g e1 e2
+  (* Eta-expansion for lambda, abstraction on the left. *)
   | conv_eta_left:
     forall g e1 e2 t f1 f2,
     rt(step g) e1 (abstraction t f1) ->
     rt(step g) e2 f2 ->
     conv (decl_var t :: g) f1 (application (lift 1 0 f2) (bound 0)) ->
     conv g e1 e2
+  (* Eta-expansion for lambda, abstraction on the right. *)
   | conv_eta_right:
     forall g e1 e2 t f1 f2,
     rt(step g) e1 f1 ->
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2
+  (* Surjective pairing, pair on the left. *)
   | conv_sur_left:
     forall g e1 p q t e2 f,
     rt(step g) e1 (pair p q t) ->
@@ -339,13 +343,17 @@ Inductive conv: env -> relation term :=
     conv g p (proj1 f) ->
     conv g q (proj2 f) ->
     conv g e1 e2
+  (* Surjective pairing, pair on the right. *)
   | conv_sur_right:
     forall g e1 p q t e2 f,
     rt(step g) e1 f ->
     rt(step g) e2 (pair p q t) ->
     conv g (proj1 f) p ->
     conv g (proj2 f) q ->
-    conv g e1 e2.
+    conv g e1 e2
+  (* TODO: add congruence rules. *).
+
+Global Hint Constructors conv: cps.
 
 Lemma conv_refl:
   forall g,
@@ -356,6 +364,8 @@ Proof.
   - apply rt_refl.
   - apply rt_refl.
 Qed.
+
+Global Hint Resolve conv_refl: cps.
 
 Lemma conv_sym:
   forall g,
@@ -369,6 +379,8 @@ Proof.
   - eapply conv_sur_left; eauto with cps.
 Qed.
 
+Global Hint Resolve conv_sym: cps.
+
 Lemma conv_trans:
   forall g,
   transitive (conv g).
@@ -376,6 +388,15 @@ Proof.
   (* TODO: Bowman's paper says this is transitive, and, intuitively, I agree.
      I'm not really sure yet how to prove this, tho. I'll come back here later.
   *)
+Admitted.
+
+Global Hint Resolve conv_trans: cps.
+
+Lemma conv_context:
+  forall (h: context) g e f,
+  conv g e f ->
+  conv g (h e) (h f).
+Proof.
   admit.
 Admitted.
 
