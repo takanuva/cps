@@ -261,4 +261,39 @@ Proof.
   - now apply valid_env_def with s.
 Qed.
 
+Lemma infer_subset:
+  forall R S,
+  (forall g, inclusion (R g) (S g)) ->
+  forall j,
+  infer R j ->
+  infer S j.
+Proof.
+  induction 2.
+  (* We simply reconstruct the proof tree, judgement by judgement. *)
+  - now apply typing_iset.
+  - now apply typing_bound with d t.
+  - now apply typing_pi with s1 s2.
+  - now apply typing_abs.
+  - now apply typing_app with t.
+  - now apply typing_def.
+  - now apply typing_sigma with s1 s2.
+  - now apply typing_pair.
+  - now apply typing_proj1 with u.
+  - now apply typing_proj2 with t.
+  - now apply typing_bool.
+  - now apply typing_true.
+  - now apply typing_false.
+  - now apply typing_if with s.
+  - (* The only difference in the structure is on the (CONV) rule, which will
+       require us to show that [t] and [u] are still convertible under the new
+       rule. *)
+    apply typing_conv with t s.
+    + assumption.
+    + assumption.
+    + now apply H.
+  - apply valid_env_nil.
+  - now apply valid_env_var with s.
+  - now apply valid_env_def with s.
+Qed.
+
 (* TODO: should we conjecture subject reduction? Prove it...? *)

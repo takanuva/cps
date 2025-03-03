@@ -142,32 +142,10 @@ Lemma observational_is_conservative:
   infer conv j ->
   infer observational j.
 Proof.
-  (* We simply reconstruct the proof tree, judgement by judgement. *)
-  induction 1.
-  - now apply typing_iset.
-  - now apply typing_bound with d t.
-  - now apply typing_pi with s1 s2.
-  - now apply typing_abs.
-  - now apply typing_app with t.
-  - now apply typing_def.
-  - now apply typing_sigma with s1 s2.
-  - now apply typing_pair.
-  - now apply typing_proj1 with u.
-  - now apply typing_proj2 with t.
-  - now apply typing_bool.
-  - now apply typing_true.
-  - now apply typing_false.
-  - now apply typing_if with s.
-  - (* The only difference in the structure is on the (CONV) rule, which will
-       require us to show that [t] and [u] are observationally equivalent; this
-       follows directly since, by our hypothesis, they are convertible. *)
-    apply typing_conv with t s.
-    + assumption.
-    + assumption.
-    + now apply observational_conv.
-  - apply valid_env_nil.
-  - now apply valid_env_var with s.
-  - now apply valid_env_def with s.
+  intros.
+  apply infer_subset with conv.
+  - exact observational_conv.
+  - assumption.
 Qed.
 
 Theorem extensionality:
