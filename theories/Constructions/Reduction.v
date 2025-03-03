@@ -91,34 +91,45 @@ Local Notation approx := observational_approx.
 
 Definition observational: env -> relation term :=
   fun g e1 e2 =>
-    (* We take the intersection of all approximations. *)
+    (* We take the intersection of all approximations! *)
     forall n, approx n g e1 e2.
+
+Lemma observational_tt_ff:
+  forall g,
+  ~observational g bool_tt bool_ff.
+Proof.
+  (* Assume the relation is degenerate; so [true ~ false]. *)
+  repeat intro.
+  (* For every approximation level, on every context, true and false return the
+     same value after computation; we pick the empty context and the truth value
+     for checking. *)
+  specialize (H 1).
+  unfold approx in H; simpl in H.
+  specialize (H context_hole bool_tt).
+  (* Now we observe... *)
+  destruct H as (?, _); simpl.
+  - (* True is typable, obviously. *)
+    repeat constructor.
+  - (* So is false. *)
+    repeat constructor.
+  - (* If [true] reduces to [true] (which is trivial), then [false] should also
+       reduce to [true]: that's an absurd! *)
+    simpl in H; destruct H.
+    + (* Clearly... *)
+      split; auto with cps.
+    + (* TODO: properly define CBN and CBV. *)
+      admit.
+Admitted.
 
 Lemma observational_is_consistent:
   forall g,
   ~(forall e1 e2, observational g e1 e2).
 Proof.
   repeat intro.
-  (* Assume the relation is degenerate; so [true ~ false]. *)
-  specialize (H bool_tt bool_ff 1).
-  unfold observational_approx in H; simpl in H.
-  (* On every context, they return the same value; we pick the empty context and
-     the truth value. *)
-  specialize (H context_hole bool_tt).
-  (* Now we observe... *)
-  destruct H as (?, _); simpl.
-  - (* True is typable, obviously. *)
-    repeat constructor.
-  - (* False is also typable, obviously. *)
-    repeat constructor.
-  - (* If [true] reduces to [true] (trivial), then [false] reduces to [true]:
-       that's an absurd! *)
-    simpl in H.
-    destruct H.
-    + split; auto with cps.
-    + (* ... *)
-      admit.
-Admitted.
+  (* Follows directly from the above: on any context, [true] and [false] are
+     different values. *)
+  now apply observational_tt_ff with g.
+Qed.
 
 Lemma observational_conv:
   forall g e f,
@@ -157,5 +168,7 @@ Theorem extensionality:
   observational g f1 f2.
 Proof.
   unfold observational; intros.
-  admit.
+  induction n; simpl; intros.
+  - easy.
+  - admit.
 Admitted.
