@@ -167,8 +167,26 @@ Theorem extensionality:
     observational g (application f1 x) (application f2 x)) ->
   observational g f1 f2.
 Proof.
-  unfold observational; intros.
+  repeat intro.
   induction n; simpl; intros.
   - easy.
-  - admit.
+  - split; intros.
+    + (* Ignore, for now, definitions inside the context [g], as the relation
+         will need to be reworked to take care of that. In order to prove that
+         pi types admit functional extensionality in the observational relation,
+         we first check if the context [h] goes inside a binder. If it does, it
+         means that [f1] plays no role in the computation itself, so neither
+         will [f2] and thus we finish. If [f1] doesn't go into a binder, though,
+         it will be used in the computation. We have now to find an equivalent
+         applicative context for [h], i.e., a context [(([] e1) ...) en]. If the
+         number of arguments is zero, this has to be the empty context, which is
+         an absurd given that [f1] would be a boolean due to [H4] and it can
+         never be a function as it is in [H]. If there are some arguments, we
+         take the first one, [e1], and give it to [H1] to show that [f1 e1] and
+         [f2 e2] are equivalent. If they are, so will be [f1 e1 ... en] and
+         [f2 e1 ... en], which is our context. As it's equivalent to [h], this
+         means [f1 ...] will return [v], and so will [f2 ...] as expected. *)
+      admit.
+    + (* Same as above. *)
+      admit.
 Admitted.
