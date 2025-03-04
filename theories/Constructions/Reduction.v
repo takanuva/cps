@@ -159,7 +159,7 @@ Proof.
   - assumption.
 Qed.
 
-Theorem extensionality:
+Lemma extensionality_if:
   forall g f1 f2 a b,
   typing g f1 (pi a b) conv ->
   typing g f2 (pi a b) conv ->
@@ -189,4 +189,22 @@ Proof.
       admit.
     + (* Same as above. *)
       admit.
+Admitted.
+
+Lemma extensionality_only_if:
+  forall g f1 f2 a b,
+  typing g f1 (pi a b) conv ->
+  typing g f2 (pi a b) conv ->
+  observational g f1 f2 ->
+  forall x,
+  typing g x a conv ->
+  observational g (application f1 x) (application f2 x).
+Proof.
+  repeat intro.
+  destruct n; simpl; intros.
+  - easy.
+  - specialize (H1 (S n)); simpl in H1.
+    (* We need composition of contexts to finish this, but this is clearly true
+       as we can supply [h (application [-] x)] to [H2] and get our goal. *)
+    admit.
 Admitted.
