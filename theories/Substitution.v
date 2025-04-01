@@ -79,6 +79,49 @@ Section Core.
       else
         var n.
 
+  (* Local Goal
+    forall s k n,
+    inst_fun (subst_app [] s) k n =
+      if le_gt_dec k n then
+        inst_fun s k n
+      else
+        var n.
+  Proof.
+    intros; simpl.
+    destruct le_gt_dec.
+    + remember (n - k) as o.
+      destruct o; simpl.
+      * now replace (n - 0) with n by lia.
+      * now replace (n - 0) with n by lia.
+    + reflexivity.
+  Qed. *)
+
+  (* Local Goal
+    forall y ys s k n,
+    inst_fun (subst_app (y::ys) s) k n =
+      if le_gt_dec k n then
+        if Nat.eq_dec k n then
+          traverse (lift_fun k) 0 y
+        else
+          inst_fun (subst_app ys s) k (n - 1)
+      else
+        var n.
+  Proof.
+    intros; simpl.
+    destruct le_gt_dec.
+    - destruct Nat.eq_dec.
+      + replace (n - k) with 0 by lia.
+        now simpl.
+      + remember (n - k) as o.
+        destruct o; try lia.
+        destruct le_gt_dec; try lia.
+        simpl.
+        replace (n - 1 - k) with o by lia.
+        replace (n - 1 - length ys) with (n - S (length ys)) by lia.
+        reflexivity.
+    - reflexivity.
+  Qed. *)
+
   Definition inst_rec (s: substitution): nat -> X -> X :=
     traverse (inst_fun s).
 
@@ -1299,6 +1342,73 @@ Section Tests.
     forall x y z p k,
     subst y (p + k) (subst z p x) =
       subst (subst y k z) p (subst y (1 + p + k) x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  (* The following six rules appear in the s_e-calculus for confluence. *)
+
+  Goal
+    forall x y z i j,
+    i <= j ->
+    subst z j (subst y i x) =
+      subst (subst z (j - i) y) i (subst z (1 + j) x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x y i j k,
+    k < j ->
+    j < k + i ->
+    subst y j (lift i k x) = lift (i - 1) k x.
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x y i j k,
+    k + i <= j ->
+    subst y j (lift i k x) = lift i k (subst y (j - i) x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x y i j k,
+    j <= k + 1 ->
+    (* Phi-sigma-transition... *)
+    lift i k (subst y j x) = subst (lift i (k - j) y) j (lift i (1 + k) x).
+  Proof.
+    intros.
+    sigma.
+    f_equal.
+    (* Oh no! *)
+    destruct (le_lt_dec j k).
+    - Fail sigma.
+      admit.
+    - Fail sigma.
+      admit.
+  Admitted.
+
+  Goal
+    forall x i j k l,
+    l + j <= k ->
+    lift i k (lift j l x) = lift j l (lift i (k - j) x).
+  Proof.
+    intros.
+    now sigma.
+  Qed.
+
+  Goal
+    forall x i j k l,
+    l <= k ->
+    k < l + j ->
+    lift i k (lift j l x) = lift (j + i) l x.
   Proof.
     intros.
     now sigma.
