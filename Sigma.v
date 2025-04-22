@@ -852,22 +852,16 @@ Section Sigma.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
-      + (* This is, indeed, correct, but it looks weird! *)
-        rename j0 into k, s0 into s.
-        wonder (SUB i j) k;
-        wonder k j;
-        wonder i (ADD k j).
-        * work.
-        * work.
-        * work.
-        * work.
-        * work.
-        * work.
+      + rename j0 into k, s0 into s.
+        wonder (SUB i j) k.
         * work.
         * work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
+      + rename j0 into k, s0 into s, t0 into t.
+        wonder (SUB i j) k.
+        * work.
+        * work.
     - repeat break; work.
       + rename j0 into k, t1 into t.
         wonder i k.
@@ -880,42 +874,97 @@ Section Sigma.
       + wonder i 0.
         * work.
         * work.
-      + admit.
-      + admit.
-      + admit.
+      + wonder i (length ys).
+        * admit.
+        * work.
+      + wonder i 0.
+        * work.
+        * work.
+      + wonder i (length ys).
+        * admit.
+        * work.
     - repeat break; work.
-      (* Hmmm... *)
-      + admit.
+      + rename j0 into k, s0 into t.
+        wonder i (ADD k j).
+        * work.
+        * work.
     - repeat break; work.
-      + admit.
+      + rename j0 into k, s0 into s, t0 into t.
+        wonder (ADD k i) j.
+        * work.
+        * work.
     - repeat break; work.
       + rename j0 into k, s0 into t.
         wonder (SUB i j) k.
         * work.
         * work.
     - repeat break; work.
+      + rename j0 into k, s0 into s, t0 into t.
+        wonder (ADD k i) j.
+        * work.
+        * work.
+      + rename j0 into k, t1 into t.
+        wonder i k.
+        * work.
+        * work.
+      + rename j0 into k, t1 into t, u0 into u.
+        wonder i k.
+        * work.
+        * work.
+      + wonder i 0.
+        * work.
+        * work.
       + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
+      + wonder i 0.
+        * work.
+        * work.
+      + rename t0 into t1, t1 into t2, u0 into u.
+        wonder i (length ys).
+        * admit.
+        * work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + admit.
-      + admit.
+      + replace ys0 with [] by admit.
+        work.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
-      + admit.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+      + rename j0 into k, s0 into s.
+        wonder (ADD j i) k.
+        * work.
+        * work.
+      + rename j0 into k, s0 into s.
+        wonder (ADD j i) k.
+        * work.
+        * work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+      + replace zs with [] by admit.
+        replace ys with [] by admit.
+        work.
+      + rename ys0 into zs.
+        replace ys with [] by admit.
+        replace zs with [] by admit.
+        admit.
+    - repeat break; work.
+    - repeat break; work.
+      + rename s0 into t.
+        wonder (ADD i k) j.
+        * work.
+        * work.
+      + rename s0 into t, t1 into u.
+        wonder (ADD i k) j.
+        * work.
+        * work.
+    - admit.
+    - admit.
     (* .................................................................. *)
   Admitted.
 
