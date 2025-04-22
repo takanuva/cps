@@ -90,8 +90,6 @@ Section Sigma.
     (subst_app [y])
     (only parsing).
 
-  Axiom smap: SUBST -> NUM -> VECTOR -> VECTOR.
-
   Inductive step: forall {s: sort}, relation (t s) :=
     (* Structural rules: *)
     | A1 e f s:
@@ -343,6 +341,18 @@ Section Sigma.
       interpretation i <= interpretation n ->
       step (inst (subst_comp (subst_upn i s) t) (var n))
            (inst (subst_comp s (subst_comp (subst_lift i) t)) (var (n - i)))
+
+
+
+
+
+
+
+
+
+
+
+
     (* 21. (IdEnv) inst subst_ids x = x *)
     | A16 x:
       step (inst subst_ids x)
@@ -367,6 +377,22 @@ Section Sigma.
       interpretation i >= interpretation (length ys) ->
       step (subst_comp (subst_lift i) (subst_app ys s))
            (subst_comp (subst_lift (i - length ys)) s)
+
+
+
+    | A19' i y ys s t:
+      interpretation i > interpretation 0 ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_app (y :: ys) s) t))
+           (subst_comp (subst_lift (i - 1)) (subst_comp (subst_app ys s) t))
+    | A20' i ys s t:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_app ys s) t))
+           (subst_comp (subst_lift (i - length ys)) (subst_comp s t))
+
+
+
+
+
     (* 13. (ShiftLift1) subst_comp (subst_lift 1) (subst_upn 1 s)
                                                 = subst_comp s (subst_lift 1) *)
     | A21 i j s:
@@ -410,14 +436,6 @@ Section Sigma.
       interpretation i <= interpretation j ->
         step (subst_comp (subst_upn i s) (subst_upn j t))
              (subst_upn i (subst_comp s (subst_upn (j - i) t)))
-
-
-
-
-
-
-
-
     (* 16. (Lift2) subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u)
                                 = subst_comp (subst_upn 1 (subst_comp s t)) u *)
     | A27 i j s t u:
@@ -428,11 +446,6 @@ Section Sigma.
       interpretation i <= interpretation j ->
       step (subst_comp (subst_upn i s) (subst_comp (subst_upn j t) u))
            (subst_comp (subst_upn i (subst_comp s (subst_upn (j - i) t))) u)
-
-
-
-
-
 
 
 
@@ -449,9 +462,16 @@ Section Sigma.
       step (subst_comp (subst_upn i s) (subst_app ys t))
            (subst_app ys (subst_comp (subst_upn (i - length ys) s) t))
 
-
-
-
+    | A29' i s y ys t u:
+      interpretation i > interpretation 0 ->
+      (* TODO: check if this is normal form!!! *)
+      step (subst_comp (subst_upn i s) (subst_comp (subst_app (y :: ys) t) u))
+           (subst_cons (inst u y)
+             (subst_comp (subst_upn (i - 1) s) (subst_comp (subst_app ys t) u)))
+    | A30' i s ys t u:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys t) u))
+           (subst_comp (subst_app ys (subst_comp (subst_upn (i - length ys) s) t)) u)
 
 
 
@@ -493,6 +513,36 @@ Section Sigma.
       interpretation (length ys) = interpretation 0 ->
       step (subst_app (y :: ys) (subst_app zs s))
            (subst_app (y :: zs) s)
+    (* ---------------------------------------------------------------------- *)
+
+    | ABA i k s n:
+      step (inst (subst_comp (subst_upn k s) (subst_lift i)) (var n))
+           (inst (subst_upn (i + k) s) (var (i + n)))
+
+    | ABB i k s t n:
+      step (inst (subst_comp (subst_upn k s) (subst_comp (subst_lift i) t)) (var n))
+           (inst (subst_comp (subst_upn (i + k) s) t) (var (i + n)))
+
+    (* | ABC i j s t n:
+      interpretation (i + j)%sigma > interpretation n ->
+      step (inst (subst_upn i (subst_comp (subst_upn j s) t)) (var n))
+           (inst (subst_upn i t) (var n))
+
+    | ABD i j s t u n:
+      interpretation (i + j)%sigma > interpretation n ->
+      step (inst (subst_comp (subst_upn i (subst_comp (subst_upn j s) t)) u) (var n))
+           (inst (subst_comp (subst_upn i t) u) (var n)) *)
+
+    | ABE ys i s t n:
+      interpretation (i + length ys) > interpretation n ->
+      step (inst (subst_app ys (subst_comp (subst_upn i s) t)) (var n))
+           (inst (subst_app ys t) (var n))
+
+    | ABF ys i s t u n:
+      interpretation (i + length ys) > interpretation n ->
+      step (inst (subst_comp (subst_app ys (subst_comp (subst_upn i s) t)) u) (var n))
+           (inst (subst_comp (subst_app ys t) u) (var n))
+
     (* ---------------------------------------------------------------------- *)
     (* Congruence rules: *)
     | C0 n1 n2:
@@ -688,6 +738,7 @@ Section Sigma.
     | H: @step NUM ?n ?m |- _ => apply interpretation_consistent_num in H
     | H: @step VECTOR ?xs ?ys |- _ => apply interpretation_consistent_len in H
     end;
+    subst;
     autorewrite with interpretation in *;
     solve [ lia ].
 
@@ -754,8 +805,10 @@ Section Sigma.
     end.
 
   Ltac work :=
-    join;
-    try solve [ try easy; repeat force; boundscheck ].
+    try solve [ join; try easy; repeat force; boundscheck ].
+
+  Ltac wonder i j :=
+    destruct (le_gt_dec (interpretation i) (interpretation j)).
 
   Theorem locally_confluent:
     forall s x y,
@@ -776,47 +829,70 @@ Section Sigma.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
-      + admit.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + admit.
-    - repeat break; work.
-      + admit.
-    - repeat break; work.
-    - repeat break; work.
-      + admit.
-      + admit.
+      + wonder j n.
+        * work.
+        * work.
+      + wonder j n.
+        * work.
+        * work.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
-      + admit.
     - repeat break; work.
     - repeat break; work.
-      + admit.
     - repeat break; work.
-      + (* Here! *)
-        admit.
-      + admit.
-      + admit.
-      + admit.
     - repeat break; work.
-      + admit.
     - repeat break; work.
-      + admit.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+      + (* This is, indeed, correct, but it looks weird! *)
+        rename j0 into k, s0 into s.
+        wonder (SUB i j) k;
+        wonder k j;
+        wonder i (ADD k j).
+        * work.
+        * work.
+        * work.
+        * work.
+        * work.
+        * work.
+        * work.
+        * work.
+    - repeat break; work.
     - repeat break; work.
       + admit.
+    - repeat break; work.
+      + rename j0 into k, t1 into t.
+        wonder i k.
+        * work.
+        * work.
+      + rename j0 into k, t1 into t.
+        wonder i k.
+        * work.
+        * work.
+      + wonder i 0.
+        * work.
+        * work.
+      + admit.
+      + admit.
+      + admit.
+    - repeat break; work.
+      (* Hmmm... *)
+      + admit.
+    - repeat break; work.
+      + admit.
+    - repeat break; work.
+      + rename j0 into k, s0 into t.
+        wonder (SUB i j) k.
+        * work.
+        * work.
     - repeat break; work.
       + admit.
       + admit.
