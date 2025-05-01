@@ -316,6 +316,10 @@ Section Sigma.
       interpretation n >= interpretation (length ys) ->
       step (inst (subst_app ys s) (var n))
            (inst s (var (n - length ys)))
+    | A13' ys zs s n:
+      interpretation n >= interpretation (length ys) ->
+      step (inst (subst_app (ys ++ zs) s) (var n))
+           (inst (subst_app zs s) (var (n - length ys)))
     (* Sometimes app and comp can't commute, so we need to consider it here. *)
     | AAA y ys s t n:
       interpretation n > 0 ->
@@ -325,7 +329,10 @@ Section Sigma.
       interpretation n >= interpretation (length ys) ->
       step (inst (subst_comp (subst_app ys s) t) (var n))
            (inst (subst_comp s t) (var (n - length ys)))
-
+    | AAB' ys zs s t n:
+      interpretation n >= interpretation (length ys) ->
+      step (inst (subst_comp (subst_app (ys ++ zs) s) t) (var n))
+           (inst (subst_comp (subst_app zs s) t) (var (n - length ys)))
 
 
 
@@ -377,7 +384,10 @@ Section Sigma.
       interpretation i >= interpretation (length ys) ->
       step (subst_comp (subst_lift i) (subst_app ys s))
            (subst_comp (subst_lift (i - length ys)) s)
-
+    | A201 i ys zs s:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_lift i) (subst_app (ys ++ zs) s))
+           (subst_comp (subst_lift (i - length ys)) (subst_app zs s))
 
 
     | A19' i y ys s t:
@@ -388,6 +398,10 @@ Section Sigma.
       interpretation i >= interpretation (length ys) ->
       step (subst_comp (subst_lift i) (subst_comp (subst_app ys s) t))
            (subst_comp (subst_lift (i - length ys)) (subst_comp s t))
+    | A201' i ys zs s t:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_app (ys ++ zs) s) t))
+           (subst_comp (subst_lift (i - length ys)) (subst_comp (subst_app zs s) t))
 
 
 
@@ -462,6 +476,12 @@ Section Sigma.
       step (subst_comp (subst_upn i s) (subst_app ys t))
            (subst_app ys (subst_comp (subst_upn (i - length ys) s) t))
 
+    | A301 i s ys zs t:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_app (ys ++ zs) t))
+           (subst_app ys (subst_comp (subst_upn (i - length ys) s) (subst_app zs t)))
+
+
     | A29' i s y ys t u:
       interpretation i > interpretation 0 ->
       (* TODO: check if this is normal form!!! *)
@@ -472,6 +492,11 @@ Section Sigma.
       interpretation i >= interpretation (length ys) ->
       step (subst_comp (subst_upn i s) (subst_comp (subst_app ys t) u))
            (subst_comp (subst_app ys (subst_comp (subst_upn (i - length ys) s) t)) u)
+
+    | A301' i s ys zs t u:
+      interpretation i >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_app (ys ++ zs) t) u))
+           (subst_comp (subst_app ys (subst_comp (subst_upn (i - length ys) s) (subst_app zs t))) u)
 
 
 
@@ -542,6 +567,57 @@ Section Sigma.
       interpretation (i + length ys) > interpretation n ->
       step (inst (subst_comp (subst_app ys (subst_comp (subst_upn i s) t)) u) (var n))
            (inst (subst_comp (subst_app ys t) u) (var n))
+
+
+(*
+H : interpretation i <= interpretation j
+H0 : interpretation j >= interpretation (length ys)
+l : interpretation i <= interpretation (length ys)
+______________________________________(1/1)
+equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_app ys t)))
+  (subst_comp (subst_lift i) (subst_app ys (subst_comp (subst_upn (j - length ys) s) t)))
+*)
+    | ABG i s j ys t:
+      (* This is curious; we're trying to move lifts to the right and apps to
+         the left; however, this case appears when j < |ys|, this this lift is
+         already at the rightmost position it can be as we won't simply break
+         ys in two! But we can move the app to the left by moving the upn to
+         the right (even if the lift is stuck). *)
+      interpretation (i + j) >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_app ys t)))
+           (subst_comp (subst_lift j) (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)))
+
+    | ABH i s j ys t u:
+      interpretation (i + j) >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_comp (subst_app ys t) u)))
+           (subst_comp (subst_lift j) (subst_comp (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)) u))
+
+
+
+
+
+
+    | ABW ys zs s:
+      step (subst_app ys (subst_app zs s))
+           (subst_app (ys ++ zs) s)
+
+    | ABX y ys zs:
+      step ((y :: ys) ++ zs)
+           (y :: (ys ++ zs))
+
+    | ABY ys zs:
+      interpretation (length ys) = interpretation 0 ->
+      step (ys ++ zs)
+           zs
+
+    | ABZ ys zs:
+      interpretation (length zs) = interpretation 0 ->
+      step (ys ++ zs)
+           ys
+
+    | AB' ys zs ws:
+      step ((ws ++ ys) ++ zs)
+           (ws ++ (ys ++ zs))
 
     (* ---------------------------------------------------------------------- *)
     (* Congruence rules: *)
@@ -722,6 +798,10 @@ Section Sigma.
     dependent induction H;
     autorewrite with interpretation in *.
     - lia.
+    - now rewrite H.
+    - now rewrite H.
+    - lia.
+    - reflexivity.
     - f_equal.
       now apply IHstep.
     - f_equal.
@@ -773,15 +853,19 @@ Section Sigma.
     exists2 w,
     @star s y w & @star s z w.
 
-  Lemma equivalent_refl:
-    forall {s} x,
-    @equivalent s x x.
+  Instance equivalent_refl: forall {s}, Reflexive (@equivalent s).
   Proof.
     repeat intro.
     exists x; eauto with sigma.
   Qed.
 
-  Hint Resolve equivalent_refl: core.
+  (* This one is only ever needed for testing; might be removed. *)
+  Instance equivalent_sym: forall {s}, Symmetric (@equivalent s).
+  Proof.
+    repeat intro.
+    destruct H as (z, ?, ?).
+    now exists z.
+  Qed.
 
   Ltac skip :=
     now easy + now (exfalso; boundscheck).
@@ -852,6 +936,10 @@ Section Sigma.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
       + rename j0 into k, s0 into s.
         wonder (SUB i j) k.
         * work.
@@ -874,13 +962,12 @@ Section Sigma.
       + wonder i 0.
         * work.
         * work.
-      + wonder i (length ys).
+      + rename t1 into t.
+        wonder i (length ys).
         * admit.
         * work.
-      + wonder i 0.
-        * work.
-        * work.
-      + wonder i (length ys).
+      + rename t1 into t.
+        wonder i (length ys).
         * admit.
         * work.
     - repeat break; work.
@@ -914,6 +1001,9 @@ Section Sigma.
       + wonder i 0.
         * work.
         * work.
+      + wonder i (length ys).
+        * admit.
+        * work.
       + admit.
       + wonder i 0.
         * work.
@@ -922,10 +1012,21 @@ Section Sigma.
         wonder i (length ys).
         * admit.
         * work.
+      + admit.
+      + rename t0 into t, j0 into k.
+        wonder k (length ys).
+        * admit.
+        * work.
+      + rename t0 into t, j0 into k, t1 into u, u0 into v.
+        wonder k (length ys).
+        * admit.
+        * work.
     - repeat break; work.
     - repeat break; work.
       + replace ys0 with [] by admit.
         work.
+    - repeat break; work.
+    - repeat break; work.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
@@ -949,10 +1050,6 @@ Section Sigma.
       + replace zs with [] by admit.
         replace ys with [] by admit.
         work.
-      + rename ys0 into zs.
-        replace ys with [] by admit.
-        replace zs with [] by admit.
-        admit.
     - repeat break; work.
     - repeat break; work.
       + rename s0 into t.
@@ -965,6 +1062,21 @@ Section Sigma.
         * work.
     - admit.
     - admit.
+    - repeat break; work.
+      + replace ys0 with [] by admit.
+        admit.
+      + admit.
+    - repeat break; work.
+      + admit.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+      + (* Well, of course! *)
+        admit.
+    - repeat break; work.
+      + (* May the gods help me... *)
+        admit.
+    - repeat break; work.
     (* .................................................................. *)
   Admitted.
 
