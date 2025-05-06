@@ -587,15 +587,51 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
       step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_app ys t)))
            (subst_comp (subst_lift j) (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)))
 
+    | ABG' i s j ys zs t:
+      interpretation (i + j) >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_app (ys ++ zs) t)))
+           (subst_comp (subst_lift j) (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) (subst_app zs t))))
+
+
     | ABH i s j ys t u:
       interpretation (i + j) >= interpretation (length ys) ->
       step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_comp (subst_app ys t) u)))
            (subst_comp (subst_lift j) (subst_comp (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)) u))
 
 
+    | ABH' i s j ys zs t u:
+      interpretation (i + j) >= interpretation (length ys) ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_comp (subst_app (ys ++ zs) t) u)))
+           (subst_comp (subst_lift j) (subst_comp (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) (subst_app zs t))) u))
 
 
 
+    | ABI i s ys j t:
+      interpretation (j + length ys) >= interpretation i ->
+      step (subst_comp (subst_upn i s) (subst_app ys (subst_upn j t)))
+           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_app ys subst_ids))
+
+    | ABI' i s ys j t u:
+      interpretation (j + length ys) >= interpretation i ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys (subst_upn j t)) u))
+           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_comp (subst_app ys subst_ids) u))
+
+
+    | ABJ i s ys j t u:
+      interpretation (j + length ys) >= interpretation i ->
+      step (subst_comp (subst_upn i s) (subst_app ys (subst_comp (subst_upn j t) u)))
+           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_app ys u))
+    | ABJ' i s ys j t u v:
+      interpretation (j + length ys) >= interpretation i ->
+      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys (subst_comp (subst_upn j t) u)) v))
+           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_comp (subst_app ys u) v))
+
+
+
+
+
+
+    (* ---------------------------------------------------------------------- *)
 
     | ABW ys zs s:
       step (subst_app ys (subst_app zs s))
@@ -922,6 +958,11 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
       + wonder j n.
         * work.
         * work.
+      + (* Ok! *)
+        join.
+        admit.
+      + join.
+        admit.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
@@ -962,14 +1003,10 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
       + wonder i 0.
         * work.
         * work.
-      + rename t1 into t.
-        wonder i (length ys).
-        * admit.
-        * work.
-      + rename t1 into t.
-        wonder i (length ys).
-        * admit.
-        * work.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
     - repeat break; work.
       + rename j0 into k, s0 into t.
         wonder i (ADD k j).
@@ -998,29 +1035,19 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
         wonder i k.
         * work.
         * work.
-      + wonder i 0.
-        * work.
+      + wonder i (length ys).
+        * join.
+          admit.
         * work.
       + wonder i (length ys).
-        * admit.
+        * join.
+          admit.
         * work.
-      + admit.
-      + wonder i 0.
-        * work.
-        * work.
-      + rename t0 into t1, t1 into t2, u0 into u.
-        wonder i (length ys).
-        * admit.
-        * work.
-      + admit.
       + rename t0 into t, j0 into k.
         wonder k (length ys).
         * admit.
         * work.
-      + rename t0 into t, j0 into k, t1 into u, u0 into v.
-        wonder k (length ys).
-        * admit.
-        * work.
+      + admit.
     - repeat break; work.
     - repeat break; work.
       + replace ys0 with [] by admit.
@@ -1065,9 +1092,19 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     - repeat break; work.
       + replace ys0 with [] by admit.
         admit.
+    - repeat break; work.
+      + admit.
+    - repeat break; work.
+    - repeat break; work.
+    - repeat break; work.
+      + admit.
       + admit.
     - repeat break; work.
       + admit.
+      + admit.
+      + admit.
+    - admit.
+    - admit.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
