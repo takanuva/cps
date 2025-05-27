@@ -94,6 +94,17 @@ Definition observational: env -> relation term :=
     (* We take the intersection of all approximations! *)
     forall n, approx n g e1 e2.
 
+Lemma observational_approx_unfold:
+  forall n g e1 e2,
+  approx (S n) g e1 e2 =
+    (forall (h: context) v,
+     typing [] (h e1) boolean (approx n) ->
+     typing [] (h e2) boolean (approx n) ->
+     eval (h e1) v <-> eval (h e2) v).
+Proof.
+  auto.
+Qed.
+
 Lemma observational_tt_ff:
   forall g,
   ~observational g bool_tt bool_ff.
