@@ -43,14 +43,28 @@ Inductive is_arity: term -> Prop :=
     is_arity (definition v t u).
 
 Inductive type_scheme (R: typing_equivalence): term -> Prop :=
-  | type_scheme_sort:
+  (* | type_scheme_sort:
     forall s,
-    type_scheme R (sort s)
+    type_scheme R (sort s) *)
   | type_scheme_make:
     forall g e t,
     typing g e t R ->
     is_arity t ->
     type_scheme R e.
+
+Lemma type_scheme_sort:
+  forall R s,
+  type_scheme R (sort s).
+Proof.
+  intros.
+  destruct s.
+  - apply type_scheme_make with [] (type 0).
+    + repeat constructor.
+    + constructor.
+  - apply type_scheme_make with [] (type (1 + n)).
+    + admit.
+    + constructor.
+Admitted.
 
 (* Goal
   type_scheme polymorphic_id_type.
@@ -151,8 +165,8 @@ Proof.
   intros.
   apply sorting in H as [ ? | (s, ?) ].
   - subst.
-    constructor.
-  - constructor 2 with g (sort s).
+    apply type_scheme_sort.
+  - constructor 1 with g (sort s).
     + assumption.
     + constructor.
 Qed.
