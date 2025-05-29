@@ -43,9 +43,6 @@ Inductive is_arity: term -> Prop :=
     is_arity (definition v t u).
 
 Inductive type_scheme (R: typing_equivalence): term -> Prop :=
-  (* | type_scheme_sort:
-    forall s,
-    type_scheme R (sort s) *)
   | type_scheme_make:
     forall g e t,
     typing g e t R ->
@@ -62,9 +59,9 @@ Proof.
     + repeat constructor.
     + constructor.
   - apply type_scheme_make with [] (type (1 + n)).
-    + admit.
+    + repeat constructor.
     + constructor.
-Admitted.
+Qed.
 
 (* Goal
   type_scheme polymorphic_id_type.
