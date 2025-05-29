@@ -119,23 +119,30 @@ Theorem sorting:
   infer R j ->
   match j with
   | valid_env g => schemes_only R g
-  | typing g e t => type_scheme R t
+  | typing g e t => schemes_only R g /\ type_scheme R t
   end.
 Proof.
   induction 1; intros.
-  - exists g (type 1).
+  - split; auto.
+    exists g (type 1).
     + now constructor.
     + constructor.
-  - exists g (type (2 + n)).
+  - split; auto.
+    exists g (type (2 + n)).
     + now constructor.
     + constructor.
   - subst.
+    split; auto.
     destruct IHinfer with (d, t) n as (s, ?).
     + assumption.
     + econstructor.
       * eassumption.
       * constructor.
-  - admit.
+  - subst.
+    destruct IHinfer1.
+    destruct IHinfer2.
+    split; auto.
+    admit.
   - admit.
   - admit.
   - admit.
