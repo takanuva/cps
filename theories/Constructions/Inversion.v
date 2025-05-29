@@ -80,7 +80,9 @@ Proof.
   - clear IHinfer.
     apply typing_iset_inv in H0.
     now apply conv_sym.
-  - admit.
+  - clear IHinfer.
+    apply typing_type_inv in H0.
+    now apply conv_sym.
   - clear IHinfer.
     destruct typing_bound_inv with g n t2.
     + assumption.
@@ -88,7 +90,18 @@ Proof.
       dependent destruction H4.
       simpl in H3.
       now apply conv_sym.
-  - admit.
+  - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl).
+    specialize (IHinfer2 _ _ _ eq_refl JMeq_refl).
+    generalize dependent s2.
+    generalize dependent s1.
+    dependent induction H1; intros.
+    + clear IHinfer1 IHinfer2.
+      specialize (IHinfer0 _ H1_).
+      specialize (IHinfer3 _ H1_0).
+      admit.
+    + clear IHinfer2.
+      specialize (IHinfer1 _ _ _ _ eq_refl JMeq_refl).
+      eapply conv_trans with t0; auto.
   - admit.
   - admit.
   - admit.
