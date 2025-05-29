@@ -114,6 +114,7 @@ Qed.
 
 Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
   forall d n,
+  (* TODO: improve this definition. *)
   item d g n -> exists s, typing g (lift (S n) 0 (snd d)) (sort s) R.
 
 Theorem sorting:
@@ -121,18 +122,22 @@ Theorem sorting:
   infer R j ->
   match j with
   | valid_env g => schemes_only R g
-  | typing g e t => t = sort (type 0) \/ exists s, typing g t (sort s) R
+  | typing g e t => type_scheme R t
   end.
 Proof.
   induction 1; intros.
-  - now left.
-  - right.
-    exists (type (2 + n)).
-    now constructor.
-  - right; subst.
+  - exists g (type 1).
+    + now constructor.
+    + constructor.
+  - exists g (type (2 + n)).
+    + now constructor.
+    + constructor.
+  - subst.
     destruct IHinfer with (d, t) n as (s, ?).
     + assumption.
-    + now exists s.
+    + econstructor.
+      * eassumption.
+      * constructor.
   - admit.
   - admit.
   - admit.
