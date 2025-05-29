@@ -154,12 +154,36 @@ Proof.
   - clear IHinfer2.
     repeat intro.
     dependent destruction H1; simpl.
-    + admit.
+    + exists s.
+      replace (sort s) with (lift 1 0 (sort s)) by now sigma.
+      apply weakening.
+      * assumption.
+      * now apply valid_env_var with s.
     + specialize (IHinfer1 _ _ H1) as (s2, ?).
       exists s2.
-      (* Weakening! *)
-      admit.
-  - admit.
+      replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
+      replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
+        by now sigma.
+      apply weakening.
+      * assumption.
+      * now apply valid_env_var with s.
+  - intros d n ?.
+    destruct n.
+    + dependent destruction H2; simpl.
+      exists s.
+      replace (sort s) with (lift 1 0 (sort s)) by now sigma.
+      apply weakening.
+      * assumption.
+      * now apply valid_env_def with s.
+    + dependent destruction H2.
+      specialize (IHinfer1 d n H2) as (s2, ?).
+      exists s2.
+      replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
+      replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
+        by now sigma.
+      apply weakening.
+      * assumption.
+      * now apply valid_env_def with s.
 Admitted.
 
 Corollary validity:

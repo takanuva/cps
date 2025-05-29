@@ -306,4 +306,12 @@ Proof.
   - now apply valid_env_def with s.
 Qed.
 
+Conjecture weakening:
+  (* TODO: prove this later. *)
+  forall g e t R,
+  typing g e t R ->
+  forall d,
+  valid_env (d :: g) R ->
+  typing (d :: g) (lift 1 0 e) (lift 1 0 t) R.
+
 (* TODO: should we conjecture subject reduction? Prove it...? *)
