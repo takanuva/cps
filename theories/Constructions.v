@@ -11,12 +11,11 @@ Require Local.Constructions.Inversion.
 Require Local.Constructions.Stratification.
 Require Local.Constructions.Reduction.
 
-Module TT :=
-  Calculus <+
-  Conversion <+
-  Confluence <+
-  TypeSystem <+
-  Normalization <+
-  Inversion <+
-  Stratification <+
-  Reduction.
+Include Calculus.
+Include Conversion.
+Include Confluence.
+Include TypeSystem.
+Include Normalization.
+Include Inversion.
+Include Stratification.
+Include Reduction.
