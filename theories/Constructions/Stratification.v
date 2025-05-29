@@ -168,12 +168,7 @@ Corollary validity:
   type_scheme R t.
 Proof.
   intros.
-  apply sorting in H as [ ? | (s, ?) ].
-  - subst.
-    apply type_scheme_sort.
-  - constructor 1 with g (sort s).
-    + assumption.
-    + constructor.
+  now apply sorting in H.
 Qed.
 
 (* Validity says that if [G |- e : t], then [t] is a type scheme, thus there is
