@@ -35,6 +35,15 @@ Section TypeSystem.
       infer (valid_env g) ->
       infer (typing g iset (type 0))
     (*
+               |- G
+      ----------------------
+        G |- Type n : Type (1 + n)
+    *)
+    | typing_type:
+      forall g n,
+      infer (valid_env g) ->
+      infer (typing g (type n) (type (1 + n)))
+    (*
         (x: T) or (x = e: T) in G
       -----------------------------
                G |- x : T
@@ -271,6 +280,7 @@ Proof.
   induction 2.
   (* We simply reconstruct the proof tree, judgement by judgement. *)
   - now apply typing_iset.
+  - now apply typing_type.
   - now apply typing_bound with d t.
   - now apply typing_pi with s1 s2.
   - now apply typing_abs.

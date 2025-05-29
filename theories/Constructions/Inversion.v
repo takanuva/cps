@@ -15,12 +15,16 @@ Require Import Local.Constructions.Normalization.
 
 Lemma typing_type_inv:
   forall g n t,
-  ~typing g (type n) t conv.
+  typing g (type n) t conv ->
+  conv g t (type (1 + n)).
 Proof.
   repeat intro.
   dependent induction H.
-  specialize (IHinfer1 _ _ _ eq_refl JMeq_refl).
-  assumption.
+  - apply conv_refl.
+  - rename t0 into u.
+    apply conv_trans with u.
+    + now apply conv_sym.
+    + now apply IHinfer1.
 Qed.
 
 Lemma typing_iset_inv:
@@ -76,6 +80,7 @@ Proof.
   - clear IHinfer.
     apply typing_iset_inv in H0.
     now apply conv_sym.
+  - admit.
   - clear IHinfer.
     destruct typing_bound_inv with g n t2.
     + assumption.

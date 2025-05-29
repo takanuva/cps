@@ -126,6 +126,9 @@ Theorem sorting:
 Proof.
   induction 1; intros.
   - now left.
+  - right.
+    exists (type (2 + n)).
+    now constructor.
   - right; subst.
     destruct IHinfer with (d, t) n as (s, ?).
     + assumption.
