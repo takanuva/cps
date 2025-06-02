@@ -42,24 +42,25 @@ Inductive is_arity: term -> Prop :=
     is_arity u ->
     is_arity (definition v t u).
 
-Inductive type_scheme (R: typing_equivalence): term -> Prop :=
+Inductive type_scheme (R: typing_equivalence) (g: env): term -> Prop :=
   | type_scheme_make:
-    forall g e t,
+    forall e t,
     typing g e t R ->
     is_arity t ->
-    type_scheme R e.
+    type_scheme R g e.
 
 Lemma type_scheme_sort:
-  forall R s,
-  type_scheme R (sort s).
+  forall R g s,
+  valid_env g R ->
+  type_scheme R g (sort s).
 Proof.
   intros.
   destruct s.
-  - apply type_scheme_make with [] (type 0).
-    + repeat constructor.
+  - apply type_scheme_make with (type 0).
+    + now repeat constructor.
     + constructor.
-  - apply type_scheme_make with [] (type (1 + n)).
-    + repeat constructor.
+  - apply type_scheme_make with (type (1 + n)).
+    + now repeat constructor.
     + constructor.
 Qed.
 
@@ -115,7 +116,7 @@ Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
   item d g n -> exists s, typing g (lift (S n) 0 (snd d)) (sort s) R.
 
 Definition well_sorted (R: typing_equivalence) (g: env) (t: term): Prop :=
-  schemes_only R g /\ type_scheme R t.
+  schemes_only R g /\ type_scheme R g t.
 
 Theorem sorting:
   forall R j,
@@ -127,15 +128,14 @@ Theorem sorting:
 Proof.
   induction 1; intros.
   - split; auto.
-    exists g (type 1).
+    exists (type 1).
     + now constructor.
     + constructor.
   - split; auto.
-    exists g (type (2 + n)).
+    exists (type (2 + n)).
     + now constructor.
     + constructor.
-  - subst.
-    split; auto.
+  - subst; split; auto.
     destruct IHinfer with (d, t) n as (s, ?).
     + assumption.
     + econstructor.
@@ -146,6 +146,8 @@ Proof.
     destruct IHinfer2.
     split; auto.
     apply type_scheme_sort.
+    apply valid_env_typing in H.
+    assumption.
   - destruct IHinfer as (?H, ?H).
     split.
     + admit.
@@ -205,7 +207,7 @@ Admitted.
 Corollary validity:
   forall R g e t,
   typing g e t R ->
-  type_scheme R t.
+  type_scheme R g t.
 Proof.
   intros.
   now apply sorting in H as (?H, ?H).
