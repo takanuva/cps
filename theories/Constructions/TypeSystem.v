@@ -179,11 +179,32 @@ Section TypeSystem.
       infer (typing g f2 (subst bool_ff 0 t)) ->
       infer (typing g (bool_if e t f1 f2) (subst e 0 t))
     (*
+         G |- T : s
+      ----------------
+        G |- <T> : s
     *)
+    | typing_thunk:
+      forall g t s,
+      infer (typing g t (sort s)) ->
+      infer (typing g (thunk t) (sort s))
     (*
+          G |- e : T
+      -------------------
+        G |- ?(e) : <T>
     *)
+    | typing_delay:
+      forall g e t,
+      infer (typing g e t) ->
+      infer (typing g (delay e) (thunk t))
     (*
+         G |- e : <T>
+      -----------------
+        G |- !(e) : T
     *)
+    | typing_force:
+      forall g e t,
+      infer (typing g e (thunk t)) ->
+      infer (typing g (force e) t)
     (*
         G |- e : T     G |- U : s     G |- T R U
       --------------------------------------------
@@ -283,23 +304,44 @@ Lemma infer_subset:
   infer R j ->
   infer S j.
 Proof.
-  induction 2.
   (* We simply reconstruct the proof tree, judgement by judgement. *)
+  induction 2.
+  (* Case: iset. *)
   - now apply typing_iset.
+  (* Case: type. *)
   - now apply typing_type.
+  (* Case: bound. *)
   - now apply typing_bound with d t.
+  (* Case: pi. *)
   - now apply typing_pi with s1 s2.
+  (* Case: abstraction. *)
   - now apply typing_abs.
+  (* Case: application. *)
   - now apply typing_app with t.
+  (* Case: definition. *)
   - now apply typing_def.
+  (* Case: sigma. *)
   - now apply typing_sigma with s1 s2.
+  (* Case: pair. *)
   - now apply typing_pair.
+  (* Case: projection 1. *)
   - now apply typing_proj1 with u.
+  (* Case: projection 2. *)
   - now apply typing_proj2 with t.
+  (* Case: bool. *)
   - now apply typing_bool.
+  (* Case: true. *)
   - now apply typing_true.
+  (* Case: false. *)
   - now apply typing_false.
+  (* Case: if. *)
   - now apply typing_if with s.
+  (* Case: thunk. *)
+  - now apply typing_thunk.
+  (* Case: delay. *)
+  - now apply typing_delay.
+  (* Case: force. *)
+  - now apply typing_force.
   - (* The only difference in the structure is on the (CONV) rule, which will
        require us to show that [t] and [u] are still convertible under the new
        rule. *)
@@ -307,13 +349,16 @@ Proof.
     + assumption.
     + assumption.
     + now apply H.
+  (* Case: empty env. *)
   - apply valid_env_nil.
+  (* Case: env var. *)
   - now apply valid_env_var with s.
+  (* Case: env def. *)
   - now apply valid_env_def with s.
 Qed.
 
 Conjecture weakening:
-  (* TODO: prove this later. *)
+  (* TODO: prove this later! *)
   forall g e t R,
   typing g e t R ->
   forall d,

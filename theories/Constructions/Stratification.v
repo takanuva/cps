@@ -183,6 +183,12 @@ Proof.
   - admit.
   (* Case: if. *)
   - admit.
+  (* Case: thunk. *)
+  - admit.
+  (* Case: delay. *)
+  - admit.
+  (* Case: force. *)
+  - admit.
   (* Case: conv. *)
   - admit.
   (* Case: empty env. *)

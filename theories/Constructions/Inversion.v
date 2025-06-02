@@ -116,6 +116,9 @@ Proof.
   - admit.
   - admit.
   - admit.
+  - admit.
+  - admit.
+  - admit.
   - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl _ H2).
     apply conv_trans with t.
     + now apply conv_sym.
