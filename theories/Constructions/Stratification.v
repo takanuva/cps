@@ -114,12 +114,15 @@ Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
   (* TODO: improve this definition. *)
   item d g n -> exists s, typing g (lift (S n) 0 (snd d)) (sort s) R.
 
+Definition well_sorted (R: typing_equivalence) (g: env) (t: term): Prop :=
+  schemes_only R g /\ type_scheme R t.
+
 Theorem sorting:
   forall R j,
   infer R j ->
   match j with
   | valid_env g => schemes_only R g
-  | typing g e t => schemes_only R g /\ type_scheme R t
+  | typing g e t => well_sorted R g t
   end.
 Proof.
   induction 1; intros.
@@ -142,10 +145,13 @@ Proof.
     destruct IHinfer1.
     destruct IHinfer2.
     split; auto.
+    apply type_scheme_sort.
+  - admit.
+  - (* Type schemes are stable under substitution according to "A New
+       Extraction for Coq". *)
     admit.
-  - admit.
-  - admit.
-  - admit.
+  - (* Ditto. *)
+    admit.
   - admit.
   - admit.
   - admit.
@@ -199,7 +205,7 @@ Corollary validity:
   type_scheme R t.
 Proof.
   intros.
-  now apply sorting in H.
+  now apply sorting in H as (?H, ?H).
 Qed.
 
 (* Validity says that if [G |- e : t], then [t] is a type scheme, thus there is
@@ -213,7 +219,9 @@ Qed.
 
 (* ---------------------------------------------------------------------------*)
 
-(* We follow the usual definition of syntactic classes for terms, types and
+(* TODO: rewrite this.
+
+   We follow the usual definition of syntactic classes for terms, types and
    kinds in the calculus of constructions. These syntactic classes give us an
    equivalent formulation of the syntax which is guaranteed by typing, as we
    shall verify. Most interestingly, terms can't be type schemes, but types and
