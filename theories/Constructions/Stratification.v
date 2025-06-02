@@ -127,20 +127,24 @@ Theorem sorting:
   end.
 Proof.
   induction 1; intros.
+  (* Case: iset. *)
   - split; auto.
     exists (type 1).
     + now constructor.
     + constructor.
+  (* Case: type. *)
   - split; auto.
     exists (type (2 + n)).
     + now constructor.
     + constructor.
+  (* Case: bound. *)
   - subst; split; auto.
     destruct IHinfer with (d, t) n as (s, ?).
     + assumption.
     + econstructor.
       * eassumption.
       * constructor.
+  (* Case: pi. *)
   - subst.
     destruct IHinfer1.
     destruct IHinfer2.
@@ -148,27 +152,41 @@ Proof.
     apply type_scheme_sort.
     apply valid_env_typing in H.
     assumption.
+  (* Case: abstraction. *)
   - destruct IHinfer as (?H, ?H).
     split.
     + admit.
     + admit.
+  (* Case: application. *)
   - (* Type schemes are stable under substitution according to "A New
        Extraction for Coq". *)
     admit.
+  (* Case: definition. *)
   - (* Ditto. *)
     admit.
+  (* Case: sigma. *)
   - admit.
+  (* Case: pair. *)
   - admit.
+  (* Case: projection 1. *)
   - admit.
+  (* Case: projection 2. *)
   - admit.
+  (* Case: bool. *)
   - admit.
+  (* Case: true. *)
   - admit.
+  (* Case: false. *)
   - admit.
+  (* Case: if. *)
   - admit.
+  (* Case: conv. *)
   - admit.
+  (* Case: empty env. *)
   - repeat intro.
     exfalso.
     inversion H.
+  (* Case: env var. *)
   - clear IHinfer2.
     repeat intro.
     dependent destruction H1; simpl.
@@ -185,6 +203,7 @@ Proof.
       apply weakening.
       * assumption.
       * now apply valid_env_var with s.
+  (* Case: env def. *)
   - intros d n ?.
     destruct n.
     + dependent destruction H2; simpl.
