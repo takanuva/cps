@@ -146,7 +146,10 @@ Proof.
     destruct IHinfer2.
     split; auto.
     apply type_scheme_sort.
-  - admit.
+  - destruct IHinfer as (?H, ?H).
+    split.
+    + admit.
+    + admit.
   - (* Type schemes are stable under substitution according to "A New
        Extraction for Coq". *)
     admit.

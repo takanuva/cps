@@ -13,6 +13,8 @@ Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Confluence.
 Require Import Local.Constructions.Normalization.
 
+(* TODO: why are we using conv here instead of any R? *)
+
 Lemma typing_type_inv:
   forall g n t,
   typing g (type n) t conv ->
@@ -73,6 +75,7 @@ Lemma typing_unique:
   typing g e t1 conv ->
   forall t2,
   typing g e t2 conv ->
+  (* TODO: use the subtyping relation on conv. *)
   conv g t1 t2.
 Proof.
   intros until 1.
