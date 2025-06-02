@@ -179,6 +179,12 @@ Section TypeSystem.
       infer (typing g f2 (subst bool_ff 0 t)) ->
       infer (typing g (bool_if e t f1 f2) (subst e 0 t))
     (*
+    *)
+    (*
+    *)
+    (*
+    *)
+    (*
         G |- e : T     G |- U : s     G |- T R U
       --------------------------------------------
                        G |- e : U

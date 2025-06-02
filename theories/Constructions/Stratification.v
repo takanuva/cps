@@ -108,6 +108,9 @@ Proof.
   - right; inversion 1.
   - right; inversion 1.
   - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
+  - right; inversion 1.
 Qed.
 
 Definition schemes_only (R: typing_equivalence) (g: env): Prop :=

@@ -117,7 +117,19 @@ Inductive step: env -> relation term :=
   | step_if_else:
     forall g e t f1 f21 f22,
     step g f21 f22 ->
-    step g (bool_if e t f1 f21) (bool_if e t f1 f22).
+    step g (bool_if e t f1 f21) (bool_if e t f1 f22)
+  | step_thunk:
+    forall g t1 t2,
+    step g t1 t2 ->
+    step g (thunk t1) (thunk t2)
+  | step_delay:
+    forall g e1 e2,
+    step g e1 e2 ->
+    step g (delay e1) (delay e2)
+  | step_force:
+    forall g e1 e2,
+    step g e1 e2 ->
+    step g (force e1) (force e2).
 
 Global Hint Constructors step: cps.
 
@@ -296,6 +308,24 @@ Proof with eauto with cps.
     + firstorder.
     + firstorder.
     + firstorder.
+  (* Case: thunk. *)
+  - destruct IHe with g as [ (x, ?H) | ?H ]...
+    right; intros x ?.
+    inversion H0.
+    subst; rename e into t1.
+    now apply H with t2.
+  (* Case: delay. *)
+  - destruct IHe with g as [ (x, ?H) | ?H ]...
+    right; intros x ?.
+    inversion H0.
+    subst; rename e into e1.
+    now apply H with e2.
+  (* Case: force. *)
+  - destruct IHe with g as [ (x, ?H) | ?H ]...
+    right; intros x ?.
+    inversion H0.
+    subst; rename e into e1.
+    now apply H with e2.
 Qed.
 
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
