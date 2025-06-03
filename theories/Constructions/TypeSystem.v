@@ -97,9 +97,9 @@ Section TypeSystem.
       infer (typing (decl_def e t :: g) f u) ->
       infer (typing g (definition e t f) (subst e 0 u))
     (*
-        G |- T: s1     G, x: T |- U: s2
-      -----------------------------------
-          G |- Sigma x: T.U : s1 & s2
+        G |- T : s1     G, x: T |- U : s2
+      -------------------------------------
+           G |- Sigma x: T.U : s1 & s2
     *)
     | typing_sigma:
       forall g t u s1 s2 s3,
@@ -166,10 +166,10 @@ Section TypeSystem.
       infer (valid_env g) ->
       infer (typing g bool_ff boolean)
     (*
-             G |- e : bool        G, x: bool |- t : s
-          G |- f1 : t[true/x]     G |- f2 : t[false/x]
+             G |- e : bool        G, x: bool |- T : s
+          G |- f1 : T[true/x]     G |- f2 : T[false/x]
       ----------------------------------------------------
-        G |- if e as x return t then f1 else f2 : t[e/x]
+        G |- if e as x return T then f1 else f2 : T[e/x]
     *)
     | typing_if:
       forall g e t s f1 f2,
@@ -223,23 +223,21 @@ Section TypeSystem.
     | valid_env_nil:
       infer (valid_env [])
     (*
-        |- G     G |- T : s
-      -----------------------
-            |- G, x: T
+        G |- T : s
+      --------------
+        |- G, x: T
     *)
     | valid_env_var:
       forall g t s,
-      infer (valid_env g) ->
       infer (typing g t (sort s)) ->
       infer (valid_env (decl_var t :: g))
     (*
-        |- G     G |- e : T     G |- T : s
-      --------------------------------------
-                |- G, x = e: T
+        G |- e : T     G |- T : s
+      -----------------------------
+            |- G, x = e: T
     *)
     | valid_env_def:
       forall g e t s,
-      infer (valid_env g) ->
       infer (typing g e t) ->
       infer (typing g t (sort s)) ->
       infer (valid_env (decl_def e t :: g)).
@@ -283,18 +281,45 @@ Definition get_environment (j: typing_judgement): env :=
   | typing g _ _ => g
   end.
 
-Coercion get_environment: typing_judgement >-> env.
-
-Lemma valid_env_typing:
+Lemma valid_env_infer:
   forall R j,
   infer R j ->
-  valid_env j R.
+  valid_env (get_environment j) R.
 Proof.
-  induction 1; simpl; auto.
-  - now dependent destruction IHinfer.
-  - constructor.
-  - now apply valid_env_var with s.
-  - now apply valid_env_def with s.
+  (* Because the case for definitions doesn't have a subterm with the same
+     environment, we need to slightly generalize the inductive hypothesis to
+     say that every tail is valid instead. *)
+  intros.
+  change (get_environment j) with (skipn 0 (get_environment j)).
+  generalize O.
+  (* Now we can proceed... *)
+  induction H; simpl in *; intros; auto.
+  (* Case: definition. *)
+  - (* Now the trick is to decrease a bit more from the hypothesis. *)
+    apply IHinfer with (n := 1 + n).
+  (* Case: empty env. *)
+  - destruct n.
+    + constructor.
+    + constructor.
+  (* Case: env var. *)
+  - destruct n; simpl.
+    + now apply valid_env_var with s.
+    + apply IHinfer.
+  (* Case: env def. *)
+  - destruct n; simpl.
+    + now apply valid_env_def with s.
+    + (* Either one of the hypotheses work... *)
+      apply IHinfer1.
+Qed.
+
+Lemma valid_env_typing:
+  forall R g e t,
+  typing g e t R ->
+  valid_env g R.
+Proof.
+  intros.
+  apply valid_env_infer in H.
+  assumption.
 Qed.
 
 Lemma infer_subset:

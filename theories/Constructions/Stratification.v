@@ -196,15 +196,15 @@ Proof.
     exfalso.
     inversion H.
   (* Case: env var. *)
-  - clear IHinfer2.
-    repeat intro.
-    dependent destruction H1; simpl.
+  - repeat intro.
+    dependent destruction H0; simpl.
     + exists s.
       replace (sort s) with (lift 1 0 (sort s)) by now sigma.
       apply weakening.
       * assumption.
       * now apply valid_env_var with s.
-    + specialize (IHinfer1 _ _ H1) as (s2, ?).
+    + destruct IHinfer.
+      specialize (H1 d n H0) as (s2, ?).
       exists s2.
       replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
       replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
@@ -215,14 +215,15 @@ Proof.
   (* Case: env def. *)
   - intros d n ?.
     destruct n.
-    + dependent destruction H2; simpl.
+    + dependent destruction H1; simpl.
       exists s.
       replace (sort s) with (lift 1 0 (sort s)) by now sigma.
       apply weakening.
       * assumption.
       * now apply valid_env_def with s.
-    + dependent destruction H2.
-      specialize (IHinfer1 d n H2) as (s2, ?).
+    + dependent destruction H1.
+      destruct IHinfer1.
+      specialize (H2 d n H1) as (s2, ?).
       exists s2.
       replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
       replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
