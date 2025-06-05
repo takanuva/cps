@@ -66,7 +66,7 @@ Axiom cbn: relation term.
 
 Definition eval: relation term :=
   fun e v =>
-    rst(cbn) e v /\ value v.
+    rt(cbn) e v /\ value v.
 
 (* We can't properly define this relation the standard way as it would violate
    the strict positivity rule. Instead, we use a trick similar to Sangiorgi's
@@ -142,6 +142,22 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
+Lemma observational_approx_reduces:
+  forall n g e t,
+  typing g e t (approx n) ->
+  exists f,
+  rt(cbn) e f.
+Proof.
+  induction n; intros.
+  - (* Huh... is this even true as is? I don't think so! *)
+    admit.
+  - apply IHn with g t.
+    apply infer_subset with (approx (S n)).
+    + clear IHn g e t H; intros.
+      admit.
+    + assumption.
+Admitted.
+
 Lemma observational_conv:
   forall g e f,
   conv g e f ->
@@ -156,7 +172,8 @@ Proof.
   (* Case: succ. *)
   - split; intros (?, ?).
     + admit.
-    + admit.
+    + (* Just as above... *)
+      admit.
 Admitted.
 
 Lemma observational_is_conservative:
