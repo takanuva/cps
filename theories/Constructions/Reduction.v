@@ -79,12 +79,14 @@ Definition eval: relation term :=
 Fixpoint observational_approx (n: nat): env -> relation term :=
   fun g e1 e2 =>
     match n with
-    | 0 => True
+    | 0 =>
+      True
     | S m =>
-        forall (h: context) v,
-        typing [] (h e1) boolean (observational_approx m) ->
-        typing [] (h e2) boolean (observational_approx m) ->
-        eval (h e1) v <-> eval (h e2) v
+      forall (h: context) v,
+      (* TODO: close over g! *)
+      typing [] (h e1) boolean (observational_approx m) ->
+      typing [] (h e2) boolean (observational_approx m) ->
+      eval (h e1) v <-> eval (h e2) v
    end.
 
 Local Notation approx := observational_approx.
@@ -94,7 +96,7 @@ Definition observational: env -> relation term :=
     (* We take the intersection of all approximations! *)
     forall n, approx n g e1 e2.
 
-Lemma observational_approx_unfold:
+Lemma approx_unfold:
   forall n g e1 e2,
   approx (S n) g e1 e2 =
     (forall (h: context) v,
@@ -132,7 +134,7 @@ Proof.
       admit.
 Admitted.
 
-Lemma observational_is_consistent:
+Theorem observational_is_consistent:
   forall g,
   ~(forall e1 e2, observational g e1 e2).
 Proof.
@@ -142,48 +144,57 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
-Lemma observational_approx_reduces:
-  forall n g e t,
-  typing g e t (approx n) ->
-  exists f,
-  rt(cbn) e f.
+Goal
+  forall j n,
+  infer observational j -> infer (approx n) j.
 Proof.
-  induction n; intros.
-  - (* Huh... is this even true as is? I don't think so! *)
-    admit.
-  - apply IHn with g t.
-    apply infer_subset with (approx (S n)).
-    + clear IHn g e t H; intros.
-      admit.
-    + assumption.
-Admitted.
+  intros.
+  apply infer_subset with observational; intros.
+  - repeat intro.
+    apply H0.
+  - assumption.
+Qed.
 
 Lemma observational_conv:
-  forall g e f,
-  conv g e f ->
-  observational g e f.
+  forall g,
+  inclusion (conv g) (observational g).
 Proof.
-  (* Since this is the intersection of all approximations, we need to show that
-     this is valid for every level. We can do this by case analysis. *)
-  unfold observational.
-  destruct n; simpl; intros.
-  (* Case: zero. *)
-  - trivial.
-  (* Case: succ. *)
-  - split; intros (?, ?).
-    + admit.
-    + (* Just as above... *)
+  repeat intro.
+  generalize dependent y.
+  generalize dependent x.
+  generalize dependent g.
+  induction n; intros.
+  - easy.
+  - rewrite approx_unfold; split; intros.
+    + (* Respecting variables, conv is a congruence. So if we close over g,
+         we have that conv [] (h (g x)) (h (g y))... so if one evaluates to a
+         boolean, by Church-Rosser, so does the other. Typing doesn't seem to
+         be relevant here... *)
+      admit.
+    + (* Same as above. *)
       admit.
 Admitted.
 
-Lemma observational_is_conservative:
+(* Theorem observational_iff:
+  forall g e1 e2,
+  observational g e1 e2 <->
+    (forall (h: context) v,
+     typing [] (h e1) boolean observational ->
+     typing [] (h e2) boolean observational ->
+     eval (h e1) v <-> eval (h e2) v).
+Proof.
+  (* I *think* this is supposed to be true! Do we really care? *)
+  admit.
+Admitted. *)
+
+Theorem observational_is_conservative:
   forall j,
   infer conv j ->
   infer observational j.
 Proof.
   intros.
-  apply infer_subset with conv.
-  - exact observational_conv.
+  apply infer_subset with conv; intros.
+  - apply observational_conv.
   - assumption.
 Qed.
 
