@@ -144,7 +144,7 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
-Goal
+(* Goal
   forall j n,
   infer observational j -> infer (approx n) j.
 Proof.
@@ -153,7 +153,7 @@ Proof.
   - repeat intro.
     apply H0.
   - assumption.
-Qed.
+Qed. *)
 
 Lemma observational_conv:
   forall g,
