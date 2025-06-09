@@ -381,6 +381,7 @@ Inductive conv: env -> relation term :=
     conv g (proj1 f) p ->
     conv g (proj2 f) q ->
     conv g e1 e2
+  (* TODO: eta for thunks. *)
   (* TODO: add congruence rules. *).
 
 Global Hint Constructors conv: cps.
