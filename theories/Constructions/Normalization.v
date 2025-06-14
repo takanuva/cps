@@ -12,7 +12,7 @@ Require Import Local.Constructions.TypeSystem.
    be possible that strong normalization for this is actually provable, at some
    point it would become hopeless because of the incompleteness theorem. Also, I
    do think that proving this (in a proof assistant) for a predicative hierarchy
-   with an impredicative universe still is an open problem. So, we will merely
+   with an impredicative universe is still an open problem. So, we will merely
    conjecture that this system is strongly normalizing and go on, just like the
    people in the "Coq Coq Correct!" paper did. *)
 
