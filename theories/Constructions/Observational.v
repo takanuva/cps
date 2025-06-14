@@ -210,3 +210,17 @@ Proof.
        as we can supply [h (application [-] x)] to [H2] and get our goal. *)
     admit.
 Admitted.
+
+Theorem extensionality:
+  forall g f1 f2 a b,
+  typing g f1 (pi a b) conv ->
+  typing g f2 (pi a b) conv ->
+  observational g f1 f2 <->
+  (forall x,
+   typing g x a conv ->
+   observational g (application f1 x) (application f2 x)).
+Proof.
+  split; intros.
+  - now apply extensionality_only_if with a b.
+  - now apply extensionality_if with a b.
+Qed.
