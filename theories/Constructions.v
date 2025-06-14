@@ -10,6 +10,7 @@ Require Local.Constructions.Normalization.
 Require Local.Constructions.Inversion.
 Require Local.Constructions.Stratification.
 Require Local.Constructions.Reduction.
+Require Local.Constructions.Observational.
 
 Include Calculus.
 Include Conversion.
@@ -19,3 +20,4 @@ Include Normalization.
 Include Inversion.
 Include Stratification.
 Include Reduction.
+Include Observational.
