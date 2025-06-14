@@ -175,7 +175,7 @@ Proof.
       admit.
 Admitted.
 
-(* Theorem observational_iff:
+Theorem observational_iff:
   forall g e1 e2,
   observational g e1 e2 <->
     (forall (h: context) v,
@@ -183,9 +183,26 @@ Admitted.
      typing [] (h e2) boolean observational ->
      eval (h e1) v <-> eval (h e2) v).
 Proof.
-  (* I *think* this is supposed to be true! Do we really care? *)
-  admit.
-Admitted. *)
+  (* This gives a characterization of the observational relation. This is indeed
+     the definition we would have liked to give it, but defining it in this way
+     would violate strict positivity rules. *)
+  split; intros.
+  - (* This is trivially so. From H, e1 and e2 are equivalent at level 1. *)
+    specialize (H 1).
+    rewrite approx_unfold in H.
+    apply H.
+    + (* Terms are always convertible if equivalent at level 0, so any typing
+         derivation is enough. *)
+      apply infer_subset with observational.
+      * easy.
+      * assumption.
+    + (* Ditto. *)
+      apply infer_subset with observational.
+      * easy.
+      * assumption.
+  - (* This case is a bit trickier... *)
+    admit.
+Admitted.
 
 Theorem observational_is_conservative:
   forall j,
