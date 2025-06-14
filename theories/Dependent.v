@@ -10,41 +10,50 @@ Require Import Local.Syntax.
 
 Module TT := Local.Constructions.
 
-(* -------------------------------------------------------------------------- *)
-
 (* Let's start with CBV; after that, lets split the file in two, of course. *)
 
-Print TT.typing_judgement.
+(* Example 1. *)
 
-Inductive cbv_cps: TT.typing_judgement -> pseudoterm -> Prop :=.
-
-Check fun (f: forall T: Type, T -> T) =>
-      fun (x: f Set nat) => f nat 0.
+Eval cbv in let f: (forall T: Type, T -> T) :=
+              fun (T: Type) (x: T) =>
+                x
+            in fun (x: f Set bool) =>
+              f bool x.
 
 (*
 
   Consider a source term:
 
-    fun (f: forall T: Type, T -> T) =>
-      fun (x: f Set nat) => f nat 0
-
-  How should this be CPS-translated?
-
-      f: (T: Type) -> T -> T,
-      k: ~nat
     |-
-      k<v>
-      { v<x: [f Set nat], k> =
-        [nat]k
-        { k<b: ...> =
-            f<nat, j>
+      (let f: (forall T: Type, T -> T) :=
+        fun (T: Type) (x: T) =>
+          x
+      in fun (x: f Set bool) =>
+        f bool x) : bool -> bool
+
+
+  How should this be CPS-translated? We notice we're using f both in type-level
+  and in term-level! It's CBV translation (as CBV is the standard one) would be
+  as follows:
+
+      k: ~~(bool, ~bool)
+    |-k
+      k<f>
+      { f<T: Type, k: ~~(x: T, ~T)> =
+        k<v>
+        { v<x: T, k: ~T> =
+          k<x>
         }
-        { j<a: ...> =
-            a<0, k>
+      }
+      { k<f: ~(T: Type, k: ~~(x: T, k: ~T))> =
+        k<v>
+        { v<x: El(f Set bool), k: ~El(f Set bool)> =
+          [f nat x]
         }
       }
 
-  Note that f nat : nat -> nat. This means that f nat is not a type scheme: it's
-  just a term! Do we want the type nat -> nat in our system?
-
 *)
+
+(* -------------------------------------------------------------------------- *)
+
+Inductive cbv_cps: TT.typing_judgement -> pseudoterm -> Prop :=.
