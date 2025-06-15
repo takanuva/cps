@@ -121,7 +121,18 @@ Proof.
       admit.
 Admitted.
 
-Theorem observational_iff:
+Lemma observational_if:
+  forall n g e1 e2,
+  (forall (h: context) v,
+   typing [] (h e1) boolean observational ->
+   typing [] (h e2) boolean observational ->
+   eval (h e1) v <-> eval (h e2) v) ->
+  approx n g e1 e2.
+Proof.
+  admit.
+Admitted.
+
+Theorem observational_characterization:
   forall g e1 e2,
   observational g e1 e2 <->
     (forall (h: context) v,
@@ -146,9 +157,10 @@ Proof.
       apply infer_subset with observational.
       * easy.
       * assumption.
-  - (* This case is a bit trickier... *)
-    admit.
-Admitted.
+  - (* This case is a bit trickier... see the documentation for it above. *)
+    intro.
+    now apply observational_if.
+Qed.
 
 Theorem observational_is_conservative:
   forall j,
