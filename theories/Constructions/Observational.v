@@ -10,6 +10,7 @@ Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
+Require Import Local.Constructions.Normalization.
 Require Import Local.Constructions.Reduction.
 
 Import ListNotations.
@@ -236,3 +237,10 @@ Proof.
   - now apply extensionality_only_if with a b.
   - now apply extensionality_if with a b.
 Qed.
+
+Theorem observational_consistency:
+  ~exists e, typing [] e bottom observational.
+Proof.
+  intros (e, ?).
+  admit.
+Admitted.
