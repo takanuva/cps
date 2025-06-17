@@ -2,11 +2,14 @@
 (*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import List.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
+
+Import ListNotations.
 
 (* We're dealing with a subset of Coq's theory inside of Coq. Although it might
    be possible that strong normalization for this is actually provable, at some
@@ -40,3 +43,24 @@ Proof.
     + intros y ?.
       now apply H0 with y.
 Qed.
+
+Definition bottom: term :=
+  pi iset (bound 0).
+
+Lemma bottom_typeable:
+  forall R,
+  typing [] bottom iset R.
+Proof.
+  intros.
+  repeat econstructor.
+  - (* Use vm_compute to bypass opaque definitions. *)
+    now vm_compute.
+  - (* By definition, as set is impredicative. *)
+    reflexivity.
+Qed.
+
+Corollary consistency:
+  ~exists e, typing [] e bottom conv.
+Proof.
+  admit.
+Admitted.
