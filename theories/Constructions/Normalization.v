@@ -59,8 +59,23 @@ Proof.
     reflexivity.
 Qed.
 
+(* For this one, we'll follow the proof given by Coquand and Gallier in "A Proof
+   Of Strong Normalization For The Theory Of Constructions Using A Kripe-Like
+   Interpretation", as their Lemma 5.19. *)
+
 Corollary consistency:
   ~exists e, typing [] e bottom conv.
 Proof.
-  admit.
+  (* Assume there's an e that is typeable as bottom. *)
+  intros (e, ?).
+  (* So there's a term in normal form that also is. *)
+  assert (exists2 f, typing [] f bottom conv & normal (step []) f) as (f, ?, ?).
+  - (* We calculate it from strong normalization and subject reduction. *)
+    destruct normal_form_is_decidable with ([]: env) e bottom as (f, ?, ?).
+    + assumption.
+    + exists f; auto.
+      now apply subject_reduction with e.
+  - (* So, forget the non-normal one. *)
+    clear e H; rename f into e.
+    admit.
 Admitted.
