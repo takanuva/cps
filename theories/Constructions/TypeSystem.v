@@ -390,4 +390,10 @@ Conjecture weakening:
   valid_env (d :: g) R ->
   typing (d :: g) (lift 1 0 e) (lift 1 0 t) R.
 
-(* TODO: should we conjecture subject reduction? Prove it...? *)
+Conjecture subject_reduction:
+  (* TODO: prove this later. TODO: generalize to other equivalences. *)
+  forall g e t,
+  typing g e t conv ->
+  forall f,
+  rt(step g) e f ->
+  typing g f t conv.
