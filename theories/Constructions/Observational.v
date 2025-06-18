@@ -238,9 +238,25 @@ Proof.
   - now apply extensionality_if with a b.
 Qed.
 
+Lemma boolean_ex_falso:
+  forall R e,
+  typing [] e bottom R ->
+  typing [] (application e boolean) boolean R.
+Proof.
+  intros.
+  eapply typing_app.
+  - eassumption.
+  - apply typing_bool.
+    constructor.
+  - (* TODO: sigma is missing some laws... *)
+    vm_compute.
+    reflexivity.
+Qed.
+
 Theorem observational_consistency:
   ~exists e, typing [] e bottom observational.
 Proof.
   intros (e, ?).
+  apply boolean_ex_falso in H.
   admit.
 Admitted.

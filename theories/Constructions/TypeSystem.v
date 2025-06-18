@@ -82,20 +82,22 @@ Section TypeSystem.
                 G |- f e : U[e/x]
     *)
     | typing_app:
-      forall g f e t u,
+      forall g f e t u v,
       infer (typing g f (pi t u)) ->
       infer (typing g e t) ->
-      infer (typing g (application f e) (subst e 0 u))
+      v = subst e 0 u ->
+      infer (typing g (application f e) v)
     (*
         G |- e : T     G, x = e: T |- f : U
       ---------------------------------------
           G |- let x = e: T in f : U[e/x]
     *)
     | typing_def:
-      forall g e f t u,
+      forall g e f t u v,
       infer (typing g e t) ->
       infer (typing (decl_def e t :: g) f u) ->
-      infer (typing g (definition e t f) (subst e 0 u))
+      v = subst e 0 u ->
+      infer (typing g (definition e t f) v)
     (*
         G |- T : s1     G, x: T |- U : s2
       -------------------------------------
@@ -342,9 +344,9 @@ Proof.
   (* Case: abstraction. *)
   - now apply typing_abs.
   (* Case: application. *)
-  - now apply typing_app with t.
+  - now apply typing_app with t u.
   (* Case: definition. *)
-  - now apply typing_def.
+  - now apply typing_def with u.
   (* Case: sigma. *)
   - now apply typing_sigma with s1 s2.
   (* Case: pair. *)
