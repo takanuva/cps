@@ -151,14 +151,11 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
-Lemma observational_conv:
-  forall g,
-  inclusion (conv g) (observational g).
+Lemma approx_conv:
+  forall n g e1 e2,
+  conv g e1 e2 ->
+  approx n g e1 e2.
 Proof.
-  repeat intro.
-  generalize dependent y.
-  generalize dependent x.
-  generalize dependent g.
   induction n; intros.
   - easy.
   - rewrite approx_unfold; split; intros.
@@ -171,6 +168,14 @@ Proof.
       admit.
 Admitted.
 
+Lemma observational_conv:
+  forall g,
+  inclusion (conv g) (observational g).
+Proof.
+  repeat intro.
+  now apply approx_conv.
+Qed.
+
 Lemma observational_if:
   forall n g e1 e2,
   (forall (h: context) v,
@@ -179,6 +184,7 @@ Lemma observational_if:
    eval (h e1) v <-> eval (h e2) v) ->
   approx n g e1 e2.
 Proof.
+  (* Hmmmm... *)
   admit.
 Admitted.
 
