@@ -311,7 +311,10 @@ Qed.
 Theorem observational_consistency:
   ~exists e, typing [] e bottom observational.
 Proof.
+  (* Assume that false is derivable in the observational type system. *)
   intros (e, ?).
+  (* So, easily, we can eliminate it to generate a boolean. *)
   apply boolean_ex_falso in H.
+  (* ... *)
   admit.
 Admitted.
