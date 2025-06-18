@@ -151,17 +151,6 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
-(* Goal
-  forall j n,
-  infer observational j -> infer (approx n) j.
-Proof.
-  intros.
-  apply infer_subset with observational; intros.
-  - repeat intro.
-    apply H0.
-  - assumption.
-Qed. *)
-
 Lemma observational_conv:
   forall g,
   inclusion (conv g) (observational g).
