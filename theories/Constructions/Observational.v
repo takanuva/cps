@@ -54,6 +54,66 @@ Proof.
   auto.
 Qed.
 
+Lemma approx_refl:
+  forall n g,
+  reflexive (approx n g).
+Proof.
+  induction n; intros.
+  - easy.
+  - unfold reflexive; intros.
+    rewrite approx_unfold; intros.
+    firstorder.
+Qed.
+
+Lemma approx_sym:
+  forall n g,
+  symmetric (approx n g).
+Proof.
+  induction n; intros.
+  - easy.
+  - unfold symmetric; intros.
+    rewrite approx_unfold in H |- *; intros.
+    firstorder.
+Qed.
+
+Lemma approx_trans:
+  forall n g,
+  transitive (approx n g).
+Proof.
+  induction n; intros.
+  - easy.
+  - unfold transitive; intros.
+    rewrite approx_unfold in H, H0 |- *; intros.
+    split; intros.
+    + (* Oh no... *)
+      admit.
+    + admit.
+Admitted.
+
+Lemma observational_refl:
+  forall g,
+  reflexive (observational g).
+Proof.
+  repeat intro.
+  apply approx_refl.
+Qed.
+
+Lemma observational_sym:
+  forall g,
+  symmetric (observational g).
+Proof.
+  repeat intro.
+  now apply approx_sym.
+Qed.
+
+Lemma observational_trans:
+  forall g,
+  transitive (observational g).
+Proof.
+  repeat intro.
+  now apply approx_trans with y.
+Qed.
+
 Lemma observational_tt_ff:
   forall g,
   ~observational g bool_tt bool_ff.
