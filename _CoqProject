@@ -43,8 +43,8 @@ theories/Constructions/Calculus.v
 theories/Constructions/Conversion.v
 theories/Constructions/Confluence.v
 theories/Constructions/TypeSystem.v
-theories/Constructions/Normalization.v
 theories/Constructions/Inversion.v
+theories/Constructions/Normalization.v
 theories/Constructions/Stratification.v
 theories/Constructions/Reduction.v
 theories/Constructions/Observational.v

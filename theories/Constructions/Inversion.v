@@ -11,7 +11,7 @@ Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Confluence.
-Require Import Local.Constructions.Normalization.
+(* Require Import Local.Constructions.Normalization. *)
 
 (* TODO: why are we using conv here instead of any R? *)
 

@@ -8,6 +8,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
+Require Import Local.Constructions.Inversion.
 
 Import ListNotations.
 
