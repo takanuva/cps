@@ -76,20 +76,6 @@ Proof.
     firstorder.
 Qed.
 
-Lemma approx_trans:
-  forall n g,
-  transitive (approx n g).
-Proof.
-  induction n; intros.
-  - easy.
-  - unfold transitive; intros.
-    rewrite approx_unfold in H, H0 |- *; intros.
-    split; intros.
-    + (* Oh no... *)
-      admit.
-    + admit.
-Admitted.
-
 Lemma observational_refl:
   forall g,
   reflexive (observational g).
@@ -104,14 +90,6 @@ Lemma observational_sym:
 Proof.
   repeat intro.
   now apply approx_sym.
-Qed.
-
-Lemma observational_trans:
-  forall g,
-  transitive (observational g).
-Proof.
-  repeat intro.
-  now apply approx_trans with y.
 Qed.
 
 Lemma observational_tt_ff:
