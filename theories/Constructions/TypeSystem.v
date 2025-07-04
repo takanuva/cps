@@ -399,3 +399,61 @@ Conjecture subject_reduction:
   forall f,
   rt(step g) e f ->
   typing g f t conv.
+
+(* We want to check that the beta-lift rule from ANF is type-preserving. This is
+   a generalization of the sigma-1 and sigma-3 reduction rules from [...].
+
+   TODO: move to its own file; test beta-flat et al. *)
+
+Inductive cbv_eval_context: context -> Prop :=
+  | cbv_eval_context_hole:
+    cbv_eval_context context_hole
+  | cbv_eval_context_app_left:
+    forall h f,
+    cbv_eval_context h ->
+    cbv_eval_context (context_app_left h f)
+  | cbv_eval_context_app_right:
+    forall v h,
+    value v ->
+    cbv_eval_context h ->
+    cbv_eval_context (context_app_right v h)
+  (* TODO: remaining cases. *).
+
+(* TODO: need I say anything? *)
+
+Axiom context_lift: nat -> nat -> context -> context.
+
+Axiom context_lift_simpl1:
+  forall i k,
+  context_lift i k context_hole = context_hole.
+
+Axiom context_lift_simpl2:
+  forall i k h f,
+  context_lift i k (context_app_left h f) =
+    context_app_left (context_lift i k h) (lift i k f).
+
+Axiom context_lift_simpl3:
+  forall i k e h,
+  context_lift i k (context_app_right e h) =
+    context_app_right (lift i k e) (context_lift i k h).
+
+Lemma beta_lift:
+  forall R h,
+  cbv_eval_context h ->
+  forall g t e f u,
+  (* G |- E[(\x: t.e) f] : u *)
+  typing g (h (application (abstraction t e) f)) u R ->
+  (* G |- (\x: t.E[e]) f *)
+  typing g (application (abstraction t (context_lift 1 0 h e)) f) u R.
+Proof.
+  induction 1; intros.
+  - simpl.
+    rewrite context_lift_simpl1; simpl.
+    assumption.
+  - rewrite context_lift_simpl2; simpl in H0 |- *.
+    (* We need inversion on H0 for this... *)
+    admit.
+  - rewrite context_lift_simpl3; simpl in H0 |- *.
+    (* We need inversion on H1 as well... *)
+    admit.
+Admitted.
