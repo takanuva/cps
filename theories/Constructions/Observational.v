@@ -92,6 +92,14 @@ Proof.
   now apply approx_sym.
 Qed.
 
+(* Goal
+  forall n g,
+  inclusion (approx n g) (approx (S n) g).
+Proof.
+  unfold inclusion.
+  admit.
+Admitted. *)
+
 Lemma observational_tt_ff:
   forall g,
   ~observational g bool_tt bool_ff.
