@@ -930,6 +930,217 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
   Ltac wonder i j :=
     destruct (le_gt_dec (interpretation i) (interpretation j)).
 
+  (*  metat : nat -> TERM
+    | index : NUM -> TERM
+    | abstraction : TERM -> TERM
+    | application : TERM -> TERM -> TERM
+
+    | dblift : NUM -> NUM -> TERM -> TERM
+    | dbsubst : TERM -> NUM -> TERM -> TERM
+    | dbtraverse : SUBST -> NUM -> TERM -> TERM
+
+    | instantiation : SUBST -> TERM -> TERM
+
+    | metas : nat -> SUBST
+    | iota : t SUBST
+    | slift : NUM -> SUBST
+    | concatenate : VECTOR -> SUBST -> SUBST
+    | compose : SUBST -> SUBST -> SUBST
+    | uplift : NUM -> SUBST -> SUBST
+
+    | metav : nat -> VECTOR
+    | nil : t VECTOR
+    | cons : TERM -> VECTOR -> VECTOR
+    | join : VECTOR -> VECTOR -> VECTOR
+
+    | metan : nat -> NUM
+    | zero : t NUM
+    | succ : NUM -> NUM
+    | length : VECTOR -> NUM
+    | SUB : NUM -> NUM -> NUM
+    | ADD : NUM -> NUM -> NUM
+    | MIN : NUM -> NUM -> NUM
+    | MAX : NUM -> NUM -> NUM *)
+
+  Axiom FOOBAR: nat -> nat.
+
+  Definition sumup (k: nat) (f: TERM -> nat) :=
+    fix sumup (v: VECTOR) :=
+      match v with
+      | metav _ => 0
+      | nil => 0
+      | cons e v => k + f e + sumup v
+      | join v u => sumup v + sumup u
+      end.
+
+  Fixpoint measure1 {s: sort} (expr: s) {struct expr}: nat :=
+    match expr with
+    (* TERM *)
+    | metat _ => 1
+    | index n => 2 ^ measure1 n
+    | abstraction e => 2 + measure1 e
+    | application e f => measure1 e + measure1 f
+    | dblift i k e => FOOBAR 0
+    | dbsubst y k e => FOOBAR 1
+    | dbtraverse s k e => FOOBAR 2
+    | instantiation s e => measure1 s * measure1 e
+    (* SUBST *)
+    | metas _ => 1
+    | iota => 2
+    | slift n => 2 ^ interpretation n
+    | concatenate v s => sumup 0 measure1 v + measure1 s
+    | compose s t => measure1 s * measure1 t
+    | uplift n s => measure1 s
+    (* VECTOR *)
+    | metav _ => 0
+    | nil => 0
+    | cons e v => measure1 e + sumup 0 measure1 v
+    | join v u => sumup 0 measure1 v + sumup 0 measure1 u
+    (* NUMBER *)
+    | metan n => interpretation (metan n)
+    | zero => interpretation zero
+    | succ n => interpretation (succ n)
+    | length v => interpretation (length v)
+    | SUB n m => interpretation (SUB n m)
+    | ADD n m => interpretation (ADD n m)
+    | MIN n m => interpretation (MIN n m)
+    | MAX n m => interpretation (MAX n m)
+    end.
+
+  Lemma measure1_NUM:
+    forall n: NUM,
+    measure1 n = interpretation n.
+  Proof.
+    intros.
+    dependent induction n; simpl; auto.
+  Qed.
+
+  Fixpoint measure2 {s: sort} (expr: s) {struct expr}: nat :=
+    match expr with
+    (* TERM *)
+    | metat _ => FOOBAR 3
+    | index n => FOOBAR 4
+    | abstraction e => FOOBAR 5
+    | application e f => FOOBAR 6
+    | dblift i k e => FOOBAR 7
+    | dbsubst y k e => FOOBAR 8
+    | dbtraverse s k e => FOOBAR 9
+    | instantiation s e => FOOBAR 10
+    (* SUBST *)
+    | metas _ => FOOBAR 11
+    | iota => FOOBAR 12
+    | slift n => FOOBAR 13
+    | concatenate v s => FOOBAR 14
+    | compose s t => FOOBAR 15
+    | uplift n s => FOOBAR 16
+    (* VECTOR *)
+    | metav _ => FOOBAR 17
+    | nil => FOOBAR 18
+    | cons e v => FOOBAR 19
+    | join v u => FOOBAR 20
+    (* NUMBER *)
+    | metan n => FOOBAR 21
+    | zero => FOOBAR 22
+    | succ n => FOOBAR 23
+    | length v => FOOBAR 24
+    | SUB n m => FOOBAR 25
+    | ADD n m => FOOBAR 26
+    | MIN n m => FOOBAR 27
+    | MAX n m => FOOBAR 28
+    end.
+
+  Fixpoint measure3 {s: sort} (expr: s) {struct expr}: nat :=
+    match expr with
+    (* TERM *)
+    | metat _ => FOOBAR 29
+    | index n => FOOBAR 30
+    | abstraction e => FOOBAR 31
+    | application e f => FOOBAR 32
+    | dblift i k e => FOOBAR 33
+    | dbsubst y k e => FOOBAR 34
+    | dbtraverse s k e => FOOBAR 35
+    | instantiation s e => FOOBAR 36
+    (* SUBST *)
+    | metas _ => FOOBAR 37
+    | iota => FOOBAR 38
+    | slift n => FOOBAR 39
+    | concatenate v s => FOOBAR 40
+    | compose s t => FOOBAR 41
+    | uplift n s => FOOBAR 42
+    (* VECTOR *)
+    | metav _ => FOOBAR 43
+    | nil => FOOBAR 44
+    | cons e v => FOOBAR 45
+    | join v u => FOOBAR 46
+    (* NUMBER *)
+    | metan n => FOOBAR 47
+    | zero => FOOBAR 48
+    | succ n => FOOBAR 49
+    | length v => FOOBAR 50
+    | SUB n m => FOOBAR 51
+    | ADD n m => FOOBAR 52
+    | MIN n m => FOOBAR 53
+    | MAX n m => FOOBAR 54
+    end.
+
+  Inductive LT {s: sort}: relation s :=
+    | LT1:
+      forall x y,
+      measure1 x < measure1 y ->
+      LT x y
+    | LT2:
+      forall x y,
+      measure1 x = measure1 y ->
+      measure2 x < measure2 y ->
+      LT x y
+    | LT3:
+      forall x y,
+      measure1 x = measure1 y ->
+      measure2 x = measure2 y ->
+      measure3 x < measure3 y ->
+      LT x y.
+
+  Lemma LT_trans:
+    forall s x y z,
+    @LT s x y ->
+    @LT s y z ->
+    @LT s x z.
+  Proof.
+    destruct 1; destruct 1; econstructor; lia.
+  Qed.
+
+  Lemma LT_is_well_founded:
+    forall s,
+    well_founded (@LT s).
+  Proof.
+    repeat intro.
+    remember (measure1 a) as n1.
+    remember (measure2 a) as n2.
+    remember (measure3 a) as n3.
+    generalize dependent a.
+    generalize dependent n3.
+    generalize dependent n2.
+    induction n1 using lt_wf_ind.
+    intro.
+    induction n2 using lt_wf_ind.
+    intro.
+    induction n3 using lt_wf_ind.
+    intros; subst.
+    constructor; intros.
+    destruct H2.
+    - eapply H; now try reflexivity.
+    - eapply H0; now try reflexivity.
+    - eapply H1; now try reflexivity.
+  Qed.
+
+  Lemma decreasing:
+    forall s x y,
+    @step s x y ->
+    @LT s x y.
+  Proof.
+    induction 1.
+  Admitted.
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -941,7 +1152,7 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     equivalent y z.
   Proof.
     induction 3; intros.
-    - repeat break; work.
+    (* - repeat break; work.
     - repeat break; work.
     - repeat break; work.
     - repeat break; work.
@@ -1113,7 +1324,7 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     - repeat break; work.
       + (* May the gods help me... *)
         admit.
-    - repeat break; work.
+    - repeat break; work. *)
     (* .................................................................. *)
   Admitted.
 
