@@ -41,9 +41,7 @@ Section Sigma.
     | succ (n: t NUM): t NUM
     | length (v: t VECTOR): t NUM
     | SUB (n: t NUM) (m: t NUM): t NUM
-    | ADD (n: t NUM) (m: t NUM): t NUM
-    | MIN (n: t NUM) (m: t NUM): t NUM
-    | MAX (n: t NUM) (m: t NUM): t NUM.
+    | ADD (n: t NUM) (m: t NUM): t NUM.
 
   Coercion t: sort >-> Sortclass.
 
@@ -55,7 +53,36 @@ Section Sigma.
 
   Coercion number: nat >-> t.
 
-  Variable interpretation: NUM -> nat.
+  Variable ORACLE_NUM: nat -> nat.
+  Variable ORACLE_VEC: nat -> nat.
+
+  Fixpoint interpretation_length (x: VECTOR): nat :=
+    match x with
+    | metav n =>
+      ORACLE_VEC n
+    | nil =>
+      0
+    | cons _ v =>
+      1 + interpretation_length v
+    | join v1 v2 =>
+      interpretation_length v1 + interpretation_length v2
+    end.
+
+  Fixpoint interpretation (x: NUM): nat :=
+    match x with
+    | metan n =>
+      ORACLE_NUM n
+    | zero =>
+      0
+    | succ n =>
+      1 + interpretation n
+    | length v =>
+      interpretation_length v
+    | SUB n m =>
+      interpretation n - interpretation m
+    | ADD n m =>
+      interpretation n + interpretation m
+    end.
 
   Infix "::" := cons (at level 60, right associativity).
   Infix "++" := join (right associativity, at level 60).
@@ -108,554 +135,27 @@ Section Sigma.
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    (*
-    (* Instantiation rules: *)
-    | A6 x:
-      step (inst subst_ids x)
-           x
-    | A7 n y ys s:
-      interpretation n = 0 ->
-      step (inst (subst_app (y :: ys) s) (var n))
-           y
-    | A8 n y ys s:
-      interpretation n > 0 ->
-      step (inst (subst_app (y :: ys) s) (var n))
-           (inst (subst_app ys s) (var (n - 1)))
-    | A9 n ys s:
-      interpretation n >= interpretation (length ys) ->
-      step (inst (subst_app ys s) (var n))
-           (inst s (var (n - length ys)))
-    | A10 i n:
-      step (inst (subst_lift i) (var n))
-           (var (i + n))
-    | A11 i s n:
-      step (inst (subst_drop i s) (var n))
-           (inst s (var (i + n)))
-    | A12 i s n:
-      interpretation i > interpretation n ->
-      step (inst (subst_upn i s) (var n))
-           (var n)
-    | A13 i n s t:
-      interpretation i > interpretation n ->
-      step (inst (subst_comp (subst_upn i s) t) (var n))
-           (inst t (var n))
-    | A14 i s n:
-      interpretation i <= interpretation n ->
-      step (inst (subst_upn i s) (var n))
-           (inst (subst_comp s (subst_lift i)) (var (n - i)))
-    | A15 i n s t:
-      interpretation i <= interpretation n ->
-      step (inst (subst_comp (subst_upn i s) t) (var n))
-           (inst (subst_comp s (subst_drop i t)) (var (n - i)))
-    | A16 t s x:
-      step (inst t (inst s x))
-           (inst (subst_comp s t) x)
+    (* RULES FOR ID *)
 
-    (* NEW RULE!!! *)
-    | AXX j s i n:
-      step (inst (subst_comp (subst_upn j s) (subst_lift i)) (var n))
-           (inst (subst_upn (i + j) s) (var (i + n)))
+    (* RULES FOR LIFT *)
 
-    (* NEW RULE!!! *)
-    | AYY j s i n t:
-      step (inst (subst_comp (subst_upn j s) (subst_comp (subst_lift i) t)) (var n))
-           (inst (subst_comp (subst_upn (i + j) s) t) (var (i + n)))
+    (* RULES FOR CONS *)
 
-
-
-
-
-
-
-
-
-    (* Algebraic rules: *)
-    | A17 n:
-      interpretation n = 0 ->
-      step (subst_lift n)
-           subst_ids
-    | A18 n s:
+    (* RULES FOR COMP *)
+    | Y1 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    (* RULES FOR UPLIFT *)
+    | U1 n s:
       interpretation n = 0 ->
       step (subst_upn n s)
            s
-    | A19 i y ys s:
-      interpretation i > 0 ->
-       step (subst_drop i (subst_app (y :: ys) s))
-            (subst_drop (i - 1) (subst_app ys s))
-    | A20 i ys s:
-       interpretation i >= interpretation (length ys) ->
-       step (subst_drop i (subst_app ys s))
-            (subst_drop (i - length ys) s)
-    | A21 s:
-      step (subst_comp subst_ids s)
-           s
-    | A22 s:
-      step (subst_comp s subst_ids)
-           s
-    | A23 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    (* WE MIGHT WANT TO CHANGE THE FOLLOWING!!! *)
-    | A24 ys s t:
-      step (subst_comp (subst_app ys s) t)
-           (subst_app (smap t 0 ys) (subst_comp s t))
-    (* ------------------- *)
-    | A25 m n s:
-      interpretation m = interpretation (number 1 + n) ->
-      step (subst_cons (inst s (var n)) (subst_drop m s)) (subst_drop n s)
-    | A26 i j s:
-      interpretation i >= interpretation j ->
-      step (subst_drop i (subst_upn j s))
-           (subst_drop (i - j) (subst_comp s (subst_lift j)))
-    | A27 i j s:
-      interpretation i <= interpretation j ->
-      step (subst_drop i (subst_upn j s))
-           (subst_comp (subst_upn (j - i) s) (subst_lift i))
-    | A28 i j s t:
-      interpretation i >= interpretation j ->
-      step (subst_drop i (subst_comp (subst_upn j s) t))
-           (subst_drop (i - j) (subst_comp s (subst_drop j t)))
-    | A29 i j s t:
-      interpretation i <= interpretation j ->
-      step (subst_drop i (subst_comp (subst_upn j s) t))
-           (subst_comp (subst_upn (j - i) s) (subst_drop i t))
-    | A30 k j s t:
-      interpretation k >= interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn j (subst_comp (subst_upn (k - j) s) t))
-    | A31 j k s t:
-      interpretation j >= interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn k (subst_comp s (subst_upn (j - k) t)))
-    | A32 j k s t u:
-      interpretation k >= interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u)
-    | A33 j k s t u:
-      interpretation j >= interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
-    | A34 n y ys s t:
-      interpretation n > 0 ->
-      step (subst_comp (subst_upn n s) (subst_app (y :: ys) t))
-           (subst_cons y (subst_comp (subst_upn (n - 1) s) (subst_app ys t)))
-    | A35 n ys s t:
-      interpretation n >= interpretation (length ys) ->
-      step (subst_comp (subst_upn n s) (subst_app ys t))
-           (subst_app ys (subst_comp (subst_upn (n - length ys) s) t))
-    | A36 n ys zs s t:
-       interpretation n >= interpretation (length ys) ->
-       step (subst_comp (subst_upn n s) (subst_app (ys ++ zs) t))
-            (subst_app ys (subst_comp (subst_upn (n - length ys) s) (subst_app zs t)))
-    | A37 i:
-      step (subst_upn i subst_ids)
-           subst_ids
-    | A38 i j:
-      (* SMALL CHANGE IN HERE! *)
-      step (subst_drop i (subst_lift j))
-           (subst_lift (j + i))
-    | A39 i j s:
-      step (subst_upn i (subst_upn j s))
-           (subst_upn (i + j) s)
-    | A40 s:
-      step (subst_app [] s)
-           s
-    | A41 xs ys s:
-      (* WE INVERTED THIS RULE!!! *)
-      step (subst_app (xs ++ ys) s)
-           (subst_app xs (subst_app ys s))
-    *)
+    (* RULES FOR INST AND COMP *)
+    | IC1 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    (* SIMPLIFICATION *)
 
-
-
-
-
-
-
-
-
-
-
-
-
-    (* ---------------------------------------------------------------------- *)
-    (* 1. (Closure) inst s (inst t e) = inst (subst_comp s t) e *)
-    | A6 s t x:
-      step (inst t (inst s x))
-           (inst (subst_comp s t) x)
-    (* 2. (VarShift1) inst (subst_lift 1) (var n) = var (1 + n) *)
-    | A7 i n:
-      step (inst (subst_lift i) (var n))
-           (var (i + n))
-    (* 3. (VarShift2) inst (subst_comp (subst_lift 1) s)
-                                                       = inst s (var (1 + n)) *)
-    | A8 i s n:
-      step (inst (subst_comp (subst_lift i) s) (var n))
-           (inst s (var (i + n)))
-    (* 4. (FVar) inst (subst_cons y s) (var 0) = y *)
-    | A9 y ys s:
-      step (inst (subst_app (y :: ys) s) (var 0))
-           y
-    (* 5. (FVarLift1) inst (subst_upn 1 s) (var 0) = var 0 *)
-    | A10 i s n:
-      interpretation i > interpretation n ->
-      step (inst (subst_upn i s) (var n))
-           (var n)
-    (* 6. (FvarLift2) inst (subst_comp (subst_upn 1 s) t) (var 0)
-                                                             = inst t (var 0) *)
-    | A11 i s t n:
-      interpretation i > interpretation n ->
-      step (inst (subst_comp (subst_upn i s) t) (var n))
-           (inst t (var n))
-    (* 7. (RVar) inst (subst_cons y s) (var (1 + n)) = inst s (var n) *)
-    | A12 y ys s n:
-      interpretation n > 0 ->
-      step (inst (subst_app (y :: ys) s) (var n))
-           (inst (subst_app ys s) (var (n - 1)))
-    | A13 ys s n:
-      interpretation n >= interpretation (length ys) ->
-      step (inst (subst_app ys s) (var n))
-           (inst s (var (n - length ys)))
-    | A13' ys zs s n:
-      interpretation n >= interpretation (length ys) ->
-      step (inst (subst_app (ys ++ zs) s) (var n))
-           (inst (subst_app zs s) (var (n - length ys)))
-    (* Sometimes app and comp can't commute, so we need to consider it here. *)
-    | AAA y ys s t n:
-      interpretation n > 0 ->
-      step (inst (subst_comp (subst_app (y :: ys) s) t) (var n))
-           (inst (subst_comp (subst_app ys s) t) (var (n - 1)))
-    | AAB ys s t n:
-      interpretation n >= interpretation (length ys) ->
-      step (inst (subst_comp (subst_app ys s) t) (var n))
-           (inst (subst_comp s t) (var (n - length ys)))
-    | AAB' ys zs s t n:
-      interpretation n >= interpretation (length ys) ->
-      step (inst (subst_comp (subst_app (ys ++ zs) s) t) (var n))
-           (inst (subst_comp (subst_app zs s) t) (var (n - length ys)))
-
-
-
-    (* 8. (RVarLift1) inst (subst_upn 1 s) (var (1 + n))
-                                 = inst (subst_comp s (subst_lift 1)) (var n) *)
-    | A14 i s n:
-      interpretation i <= interpretation n ->
-      step (inst (subst_upn i s) (var n))
-           (inst (subst_comp s (subst_lift i)) (var (n - i)))
-    (* 9. (RVarLift2) inst (subst_comp (subst_upn 1 s) t) (var (1 + n))
-                  = inst (subst_comp s (subst_comp (subst_lift 1) t)) (var n) *)
-    | A15 i s t n:
-      interpretation i <= interpretation n ->
-      step (inst (subst_comp (subst_upn i s) t) (var n))
-           (inst (subst_comp s (subst_comp (subst_lift i) t)) (var (n - i)))
-
-
-
-
-
-
-
-
-
-
-
-
-    (* 21. (IdEnv) inst subst_ids x = x *)
-    | A16 x:
-      step (inst subst_ids x)
-           x
-    (* ---------------------------------------------------------------------- *)
-    (* 10. (AssEnv) subst_comp (subst_comp s t) u
-                                              = subst_comp s (subst_comp t u) *)
-    | A17 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    (* 11. (MapEnv) subst_comp (subst_cons y s) t
-                                     = subst_cons (inst t y) (subst_comp s t) *)
-    | A18 y ys s t:
-      step (subst_comp (subst_app (y :: ys) s) t)
-           (subst_cons (inst t y) (subst_comp (subst_app ys s) t))
-    (* 12. (Shift) subst_comp (subst_lift 1) (subst_cons y s) = s *)
-    | A19 i y ys s:
-      interpretation i > interpretation 0 ->
-      step (subst_comp (subst_lift i) (subst_app (y :: ys) s))
-           (subst_comp (subst_lift (i - 1)) (subst_app ys s))
-    | A20 i ys s:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_lift i) (subst_app ys s))
-           (subst_comp (subst_lift (i - length ys)) s)
-    | A201 i ys zs s:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_lift i) (subst_app (ys ++ zs) s))
-           (subst_comp (subst_lift (i - length ys)) (subst_app zs s))
-
-
-    | A19' i y ys s t:
-      interpretation i > interpretation 0 ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_app (y :: ys) s) t))
-           (subst_comp (subst_lift (i - 1)) (subst_comp (subst_app ys s) t))
-    | A20' i ys s t:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_app ys s) t))
-           (subst_comp (subst_lift (i - length ys)) (subst_comp s t))
-    | A201' i ys zs s t:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_app (ys ++ zs) s) t))
-           (subst_comp (subst_lift (i - length ys)) (subst_comp (subst_app zs s) t))
-
-
-
-
-
-    (* 13. (ShiftLift1) subst_comp (subst_lift 1) (subst_upn 1 s)
-                                                = subst_comp s (subst_lift 1) *)
-    | A21 i j s:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_upn j s))
-           (subst_comp (subst_lift (i - j)) (subst_comp s (subst_lift j)))
-    | A22 i j s:
-      interpretation i <= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_upn j s))
-           (subst_comp (subst_upn (j - i) s) (subst_lift i))
-
-
-
-
-
-
-
-
-    (* 14. (ShiftLift2) subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t)
-                                 = subst_comp s (subst_comp (subst_lift 1) t) *)
-    | A23 i j s t:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
-           (subst_comp (subst_lift (i - j)) (subst_comp s (subst_comp (subst_lift j) t)))
-    | A24 i j s t:
-      interpretation i <= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
-           (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) t))
-
-
-
-
-
-    (* 15. (Lift1) subst_comp (subst_upn 1 s) (subst_upn 1 t)
-                                               = subst_upn 1 (subst_comp s t) *)
-    | A25 i j s t:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_upn i s) (subst_upn j t))
-           (subst_upn j (subst_comp (subst_upn (i - j) s) t))
-    | A26 i j s t:
-      interpretation i <= interpretation j ->
-        step (subst_comp (subst_upn i s) (subst_upn j t))
-             (subst_upn i (subst_comp s (subst_upn (j - i) t)))
-    (* 16. (Lift2) subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u)
-                                = subst_comp (subst_upn 1 (subst_comp s t)) u *)
-    | A27 i j s t u:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn j (subst_comp (subst_upn (i - j) s) t)) u)
-    | A28 i j s t u:
-      interpretation i <= interpretation j ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn i (subst_comp s (subst_upn (j - i) t))) u)
-
-
-
-
-
-    (* 17. (LiftEnv) subst_comp (subst_upn 1 s) (subst_cons y t)
-                                              = subst_cons y (subst_comp s t) *)
-    | A29 i s y ys t:
-      interpretation i > interpretation 0 ->
-      step (subst_comp (subst_upn i s) (subst_app (y :: ys) t))
-           (subst_cons y (subst_comp (subst_upn (i - 1) s) (subst_app ys t)))
-    | A30 i s ys t:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_app ys t))
-           (subst_app ys (subst_comp (subst_upn (i - length ys) s) t))
-
-    | A301 i s ys zs t:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_app (ys ++ zs) t))
-           (subst_app ys (subst_comp (subst_upn (i - length ys) s) (subst_app zs t)))
-
-
-    | A29' i s y ys t u:
-      interpretation i > interpretation 0 ->
-      (* TODO: check if this is normal form!!! *)
-      step (subst_comp (subst_upn i s) (subst_comp (subst_app (y :: ys) t) u))
-           (subst_cons (inst u y)
-             (subst_comp (subst_upn (i - 1) s) (subst_comp (subst_app ys t) u)))
-    | A30' i s ys t u:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys t) u))
-           (subst_comp (subst_app ys (subst_comp (subst_upn (i - length ys) s) t)) u)
-
-    | A301' i s ys zs t u:
-      interpretation i >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_app (ys ++ zs) t) u))
-           (subst_comp (subst_app ys (subst_comp (subst_upn (i - length ys) s) (subst_app zs t))) u)
-
-
-
-    (* 18. (IdL) subst_comp subst_ids s = s *)
-    | AY1 s:
-      step (subst_comp subst_ids s)
-           s
-    (* 19. (IdR) subst_comp s subst_ids = s *)
-    | AY2 s:
-      step (subst_comp s subst_ids)
-           s
-    (* 20. (LiftId) subst_upn 1 subst_ids = subst_ids *)
-    | AY3 i:
-      step (subst_upn i subst_ids)
-           subst_ids
-    (* ---------------------------------------------------------------------- *)
-    | AX1 i: (* Remove useless lift. *)
-      interpretation i = interpretation 0 ->
-      step (subst_lift i)
-           (subst_ids)
-    | AX2 i s: (* Remove useless uplift. *)
-      interpretation i = interpretation 0 ->
-      step (subst_upn i s)
-           s
-    | AX3 i j: (* Join lifts. *)
-      step (subst_comp (subst_lift i) (subst_lift j))
-           (subst_lift (j + i))
-    | AX4 i j s:
-      step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
-           (subst_comp (subst_lift (j + i)) s)
-    | AX5 i j s: (* Join uplifts. *)
-      step (subst_upn i (subst_upn j s))
-           (subst_upn (j + i) s)
-    | AX6 ys s:
-      interpretation (length ys) = interpretation 0 ->
-      step (subst_app ys s)
-           s
-    | AX7 y ys zs s: (* Join cons and app... *)
-      interpretation (length ys) = interpretation 0 ->
-      step (subst_app (y :: ys) (subst_app zs s))
-           (subst_app (y :: zs) s)
-    (* ---------------------------------------------------------------------- *)
-
-    | ABA i k s n:
-      step (inst (subst_comp (subst_upn k s) (subst_lift i)) (var n))
-           (inst (subst_upn (i + k) s) (var (i + n)))
-
-    | ABB i k s t n:
-      step (inst (subst_comp (subst_upn k s) (subst_comp (subst_lift i) t)) (var n))
-           (inst (subst_comp (subst_upn (i + k) s) t) (var (i + n)))
-
-    (* | ABC i j s t n:
-      interpretation (i + j)%sigma > interpretation n ->
-      step (inst (subst_upn i (subst_comp (subst_upn j s) t)) (var n))
-           (inst (subst_upn i t) (var n))
-
-    | ABD i j s t u n:
-      interpretation (i + j)%sigma > interpretation n ->
-      step (inst (subst_comp (subst_upn i (subst_comp (subst_upn j s) t)) u) (var n))
-           (inst (subst_comp (subst_upn i t) u) (var n)) *)
-
-    | ABE ys i s t n:
-      interpretation (i + length ys) > interpretation n ->
-      step (inst (subst_app ys (subst_comp (subst_upn i s) t)) (var n))
-           (inst (subst_app ys t) (var n))
-
-    | ABF ys i s t u n:
-      interpretation (i + length ys) > interpretation n ->
-      step (inst (subst_comp (subst_app ys (subst_comp (subst_upn i s) t)) u) (var n))
-           (inst (subst_comp (subst_app ys t) u) (var n))
-
-
-(*
-H : interpretation i <= interpretation j
-H0 : interpretation j >= interpretation (length ys)
-l : interpretation i <= interpretation (length ys)
-______________________________________(1/1)
-equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_app ys t)))
-  (subst_comp (subst_lift i) (subst_app ys (subst_comp (subst_upn (j - length ys) s) t)))
-*)
-    | ABG i s j ys t:
-      (* This is curious; we're trying to move lifts to the right and apps to
-         the left; however, this case appears when j < |ys|, this this lift is
-         already at the rightmost position it can be as we won't simply break
-         ys in two! But we can move the app to the left by moving the upn to
-         the right (even if the lift is stuck). *)
-      interpretation (i + j) >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_app ys t)))
-           (subst_comp (subst_lift j) (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)))
-
-    | ABG' i s j ys zs t:
-      interpretation (i + j) >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_app (ys ++ zs) t)))
-           (subst_comp (subst_lift j) (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) (subst_app zs t))))
-
-
-    | ABH i s j ys t u:
-      interpretation (i + j) >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_comp (subst_app ys t) u)))
-           (subst_comp (subst_lift j) (subst_comp (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) t)) u))
-
-
-    | ABH' i s j ys zs t u:
-      interpretation (i + j) >= interpretation (length ys) ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_lift j) (subst_comp (subst_app (ys ++ zs) t) u)))
-           (subst_comp (subst_lift j) (subst_comp (subst_app ys (subst_comp (subst_upn (i + j - length ys) s) (subst_app zs t))) u))
-
-
-
-    | ABI i s ys j t:
-      interpretation (j + length ys) >= interpretation i ->
-      step (subst_comp (subst_upn i s) (subst_app ys (subst_upn j t)))
-           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_app ys subst_ids))
-
-    | ABI' i s ys j t u:
-      interpretation (j + length ys) >= interpretation i ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys (subst_upn j t)) u))
-           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_comp (subst_app ys subst_ids) u))
-
-
-    | ABJ i s ys j t u:
-      interpretation (j + length ys) >= interpretation i ->
-      step (subst_comp (subst_upn i s) (subst_app ys (subst_comp (subst_upn j t) u)))
-           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_app ys u))
-    | ABJ' i s ys j t u v:
-      interpretation (j + length ys) >= interpretation i ->
-      step (subst_comp (subst_upn i s) (subst_comp (subst_app ys (subst_comp (subst_upn j t) u)) v))
-           (subst_comp (subst_upn i (subst_comp s (subst_upn (j + length ys - i) t))) (subst_comp (subst_app ys u) v))
-
-
-
-
-
-
-    (* ---------------------------------------------------------------------- *)
-
-    | ABW ys zs s:
-      step (subst_app ys (subst_app zs s))
-           (subst_app (ys ++ zs) s)
-
-    | ABX y ys zs:
-      step ((y :: ys) ++ zs)
-           (y :: (ys ++ zs))
-
-    | ABY ys zs:
-      interpretation (length ys) = interpretation 0 ->
-      step (ys ++ zs)
-           zs
-
-    | ABZ ys zs:
-      interpretation (length zs) = interpretation 0 ->
-      step (ys ++ zs)
-           ys
-
-    | AB' ys zs ws:
-      step ((ws ++ ys) ++ zs)
-           (ws ++ (ys ++ zs))
-
-    (* ---------------------------------------------------------------------- *)
     (* Congruence rules: *)
     | C0 n1 n2:
       step n1 n2 -> step (index n1) (index n2)
@@ -736,71 +236,57 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
   Lemma interpretation_zero:
     interpretation zero = 0.
   Proof.
-    admit.
-  Admitted.
+    auto.
+  Qed.
 
   Lemma interpretation_succ:
     forall n,
     interpretation (succ n) = S (interpretation n).
   Proof.
-    admit.
-  Admitted.
+    auto.
+  Qed.
 
   Lemma interpretation_number:
     forall n,
     interpretation (number n) = n.
   Proof.
-    admit.
-  Admitted.
+    induction n; simpl; auto.
+  Qed.
 
   Lemma interpretation_add:
     forall a b,
     interpretation (a + b) = interpretation a + interpretation b.
   Proof.
-    admit.
-  Admitted.
+    simpl; auto.
+  Qed.
 
   Lemma interpretation_sub:
     forall a b,
     interpretation (a - b) = interpretation a - interpretation b.
   Proof.
-    admit.
-  Admitted.
+    simpl; auto.
+  Qed.
 
   Lemma interpretation_cons_length:
     forall y ys,
     interpretation (length (y :: ys)) = interpretation (1 + length ys).
   Proof.
-    admit.
-  Admitted.
+    simpl; auto.
+  Qed.
 
   Lemma interpretation_nil_length:
     interpretation (length []) = interpretation 0.
   Proof.
-    admit.
-  Admitted.
+    simpl; auto.
+  Qed.
 
   Lemma interpretation_app_length:
     forall xs ys,
     interpretation (length (xs ++ ys)) =
       interpretation (length xs) + interpretation (length ys).
   Proof.
-    admit.
-  Admitted.
-
-  Lemma interpretation_min:
-    forall n m,
-    interpretation (MIN n m) = min (interpretation n) (interpretation m).
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma interpretation_max:
-    forall n m,
-    interpretation (MAX n m) = max (interpretation n) (interpretation m).
-  Proof.
-    admit.
-  Admitted.
+    simpl; auto.
+  Qed.
 
   Create HintDb interpretation.
 
@@ -812,8 +298,6 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
-  Hint Rewrite interpretation_min: interpretation.
-  Hint Rewrite interpretation_max: interpretation.
 
   Lemma interpretation_consistent_num:
     forall n m,
@@ -821,8 +305,7 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     interpretation n = interpretation m.
   Proof.
     intros.
-    dependent induction H;
-    autorewrite with interpretation in *.
+    dependent destruction H.
   Qed.
 
   Lemma interpretation_consistent_len:
@@ -831,19 +314,11 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     interpretation (length xs) = interpretation (length ys).
   Proof.
     intros.
-    dependent induction H;
-    autorewrite with interpretation in *.
-    - lia.
-    - now rewrite H.
-    - now rewrite H.
-    - lia.
-    - reflexivity.
-    - f_equal.
-      now apply IHstep.
-    - f_equal.
-      now apply IHstep.
-    - f_equal.
-      now apply IHstep.
+    dependent induction H.
+    - simpl; auto.
+    - simpl; eauto.
+    - simpl; eauto.
+    - simpl; eauto.
   Qed.
 
   Hint Resolve interpretation_consistent_num: sigma.
@@ -930,38 +405,6 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
   Ltac wonder i j :=
     destruct (le_gt_dec (interpretation i) (interpretation j)).
 
-  (*  metat : nat -> TERM
-    | index : NUM -> TERM
-    | abstraction : TERM -> TERM
-    | application : TERM -> TERM -> TERM
-
-    | dblift : NUM -> NUM -> TERM -> TERM
-    | dbsubst : TERM -> NUM -> TERM -> TERM
-    | dbtraverse : SUBST -> NUM -> TERM -> TERM
-
-    | instantiation : SUBST -> TERM -> TERM
-
-    | metas : nat -> SUBST
-    | iota : t SUBST
-    | slift : NUM -> SUBST
-    | concatenate : VECTOR -> SUBST -> SUBST
-    | compose : SUBST -> SUBST -> SUBST
-    | uplift : NUM -> SUBST -> SUBST
-
-    | metav : nat -> VECTOR
-    | nil : t VECTOR
-    | cons : TERM -> VECTOR -> VECTOR
-    | join : VECTOR -> VECTOR -> VECTOR
-
-    | metan : nat -> NUM
-    | zero : t NUM
-    | succ : NUM -> NUM
-    | length : VECTOR -> NUM
-    | SUB : NUM -> NUM -> NUM
-    | ADD : NUM -> NUM -> NUM
-    | MIN : NUM -> NUM -> NUM
-    | MAX : NUM -> NUM -> NUM *)
-
   Axiom FOOBAR: nat -> nat.
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
@@ -973,21 +416,23 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
       | join v u => sumup v + sumup u
       end.
 
+  (* ---------------------------------------------------------------------- *)
+
   Fixpoint measure1 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
     (* TERM *)
-    | metat _ => 1
+    | metat _ => 2
     | index n => 2 ^ measure1 n
     | abstraction e => 2 + measure1 e
     | application e f => measure1 e + measure1 f
-    | dblift i k e => FOOBAR 0
-    | dbsubst y k e => FOOBAR 1
-    | dbtraverse s k e => FOOBAR 2
+    | dblift i k e => max 2 (2 ^ measure1 i) * measure1 e
+    | dbsubst y k e => (2 + measure1 y) * measure1 e
+    | dbtraverse s k e => measure1 s * measure1 e
     | instantiation s e => measure1 s * measure1 e
     (* SUBST *)
-    | metas _ => 1
+    | metas _ => 2
     | iota => 2
-    | slift n => 2 ^ interpretation n
+    | slift n => max 2 (2 ^ interpretation n)
     | concatenate v s => sumup 0 measure1 v + measure1 s
     | compose s t => measure1 s * measure1 t
     | uplift n s => measure1 s
@@ -1003,8 +448,6 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
-    | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m)
     end.
 
   Lemma measure1_NUM:
@@ -1015,73 +458,235 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     dependent induction n; simpl; auto.
   Qed.
 
+  (* ---------------------------------------------------------------------- *)
+
   Fixpoint measure2 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
     (* TERM *)
-    | metat _ => FOOBAR 3
-    | index n => FOOBAR 4
-    | abstraction e => FOOBAR 5
-    | application e f => FOOBAR 6
-    | dblift i k e => FOOBAR 7
-    | dbsubst y k e => FOOBAR 8
-    | dbtraverse s k e => FOOBAR 9
-    | instantiation s e => FOOBAR 10
+    | metat _ => 1
+    | index n => 1
+    | abstraction e => 2 * measure2 e
+    | application e f => 1 + measure2 e + measure2 f
+    | dblift i k e => measure2 e * (1 + 4 ^ measure2 k * max 1 (measure2 i))
+    | dbsubst y k e => measure2 e * (1 + 4 ^ measure2 k * (2 + measure2 y))
+    | dbtraverse s k e => measure2 e * (1 + 4 ^ measure2 k * measure2 s)
+    | instantiation s e => measure2 e * (1 + measure2 s)
     (* SUBST *)
-    | metas _ => FOOBAR 11
-    | iota => FOOBAR 12
-    | slift n => FOOBAR 13
-    | concatenate v s => FOOBAR 14
-    | compose s t => FOOBAR 15
-    | uplift n s => FOOBAR 16
+    | metas _ => 1
+    | iota => 1
+    | slift n => max 1 (measure2 n)
+    | concatenate v s => sumup 1 measure2 v + measure2 s
+    | compose s t => measure2 s * (1 + measure2 t)
+    | uplift n s => 4 ^ measure2 n * measure2 s
     (* VECTOR *)
-    | metav _ => FOOBAR 17
-    | nil => FOOBAR 18
-    | cons e v => FOOBAR 19
-    | join v u => FOOBAR 20
+    | metav _ => 0
+    | nil => 0
+    | cons e v => measure2 e + sumup 0 measure2 v
+    | join v u => sumup 0 measure2 v + sumup 0 measure2 u
     (* NUMBER *)
-    | metan n => FOOBAR 21
-    | zero => FOOBAR 22
-    | succ n => FOOBAR 23
-    | length v => FOOBAR 24
-    | SUB n m => FOOBAR 25
-    | ADD n m => FOOBAR 26
-    | MIN n m => FOOBAR 27
-    | MAX n m => FOOBAR 28
+    | metan n => interpretation (metan n)
+    | zero => interpretation zero
+    | succ n => interpretation (succ n)
+    | length v => interpretation (length v)
+    | SUB n m => interpretation (SUB n m)
+    | ADD n m => interpretation (ADD n m)
     end.
+
+  Lemma measure2_NUM:
+    forall n: NUM,
+    measure2 n = interpretation n.
+  Proof.
+    intros.
+    dependent induction n; simpl; auto.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
 
   Fixpoint measure3 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
     (* TERM *)
-    | metat _ => FOOBAR 29
-    | index n => FOOBAR 30
-    | abstraction e => FOOBAR 31
-    | application e f => FOOBAR 32
-    | dblift i k e => FOOBAR 33
-    | dbsubst y k e => FOOBAR 34
-    | dbtraverse s k e => FOOBAR 35
-    | instantiation s e => FOOBAR 36
+    | metat _ => 1
+    | index n => 1 + measure3 n
+    | abstraction e => 1 + measure3 e
+    | application e f => 1 + measure3 e + measure3 f
+    | dblift i k e => 9 + measure3 i + measure3 k + measure3 e
+    | dbsubst y k e => 12 + measure3 y + measure3 k + measure3 e
+    | dbtraverse s k e => 7 + measure3 s + measure3 k + measure3 e
+    | instantiation s e => 5 + measure3 s + measure3 e
     (* SUBST *)
-    | metas _ => FOOBAR 37
-    | iota => FOOBAR 38
-    | slift n => FOOBAR 39
-    | concatenate v s => FOOBAR 40
-    | compose s t => FOOBAR 41
-    | uplift n s => FOOBAR 42
+    | metas _ => 1
+    | iota => 1
+    | slift n => 1 + measure3 n
+    | concatenate v s => 1 + measure3 v + measure3 s
+    | compose s t => 1 + measure3 s + measure3 t
+    | uplift n s => 1 + measure3 n + measure3 s
     (* VECTOR *)
-    | metav _ => FOOBAR 43
-    | nil => FOOBAR 44
-    | cons e v => FOOBAR 45
-    | join v u => FOOBAR 46
+    | metav _ => 1
+    | nil => 1
+    | cons e v => 1 + measure3 e + measure3 v
+    | join v u => 1 + measure3 v + measure3 u
     (* NUMBER *)
-    | metan n => FOOBAR 47
-    | zero => FOOBAR 48
-    | succ n => FOOBAR 49
-    | length v => FOOBAR 50
-    | SUB n m => FOOBAR 51
-    | ADD n m => FOOBAR 52
-    | MIN n m => FOOBAR 53
-    | MAX n m => FOOBAR 54
+    | metan n => 1
+    | zero => 1
+    | succ n => 1 + measure3 n
+    | length v => 1 + measure3 v
+    | SUB n m => 1 + measure3 n + measure3 m
+    | ADD n m => 1 + measure3 n + measure3 m
     end.
+
+  Lemma measure1_subst_pos:
+    forall e: SUBST,
+    measure1 e > 1.
+  Proof.
+    intros.
+    dependent induction e; simpl.
+    - auto.
+    - auto.
+    - remember (2 ^ interpretation e) as n.
+      destruct n.
+      + auto.
+      + destruct n; lia.
+    - clear IHe1.
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      lia.
+    - specialize (IHe1 _ eq_refl JMeq_refl).
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      lia.
+    - clear IHe1.
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      assumption.
+  Qed.
+
+  Lemma measure1_term_pos:
+    forall e: TERM,
+    measure1 e > 0.
+  Proof.
+    intros.
+    dependent induction e; simpl.
+    - auto.
+    - clear IHe; generalize (measure1 e) as n.
+      induction n; simpl.
+      + auto.
+      + lia.
+    - lia.
+    - specialize (IHe1 _ eq_refl JMeq_refl).
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      lia.
+    - clear IHe1 IHe2.
+      specialize (IHe3 _ eq_refl JMeq_refl).
+      remember (2 ^ measure1 e1) as n.
+      destruct n; simpl; intros.
+      + lia.
+      + lia.
+    - clear IHe2.
+      specialize (IHe1 _ eq_refl JMeq_refl).
+      specialize (IHe3 _ eq_refl JMeq_refl).
+      lia.
+    - clear IHe1 IHe2.
+      specialize (IHe3 _ eq_refl JMeq_refl).
+      assert (measure1 e1 > 1) by apply measure1_subst_pos.
+      lia.
+    - clear IHe1.
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      assert (measure1 e1 > 1) by apply measure1_subst_pos.
+      lia.
+  Qed.
+
+  Lemma measure2_subst_pos:
+    forall e: SUBST,
+    measure2 e > 0.
+  Proof.
+    intros.
+    dependent induction e; simpl.
+    - auto.
+    - auto.
+    - clear IHe.
+      destruct (measure2 e).
+      + auto.
+      + lia.
+    - clear IHe1.
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      lia.
+    - specialize (IHe1 _ eq_refl JMeq_refl).
+      lia.
+    - clear IHe1.
+      specialize (IHe2 _ eq_refl JMeq_refl).
+      assert (4 ^ measure2 e1 > 0).
+      + generalize (measure2 e1) as n.
+        induction n; simpl.
+        * auto.
+        * lia.
+      + lia.
+  Qed.
+
+  Lemma measure2_term_pos:
+    forall e: TERM,
+    measure2 e > 0.
+  Proof.
+    intros.
+    dependent induction e; simpl.
+    - auto.
+    - auto.
+    - specialize (IHe _ eq_refl JMeq_refl).
+      lia.
+    - lia.
+    - specialize (IHe3 _ eq_refl JMeq_refl).
+      lia.
+    - specialize (IHe3 _ eq_refl JMeq_refl).
+      lia.
+    - specialize (IHe3 _ eq_refl JMeq_refl).
+      lia.
+    - specialize (IHe2 _ eq_refl JMeq_refl).
+      lia.
+  Qed.
+
+  Lemma measure1_lift_unfolding:
+    forall i k e,
+    measure1 (lift i k e) = measure1 (traverse (subst_lift i) k e).
+  Proof.
+    intros; simpl.
+    now rewrite measure1_NUM.
+  Qed.
+
+  Lemma measure1_subst_unfolding:
+    forall y k e,
+    measure1 (subst y k e) = measure1 (traverse (subst_cons y subst_ids) k e).
+  Proof.
+    intros; simpl.
+    lia.
+  Qed.
+
+  Lemma measure1_traverse_unfolding:
+    forall s k e,
+    measure1 (traverse s k e) = measure1 (inst (subst_upn k s) e).
+  Proof.
+    intros; simpl.
+    reflexivity.
+  Qed.
+
+  Lemma measure2_lift_unfolding:
+    forall i k e,
+    measure2 (lift i k e) = measure2 (traverse (subst_lift i) k e).
+  Proof.
+    intros; simpl.
+    reflexivity.
+  Qed.
+
+  Lemma measure2_subst_unfolding:
+    forall y k e,
+    measure2 (subst y k e) = measure2 (traverse (subst_cons y subst_ids) k e).
+  Proof.
+    intros; simpl.
+    lia.
+  Qed.
+
+  Lemma measure2_traverse_unfolding:
+    forall s k e,
+    measure2 (traverse s k e) = measure2 (inst (subst_upn k s) e).
+  Proof.
+    intros; simpl.
+    reflexivity.
+  Qed.
 
   Inductive LT {s: sort}: relation s :=
     | LT1:
@@ -1106,7 +711,16 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     @LT s y z ->
     @LT s x z.
   Proof.
-    destruct 1; destruct 1; econstructor; lia.
+    destruct 1; destruct 1.
+    - constructor 1; lia.
+    - constructor 1; lia.
+    - constructor 1; lia.
+    - constructor 1; lia.
+    - constructor 2; lia.
+    - constructor 2; lia.
+    - constructor 1; lia.
+    - constructor 2; lia.
+    - constructor 3; lia.
   Qed.
 
   Lemma LT_is_well_founded:
@@ -1136,9 +750,143 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
   Lemma decreasing:
     forall s x y,
     @step s x y ->
-    @LT s x y.
+    @LT s y x.
   Proof.
-    induction 1.
+    induction 1; intros.
+    - constructor 2; simpl.
+      + lia.
+      + assert (measure2 s > 0) by apply measure2_subst_pos.
+        ring_simplify.
+        lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      ring_simplify.
+      lia.
+    - constructor 3.
+      + now rewrite measure1_lift_unfolding.
+      + now rewrite measure2_lift_unfolding.
+      + simpl; ring_simplify.
+        lia.
+    - constructor 3.
+      + now rewrite measure1_subst_unfolding.
+      + now rewrite measure2_subst_unfolding.
+      + simpl; ring_simplify.
+        lia.
+    - constructor 3.
+      + now rewrite measure1_traverse_unfolding.
+      + now rewrite measure2_traverse_unfolding.
+      + simpl; ring_simplify.
+        lia.
+    - constructor 2; simpl.
+      + lia.
+      + rename t0 into t.
+        assert (measure2 s > 0) by apply measure2_subst_pos.
+        assert (measure2 t > 0) by apply measure2_subst_pos.
+        assert (measure2 u > 0) by apply measure2_subst_pos.
+        lia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + rewrite measure2_NUM.
+        rewrite H.
+        simpl; lia.
+      + lia.
+    - constructor 2; simpl.
+      + lia.
+      + rename t0 into t.
+        assert (measure2 e > 0) by apply measure2_term_pos.
+        assert (measure2 s > 0) by apply measure2_subst_pos.
+        assert (measure2 t > 0) by apply measure2_subst_pos.
+        ring_simplify.
+        lia.
+    (* From this point forward, congruences... *)
+    - constructor 3; simpl.
+      + do 2 rewrite measure1_NUM.
+        now rewrite interpretation_consistent_num with n1 n2.
+      + reflexivity.
+      + apply -> Nat.succ_lt_mono.
+        admit.
+    - dependent destruction IHstep.
+      + constructor 1; simpl; lia.
+      + constructor 2; simpl; lia.
+      + constructor 3; simpl; lia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl; lia.
+      + constructor 2; simpl; lia.
+      + constructor 3; simpl; lia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl; lia.
+      + constructor 2; simpl; lia.
+      + constructor 3; simpl; lia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        (* Weird... *)
+        assert (measure1 e > 0) by apply measure1_term_pos.
+        apply Mult.mult_lt_compat_r_stt; auto.
+      + constructor 2; simpl.
+        * lia.
+        * assert (measure2 e > 0) by apply measure2_term_pos.
+          apply Mult.mult_lt_compat_l_stt; auto.
+          lia.
+      + constructor 3; simpl.
+        * lia.
+        * lia.
+        * lia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 s > 1) by apply measure1_subst_pos.
+        (* Why can't lia solve this one...? *)
+        apply Mult.mult_lt_compat_l_stt; auto.
+        lia.
+      + constructor 2; simpl.
+        * lia.
+        * (* Same thing...! *)
+          apply Mult.mult_lt_compat_r_stt; auto.
+          lia.
+      + constructor 3; simpl.
+        * lia.
+        * lia.
+        * lia.
+    - constructor 3; simpl.
+      * rewrite interpretation_consistent_num with n1 n2; auto.
+      * do 2 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with n1 n2.
+      * admit.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        admit.
+      + constructor 2; simpl.
+        * admit.
+        * admit.
+      + constructor 3; simpl.
+        * admit.
+        * admit.
+        * lia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl; lia.
+      + constructor 2; simpl.
+        * lia.
+        * admit.
+      + constructor 3; simpl.
+        * lia.
+        * lia.
+        * lia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Theorem locally_confluent:
@@ -1152,6 +900,43 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
     equivalent y z.
   Proof.
     induction 3; intros.
+    - repeat break.
+      + work.
+      + work.
+      + work.
+    - repeat break.
+      + work.
+      + work.
+    - repeat break.
+      + work.
+    - repeat break.
+      + work.
+      + work.
+    - repeat break.
+      + work.
+      + work.
+    - repeat break.
+      + work.
+      + work.
+      + work.
+      + work.
+    - repeat break.
+      work.
+    - repeat break.
+      + work.
+      + work.
+      + join.
+        admit.
+      + work.
+      + work.
+      + work.
+    (* -------------------------------------- *)
+    - dependent destruction Y.
+      work.
+    
+    
+    
+    
     (* - repeat break; work.
     - repeat break; work.
     - repeat break; work.
@@ -1325,7 +1110,6 @@ equivalent (subst_comp (subst_upn (j - i) s) (subst_comp (subst_lift i) (subst_a
       + (* May the gods help me... *)
         admit.
     - repeat break; work. *)
-    (* .................................................................. *)
   Admitted.
 
 End Sigma.
