@@ -879,14 +879,92 @@ Section Sigma.
         * lia.
         * lia.
         * lia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 r > 1) by apply measure1_subst_pos.
+        (* C'mon... *)
+        apply Mult.mult_lt_compat_r_stt; auto.
+        lia.
+      + constructor 2; simpl.
+        * now rewrite H0.
+        * apply Mult.mult_lt_compat_r_stt; auto.
+          lia.
+      + constructor 3; simpl.
+        * now rewrite H0.
+        * now rewrite H1.
+        * lia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 s > 1) by apply measure1_subst_pos.
+        apply Mult.mult_lt_compat_l_stt; auto.
+        lia.
+      + constructor 2; simpl.
+        * now rewrite H0.
+        * assert (measure2 s > 0) by apply measure2_subst_pos.
+          apply Mult.mult_lt_compat_l_stt; auto.
+          lia.
+      + constructor 3; simpl.
+        * now rewrite H0.
+        * now rewrite H1.
+        * lia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + do 2 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with n1 n2.
+      + admit.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assumption.
+      + constructor 2; simpl.
+        * assumption.
+        * apply Mult.mult_lt_compat_l_stt; auto.
+          generalize (measure2 n) as m.
+          induction m; auto.
+          simpl; lia.
+      + constructor 3; simpl.
+        * assumption.
+        * now rewrite H1.
+        * lia.
+    - dependent induction IHstep.
+      + constructor 1; simpl.
+        admit.
+      + constructor 2; simpl.
+        * admit.
+        * admit.
+      + constructor 3; simpl.
+        * admit.
+        * admit.
+        * admit.
+    - dependent induction IHstep.
+      + constructor 1; simpl.
+        admit.
+      + constructor 2; simpl.
+        * admit.
+        * admit.
+      + constructor 3; simpl.
+        * admit.
+        * admit.
+        * admit.
+    - dependent induction IHstep.
+      + constructor 1; simpl.
+        admit.
+      + constructor 2; simpl.
+        * admit.
+        * admit.
+      + constructor 3; simpl.
+        * admit.
+        * admit.
+        * admit.
+    - dependent induction IHstep.
+      + constructor 1; simpl.
+        admit.
+      + constructor 2; simpl.
+        * admit.
+        * admit.
+      + constructor 3; simpl.
+        * admit.
+        * admit.
+        * admit.
   Admitted.
 
   Theorem locally_confluent:
