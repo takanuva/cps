@@ -747,6 +747,15 @@ Section Sigma.
     - eapply H1; now try reflexivity.
   Qed.
 
+  Lemma num_step_measure3:
+    forall n m,
+    @step NUM n m ->
+    measure3 n > measure3 m.
+  Proof.
+    intros.
+    dependent induction H.
+  Qed.
+
   Lemma decreasing:
     forall s x y,
     @step s x y ->
@@ -804,7 +813,7 @@ Section Sigma.
         now rewrite interpretation_consistent_num with n1 n2.
       + reflexivity.
       + apply -> Nat.succ_lt_mono.
-        admit.
+        now apply num_step_measure3.
     - dependent destruction IHstep.
       + constructor 1; simpl; lia.
       + constructor 2; simpl; lia.
@@ -859,7 +868,8 @@ Section Sigma.
       * rewrite interpretation_consistent_num with n1 n2; auto.
       * do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
-      * admit.
+      * apply -> Nat.succ_lt_mono.
+        now apply num_step_measure3.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         admit.
@@ -911,7 +921,8 @@ Section Sigma.
       + reflexivity.
       + do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
-      + admit.
+      + apply num_step_measure3 in H.
+        lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assumption.
