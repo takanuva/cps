@@ -481,8 +481,8 @@ Section Sigma.
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
-    | cons e v => measure2 e + sumup 0 measure2 v
-    | join v u => sumup 0 measure2 v + sumup 0 measure2 u
+    | cons e v => 1 + measure2 e + sumup 1 measure2 v
+    | join v u => sumup 1 measure2 v + sumup 1 measure2 u
     (* NUMBER *)
     | metan n => interpretation (metan n)
     | zero => interpretation zero
@@ -756,6 +756,22 @@ Section Sigma.
     dependent induction H.
   Qed.
 
+  Lemma sumup0_measure1_simpl:
+    forall v,
+    sumup 0 measure1 v = measure1 v.
+  Proof.
+    intros.
+    dependent induction v; simpl; auto.
+  Qed.
+
+  Lemma sumup1_measure2_simpl:
+    forall v,
+    sumup 1 measure2 v = measure2 v.
+  Proof.
+    intros.
+    dependent induction v; auto.
+  Qed.
+
   Lemma decreasing:
     forall s x y,
     @step s x y ->
@@ -950,19 +966,24 @@ Section Sigma.
         now apply num_step_measure3.
     - dependent destruction IHstep.
       + constructor 1; simpl.
-        admit.
+        do 2 rewrite sumup0_measure1_simpl.
+        nia.
       + constructor 2; simpl.
-        * admit.
-        * admit.
+        * do 2 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 2 rewrite sumup1_measure2_simpl.
+          nia.
       + constructor 3; simpl.
-        * admit.
-        * admit.
+        * do 2 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 2 rewrite sumup1_measure2_simpl.
+          nia.
         * nia.
     - dependent destruction IHstep.
       + constructor 1; simpl; lia.
       + constructor 2; simpl.
         * nia.
-        * admit.
+        * nia.
       + constructor 3; simpl.
         * nia.
         * nia.
@@ -1012,45 +1033,60 @@ Section Sigma.
         * nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
-        admit.
+        nia.
       + constructor 2; simpl.
-        * admit.
-        * admit.
+        * nia.
+        * nia.
       + constructor 3; simpl.
-        * admit.
-        * admit.
-        * admit.
+        * nia.
+        * nia.
+        * nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
-        admit.
+        do 2 rewrite sumup0_measure1_simpl.
+        nia.
       + constructor 2; simpl.
-        * admit.
-        * admit.
+        * do 2 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 2 rewrite sumup1_measure2_simpl.
+          nia.
       + constructor 3; simpl.
-        * admit.
-        * admit.
-        * admit.
+        * do 2 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 2 rewrite sumup1_measure2_simpl.
+          nia.
+        * nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
-        admit.
+        do 3 rewrite sumup0_measure1_simpl.
+        nia.
       + constructor 2; simpl.
-        * admit.
-        * admit.
+        * do 3 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 3 rewrite sumup1_measure2_simpl.
+          nia.
       + constructor 3; simpl.
-        * admit.
-        * admit.
-        * admit.
+        * do 3 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 3 rewrite sumup1_measure2_simpl.
+          nia.
+        * nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
-        admit.
+        do 3 rewrite sumup0_measure1_simpl.
+        nia.
       + constructor 2; simpl.
-        * admit.
-        * admit.
+        * do 3 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 3 rewrite sumup1_measure2_simpl.
+          nia.
       + constructor 3; simpl.
-        * admit.
-        * admit.
-        * admit.
-  Admitted.
+        * do 3 rewrite sumup0_measure1_simpl.
+          nia.
+        * do 3 rewrite sumup1_measure2_simpl.
+          nia.
+        * nia.
+  Qed.
 
   Theorem locally_confluent:
     forall s x y,
