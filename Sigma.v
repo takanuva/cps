@@ -763,50 +763,44 @@ Section Sigma.
   Proof.
     induction 1; intros.
     - constructor 2; simpl.
-      + lia.
+      + nia.
       + assert (measure2 s > 0) by apply measure2_subst_pos.
-        ring_simplify.
-        lia.
+        nia.
     - constructor 1; simpl.
       assert (measure1 s > 1) by apply measure1_subst_pos.
-      ring_simplify.
-      lia.
+      nia.
     - constructor 3.
       + now rewrite measure1_lift_unfolding.
       + now rewrite measure2_lift_unfolding.
-      + simpl; ring_simplify.
-        lia.
+      + simpl; nia.
     - constructor 3.
       + now rewrite measure1_subst_unfolding.
       + now rewrite measure2_subst_unfolding.
-      + simpl; ring_simplify.
-        lia.
+      + simpl; nia.
     - constructor 3.
       + now rewrite measure1_traverse_unfolding.
       + now rewrite measure2_traverse_unfolding.
-      + simpl; ring_simplify.
-        lia.
+      + simpl; nia.
     - constructor 2; simpl.
-      + lia.
+      + nia.
       + rename t0 into t.
         assert (measure2 s > 0) by apply measure2_subst_pos.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         assert (measure2 u > 0) by apply measure2_subst_pos.
-        lia.
+        nia.
     - constructor 3; simpl.
       + reflexivity.
       + rewrite measure2_NUM.
         rewrite H.
-        simpl; lia.
-      + lia.
+        simpl; nia.
+      + nia.
     - constructor 2; simpl.
-      + lia.
+      + nia.
       + rename t0 into t.
         assert (measure2 e > 0) by apply measure2_term_pos.
         assert (measure2 s > 0) by apply measure2_subst_pos.
         assert (measure2 t > 0) by apply measure2_subst_pos.
-        ring_simplify.
-        lia.
+        nia.
     (* From this point forward, congruences... *)
     - constructor 3; simpl.
       + do 2 rewrite measure1_NUM.
@@ -815,55 +809,139 @@ Section Sigma.
       + apply -> Nat.succ_lt_mono.
         now apply num_step_measure3.
     - dependent destruction IHstep.
-      + constructor 1; simpl; lia.
-      + constructor 2; simpl; lia.
-      + constructor 3; simpl; lia.
+      + constructor 1; simpl; nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - dependent destruction IHstep.
-      + constructor 1; simpl; lia.
-      + constructor 2; simpl; lia.
-      + constructor 3; simpl; lia.
+      + constructor 1; simpl; nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - dependent destruction IHstep.
-      + constructor 1; simpl; lia.
-      + constructor 2; simpl; lia.
-      + constructor 3; simpl; lia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+      + constructor 1; simpl; nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
+    - constructor 3; simpl.
+      + do 2 rewrite measure1_NUM.
+        now rewrite interpretation_consistent_num with i1 i2.
+      + do 3 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with i1 i2.
+      + simpl; ring_simplify.
+        apply num_step_measure3 in H.
+        nia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + do 3 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with k1 k2.
+      + simpl; ring_simplify.
+        apply num_step_measure3 in H.
+        nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
-        (* Weird... *)
-        assert (measure1 e > 0) by apply measure1_term_pos.
-        apply Mult.mult_lt_compat_r_stt; auto.
+        assert (measure1 x > 0) by apply measure1_term_pos.
+        remember (2 ^ measure1 i) as m.
+        destruct m; nia.
       + constructor 2; simpl.
-        * lia.
+        * now rewrite H0.
+        * nia.
+      + constructor 3; simpl.
+        * now rewrite H0.
+        * now rewrite H1.
+        * nia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 e > 0) by apply measure1_term_pos.
+        nia.
+      + constructor 2; simpl.
+        * now rewrite H0.
         * assert (measure2 e > 0) by apply measure2_term_pos.
           apply Mult.mult_lt_compat_l_stt; auto.
-          lia.
+          apply -> Nat.succ_lt_mono.
+          ring_simplify.
+          remember (4 ^ measure2 k) as n.
+          assert (n * measure2 x < n * measure2 y); try lia.
+          apply Mult.mult_lt_compat_l_stt; auto.
+          subst; generalize (measure2 k) as n.
+          induction n; simpl; lia.
       + constructor 3; simpl.
-        * lia.
-        * lia.
-        * lia.
+        * now rewrite H0.
+        * now rewrite H1.
+        * nia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + do 2 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with k1 k2.
+      + ring_simplify.
+        apply num_step_measure3 in H.
+        nia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        nia.
+      + constructor 2; simpl.
+        * nia.
+        * nia.
+      + constructor 3; simpl.
+        * nia.
+        * nia.
+        * nia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 e > 0) by apply measure1_term_pos.
+        nia.
+      + constructor 2; simpl.
+        * nia.
+        * assert (measure2 e > 0) by apply measure2_term_pos.
+          assert (measure2 x > 0) by apply measure2_subst_pos.
+          apply Mult.mult_lt_compat_l_stt; try nia.
+          apply -> Nat.succ_lt_mono.
+          apply Mult.mult_lt_compat_l_stt; try nia.
+          generalize (measure2 k) as n.
+          induction n; simpl; nia.
+      + constructor 3; simpl.
+        * nia.
+        * nia.
+        * nia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + do 2 rewrite measure2_NUM.
+        now rewrite interpretation_consistent_num with k1 k2.
+      + ring_simplify.
+        apply num_step_measure3 in H.
+        lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
-        (* Why can't lia solve this one...? *)
-        apply Mult.mult_lt_compat_l_stt; auto.
-        lia.
+        nia.
       + constructor 2; simpl.
-        * lia.
-        * (* Same thing...! *)
-          apply Mult.mult_lt_compat_r_stt; auto.
-          lia.
+        * now rewrite H0.
+        * nia.
       + constructor 3; simpl.
-        * lia.
-        * lia.
-        * lia.
+        * now rewrite H0.
+        * now rewrite H1.
+        * ring_simplify.
+          nia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 e > 0) by apply measure1_term_pos.
+        nia.
+      + constructor 2; simpl.
+        * nia.
+        * assert (measure2 e > 0) by apply measure2_term_pos.
+          nia.
+      + constructor 3; simpl.
+        * nia.
+        * nia.
+        * nia.
+    - dependent destruction IHstep.
+      + constructor 1; simpl.
+        assert (measure1 s > 1) by apply measure1_subst_pos.
+        nia.
+      + constructor 2; simpl.
+        * nia.
+        * nia.
+      + constructor 3; simpl.
+        * nia.
+        * nia.
+        * nia.
     - constructor 3; simpl.
       * rewrite interpretation_consistent_num with n1 n2; auto.
       * do 2 rewrite measure2_NUM.
@@ -879,50 +957,46 @@ Section Sigma.
       + constructor 3; simpl.
         * admit.
         * admit.
-        * lia.
+        * nia.
     - dependent destruction IHstep.
       + constructor 1; simpl; lia.
       + constructor 2; simpl.
-        * lia.
+        * nia.
         * admit.
       + constructor 3; simpl.
-        * lia.
-        * lia.
-        * lia.
+        * nia.
+        * nia.
+        * nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 r > 1) by apply measure1_subst_pos.
-        (* C'mon... *)
-        apply Mult.mult_lt_compat_r_stt; auto.
-        lia.
+        nia.
       + constructor 2; simpl.
         * now rewrite H0.
         * apply Mult.mult_lt_compat_r_stt; auto.
-          lia.
+          nia.
       + constructor 3; simpl.
         * now rewrite H0.
         * now rewrite H1.
-        * lia.
+        * nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
-        apply Mult.mult_lt_compat_l_stt; auto.
-        lia.
+        nia.
       + constructor 2; simpl.
         * now rewrite H0.
         * assert (measure2 s > 0) by apply measure2_subst_pos.
-          apply Mult.mult_lt_compat_l_stt; auto.
-          lia.
+          nia.
       + constructor 3; simpl.
         * now rewrite H0.
         * now rewrite H1.
-        * lia.
+        * nia.
     - constructor 3; simpl.
       + reflexivity.
       + do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
       + apply num_step_measure3 in H.
-        lia.
+        nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assumption.
@@ -931,11 +1005,11 @@ Section Sigma.
         * apply Mult.mult_lt_compat_l_stt; auto.
           generalize (measure2 n) as m.
           induction m; auto.
-          simpl; lia.
+          simpl; nia.
       + constructor 3; simpl.
         * assumption.
         * now rewrite H1.
-        * lia.
+        * nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
         admit.
