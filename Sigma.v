@@ -405,8 +405,6 @@ Section Sigma.
   Ltac wonder i j :=
     destruct (le_gt_dec (interpretation i) (interpretation j)).
 
-  Axiom FOOBAR: nat -> nat.
-
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
       match v with
@@ -1088,6 +1086,23 @@ Section Sigma.
         * nia.
   Qed.
 
+  Theorem normalization:
+    forall s,
+    (* Recall that for steps, the RHS is smaller. *)
+    well_founded (transp (t s) step).
+  Proof.
+    intros s x.
+    assert (well_founded (@LT s)).
+    - apply LT_is_well_founded.
+    - specialize (H x).
+      induction H.
+      clear H; rename H0 into H.
+      constructor; intros y ?.
+      apply H.
+      apply decreasing.
+      assumption.
+  Qed.
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -1132,10 +1147,7 @@ Section Sigma.
     (* -------------------------------------- *)
     - dependent destruction Y.
       work.
-    
-    
-    
-    
+
     (* - repeat break; work.
     - repeat break; work.
     - repeat break; work.
