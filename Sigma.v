@@ -41,7 +41,9 @@ Section Sigma.
     | succ (n: t NUM): t NUM
     | length (v: t VECTOR): t NUM
     | SUB (n: t NUM) (m: t NUM): t NUM
-    | ADD (n: t NUM) (m: t NUM): t NUM.
+    | ADD (n: t NUM) (m: t NUM): t NUM
+    | MIN (n: t NUM) (m: t NUM): t NUM
+    | MAX (n: t NUM) (m: t NUM): t NUM.
 
   Coercion t: sort >-> Sortclass.
 
@@ -82,7 +84,14 @@ Section Sigma.
       interpretation n - interpretation m
     | ADD n m =>
       interpretation n + interpretation m
+    | MIN n m =>
+      min (interpretation n) (interpretation m)
+    | MAX n m =>
+      max (interpretation n) (interpretation m)
     end.
+
+  Definition DIF n m :=
+    SUB (MAX n m) (MIN n m).
 
   Infix "::" := cons (at level 60, right associativity).
   Infix "++" := join (right associativity, at level 60).
@@ -135,10 +144,11 @@ Section Sigma.
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    (* RULES FOR ID *)
-
     (* RULES FOR LIFT *)
-
+    | L1 n:
+      interpretation n = 0 ->
+      step (subst_lift n)
+           subst_ids
     (* RULES FOR CONS *)
 
     (* RULES FOR COMP *)
@@ -150,8 +160,44 @@ Section Sigma.
       interpretation n = 0 ->
       step (subst_upn n s)
            s
-    (* RULES FOR INST AND COMP *)
-    | IC1 s t e:
+    | U2 k j s:
+      step (subst_upn k (subst_upn j s))
+           (subst_upn (ADD j k) s)
+    | U3 s t k j:
+      interpretation k >= interpretation j ->
+      step (subst_comp (subst_upn k s) (subst_upn j t))
+           (subst_upn j (subst_comp (subst_upn (k - j) s) t))
+    | U4 s t k j:
+      interpretation j >= interpretation k ->
+      step (subst_comp (subst_upn k s) (subst_upn j t))
+           (subst_upn k (subst_comp s (subst_upn (j - k) t)))
+    | U5 s t u k j:
+      interpretation k >= interpretation j ->
+      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
+           (subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u)
+    | U6 s t u k j:
+      interpretation j >= interpretation k ->
+      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
+           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
+
+
+
+
+
+    (* ITERACTIONS *)
+    | II1 e:
+      step (inst subst_ids e)
+           e
+    | UI1 n:
+      step (subst_upn n subst_ids)
+           subst_ids
+    | XI1 s:
+      step (subst_comp s subst_ids)
+           s
+    | XI2 s:
+      step (subst_comp subst_ids s)
+           s
+    | IY1 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
     (* SIMPLIFICATION *)
@@ -267,6 +313,20 @@ Section Sigma.
     simpl; auto.
   Qed.
 
+  Lemma interpretation_min:
+    forall a b,
+    interpretation (MIN a b) = min (interpretation a) (interpretation b).
+  Proof.
+    simpl; auto.
+  Qed.
+
+  Lemma interpretation_max:
+    forall a b,
+    interpretation (MAX a b) = max (interpretation a) (interpretation b).
+  Proof.
+    simpl; auto.
+  Qed.
+
   Lemma interpretation_cons_length:
     forall y ys,
     interpretation (length (y :: ys)) = interpretation (1 + length ys).
@@ -295,6 +355,8 @@ Section Sigma.
   Hint Rewrite interpretation_number: interpretation.
   Hint Rewrite interpretation_add: interpretation.
   Hint Rewrite interpretation_sub: interpretation.
+  Hint Rewrite interpretation_min: interpretation.
+  Hint Rewrite interpretation_max: interpretation.
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
@@ -446,6 +508,8 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
+    | MIN n m => interpretation (MIN n m)
+    | MAX n m => interpretation (MAX n m)
     end.
 
   Lemma measure1_NUM:
@@ -488,6 +552,8 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
+    | MIN n m => interpretation (MIN n m)
+    | MAX n m => interpretation (MAX n m)
     end.
 
   Lemma measure2_NUM:
@@ -530,6 +596,8 @@ Section Sigma.
     | length v => 1 + measure3 v
     | SUB n m => 1 + measure3 n + measure3 m
     | ADD n m => 1 + measure3 n + measure3 m
+    | MIN n m => 1 + measure3 n + measure3 m
+    | MAX n m => 1 + measure3 n + measure3 m
     end.
 
   Lemma measure1_subst_pos:
@@ -770,6 +838,13 @@ Section Sigma.
     dependent induction v; auto.
   Qed.
 
+  Lemma measure3_pos:
+    forall s x,
+    @measure3 s x > 0.
+  Proof.
+    induction x; simpl; nia.
+  Qed.
+
   Lemma decreasing:
     forall s x y,
     @step s x y ->
@@ -794,7 +869,18 @@ Section Sigma.
     - constructor 3.
       + now rewrite measure1_traverse_unfolding.
       + now rewrite measure2_traverse_unfolding.
-      + simpl; nia.
+      + simpl. 
+        ring_simplify.
+        simpl; nia.
+    - constructor 3; simpl.
+      + rewrite H; simpl.
+        reflexivity.
+      + rewrite measure2_NUM.
+        rewrite H.
+        reflexivity.
+      + simpl.
+        assert (measure3 n > 0) by apply measure3_pos.
+        nia.
     - constructor 2; simpl.
       + nia.
       + rename t0 into t.
@@ -808,6 +894,34 @@ Section Sigma.
         rewrite H.
         simpl; nia.
       + nia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - constructor 1; simpl.
+      assert (measure1 e > 0) by apply measure1_term_pos.
+      nia.
+    - remember (measure2 n) as m.
+      destruct m.
+      + constructor 3; simpl.
+        * reflexivity.
+        * rewrite <- Heqm; simpl.
+          reflexivity.
+        * nia.
+      + constructor 2; simpl.
+        * reflexivity.
+        * rewrite <- Heqm; simpl.
+          ring_simplify.
+          assert (4 ^ m > 0); try nia.
+          clear Heqm.
+          induction m; simpl; nia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      nia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      nia.
     - constructor 2; simpl.
       + nia.
       + rename t0 into t.
@@ -1084,11 +1198,11 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
-  Qed.
+  Admitted.
 
   Theorem normalization:
     forall s,
-    (* Recall that for steps, the RHS is smaller. *)
+    (* Recall that for steps, the RHS is smaller, thus transp. *)
     well_founded (transp (t s) step).
   Proof.
     intros s x.
@@ -1103,6 +1217,9 @@ Section Sigma.
       assumption.
   Qed.
 
+  Tactic Notation "just" "do" "it" :=
+    repeat break; try work.
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -1114,39 +1231,39 @@ Section Sigma.
     equivalent y z.
   Proof.
     induction 3; intros.
-    - repeat break.
-      + work.
-      + work.
-      + work.
-    - repeat break.
-      + work.
-      + work.
-    - repeat break.
-      + work.
-    - repeat break.
-      + work.
-      + work.
-    - repeat break.
-      + work.
-      + work.
-    - repeat break.
-      + work.
-      + work.
-      + work.
-      + work.
-    - repeat break.
-      work.
-    - repeat break.
-      + work.
-      + work.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
       + join.
         admit.
-      + work.
-      + work.
-      + work.
+    - just do it.
+      + join.
+        admit.
+    - just do it.
+      + join.
+        admit.
+    - just do it.
+      + join.
+        admit.
+      + join.
+        admit.
+      + join.
+        admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     (* -------------------------------------- *)
     - dependent destruction Y.
-      work.
+      just do it.
 
     (* - repeat break; work.
     - repeat break; work.
