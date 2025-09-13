@@ -171,6 +171,7 @@ Section Sigma.
       interpretation j >= interpretation k ->
       step (subst_comp (subst_upn k s) (subst_upn j t))
            (subst_upn k (subst_comp s (subst_upn (j - k) t)))
+
     | U5 s t u k j:
       interpretation k >= interpretation j ->
       step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
@@ -179,6 +180,7 @@ Section Sigma.
       interpretation j >= interpretation k ->
       step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
            (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
+
 
 
 
@@ -1241,21 +1243,21 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + join.
-        admit.
+      + rename j0 into i.
+        wonder k (ADD i j); work.
     - just do it.
-      + join.
-        admit.
+      + rename j0 into i.
+        wonder (ADD i k) j; work.
     - just do it.
-      + join.
-        admit.
+      + rename j0 into i, s0 into t.
+        wonder k (ADD i j); work.
     - just do it.
-      + join.
-        admit.
-      + join.
-        admit.
-      + join.
-        admit.
+      + rename j0 into i, s0 into s, t0 into t.
+        wonder (ADD i k) j; work.
+      + rename j0 into i, t0 into t, t1 into u.
+        wonder k i; work.
+      + rename j0 into i, t0 into t, t1 into u, u0 into v.
+        wonder k i; work.
     - just do it.
     - just do it.
     - just do it.
