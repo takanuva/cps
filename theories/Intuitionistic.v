@@ -44,55 +44,137 @@ Inductive intuitionistic: list polarity -> pseudoterm -> Prop :=
       G; D |- k<xs>
   *)
   | intuitionistic_ret:
-    forall e k xs,
-    item linear e k ->
-    Forall (lift_var (item cartesian e)) xs ->
-    intuitionistic e (jump k xs)
+    forall g k xs,
+    item linear g k ->
+    Forall (lift_var (item cartesian g)) xs ->
+    intuitionistic g (jump k xs)
   (*
      k in D, x, ys in G
     -------------------- (APP)
       G; D |- x<ys, k>
   *)
   | intuitionistic_app:
-    forall e x ys k ysk,
-    ysk = ys ++ [bound k] ->
-    item linear e k ->
-    Forall (lift_var (item cartesian e)) ys ->
-    intuitionistic e (jump x ysk)
+    forall g x k ys,
+    item linear g k ->
+    item cartesian g x ->
+    Forall (lift_var (item cartesian g)) ys ->
+    intuitionistic g (jump x (bound k :: ys))
   (*
      G; D, k |- b     G, ys; D |- c
     -------------------------------- (CON)
         G; D |- b { k<ys> = c }
   *)
   | intuitionistic_con:
-    forall e b ts c,
-    intuitionistic (linear :: e) b ->
-    intuitionistic (repeat cartesian (length ts) ++ e) c ->
-    intuitionistic e (bind b ts c)
+    forall g b ts c,
+    intuitionistic (linear :: g) b ->
+    intuitionistic (repeat cartesian (length ts) ++ g) c ->
+    intuitionistic g (bind b ts c)
   (*
      G, x; D |- b     G, ys; k 
     ----------------------------------------------- (FUN)
      G; D |- b { x<ys, k> = c }
   *)
   | intuitionistic_fun:
-    forall e b ts u tsu c,
+    forall g b ts u tsu c,
     tsu = ts ++ [u] ->
-    intuitionistic (cartesian :: e) b ->
-    intuitionistic (linear :: repeat cartesian (length ts) ++ consume e) c ->
-    intuitionistic e (bind b tsu c).
+    intuitionistic (cartesian :: g) b ->
+    intuitionistic (linear :: repeat cartesian (length ts) ++ consume g) c ->
+    intuitionistic g (bind b tsu c).
+
+Lemma item_consume_cartesian_stable:
+  forall g k,
+  item cartesian g k ->
+  item cartesian (consume g) k.
+Proof.
+  induction g; intros.
+  - inversion H.
+  - dependent destruction H; simpl.
+    + constructor.
+    + constructor.
+      now apply IHg.
+Qed.
+
+Lemma anchor_is_intuitionistic:
+  forall g,
+  item linear g 0 ->
+  intuitionistic (cartesian :: cartesian :: g) (jump 1 [bound 2; bound 0]).
+Proof.
+  intros.
+  eapply intuitionistic_app with (ys := [_]); simpl.
+  - now repeat constructor.
+  - repeat constructor.
+  - repeat constructor.
+Qed.
 
 Require Import Local.Lambda.PlotkinCBV.
+
+Local Lemma technical1:
+  forall k t e,
+  free k (lift 1 1 e) ->
+  free k (abstraction t e).
+Proof.
+  admit.
+Admitted.
 
 Lemma plotkin_cbv_is_intuitionistic:
   forall e b,
   cbv_cps e b ->
-  forall n,
-  (forall k, k >= n -> not_free k e) ->
-  intuitionistic (linear :: repeat cartesian n) b.
+  forall g,
+  item linear g 0 ->
+  (forall k, free k e -> item cartesian g (S k)) ->
+  intuitionistic g b.
 Proof.
   induction 1; intros.
-  - rename n0 into m.
-    admit.
-  - admit.
-  - admit.
+  (* Case: bound. *)
+  - (* For variables, the CBV translation will return the value. *)
+    apply intuitionistic_ret.
+    + assumption.
+    + repeat constructor.
+      apply H0.
+      now inversion 1.
+  (* Case: abstraction. *)
+  - (* Abstractions have a single variable in the lambda calculus, which will be
+       followed by the current continuation in Plotkin's translation. So declare
+       a function and immediately return it. *)
+    eapply intuitionistic_fun with (ts := [_]).
+    + reflexivity.
+    + apply intuitionistic_ret.
+      * now constructor.
+      * repeat constructor.
+    + simpl.
+      (* Proceed by induction. *)
+      apply IHcbv_cps; intros.
+      * constructor.
+      * dependent destruction H0.
+        constructor; simpl.
+        admit.
+  - (* For CBV, we execute the left-hand side, then execute the right-hand
+       side, then apply the function properly. Sure. *)
+    apply intuitionistic_con; simpl.
+    + apply IHcbv_cps1; auto with cps; intros.
+      dependent destruction H1.
+      constructor; simpl.
+      admit.
+    + apply intuitionistic_con; simpl.
+      * apply IHcbv_cps2; auto with cps; intros.
+        dependent destruction H1.
+        constructor; simpl.
+        admit.
+      * now apply anchor_is_intuitionistic.
 Admitted.
+
+Goal
+  forall e,
+  closed e ->
+  forall b,
+  cbv_cps e b ->
+  intuitionistic [linear] b.
+Proof.
+  intros.
+  apply plotkin_cbv_is_intuitionistic with e; intros.
+  - assumption.
+  - constructor.
+  - exfalso.
+    apply H1.
+    apply H.
+Qed.
