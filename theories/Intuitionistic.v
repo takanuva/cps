@@ -108,14 +108,6 @@ Qed.
 
 Require Import Local.Lambda.PlotkinCBV.
 
-Local Lemma technical1:
-  forall k t e,
-  free k (lift 1 1 e) ->
-  free k (abstraction t e).
-Proof.
-  admit.
-Admitted.
-
 Lemma plotkin_cbv_is_intuitionistic:
   forall e b,
   cbv_cps e b ->
@@ -148,6 +140,7 @@ Proof.
       * dependent destruction H0.
         constructor; simpl.
         admit.
+  (* Case: application. *)
   - (* For CBV, we execute the left-hand side, then execute the right-hand
        side, then apply the function properly. Sure. *)
     apply intuitionistic_con; simpl.
@@ -163,7 +156,7 @@ Proof.
       * now apply anchor_is_intuitionistic.
 Admitted.
 
-Goal
+Theorem cbv_program_is_intuitionistic:
   forall e,
   closed e ->
   forall b,
@@ -172,6 +165,72 @@ Goal
 Proof.
   intros.
   apply plotkin_cbv_is_intuitionistic with e; intros.
+  - assumption.
+  - constructor.
+  - exfalso.
+    apply H1.
+    apply H.
+Qed.
+
+Require Import Local.Lambda.PlotkinCBN.
+
+Lemma plotkin_cbn_is_intuitionistic:
+  forall e b,
+  cbn_cps e b ->
+  forall g,
+  item linear g 0 ->
+  (forall k, free k e -> item cartesian g (S k)) ->
+  intuitionistic g b.
+Proof.
+  induction 1; intros.
+  (* Case: bound. *)
+  - (* For variables, the CBN translation will force the value. *)
+    apply intuitionistic_app.
+    + assumption.
+    + apply H0.
+      now inversion 1.
+    + constructor.
+  (* Case: abstraction. *)
+  - (* Abstraction for the CBN case is exactly the same as in the CBV one. *)
+    eapply intuitionistic_fun with (ts := [_]).
+    + reflexivity.
+    + apply intuitionistic_ret.
+      * now constructor.
+      * repeat constructor.
+    + simpl.
+      (* Proceed by induction. *)
+      apply IHcbn_cps; intros.
+      * constructor.
+      * dependent destruction H0.
+        constructor; simpl.
+        admit.
+  (* Case: application. *)
+  - (* Things a little bit different in here from CBV; we do one continuation,
+       then we do a thunk declaration, and we apply the anchor. *)
+    apply intuitionistic_con; simpl.
+    + apply IHcbn_cps1; auto with cps; intros.
+      dependent destruction H1.
+      constructor; simpl.
+      admit.
+    + (* Here the anchor is on the left. *)
+      eapply intuitionistic_fun with (ts := []); simpl.
+      * reflexivity.
+      * now apply anchor_is_intuitionistic.
+      * apply IHcbn_cps2; auto with cps; intros.
+        dependent destruction H1.
+        constructor; simpl.
+        admit.
+Admitted.
+
+Theorem cbn_program_is_intuitionistic:
+  forall e,
+  closed e ->
+  forall b,
+  cbn_cps e b ->
+  intuitionistic [linear] b.
+Proof.
+  intros.
+  apply plotkin_cbn_is_intuitionistic with e; intros.
   - assumption.
   - constructor.
   - exfalso.
