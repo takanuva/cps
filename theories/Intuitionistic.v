@@ -10,6 +10,8 @@ Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
+Require Import Local.Context.
+Require Import Local.Reduction.
 
 Import ListNotations.
 
@@ -105,6 +107,27 @@ Proof.
   - repeat constructor.
   - repeat constructor.
 Qed.
+
+Lemma intuitionistic_step:
+  forall b c,
+  step b c ->
+  forall g,
+  intuitionistic g b ->
+  intuitionistic g c.
+Proof.
+  induction 1; intros.
+  - admit.
+  - admit.
+  - dependent destruction H0.
+    + apply intuitionistic_con.
+      * now apply IHstep.
+      * assumption.
+    + rename ts0 into ts.
+      apply intuitionistic_fun with ts u.
+      * reflexivity.
+      * now apply IHstep.
+      * assumption.
+Admitted.
 
 Require Import Local.Lambda.PlotkinCBV.
 
