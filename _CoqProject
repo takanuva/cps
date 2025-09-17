@@ -23,8 +23,8 @@ theories/Interpreter.v
 theories/Transition.v
 theories/TypeSystem.v
 theories/Conservation.v
-theories/Normalization.v
 theories/Structural.v
+theories/Normalization.v
 theories/Lambda/Calculus.v
 theories/Lambda/PlotkinCBN.v
 theories/Lambda/PlotkinCBV.v
@@ -35,6 +35,8 @@ theories/Lambda/Control.v
 # theories/Simulation.v
 # Ignore this for now...
 # theories/FullAbstraction.v
+theories/Intuitionistic.v
+theories/SSA.v
 theories/Pi/Graph.v
 theories/Pi/Calculus.v
 theories/Pi/Control.v

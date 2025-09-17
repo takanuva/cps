@@ -7,6 +7,7 @@ Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
 Require Local.Constructions.
 Require Import Local.Syntax.
+Require Import Local.Intuitionistic.
 
 Module TT := Local.Constructions.
 
