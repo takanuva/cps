@@ -21,11 +21,12 @@ Variant polarity: Set :=
   | consumed.
 
 Definition consume: list polarity -> list polarity :=
-  map (fun x => match x with
-                | cartesian => cartesian
-                | linear => consumed
-                | consumed => consumed
-                end).
+  map (fun x =>
+    match x with
+    | cartesian => cartesian
+    | linear => consumed
+    | consumed => consumed
+    end).
 
 Inductive lift_var (P: nat -> Prop): pseudoterm -> Prop :=
   | lift_var_bound:
@@ -72,9 +73,9 @@ Inductive intuitionistic: list polarity -> pseudoterm -> Prop :=
     intuitionistic (repeat cartesian (length ts) ++ g) c ->
     intuitionistic g (bind b ts c)
   (*
-     G, x; D |- b     G, ys; k
-    ----------------------------
-     G; D |- b { x<ys, k> = c }
+     G, x; D |- b     G, ys; k |- c
+    --------------------------------
+       G; D |- b { x<ys, k> = c }
   *)
   | intuitionistic_fun:
     forall g b ts u tsu c,
@@ -108,6 +109,98 @@ Proof.
   - repeat constructor.
 Qed.
 
+(* TODO: move me, please! *)
+Lemma bsmap_app:
+  forall s xs ys k,
+  bsmap s k (xs ++ ys) = bsmap s (length ys + k) xs ++ bsmap s k ys.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - sigma; simpl.
+    f_equal.
+    + rewrite app_length.
+      now rewrite Nat.add_assoc.
+    + apply IHxs.
+Qed.
+
+Lemma consume_app:
+  forall xs ys,
+  consume (xs ++ ys) = consume xs ++ consume ys.
+Proof.
+  induction xs; simpl; intros.
+  - reflexivity.
+  - f_equal.
+    apply IHxs.
+Qed.
+
+Lemma insert_consume_eat:
+  forall ps n xs ys,
+  insert ps n xs ys ->
+  insert (consume ps) n (consume xs) (consume ys).
+Proof.
+  induction 1; intros.
+  - rewrite consume_app.
+    constructor.
+  - simpl.
+    now constructor.
+Qed.
+
+Lemma intuitionistic_step_gc:
+  forall h b,
+  intuitionistic h b ->
+  forall k,
+  not_free k b ->
+  forall p g,
+  insert [p] k g h ->
+  intuitionistic g (remove_binding k b).
+Proof.
+  (* Generalize our substitution a bit. *)
+  unfold remove_binding; sigma.
+  induction 1; intros.
+  (* Case: intuitionistic_ret. *)
+  - rename g0 into h, k0 into j.
+    sigma.
+    admit.
+  (* Case: intuitionistic_app. *)
+  - rename g0 into h, k0 into j.
+    sigma.
+    admit.
+  (* Case: intuitionistic_con. *)
+  - sigma.
+    dependent destruction H1.
+    apply intuitionistic_con.
+    + apply IHintuitionistic1 with p.
+      * assumption.
+      * now constructor.
+    + apply IHintuitionistic2 with p.
+      * assumption.
+      * rewrite bsmap_length.
+        replace (length ts) with (length (repeat cartesian (length ts))) at 1 by
+          apply repeat_length.
+        now apply insert_app.
+  (* Case: intuitionistic_fun. *)
+  - sigma; subst.
+    dependent destruction H2.
+    eapply intuitionistic_fun.
+    + rewrite bsmap_app; simpl.
+      now sigma.
+    + apply IHintuitionistic1 with p.
+      * assumption.
+      * now constructor.
+    + sigma.
+      eapply IHintuitionistic2.
+      * assumption.
+      * rewrite app_length; simpl.
+        rewrite <- Nat.add_assoc.
+        rewrite Nat.add_comm.
+        simpl; constructor.
+        replace (length ts) with (length (repeat cartesian (length ts))) at 1 by
+          apply repeat_length.
+        rewrite Nat.add_comm.
+        apply insert_app.
+        now apply insert_consume_eat with (ps := [p]).
+Admitted.
+
 Lemma intuitionistic_step:
   forall b c,
   step b c ->
@@ -116,8 +209,27 @@ Lemma intuitionistic_step:
   intuitionistic g c.
 Proof.
   induction 1; intros.
-  - admit.
-  - admit.
+  (* Case: step_ctxjmp. *)
+  - dependent destruction H0.
+    + apply intuitionistic_con.
+      * admit.
+      * assumption.
+    + rename ts0 into ts.
+      apply intuitionistic_fun with ts u.
+      * reflexivity.
+      * admit.
+      * assumption.
+  (* Case: step_gc. *)
+  - dependent destruction H0.
+    + apply intuitionistic_step_gc with (linear :: g) linear.
+      * assumption.
+      * assumption.
+      * constructor.
+    + apply intuitionistic_step_gc with (cartesian :: g) cartesian.
+      * assumption.
+      * assumption.
+      * constructor.
+  (* Case: step_bind_left. *)
   - dependent destruction H0.
     + apply intuitionistic_con.
       * now apply IHstep.
@@ -127,6 +239,16 @@ Proof.
       * reflexivity.
       * now apply IHstep.
       * assumption.
+  (* Case: step_bind_right. *)
+  - dependent destruction H0.
+    + apply intuitionistic_con.
+      * assumption.
+      * now apply IHstep.
+    + rename ts0 into ts.
+      apply intuitionistic_fun with ts u.
+      * reflexivity.
+      * assumption.
+      * now apply IHstep.
 Admitted.
 
 Require Import Local.Lambda.PlotkinCBV.
