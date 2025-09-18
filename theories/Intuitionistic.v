@@ -84,6 +84,34 @@ Inductive intuitionistic: list polarity -> pseudoterm -> Prop :=
     intuitionistic (linear :: repeat cartesian (length ts) ++ consume g) c ->
     intuitionistic g (bind b tsu c).
 
+Theorem intuitionistic_requires_escape:
+  forall g,
+  ~In linear g ->
+  forall b,
+  ~intuitionistic g b.
+Proof.
+  repeat intro.
+  apply H; clear H.
+  induction H0.
+  - clear H0 xs.
+    induction H.
+    + now left.
+    + now right.
+  - clear H0 H1 x ys.
+    induction H.
+    + now left.
+    + now right.
+  - apply in_app_or in IHintuitionistic2 as [ ? | ? ].
+    + exfalso.
+      apply repeat_spec in H.
+      inversion H.
+    + assumption.
+  - destruct IHintuitionistic1 as [ ? | ? ].
+    + exfalso.
+      inversion H0.
+    + assumption.
+Qed.
+
 Lemma item_consume_cartesian_stable:
   forall g k,
   item cartesian g k ->
