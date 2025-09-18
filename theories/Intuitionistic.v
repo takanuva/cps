@@ -84,6 +84,28 @@ Inductive intuitionistic: list polarity -> pseudoterm -> Prop :=
     intuitionistic (linear :: repeat cartesian (length ts) ++ consume g) c ->
     intuitionistic g (bind b tsu c).
 
+Lemma intuitionistic_is_dec:
+  forall b g,
+  { intuitionistic g b } + { ~intuitionistic g b }.
+Proof.
+  induction b; intros.
+  (* Case: bound. *)
+  - right.
+    inversion 1.
+  (* Case: type. *)
+  - right.
+    inversion 1.
+  (* Case: jump. *)
+  - (* Skip invalid cases... *)
+    destruct b; try now (right; inversion 1).
+    (* Are we jumping to a continuation or to a function...? *)
+    admit.
+  (* Case: bind. *)
+  - (* TODO: this could be a local continuation or a closure definition, but are
+       those two mutually exclusive...? *)
+    admit.
+Admitted.
+
 Theorem intuitionistic_requires_escape:
   forall g,
   ~In linear g ->
@@ -93,20 +115,26 @@ Proof.
   repeat intro.
   apply H; clear H.
   induction H0.
+  (* Case: intuitionistic_ret. *)
   - clear H0 xs.
     induction H.
     + now left.
     + now right.
+  (* Case: intuitionistic_app. *)
   - clear H0 H1 x ys.
     induction H.
     + now left.
     + now right.
-  - apply in_app_or in IHintuitionistic2 as [ ? | ? ].
+  (* Case: intuitionistic_con. *)
+  - (* Proceed by induction on the right. *)
+    apply in_app_or in IHintuitionistic2 as [ ? | ? ].
     + exfalso.
       apply repeat_spec in H.
       inversion H.
     + assumption.
-  - destruct IHintuitionistic1 as [ ? | ? ].
+  (* Case: intuitionistic_fun. *)
+  - (* Proceed by induction on the left. *)
+    destruct IHintuitionistic1 as [ ? | ? ].
     + exfalso.
       inversion H0.
     + assumption.
