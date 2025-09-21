@@ -101,8 +101,12 @@ Proof.
     (* Are we jumping to a continuation or to a function...? *)
     admit.
   (* Case: bind. *)
-  - (* TODO: this could be a local continuation or a closure definition, but are
-       those two mutually exclusive...? *)
+  - (* This could be a local continuation or a closure definition. We note that
+       those two things are mutually exclusive: if this is a local continuation
+       then all the arguments must be cartesian and thus none of them may be
+       used as a continuation; on the other hand, if this is a closure (like a
+       thunk or a local function), then the only continuations will appear in
+       the arguments and thus one of them must be used as a continuation. *)
     admit.
 Admitted.
 
