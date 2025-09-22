@@ -199,53 +199,53 @@ Section Sigma.
       step n1 n2 -> step (index n1) (index n2)
     | C1 e1 e2:
       step e1 e2 -> step (abs e1) (abs e2)
-    | C3 e1 e2 f:
+    | C2 e1 e2 f:
       step e1 e2 -> step (app e1 f) (app e2 f)
-    | C4 e f1 f2:
+    | C3 e f1 f2:
       step f1 f2 -> step (app e f1) (app e f2)
-    | C5 i1 i2 k e:
+    | C4 i1 i2 k e:
       step i1 i2 -> step (lift i1 k e) (lift i2 k e)
-    | C6 i k1 k2 e:
+    | C5 i k1 k2 e:
       step k1 k2 -> step (lift i k1 e) (lift i k2 e)
-    | C7 i k e1 e2:
+    | C6 i k e1 e2:
       step e1 e2 -> step (lift i k e1) (lift i k e2)
-    | C8 y1 y2 k e:
+    | C7 y1 y2 k e:
       step y1 y2 -> step (subst y1 k e) (subst y2 k e)
-    | C9 y k1 k2 e:
+    | C8 y k1 k2 e:
       step k1 k2 -> step (subst y k1 e) (subst y k2 e)
-    | C10 y k e1 e2:
+    | C9 y k e1 e2:
       step e1 e2 -> step (subst y k e1) (subst y k e2)
-    | C11 s1 s2 k e:
+    | C10 s1 s2 k e:
       step s1 s2 -> step (traverse s1 k e) (traverse s2 k e)
-    | C12 s k1 k2 e:
+    | C11 s k1 k2 e:
       step k1 k2 -> step (traverse s k1 e) (traverse s k2 e)
-    | C13 s k e1 e2:
+    | C12 s k e1 e2:
       step e1 e2 -> step (traverse s k e1) (traverse s k e2)
-    | C14 s1 s2 e:
+    | C13 s1 s2 e:
       step s1 s2 -> step (inst s1 e) (inst s2 e)
-    | C15 s e1 e2:
+    | C14 s e1 e2:
       step e1 e2 -> step (inst s e1) (inst s e2)
-    | C16 n1 n2:
+    | C15 n1 n2:
       step n1 n2 -> step (subst_lift n1) (subst_lift n2)
-    | C17 v1 v2 s:
+    | C16 v1 v2 s:
       step v1 v2 -> step (subst_app v1 s) (subst_app v2 s)
-    | C18 v s1 s2:
+    | C17 v s1 s2:
       step s1 s2 -> step (subst_app v s1) (subst_app v s2)
-    | C19 s1 s2 r:
+    | C18 s1 s2 r:
       step s1 s2 -> step (subst_comp s1 r) (subst_comp s2 r)
-    | C20 s r1 r2:
+    | C19 s r1 r2:
       step r1 r2 -> step (subst_comp s r1) (subst_comp s r2)
-    | C21 n1 n2 s:
+    | C20 n1 n2 s:
       step n1 n2 -> step (subst_upn n1 s) (subst_upn n2 s)
-    | C22 n s1 s2:
+    | C21 n s1 s2:
       step s1 s2 -> step (subst_upn n s1) (subst_upn n s2)
-    | C23 e1 e2 x:
+    | C22 e1 e2 x:
       step e1 e2 -> step (e1 :: x) (e2 :: x)
-    | C24 e x1 x2:
+    | C23 e x1 x2:
       step x1 x2 -> step (e :: x1) (e :: x2)
-    | C25 x1 x2 y:
+    | C24 x1 x2 y:
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
-    | C26 x y1 y2:
+    | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
     (* TODO: congruence rules for numbers! *).
 
@@ -424,13 +424,181 @@ Section Sigma.
     exists x; eauto with sigma.
   Qed.
 
-  (* This one is only ever needed for testing; might be removed. *)
-  Instance equivalent_sym: forall {s}, Symmetric (@equivalent s).
+  Instance equiv_sym: forall {s}, Symmetric (@equivalent s).
   Proof.
     repeat intro.
     destruct H as (z, ?, ?).
-    now exists z.
+    firstorder.
   Qed.
+
+  Lemma equivalent_step:
+    forall {s} e1 e2,
+    @step s e1 e2 ->
+    @equivalent s e1 e2.
+  Proof.
+    intros.
+    exists e2; auto with sigma.
+  Qed.
+
+  Lemma C0_equiv:
+    forall n1 n2,
+    equivalent n1 n2 ->
+    equivalent (index n1) (index n2).
+  Proof.
+    intros n1 n2 (n3, ?, ?).
+    assert (n1 = n3 /\ n2 = n3) as (?, ?).
+    - split.
+      + clear H0.
+        induction H; subst; easy.
+      + clear H.
+        induction H0; subst; easy.
+    - subst.
+      apply equivalent_refl.
+  Qed.
+
+  Lemma C1_equiv:
+    forall e1 e2,
+    equivalent e1 e2 ->
+    equivalent (abs e1) (abs e2).
+  Proof.
+    intros e1 e2 (e3, ?, ?).
+    exists (abs e3).
+    - clear H0.
+      induction H; eauto with sigma.
+    - clear H.
+      induction H0; eauto with sigma.
+  Qed.
+
+  Lemma C2_equiv:
+    forall e1 e2 f1 f2,
+    equivalent e1 e2 ->
+    equivalent f1 f2 ->
+    equivalent (app e1 f1) (app e2 f2).
+  Proof.
+    intros e1 e2 f1 f2 (e3, ?, ?) (f3, ?, ?).
+    exists (app e3 f3).
+    - clear H0 H2.
+      apply rt_trans with (app e3 f1).
+      + clear H1.
+        induction H; eauto with sigma.
+      + clear H.
+        induction H1; eauto with sigma.
+    - clear H H1.
+      apply rt_trans with (app e3 f2).
+      + clear H2.
+        induction H0; eauto with sigma.
+      + clear H0.
+        induction H2; eauto with sigma.
+  Qed.
+
+  Lemma C3_equiv:
+    forall i1 i2 k1 k2 e1 e2,
+    equivalent i1 i2 ->
+    equivalent k1 k2 ->
+    equivalent e1 e2 ->
+    equivalent (lift i1 k1 e1) (lift i2 k2 e2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C4_equiv:
+    forall y1 y2 k1 k2 e1 e2,
+    equivalent y1 y2 ->
+    equivalent k1 k2 ->
+    equivalent e1 e2 ->
+    equivalent (subst y1 k1 e1) (subst y2 k2 e2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C5_equiv:
+    forall s1 s2 k1 k2 e1 e2,
+    equivalent s1 s2 ->
+    equivalent k1 k2 ->
+    equivalent e1 e2 ->
+    equivalent (traverse s1 k1 e1) (traverse s2 k2 e2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C6_equiv:
+    forall s1 s2 e1 e2,
+    equivalent s1 s2 ->
+    equivalent e1 e2 ->
+    equivalent (inst s1 e1) (inst s2 e2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C7_equiv:
+    forall n1 n2,
+    equivalent n1 n2 ->
+    equivalent (subst_lift n1) (subst_lift n2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C8_equiv:
+    forall v1 v2 s1 s2,
+    equivalent v1 v2 ->
+    equivalent s1 s2 ->
+    equivalent (subst_app v1 s1) (subst_app v2 s2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C9_equiv:
+    forall s1 s2 r1 r2,
+    equivalent s1 s2 ->
+    equivalent (subst_comp s1 r1) (subst_comp s2 r2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C10_equiv:
+    forall n1 n2 s1 s2,
+    equivalent n1 n2 ->
+    equivalent s1 s2 ->
+    equivalent (subst_upn n1 s1) (subst_upn n2 s2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C11_equiv:
+    forall e1 e2 x1 x2,
+    equivalent e1 e2 ->
+    equivalent x1 x2 ->
+    equivalent (e1 :: x1) (e2 :: x2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C12_equiv:
+    forall x1 x2 y1 y2,
+    equivalent x1 x2 ->
+    equivalent y1 y2 ->
+    equivalent (x1 ++ y1) (x2 ++ y2).
+  Proof.
+    admit.
+  Admitted.
+
+  Hint Resolve equivalent_step: sigma.
+  Hint Resolve C0_equiv: sigma.
+  Hint Resolve C1_equiv: sigma.
+  Hint Resolve C2_equiv: sigma.
+  Hint Resolve C3_equiv: sigma.
+  Hint Resolve C4_equiv: sigma.
+  Hint Resolve C5_equiv: sigma.
+  Hint Resolve C6_equiv: sigma.
+  Hint Resolve C7_equiv: sigma.
+  Hint Resolve C8_equiv: sigma.
+  Hint Resolve C9_equiv: sigma.
+  Hint Resolve C10_equiv: sigma.
+  Hint Resolve C11_equiv: sigma.
+  Hint Resolve C12_equiv: sigma.
+
+  Hint Extern 1 => reflexivity: sigma.
+  Hint Extern 4 => symmetry: sigma.
 
   Ltac skip :=
     now easy + now (exfalso; boundscheck).
@@ -1213,7 +1381,8 @@ Section Sigma.
   Qed.
 
   Tactic Notation "just" "do" "it" :=
-    repeat break; try work.
+    repeat break;
+    try solve [ work | eauto with sigma ].
 
   Theorem locally_confluent:
     forall s x y,
@@ -1242,183 +1411,32 @@ Section Sigma.
     - just do it.
       + join.
         admit.
-    (* -------------------------------------- *)
-    - dependent destruction Y.
-      just do it.
-
-    (* - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + wonder j n.
-        * work.
-        * work.
-      + wonder j n.
-        * work.
-        * work.
-      + (* Ok! *)
-        join.
-        admit.
-      + join.
-        admit.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + rename j0 into k, s0 into s.
-        wonder (SUB i j) k.
-        * work.
-        * work.
-    - repeat break; work.
-    - repeat break; work.
-      + rename j0 into k, s0 into s, t0 into t.
-        wonder (SUB i j) k.
-        * work.
-        * work.
-    - repeat break; work.
-      + rename j0 into k, t1 into t.
-        wonder i k.
-        * work.
-        * work.
-      + rename j0 into k, t1 into t.
-        wonder i k.
-        * work.
-        * work.
-      + wonder i 0.
-        * work.
-        * work.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - repeat break; work.
-      + rename j0 into k, s0 into t.
-        wonder i (ADD k j).
-        * work.
-        * work.
-    - repeat break; work.
-      + rename j0 into k, s0 into s, t0 into t.
-        wonder (ADD k i) j.
-        * work.
-        * work.
-    - repeat break; work.
-      + rename j0 into k, s0 into t.
-        wonder (SUB i j) k.
-        * work.
-        * work.
-    - repeat break; work.
-      + rename j0 into k, s0 into s, t0 into t.
-        wonder (ADD k i) j.
-        * work.
-        * work.
-      + rename j0 into k, t1 into t.
-        wonder i k.
-        * work.
-        * work.
-      + rename j0 into k, t1 into t, u0 into u.
-        wonder i k.
-        * work.
-        * work.
-      + wonder i (length ys).
-        * join.
-          admit.
-        * work.
-      + wonder i (length ys).
-        * join.
-          admit.
-        * work.
-      + rename t0 into t, j0 into k.
-        wonder k (length ys).
-        * admit.
-        * work.
-      + admit.
-    - repeat break; work.
-    - repeat break; work.
-      + replace ys0 with [] by admit.
-        work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + rename j0 into k, s0 into s.
-        wonder (ADD j i) k.
-        * work.
-        * work.
-      + rename j0 into k, s0 into s.
-        wonder (ADD j i) k.
-        * work.
-        * work.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + replace zs with [] by admit.
-        replace ys with [] by admit.
-        work.
-    - repeat break; work.
-    - repeat break; work.
-      + rename s0 into t.
-        wonder (ADD i k) j.
-        * work.
-        * work.
-      + rename s0 into t, t1 into u.
-        wonder (ADD i k) j.
-        * work.
-        * work.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - admit.
-    - admit.
-    - repeat break; work.
-      + replace ys0 with [] by admit.
-        admit.
-    - repeat break; work.
-      + admit.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + admit.
-      + admit.
-    - repeat break; work.
-      + admit.
-      + admit.
-      + admit.
-    - admit.
-    - admit.
-    - repeat break; work.
-    - repeat break; work.
-    - repeat break; work.
-      + (* Well, of course! *)
-        admit.
-    - repeat break; work.
-      + (* May the gods help me... *)
-        admit.
-    - repeat break; work. *)
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
 End Sigma.
