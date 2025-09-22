@@ -163,23 +163,13 @@ Section Sigma.
     | U2 k j s:
       step (subst_upn k (subst_upn j s))
            (subst_upn (ADD j k) s)
-    | U3 s t k j:
-      interpretation k >= interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn j (subst_comp (subst_upn (k - j) s) t))
-    | U4 s t k j:
-      interpretation j >= interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn k (subst_comp s (subst_upn (j - k) t)))
 
-    | U5 s t u k j:
-      interpretation k >= interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u)
-    | U6 s t u k j:
-      interpretation j >= interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
+
+
+
+
+
+
 
 
 
@@ -568,6 +558,8 @@ Section Sigma.
 
   (* ---------------------------------------------------------------------- *)
 
+  (* TODO: check that these number are actually the smallest possible ones. *)
+
   Fixpoint measure3 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
     (* TERM *)
@@ -575,9 +567,9 @@ Section Sigma.
     | index n => 1 + measure3 n
     | abstraction e => 1 + measure3 e
     | application e f => 1 + measure3 e + measure3 f
-    | dblift i k e => 9 + measure3 i + measure3 k + measure3 e
-    | dbsubst y k e => 12 + measure3 y + measure3 k + measure3 e
-    | dbtraverse s k e => 7 + measure3 s + measure3 k + measure3 e
+    | dblift i k e => 10 + measure3 i + measure3 k + measure3 e
+    | dbsubst y k e => 13 + measure3 y + measure3 k + measure3 e
+    | dbtraverse s k e => 8 + measure3 s + measure3 k + measure3 e
     | instantiation s e => 5 + measure3 s + measure3 e
     (* SUBST *)
     | metas _ => 1
@@ -585,7 +577,7 @@ Section Sigma.
     | slift n => 1 + measure3 n
     | concatenate v s => 1 + measure3 v + measure3 s
     | compose s t => 1 + measure3 s + measure3 t
-    | uplift n s => 1 + measure3 n + measure3 s
+    | uplift n s => 2 + measure3 n + measure3 s
     (* VECTOR *)
     | metav _ => 1
     | nil => 1
@@ -871,7 +863,7 @@ Section Sigma.
     - constructor 3.
       + now rewrite measure1_traverse_unfolding.
       + now rewrite measure2_traverse_unfolding.
-      + simpl. 
+      + simpl.
         ring_simplify.
         simpl; nia.
     - constructor 3; simpl.
@@ -896,11 +888,12 @@ Section Sigma.
         rewrite H.
         simpl; nia.
       + nia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - constructor 3; simpl.
+      + reflexivity.
+      + rewrite Nat.mul_assoc.
+        do 2 rewrite measure2_NUM.
+        now rewrite Nat.add_comm, Nat.pow_add_r.
+      + nia.
     - constructor 1; simpl.
       assert (measure1 e > 0) by apply measure1_term_pos.
       nia.
@@ -1200,7 +1193,7 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
-  Admitted.
+  Qed.
 
   Theorem normalization:
     forall s,
@@ -1243,26 +1236,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + rename j0 into i.
-        wonder k (ADD i j); work.
-    - just do it.
-      + rename j0 into i.
-        wonder (ADD i k) j; work.
-    - just do it.
-      + rename j0 into i, s0 into t.
-        wonder k (ADD i j); work.
-    - just do it.
-      + rename j0 into i, s0 into s, t0 into t.
-        wonder (ADD i k) j; work.
-      + rename j0 into i, t0 into t, t1 into u.
-        wonder k i; work.
-      + rename j0 into i, t0 into t, t1 into u, u0 into v.
-        wonder k i; work.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
+      + join.
+        admit.
     (* -------------------------------------- *)
     - dependent destruction Y.
       just do it.
