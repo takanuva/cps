@@ -1439,8 +1439,6 @@ Section Sigma.
     - just do it.
   Admitted.
 
-  Arguments clos_refl_sym_trans {A}.
-
   Hint Resolve clos_rt_rt1n: sigma.
   Hint Resolve clos_rt1n_rt: sigma.
 
@@ -1473,6 +1471,8 @@ Section Sigma.
         * exists r; eauto with sigma.
   Qed.
 
+  Arguments clos_refl_sym_trans {A}.
+
   Notation conv s :=
     (clos_refl_sym_trans (@step s)).
 
@@ -1493,5 +1493,8 @@ Section Sigma.
       + assumption.
       + exists u; eauto with sigma.
   Qed.
+
+  Print Assumptions normalization.
+  Print Assumptions church_rosser.
 
 End Sigma.
