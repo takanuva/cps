@@ -414,36 +414,36 @@ Section Sigma.
     idtac "left hand side";
     try normalize.
 
-  Definition equivalent {s} (y: t s) (z: t s): Prop :=
+  Definition joinable {s} (y: t s) (z: t s): Prop :=
     exists2 w,
     @star s y w & @star s z w.
 
-  Instance equivalent_refl: forall {s}, Reflexive (@equivalent s).
+  Instance joinable_refl: forall {s}, Reflexive (@joinable s).
   Proof.
     repeat intro.
     exists x; eauto with sigma.
   Qed.
 
-  Instance equiv_sym: forall {s}, Symmetric (@equivalent s).
+  Instance joinable_sym: forall {s}, Symmetric (@joinable s).
   Proof.
     repeat intro.
     destruct H as (z, ?, ?).
     firstorder.
   Qed.
 
-  Lemma equivalent_step:
+  Lemma joinable_step:
     forall {s} e1 e2,
     @step s e1 e2 ->
-    @equivalent s e1 e2.
+    @joinable s e1 e2.
   Proof.
     intros.
     exists e2; auto with sigma.
   Qed.
 
-  Lemma C0_equiv:
+  Lemma C0_join:
     forall n1 n2,
-    equivalent n1 n2 ->
-    equivalent (index n1) (index n2).
+    joinable n1 n2 ->
+    joinable (index n1) (index n2).
   Proof.
     intros n1 n2 (n3, ?, ?).
     assert (n1 = n3 /\ n2 = n3) as (?, ?).
@@ -453,13 +453,13 @@ Section Sigma.
       + clear H.
         induction H0; subst; easy.
     - subst.
-      apply equivalent_refl.
+      apply joinable_refl.
   Qed.
 
-  Lemma C1_equiv:
+  Lemma C1_join:
     forall e1 e2,
-    equivalent e1 e2 ->
-    equivalent (abs e1) (abs e2).
+    joinable e1 e2 ->
+    joinable (abs e1) (abs e2).
   Proof.
     intros e1 e2 (e3, ?, ?).
     exists (abs e3).
@@ -469,11 +469,11 @@ Section Sigma.
       induction H0; eauto with sigma.
   Qed.
 
-  Lemma C2_equiv:
+  Lemma C2_join:
     forall e1 e2 f1 f2,
-    equivalent e1 e2 ->
-    equivalent f1 f2 ->
-    equivalent (app e1 f1) (app e2 f2).
+    joinable e1 e2 ->
+    joinable f1 f2 ->
+    joinable (app e1 f1) (app e2 f2).
   Proof.
     intros e1 e2 f1 f2 (e3, ?, ?) (f3, ?, ?).
     exists (app e3 f3).
@@ -491,111 +491,111 @@ Section Sigma.
         induction H2; eauto with sigma.
   Qed.
 
-  Lemma C3_equiv:
+  Lemma C3_join:
     forall i1 i2 k1 k2 e1 e2,
-    equivalent i1 i2 ->
-    equivalent k1 k2 ->
-    equivalent e1 e2 ->
-    equivalent (lift i1 k1 e1) (lift i2 k2 e2).
+    joinable i1 i2 ->
+    joinable k1 k2 ->
+    joinable e1 e2 ->
+    joinable (lift i1 k1 e1) (lift i2 k2 e2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C4_equiv:
+  Lemma C4_join:
     forall y1 y2 k1 k2 e1 e2,
-    equivalent y1 y2 ->
-    equivalent k1 k2 ->
-    equivalent e1 e2 ->
-    equivalent (subst y1 k1 e1) (subst y2 k2 e2).
+    joinable y1 y2 ->
+    joinable k1 k2 ->
+    joinable e1 e2 ->
+    joinable (subst y1 k1 e1) (subst y2 k2 e2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C5_equiv:
+  Lemma C5_join:
     forall s1 s2 k1 k2 e1 e2,
-    equivalent s1 s2 ->
-    equivalent k1 k2 ->
-    equivalent e1 e2 ->
-    equivalent (traverse s1 k1 e1) (traverse s2 k2 e2).
+    joinable s1 s2 ->
+    joinable k1 k2 ->
+    joinable e1 e2 ->
+    joinable (traverse s1 k1 e1) (traverse s2 k2 e2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C6_equiv:
+  Lemma C6_join:
     forall s1 s2 e1 e2,
-    equivalent s1 s2 ->
-    equivalent e1 e2 ->
-    equivalent (inst s1 e1) (inst s2 e2).
+    joinable s1 s2 ->
+    joinable e1 e2 ->
+    joinable (inst s1 e1) (inst s2 e2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C7_equiv:
+  Lemma C7_join:
     forall n1 n2,
-    equivalent n1 n2 ->
-    equivalent (subst_lift n1) (subst_lift n2).
+    joinable n1 n2 ->
+    joinable (subst_lift n1) (subst_lift n2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C8_equiv:
+  Lemma C8_join:
     forall v1 v2 s1 s2,
-    equivalent v1 v2 ->
-    equivalent s1 s2 ->
-    equivalent (subst_app v1 s1) (subst_app v2 s2).
+    joinable v1 v2 ->
+    joinable s1 s2 ->
+    joinable (subst_app v1 s1) (subst_app v2 s2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C9_equiv:
+  Lemma C9_join:
     forall s1 s2 r1 r2,
-    equivalent s1 s2 ->
-    equivalent (subst_comp s1 r1) (subst_comp s2 r2).
+    joinable s1 s2 ->
+    joinable (subst_comp s1 r1) (subst_comp s2 r2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C10_equiv:
+  Lemma C10_join:
     forall n1 n2 s1 s2,
-    equivalent n1 n2 ->
-    equivalent s1 s2 ->
-    equivalent (subst_upn n1 s1) (subst_upn n2 s2).
+    joinable n1 n2 ->
+    joinable s1 s2 ->
+    joinable (subst_upn n1 s1) (subst_upn n2 s2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C11_equiv:
+  Lemma C11_join:
     forall e1 e2 x1 x2,
-    equivalent e1 e2 ->
-    equivalent x1 x2 ->
-    equivalent (e1 :: x1) (e2 :: x2).
+    joinable e1 e2 ->
+    joinable x1 x2 ->
+    joinable (e1 :: x1) (e2 :: x2).
   Proof.
     admit.
   Admitted.
 
-  Lemma C12_equiv:
+  Lemma C12_join:
     forall x1 x2 y1 y2,
-    equivalent x1 x2 ->
-    equivalent y1 y2 ->
-    equivalent (x1 ++ y1) (x2 ++ y2).
+    joinable x1 x2 ->
+    joinable y1 y2 ->
+    joinable (x1 ++ y1) (x2 ++ y2).
   Proof.
     admit.
   Admitted.
 
-  Hint Resolve equivalent_step: sigma.
-  Hint Resolve C0_equiv: sigma.
-  Hint Resolve C1_equiv: sigma.
-  Hint Resolve C2_equiv: sigma.
-  Hint Resolve C3_equiv: sigma.
-  Hint Resolve C4_equiv: sigma.
-  Hint Resolve C5_equiv: sigma.
-  Hint Resolve C6_equiv: sigma.
-  Hint Resolve C7_equiv: sigma.
-  Hint Resolve C8_equiv: sigma.
-  Hint Resolve C9_equiv: sigma.
-  Hint Resolve C10_equiv: sigma.
-  Hint Resolve C11_equiv: sigma.
-  Hint Resolve C12_equiv: sigma.
+  Hint Resolve joinable_step: sigma.
+  Hint Resolve C0_join: sigma.
+  Hint Resolve C1_join: sigma.
+  Hint Resolve C2_join: sigma.
+  Hint Resolve C3_join: sigma.
+  Hint Resolve C4_join: sigma.
+  Hint Resolve C5_join: sigma.
+  Hint Resolve C6_join: sigma.
+  Hint Resolve C7_join: sigma.
+  Hint Resolve C8_join: sigma.
+  Hint Resolve C9_join: sigma.
+  Hint Resolve C10_join: sigma.
+  Hint Resolve C11_join: sigma.
+  Hint Resolve C12_join: sigma.
 
   Hint Extern 1 => reflexivity: sigma.
   Hint Extern 4 => symmetry: sigma.
@@ -1392,7 +1392,7 @@ Section Sigma.
     forall z,
     let origZ := z in
     forall Y: @step s x z,
-    equivalent y z.
+    joinable y z.
   Proof.
     induction 3; intros.
     - just do it.
