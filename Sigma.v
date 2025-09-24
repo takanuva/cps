@@ -1475,9 +1475,12 @@ Section Sigma.
         * exists r; eauto with sigma.
   Qed.
 
+  Notation conv s :=
+    (clos_refl_sym_trans (@step s)).
+
   Corollary church_rosser:
     forall {s} x y,
-    clos_refl_sym_trans (@step s) x y ->
+    conv s x y ->
     joinable x y.
   Proof.
     (* Confluence implies the Church-Rosser property. *)
