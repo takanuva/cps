@@ -1463,8 +1463,6 @@ Section Sigma.
     - apply clos_rt_rt1n in H2.
       destruct H2.
       + rename z0 into w.
-        apply joinable_sym.
-        apply clos_rt1n_rt in H3.
         exists w; eauto with sigma.
       + rename y0 into z, z into v, z0 into w.
         destruct locally_confluent with s x y z as (u, ?, ?); auto.
