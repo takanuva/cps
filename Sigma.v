@@ -1364,7 +1364,7 @@ Section Sigma.
   Qed.
 
   Theorem normalization:
-    forall s,
+    forall {s},
     (* Recall that for steps, the RHS is smaller, thus transp. *)
     well_founded (transp (t s) step).
   Proof.
@@ -1438,5 +1438,31 @@ Section Sigma.
     - just do it.
     - just do it.
   Admitted.
+
+  Arguments clos_refl_sym_trans {A}.
+
+  Corollary church_rosser:
+    forall {s} x y,
+    clos_refl_sym_trans (@step s) x y ->
+    joinable x y.
+  Proof.
+    intro s.
+    (* As we have normalization and local confluence, by Newman's lemma we also
+       have confluence. *)
+    assert (forall x y, star s x y -> forall z, star s x z -> @joinable s y z).
+    - admit.
+    - (* Confluence implies the Church-Rosser property. *)
+      intros.
+      induction H0.
+      + exists y; auto with sigma.
+      + exists x; auto with sigma.
+      + now apply joinable_sym.
+      + destruct IHclos_refl_sym_trans1 as (w, ?, ?).
+        destruct IHclos_refl_sym_trans2 as (v, ?, ?).
+        destruct H with y w v as (u, ?, ?).
+        * assumption.
+        * assumption.
+        * exists u; eauto with sigma.
+  Qed.
 
 End Sigma.
