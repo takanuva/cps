@@ -1441,28 +1441,56 @@ Section Sigma.
 
   Arguments clos_refl_sym_trans {A}.
 
+  Hint Resolve clos_rt_rt1n: sigma.
+  Hint Resolve clos_rt1n_rt: sigma.
+
+  Corollary confluent:
+    forall {s} x y,
+    star s x y ->
+    forall z,
+    star s x z ->
+    joinable y z.
+  Proof.
+    (* As we have normalization and local confluence, by Newman's lemma we also
+       have confluence. *)
+    intros.
+    apply clos_rt_rt1n in H.
+    generalize dependent z.
+    generalize dependent y.
+    induction (normalization x); intros.
+    destruct H1.
+    - exists z; auto with sigma.
+    - apply clos_rt_rt1n in H2.
+      destruct H2.
+      + rename z0 into w.
+        apply joinable_sym.
+        apply clos_rt1n_rt in H3.
+        exists w; eauto with sigma.
+      + rename y0 into z, z into v, z0 into w.
+        destruct locally_confluent with s x y z as (u, ?, ?); auto.
+        (* We have to fill the gap using induction twice! *)
+        edestruct H0 with y u w as (t, ?, ?); auto with sigma.
+        edestruct H0 with z t v as (r, ?, ?); auto with sigma.
+        * eauto with sigma.
+        * exists r; eauto with sigma.
+  Qed.
+
   Corollary church_rosser:
     forall {s} x y,
     clos_refl_sym_trans (@step s) x y ->
     joinable x y.
   Proof.
-    intro s.
-    (* As we have normalization and local confluence, by Newman's lemma we also
-       have confluence. *)
-    assert (forall x y, star s x y -> forall z, star s x z -> @joinable s y z).
-    - admit.
-    - (* Confluence implies the Church-Rosser property. *)
-      intros.
-      induction H0.
-      + exists y; auto with sigma.
-      + exists x; auto with sigma.
-      + now apply joinable_sym.
-      + destruct IHclos_refl_sym_trans1 as (w, ?, ?).
-        destruct IHclos_refl_sym_trans2 as (v, ?, ?).
-        destruct H with y w v as (u, ?, ?).
-        * assumption.
-        * assumption.
-        * exists u; eauto with sigma.
+    (* Confluence implies the Church-Rosser property. *)
+    induction 1.
+    - exists y; auto with sigma.
+    - exists x; auto with sigma.
+    - now apply joinable_sym.
+    - destruct IHclos_refl_sym_trans1 as (w, ?, ?).
+      destruct IHclos_refl_sym_trans2 as (v, ?, ?).
+      destruct @confluent with s y w v as (u, ?, ?).
+      + assumption.
+      + assumption.
+      + exists u; eauto with sigma.
   Qed.
 
 End Sigma.
