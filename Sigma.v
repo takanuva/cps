@@ -160,7 +160,7 @@ Section Sigma.
     | U2 k j s:
       step (subst_upn k (subst_upn j s))
            (subst_upn (ADD j k) s)
-    (* | U3 s t k j:
+    | U3 s t k j:
       interpretation k >= interpretation j ->
       step (subst_comp (subst_upn k s) (subst_upn j t))
            (subst_upn j (subst_comp (subst_upn (k - j) s) t))
@@ -175,7 +175,7 @@ Section Sigma.
     | U6 s t u k j:
       interpretation j >= interpretation k ->
       step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u) *)
+           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
     (* ITERACTIONS *)
     | II1 e:
       step (inst subst_ids e)
@@ -1293,6 +1293,10 @@ Section Sigma.
         now rewrite Nat.add_comm, Nat.pow_add_r.
       + simpl...
         nia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     - constructor 1; simpl.
       assert (measure1 e > 0) by apply measure1_term_pos.
       nia.
@@ -1538,7 +1542,7 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
-  Qed.
+  Admitted.
 
   Theorem normalization:
     forall {s},
@@ -1581,13 +1585,19 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-      + join.
-        admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1600,11 +1610,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+    - admit.
     - just do it.
     - just do it.
     - just do it.
