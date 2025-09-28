@@ -20,7 +20,6 @@ Section Sigma.
     | abstraction (e: t TERM): t TERM
     | application (e: t TERM) (f: t TERM): t TERM
     | dblift (i: t NUM) (k: t NUM) (e: t TERM): t TERM
-    | dbsubst (e: t TERM) (k: t NUM) (f: t TERM): t TERM
     | dbtraverse (s: t SUBST) (k: t NUM) (e: t TERM): t TERM
     | instantiation (s: t SUBST) (e: t TERM): t TERM
     (* Substitution syntax: *)
@@ -30,6 +29,7 @@ Section Sigma.
     | concatenate (v: t VECTOR) (s: t SUBST): t SUBST
     | compose (s: t SUBST) (r: t SUBST): t SUBST
     | uplift (n: t NUM) (s: t SUBST): t SUBST
+    | subst (e: t TERM): t SUBST
     (* Vector syntax: *)
     | metav (n: nat): t VECTOR
     | nil: t VECTOR
@@ -105,7 +105,6 @@ Section Sigma.
   Notation traverse := dbtraverse.
   Notation inst := instantiation.
   Notation lift := dblift.
-  Notation subst := dbsubst.
   Notation subst_lift := slift.
   Notation subst_app := concatenate.
   Notation subst_ids := iota.
@@ -118,13 +117,11 @@ Section Sigma.
   Notation "x - y" := (SUB x y): sigma_scope.
   Notation "x + y" := (ADD x y): sigma_scope.
 
-  Notation subst_drop i :=
-    (subst_comp (subst_lift i))
-    (only parsing).
+  (* TODO: should we add drop...? *)
 
-  Notation subst_cons y :=
-    (subst_app [y])
-    (only parsing).
+  (* Notation subst_drop i :=
+    (subst_comp (subst_lift i))
+    (only parsing). *)
 
   Inductive step: forall {s: sort}, relation (t s) :=
     (* Structural rules: *)
@@ -138,9 +135,9 @@ Section Sigma.
     | A3 i k e:
       step (lift i k e)
            (traverse (subst_lift i) k e)
-    | A4 y k e:
-      step (subst y k e)
-           (traverse (subst_cons y subst_ids) k e)
+    | A4 y:
+      step (subst y)
+           (subst_app [y] subst_ids)
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
@@ -209,12 +206,6 @@ Section Sigma.
       step k1 k2 -> step (lift i k1 e) (lift i k2 e)
     | C6 i k e1 e2:
       step e1 e2 -> step (lift i k e1) (lift i k e2)
-    | C7 y1 y2 k e:
-      step y1 y2 -> step (subst y1 k e) (subst y2 k e)
-    | C8 y k1 k2 e:
-      step k1 k2 -> step (subst y k1 e) (subst y k2 e)
-    | C9 y k e1 e2:
-      step e1 e2 -> step (subst y k e1) (subst y k e2)
     | C10 s1 s2 k e:
       step s1 s2 -> step (traverse s1 k e) (traverse s2 k e)
     | C11 s k1 k2 e:
@@ -239,6 +230,8 @@ Section Sigma.
       step n1 n2 -> step (subst_upn n1 s) (subst_upn n2 s)
     | C21 n s1 s2:
       step s1 s2 -> step (subst_upn n s1) (subst_upn n s2)
+    | C7 y1 y2:
+      step y1 y2 -> step (subst y1) (subst y2)
     | C22 e1 e2 x:
       step e1 e2 -> step (e1 :: x) (e2 :: x)
     | C23 e x1 x2:
@@ -256,6 +249,8 @@ Section Sigma.
 
   Notation star s :=
     (clos_refl_trans _ (@step s)).
+
+  Hint Constructors clos_refl_trans: sigma.
 
   Instance star_refl: forall s, Reflexive (star s).
   Proof.
@@ -502,11 +497,9 @@ Section Sigma.
   Admitted.
 
   Lemma C4_join:
-    forall y1 y2 k1 k2 e1 e2,
+    forall y1 y2,
     joinable y1 y2 ->
-    joinable k1 k2 ->
-    joinable e1 e2 ->
-    joinable (subst y1 k1 e1) (subst y2 k2 e2).
+    joinable (subst y1) (subst y2).
   Proof.
     admit.
   Admitted.
@@ -585,7 +578,7 @@ Section Sigma.
   Hint Resolve joinable_step: sigma.
   Hint Resolve C0_join: sigma.
   Hint Resolve C1_join: sigma.
-  Hint Resolve C2_join: sigma.
+  Hint Resolve C2_join: sigma.  
   Hint Resolve C3_join: sigma.
   Hint Resolve C4_join: sigma.
   Hint Resolve C5_join: sigma.
@@ -646,7 +639,6 @@ Section Sigma.
     | abstraction e => 2 + measure1 e
     | application e f => measure1 e + measure1 f
     | dblift i k e => max 2 (2 ^ measure1 i) * measure1 e
-    | dbsubst y k e => (2 + measure1 y) * measure1 e
     | dbtraverse s k e => measure1 s * measure1 e
     | instantiation s e => measure1 s * measure1 e
     (* SUBST *)
@@ -656,6 +648,7 @@ Section Sigma.
     | concatenate v s => sumup 0 measure1 v + measure1 s
     | compose s t => measure1 s * measure1 t
     | uplift n s => measure1 s
+    | subst y => 2 + measure1 y
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
@@ -690,7 +683,6 @@ Section Sigma.
     | abstraction e => 2 * measure2 e
     | application e f => 1 + measure2 e + measure2 f
     | dblift i k e => measure2 e * (1 + 4 ^ measure2 k * max 1 (measure2 i))
-    | dbsubst y k e => measure2 e * (1 + 4 ^ measure2 k * (2 + measure2 y))
     | dbtraverse s k e => measure2 e * (1 + 4 ^ measure2 k * measure2 s)
     | instantiation s e => measure2 e * (1 + measure2 s)
     (* SUBST *)
@@ -700,6 +692,7 @@ Section Sigma.
     | concatenate v s => sumup 1 measure2 v + measure2 s
     | compose s t => measure2 s * (1 + measure2 t)
     | uplift n s => 4 ^ measure2 n * measure2 s
+    | subst y => 2 + measure2 y
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
@@ -764,7 +757,7 @@ Section Sigma.
     var x26 >= 1;
 
     subject to lift: x7 + x11 + 1 <= x5;
-    subject to subst: x7 + x10 + x12 + x16 + x17 + 1 <= x6;
+    subject to subst: x10 + x12 + x16 + x17 + 1 <= x6;
     subject to traverse: x8 + x14 + 1 <= x7;
     subject to lift_ids: x10 <= x11;
     subject to upn_join: x14 + x24 + 1 <= 2 * x14;
@@ -780,7 +773,7 @@ Section Sigma.
   Definition X3 := 1.
   Definition X4 := 1.
   Definition X5 := 6.
-  Definition X6 := 9.
+  Definition X6 := 5.
   Definition X7 := 4.
   Definition X8 := 1.
   Definition X9 := 1.
@@ -840,7 +833,6 @@ Section Sigma.
     | abstraction e => X3 + measure3 e
     | application e f => X4 + measure3 e + measure3 f
     | dblift i k e => X5 + measure3 i + measure3 k + measure3 e
-    | dbsubst y k e => X6 + measure3 y + measure3 k + measure3 e
     | dbtraverse s k e => X7 + measure3 s + measure3 k + measure3 e
     | instantiation s e => X8 + measure3 s + measure3 e
     (* SUBST *)
@@ -850,6 +842,7 @@ Section Sigma.
     | concatenate v s => X12 + measure3 v + measure3 s
     | compose s t => X13 + measure3 s + measure3 t
     | uplift n s => X14 + measure3 n + measure3 s
+    | subst y => X6 + measure3 y
     (* VECTOR *)
     | metav _ => X15
     | nil => X16
@@ -887,6 +880,7 @@ Section Sigma.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
       assumption.
+    - nia.
   Qed.
 
   Lemma measure1_term_pos:
@@ -910,10 +904,6 @@ Section Sigma.
       destruct n; simpl; intros.
       + lia.
       + lia.
-    - clear IHe2.
-      specialize (IHe1 _ eq_refl JMeq_refl).
-      specialize (IHe3 _ eq_refl JMeq_refl).
-      lia.
     - clear IHe1 IHe2.
       specialize (IHe3 _ eq_refl JMeq_refl).
       assert (measure1 e1 > 1) by apply measure1_subst_pos.
@@ -949,6 +939,7 @@ Section Sigma.
         * auto.
         * lia.
       + lia.
+    - nia.
   Qed.
 
   Lemma measure2_term_pos:
@@ -966,8 +957,6 @@ Section Sigma.
       lia.
     - specialize (IHe3 _ eq_refl JMeq_refl).
       lia.
-    - specialize (IHe3 _ eq_refl JMeq_refl).
-      lia.
     - specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
   Qed.
@@ -981,8 +970,8 @@ Section Sigma.
   Qed.
 
   Lemma measure1_subst_unfolding:
-    forall y k e,
-    measure1 (subst y k e) = measure1 (traverse (subst_cons y subst_ids) k e).
+    forall y,
+    measure1 (subst y) = measure1 (subst_app [y] subst_ids).
   Proof.
     intros; simpl.
     lia.
@@ -1005,8 +994,8 @@ Section Sigma.
   Qed.
 
   Lemma measure2_subst_unfolding:
-    forall y k e,
-    measure2 (subst y k e) = measure2 (traverse (subst_cons y subst_ids) k e).
+    forall y,
+    measure2 (subst y) = measure2 (subst_app [y] subst_ids).
   Proof.
     intros; simpl.
     lia.
@@ -1252,37 +1241,6 @@ Section Sigma.
         assert (measure1 e > 0) by apply measure1_term_pos.
         nia.
       + constructor 2; simpl.
-        * now rewrite H0.
-        * assert (measure2 e > 0) by apply measure2_term_pos.
-          apply Mult.mult_lt_compat_l_stt; auto.
-          apply -> Nat.succ_lt_mono.
-          ring_simplify.
-          remember (4 ^ measure2 k) as n.
-          assert (n * measure2 x < n * measure2 y); try lia.
-          apply Mult.mult_lt_compat_l_stt; auto.
-          subst; generalize (measure2 k) as n.
-          induction n; simpl; lia.
-      + constructor 3; simpl.
-        * now rewrite H0.
-        * now rewrite H1.
-        * nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + do 2 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with k1 k2.
-      + ring_simplify.
-        apply num_step_measure3 in H.
-        nia.
-    - dependent destruction IHstep.
-      + constructor 1; simpl.
-        nia.
-      + constructor 2; simpl; nia.
-      + constructor 3; simpl; nia.
-    - dependent destruction IHstep.
-      + constructor 1; simpl.
-        assert (measure1 e > 0) by apply measure1_term_pos.
-        nia.
-      + constructor 2; simpl.
         * nia.
         * assert (measure2 e > 0) by apply measure2_term_pos.
           assert (measure2 x > 0) by apply measure2_subst_pos.
@@ -1394,8 +1352,11 @@ Section Sigma.
         * now rewrite H1.
         * nia.
     - dependent induction IHstep.
-      + constructor 1; simpl.
-        nia.
+      + constructor 1; simpl; nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
+    - dependent induction IHstep.
+      + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
       + constructor 3; simpl; nia.
     - dependent induction IHstep.
@@ -1504,10 +1465,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
     - admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1546,7 +1505,8 @@ Section Sigma.
         exists w; eauto with sigma.
       + rename y0 into z, z into v, z0 into w.
         destruct locally_confluent with s x y z as (u, ?, ?); auto.
-        (* We have to fill the gap using induction twice! *)
+        (* We have to fill the gap using induction twice! Check Newman's lemma
+           on some textbook if you want to understand why. *)
         edestruct H0 with y u w as (t, ?, ?); auto with sigma.
         edestruct H0 with z t v as (r, ?, ?); auto with sigma.
         * eauto with sigma.
