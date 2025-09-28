@@ -726,40 +726,144 @@ Section Sigma.
 
   (* ---------------------------------------------------------------------- *)
 
-  (* TODO: check that these number are actually the smallest possible ones. *)
+  (*
+    In order to properly calculate the optimal values for the 3rd weight, we
+    will use linear optimization in here, taking the formulas from the desired
+    properties as we check them below.
+
+    For now, I assume those exist by simple addition on subterms; it might be
+    possible that some stuff (e.g., composition) might require multiplication.
+
+    We use the following model, giving the optimal solutions:
+
+    var x1 >= 1;
+    var x2 >= 1;
+    var x3 >= 1;
+    var x4 >= 1;
+    var x5 >= 1;
+    var x6 >= 1;
+    var x7 >= 1;
+    var x8 >= 1;
+    var x9 >= 1;
+    var x10 >= 1;
+    var x11 >= 1;
+    var x12 >= 1;
+    var x13 >= 1;
+    var x14 >= 1;
+    var x15 >= 1;
+    var x16 >= 1;
+    var x17 >= 1;
+    var x18 >= 1;
+    var x19 >= 1;
+    var x20 >= 1;
+    var x21 >= 1;
+    var x22 >= 1;
+    var x23 >= 1;
+    var x24 >= 1;
+    var x25 >= 1;
+    var x26 >= 1;
+
+    subject to lift: x7 + x11 + 1 <= x5;
+    subject to subst: x7 + x10 + x12 + x16 + x17 + 1 <= x6;
+    subject to traverse: x8 + x14 + 1 <= x7;
+    subject to lift_ids: x10 <= x11;
+    subject to upn_join: x14 + x24 + 1 <= 2 * x14;
+
+    minimize s: x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 +
+                x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 +
+                x20 + x21 + x22 + x23 + x24 + x25 + x26;
+
+    end; *)
+
+  Definition X1 := 1.
+  Definition X2 := 1.
+  Definition X3 := 1.
+  Definition X4 := 1.
+  Definition X5 := 6.
+  Definition X6 := 9.
+  Definition X7 := 4.
+  Definition X8 := 1.
+  Definition X9 := 1.
+  Definition X10 := 1.
+  Definition X11 := 1.
+  Definition X12 := 1.
+  Definition X13 := 1.
+  Definition X14 := 2.
+  Definition X15 := 1.
+  Definition X16 := 1.
+  Definition X17 := 1.
+  Definition X18 := 1.
+  Definition X19 := 1.
+  Definition X20 := 1.
+  Definition X21 := 1.
+  Definition X22 := 1.
+  Definition X23 := 1.
+  Definition X24 := 1.
+  Definition X25 := 1.
+  Definition X26 := 1.
+
+  Hint Unfold X1: sigma.
+  Hint Unfold X2: sigma.
+  Hint Unfold X3: sigma.
+  Hint Unfold X4: sigma.
+  Hint Unfold X5: sigma.
+  Hint Unfold X6: sigma.
+  Hint Unfold X7: sigma.
+  Hint Unfold X8: sigma.
+  Hint Unfold X9: sigma.
+  Hint Unfold X10: sigma.
+  Hint Unfold X11: sigma.
+  Hint Unfold X12: sigma.
+  Hint Unfold X13: sigma.
+  Hint Unfold X14: sigma.
+  Hint Unfold X15: sigma.
+  Hint Unfold X16: sigma.
+  Hint Unfold X17: sigma.
+  Hint Unfold X18: sigma.
+  Hint Unfold X19: sigma.
+  Hint Unfold X20: sigma.
+  Hint Unfold X21: sigma.
+  Hint Unfold X22: sigma.
+  Hint Unfold X23: sigma.
+  Hint Unfold X24: sigma.
+  Hint Unfold X25: sigma.
+  Hint Unfold X26: sigma.
+
+  Ltac unfold_weight :=
+    autounfold with sigma.
 
   Fixpoint measure3 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
     (* TERM *)
-    | metat _ => 1
-    | index n => 1 + measure3 n
-    | abstraction e => 1 + measure3 e
-    | application e f => 1 + measure3 e + measure3 f
-    | dblift i k e => 10 + measure3 i + measure3 k + measure3 e
-    | dbsubst y k e => 13 + measure3 y + measure3 k + measure3 e
-    | dbtraverse s k e => 8 + measure3 s + measure3 k + measure3 e
-    | instantiation s e => 5 + measure3 s + measure3 e
+    | metat _ => X1
+    | index n => X2 + measure3 n
+    | abstraction e => X3 + measure3 e
+    | application e f => X4 + measure3 e + measure3 f
+    | dblift i k e => X5 + measure3 i + measure3 k + measure3 e
+    | dbsubst y k e => X6 + measure3 y + measure3 k + measure3 e
+    | dbtraverse s k e => X7 + measure3 s + measure3 k + measure3 e
+    | instantiation s e => X8 + measure3 s + measure3 e
     (* SUBST *)
-    | metas _ => 1
-    | iota => 1
-    | slift n => 1 + measure3 n
-    | concatenate v s => 1 + measure3 v + measure3 s
-    | compose s t => 1 + measure3 s + measure3 t
-    | uplift n s => 2 + measure3 n + measure3 s
+    | metas _ => X9
+    | iota => X10
+    | slift n => X11 + measure3 n
+    | concatenate v s => X12 + measure3 v + measure3 s
+    | compose s t => X13 + measure3 s + measure3 t
+    | uplift n s => X14 + measure3 n + measure3 s
     (* VECTOR *)
-    | metav _ => 1
-    | nil => 1
-    | cons e v => 1 + measure3 e + measure3 v
-    | join v u => 1 + measure3 v + measure3 u
+    | metav _ => X15
+    | nil => X16
+    | cons e v => X17 + measure3 e + measure3 v
+    | join v u => X18 + measure3 v + measure3 u
     (* NUMBER *)
-    | metan n => 1
-    | zero => 1
-    | succ n => 1 + measure3 n
-    | length v => 1 + measure3 v
-    | SUB n m => 1 + measure3 n + measure3 m
-    | ADD n m => 1 + measure3 n + measure3 m
-    | MIN n m => 1 + measure3 n + measure3 m
-    | MAX n m => 1 + measure3 n + measure3 m
+    | metan n => X19
+    | zero => X20
+    | succ n => X21 + measure3 n
+    | length v => X22 + measure3 v
+    | SUB n m => X23 + measure3 n + measure3 m
+    | ADD n m => X24 + measure3 n + measure3 m
+    | MIN n m => X25 + measure3 n + measure3 m
+    | MAX n m => X26 + measure3 n + measure3 m
     end.
 
   Lemma measure1_subst_pos:
@@ -1004,14 +1108,15 @@ Section Sigma.
     forall s x,
     @measure3 s x > 0.
   Proof.
-    induction x; simpl; nia.
+    induction x; simpl;
+    unfold_weight; nia.
   Qed.
 
   Lemma decreasing:
     forall s x y,
     @step s x y ->
     @LT s y x.
-  Proof.
+  Proof with (unfold_weight; ring_simplify).
     induction 1; intros.
     - constructor 2; simpl.
       + nia.
@@ -1023,24 +1128,25 @@ Section Sigma.
     - constructor 3.
       + now rewrite measure1_lift_unfolding.
       + now rewrite measure2_lift_unfolding.
-      + simpl; nia.
+      + simpl...
+        nia.
     - constructor 3.
       + now rewrite measure1_subst_unfolding.
       + now rewrite measure2_subst_unfolding.
-      + simpl; nia.
+      + simpl...
+        nia.
     - constructor 3.
       + now rewrite measure1_traverse_unfolding.
       + now rewrite measure2_traverse_unfolding.
-      + simpl.
-        ring_simplify.
-        simpl; nia.
+      + simpl...
+        nia.
     - constructor 3; simpl.
       + rewrite H; simpl.
         reflexivity.
       + rewrite measure2_NUM.
         rewrite H.
         reflexivity.
-      + simpl.
+      + simpl...
         assert (measure3 n > 0) by apply measure3_pos.
         nia.
     - constructor 2; simpl.
@@ -1055,13 +1161,15 @@ Section Sigma.
       + rewrite measure2_NUM.
         rewrite H.
         simpl; nia.
-      + nia.
+      + simpl...
+        nia.
     - constructor 3; simpl.
       + reflexivity.
       + rewrite Nat.mul_assoc.
         do 2 rewrite measure2_NUM.
         now rewrite Nat.add_comm, Nat.pow_add_r.
-      + nia.
+      + simpl...
+        nia.
     - constructor 1; simpl.
       assert (measure1 e > 0) by apply measure1_term_pos.
       nia.
@@ -1071,7 +1179,8 @@ Section Sigma.
         * reflexivity.
         * rewrite <- Heqm; simpl.
           reflexivity.
-        * nia.
+        * simpl...
+          nia.
       + constructor 2; simpl.
         * reflexivity.
         * rewrite <- Heqm; simpl.
@@ -1097,8 +1206,8 @@ Section Sigma.
       + do 2 rewrite measure1_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
       + reflexivity.
-      + apply -> Nat.succ_lt_mono.
-        now apply num_step_measure3.
+      + apply num_step_measure3 in H.
+        nia.
     - dependent destruction IHstep.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
@@ -1167,13 +1276,8 @@ Section Sigma.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         nia.
-      + constructor 2; simpl.
-        * nia.
-        * nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 e > 0) by apply measure1_term_pos.
@@ -1187,10 +1291,7 @@ Section Sigma.
           apply Mult.mult_lt_compat_l_stt; try nia.
           generalize (measure2 k) as n.
           induction n; simpl; nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 3; simpl; nia.
     - constructor 3; simpl.
       + reflexivity.
       + do 2 rewrite measure2_NUM.
@@ -1208,8 +1309,7 @@ Section Sigma.
       + constructor 3; simpl.
         * now rewrite H0.
         * now rewrite H1.
-        * ring_simplify.
-          nia.
+        * nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 e > 0) by apply measure1_term_pos.
@@ -1218,27 +1318,19 @@ Section Sigma.
         * nia.
         * assert (measure2 e > 0) by apply measure2_term_pos.
           nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 3; simpl; nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
         nia.
-      + constructor 2; simpl.
-        * nia.
-        * nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - constructor 3; simpl.
       * rewrite interpretation_consistent_num with n1 n2; auto.
       * do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
-      * apply -> Nat.succ_lt_mono.
-        now apply num_step_measure3.
+      * apply num_step_measure3 in H.
+        nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         do 2 rewrite sumup0_measure1_simpl.
@@ -1255,14 +1347,9 @@ Section Sigma.
           nia.
         * nia.
     - dependent destruction IHstep.
-      + constructor 1; simpl; lia.
-      + constructor 2; simpl.
-        * nia.
-        * nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 1; simpl; nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 r > 1) by apply measure1_subst_pos.
@@ -1309,13 +1396,8 @@ Section Sigma.
     - dependent induction IHstep.
       + constructor 1; simpl.
         nia.
-      + constructor 2; simpl.
-        * nia.
-        * nia.
-      + constructor 3; simpl.
-        * nia.
-        * nia.
-        * nia.
+      + constructor 2; simpl; nia.
+      + constructor 3; simpl; nia.
     - dependent induction IHstep.
       + constructor 1; simpl.
         do 2 rewrite sumup0_measure1_simpl.
