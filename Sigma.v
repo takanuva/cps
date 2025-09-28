@@ -160,19 +160,22 @@ Section Sigma.
     | U2 k j s:
       step (subst_upn k (subst_upn j s))
            (subst_upn (ADD j k) s)
-
-
-
-
-
-
-
-
-
-
-
-
-
+    (* | U3 s t k j:
+      interpretation k >= interpretation j ->
+      step (subst_comp (subst_upn k s) (subst_upn j t))
+           (subst_upn j (subst_comp (subst_upn (k - j) s) t))
+    | U4 s t k j:
+      interpretation j >= interpretation k ->
+      step (subst_comp (subst_upn k s) (subst_upn j t))
+           (subst_upn k (subst_comp s (subst_upn (j - k) t)))
+    | U5 s t u k j:
+      interpretation k >= interpretation j ->
+      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
+           (subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u)
+    | U6 s t u k j:
+      interpretation j >= interpretation k ->
+      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
+           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u) *)
     (* ITERACTIONS *)
     | II1 e:
       step (inst subst_ids e)
