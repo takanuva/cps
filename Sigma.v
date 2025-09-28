@@ -569,61 +569,145 @@ Section Sigma.
     joinable s1 s2 ->
     joinable e1 e2 ->
     joinable (inst s1 e1) (inst s2 e2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros s1 s2 e1 e2 (s3, ?, ?) (e3, ?, ?).
+    exists (inst s3 e3).
+    - clear H0 H2.
+      apply rt_trans with (inst s3 e1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (inst s3 e2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Lemma C7_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (subst_lift n1) (subst_lift n2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros n1 n2 (n3, ?, ?).
+    exists (subst_lift n3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
+  Qed.
 
   Lemma C8_join:
     forall v1 v2 s1 s2,
     joinable v1 v2 ->
     joinable s1 s2 ->
     joinable (subst_app v1 s1) (subst_app v2 s2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros v1 v2 s1 s2 (v3, ?, ?) (s3, ?, ?).
+    exists (subst_app v3 s3).
+    - clear H0 H2.
+      apply rt_trans with (subst_app v3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_app v3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Lemma C9_join:
     forall s1 s2 r1 r2,
     joinable s1 s2 ->
+    joinable r1 r2 ->
     joinable (subst_comp s1 r1) (subst_comp s2 r2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros s1 s2 r1 r2 (s3, ?, ?) (r3, ?, ?).
+    exists (subst_comp s3 r3).
+    - clear H0 H2.
+      apply rt_trans with (subst_comp s3 r1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_comp s3 r2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Lemma C10_join:
     forall n1 n2 s1 s2,
     joinable n1 n2 ->
     joinable s1 s2 ->
     joinable (subst_upn n1 s1) (subst_upn n2 s2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros n1 n2 s1 s2 (n3, ?, ?) (s3, ?, ?).
+    exists (subst_upn n3 s3).
+    - clear H0 H2.
+      apply rt_trans with (subst_upn n3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_upn n3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Lemma C11_join:
     forall e1 e2 x1 x2,
     joinable e1 e2 ->
     joinable x1 x2 ->
     joinable (e1 :: x1) (e2 :: x2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros e1 e2 x1 x2 (e3, ?, ?) (x3, ?, ?).
+    exists (e3 :: x3).
+    - clear H0 H2.
+      apply rt_trans with (e3 :: x1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (e3 :: x2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Lemma C12_join:
     forall x1 x2 y1 y2,
     joinable x1 x2 ->
     joinable y1 y2 ->
     joinable (x1 ++ y1) (x2 ++ y2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros x1 x2 y1 y2 (x3, ?, ?) (y3, ?, ?).
+    exists (x3 ++ y3).
+    - clear H0 H2.
+      apply rt_trans with (x3 ++ y1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (x3 ++ y2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
 
   Hint Resolve joinable_step: sigma.
   Hint Resolve C0_join: sigma.
