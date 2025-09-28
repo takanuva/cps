@@ -1670,7 +1670,7 @@ Section Sigma.
       + exists u; eauto with sigma.
   Qed.
 
-  Print Assumptions normalization.
-  Print Assumptions church_rosser.
-
 End Sigma.
+
+Print Assumptions normalization.
+Print Assumptions church_rosser.
