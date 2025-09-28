@@ -458,13 +458,13 @@ Section Sigma.
     forall e1 e2,
     joinable e1 e2 ->
     joinable (abs e1) (abs e2).
-  Proof.
+  Proof with eauto with sigma.
     intros e1 e2 (e3, ?, ?).
     exists (abs e3).
     - clear H0.
-      induction H; eauto with sigma.
+      induction H...
     - clear H.
-      induction H0; eauto with sigma.
+      induction H0...
   Qed.
 
   Lemma C2_join:
@@ -472,21 +472,21 @@ Section Sigma.
     joinable e1 e2 ->
     joinable f1 f2 ->
     joinable (app e1 f1) (app e2 f2).
-  Proof.
+  Proof with eauto with sigma.
     intros e1 e2 f1 f2 (e3, ?, ?) (f3, ?, ?).
     exists (app e3 f3).
     - clear H0 H2.
       apply rt_trans with (app e3 f1).
       + clear H1.
-        induction H; eauto with sigma.
+        induction H...
       + clear H.
-        induction H1; eauto with sigma.
+        induction H1...
     - clear H H1.
       apply rt_trans with (app e3 f2).
       + clear H2.
-        induction H0; eauto with sigma.
+        induction H0...
       + clear H0.
-        induction H2; eauto with sigma.
+        induction H2...
   Qed.
 
   Lemma C3_join:
@@ -495,17 +495,43 @@ Section Sigma.
     joinable k1 k2 ->
     joinable e1 e2 ->
     joinable (lift i1 k1 e1) (lift i2 k2 e2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros i1 i2 k1 k2 e1 e2 (i3, ?, ?) (k3, ?, ?) (e3, ?, ?).
+    exists (lift i3 k3 e3).
+    - clear H0 H2 H4.
+      apply rt_trans with (lift i3 k1 e1).
+      + clear H1 H3.
+        induction H...
+      + clear H.
+        apply rt_trans with (lift i3 k3 e1).
+        * clear H3.
+          induction H1...
+        * clear H1.
+          induction H3...
+    - clear H H1 H3.
+      apply rt_trans with (lift i3 k2 e2).
+      + clear H2 H4.
+        induction H0...
+      + clear H0.
+        apply rt_trans with (lift i3 k3 e2).
+        * clear H4.
+          induction H2...
+        * clear H2.
+          induction H4...
+  Qed.
 
   Lemma C4_join:
     forall y1 y2,
     joinable y1 y2 ->
     joinable (subst y1) (subst y2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros y1 y2 (y3, ?, ?).
+    exists (subst y3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
+  Qed.
 
   Lemma C5_join:
     forall s1 s2 k1 k2 e1 e2,
@@ -513,9 +539,30 @@ Section Sigma.
     joinable k1 k2 ->
     joinable e1 e2 ->
     joinable (traverse s1 k1 e1) (traverse s2 k2 e2).
-  Proof.
-    admit.
-  Admitted.
+  Proof with eauto with sigma.
+    intros s1 s2 k1 k2 e1 e2 (s3, ?, ?) (k3, ?, ?) (e3, ?, ?).
+    exists (traverse s3 k3 e3).
+    - clear H0 H2 H4.
+      apply rt_trans with (traverse s3 k1 e1).
+      + clear H1 H3.
+        induction H...
+      + clear H.
+        apply rt_trans with (traverse s3 k3 e1).
+        * clear H3.
+          induction H1...
+        * clear H1.
+          induction H3...
+    - clear H H1 H3.
+      apply rt_trans with (traverse s3 k2 e2).
+      + clear H2 H4.
+        induction H0...
+      + clear H0.
+        apply rt_trans with (traverse s3 k3 e2).
+        * clear H4.
+          induction H2...
+        * clear H2.
+          induction H4...
+  Qed.
 
   Lemma C6_join:
     forall s1 s2 e1 e2,
