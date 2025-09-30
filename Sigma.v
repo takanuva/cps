@@ -41,9 +41,7 @@ Section Sigma.
     | succ (n: t NUM): t NUM
     | length (v: t VECTOR): t NUM
     | SUB (n: t NUM) (m: t NUM): t NUM
-    | ADD (n: t NUM) (m: t NUM): t NUM
-    | MIN (n: t NUM) (m: t NUM): t NUM
-    | MAX (n: t NUM) (m: t NUM): t NUM.
+    | ADD (n: t NUM) (m: t NUM): t NUM.
 
   Coercion t: sort >-> Sortclass.
 
@@ -84,14 +82,7 @@ Section Sigma.
       interpretation n - interpretation m
     | ADD n m =>
       interpretation n + interpretation m
-    | MIN n m =>
-      min (interpretation n) (interpretation m)
-    | MAX n m =>
-      max (interpretation n) (interpretation m)
     end.
-
-  Definition DIF n m :=
-    SUB (MAX n m) (MIN n m).
 
   Infix "::" := cons (at level 60, right associativity).
   Infix "++" := join (right associativity, at level 60).
@@ -243,7 +234,18 @@ Section Sigma.
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    (* TODO: congruence rules for numbers! *).
+    | C26 n1 n2:
+      step n1 n2 -> step (succ n1) (succ n2)
+    | C27 v1 v2:
+      step v1 v2 -> step (length v1) (length v2)
+    | C28 n1 n2 m:
+      step n1 n2 -> step (SUB n1 m) (SUB n2 m)
+    | C29 n m1 m2:
+      step m1 m2 -> step (SUB n m1) (SUB n m2)
+    | C30 n1 n2 m:
+      step n1 n2 -> step (ADD n1 m) (ADD n2 m)
+    | C31 n m1 m2:
+      step m1 m2 -> step (ADD n m1) (ADD n m2).
 
   Create HintDb sigma.
 
@@ -303,20 +305,6 @@ Section Sigma.
     simpl; auto.
   Qed.
 
-  Lemma interpretation_min:
-    forall a b,
-    interpretation (MIN a b) = min (interpretation a) (interpretation b).
-  Proof.
-    simpl; auto.
-  Qed.
-
-  Lemma interpretation_max:
-    forall a b,
-    interpretation (MAX a b) = max (interpretation a) (interpretation b).
-  Proof.
-    simpl; auto.
-  Qed.
-
   Lemma interpretation_cons_length:
     forall y ys,
     interpretation (length (y :: ys)) = interpretation (1 + length ys).
@@ -345,11 +333,25 @@ Section Sigma.
   Hint Rewrite interpretation_number: interpretation.
   Hint Rewrite interpretation_add: interpretation.
   Hint Rewrite interpretation_sub: interpretation.
-  Hint Rewrite interpretation_min: interpretation.
-  Hint Rewrite interpretation_max: interpretation.
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
+
+  Lemma interpretation_consistent_vec:
+    forall v1 v2,
+    step v1 v2 ->
+    interpretation (length v1) = interpretation (length v2).
+  Proof.
+    intros.
+    dependent induction H; simpl.
+    - reflexivity.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+  Qed.
 
   Lemma interpretation_consistent_num:
     forall n m,
@@ -357,7 +359,19 @@ Section Sigma.
     interpretation n = interpretation m.
   Proof.
     intros.
-    dependent destruction H.
+    dependent induction H.
+    - simpl; f_equal.
+      now apply IHstep.
+    - clear IHstep.
+      now apply interpretation_consistent_vec.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in *; lia.
   Qed.
 
   Lemma interpretation_consistent_len:
@@ -442,16 +456,13 @@ Section Sigma.
     forall n1 n2,
     joinable n1 n2 ->
     joinable (index n1) (index n2).
-  Proof.
+  Proof with eauto with sigma.
     intros n1 n2 (n3, ?, ?).
-    assert (n1 = n3 /\ n2 = n3) as (?, ?).
-    - split.
-      + clear H0.
-        induction H; subst; easy.
-      + clear H.
-        induction H0; subst; easy.
-    - subst.
-      apply joinable_refl.
+    exists (index n3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
   Qed.
 
   Lemma C1_join:
@@ -709,6 +720,40 @@ Section Sigma.
         induction H2...
   Qed.
 
+  Lemma C13_join:
+    forall n1 n2,
+    joinable n1 n2 ->
+    joinable (succ n1) (succ n2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C14_join:
+    forall v1 v2,
+    joinable v1 v2 ->
+    joinable (length v1) (length v2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C15_join:
+    forall n1 n2 m1 m2,
+    joinable n1 n2 ->
+    joinable m1 m2 ->
+    joinable (SUB n1 m1) (SUB n2 m2).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma C16_join:
+    forall n1 n2 m1 m2,
+    joinable n1 n2 ->
+    joinable m1 m2 ->
+    joinable (ADD n1 m1) (ADD n2 m2).
+  Proof.
+    admit.
+  Admitted.
+
   Hint Resolve joinable_step: sigma.
   Hint Resolve C0_join: sigma.
   Hint Resolve C1_join: sigma.
@@ -723,6 +768,10 @@ Section Sigma.
   Hint Resolve C10_join: sigma.
   Hint Resolve C11_join: sigma.
   Hint Resolve C12_join: sigma.
+  Hint Resolve C13_join: sigma.
+  Hint Resolve C14_join: sigma.
+  Hint Resolve C15_join: sigma.
+  Hint Resolve C16_join: sigma.
 
   Hint Extern 1 => reflexivity: sigma.
   Hint Extern 4 => symmetry: sigma.
@@ -795,8 +844,6 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
-    | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m)
     end.
 
   Lemma measure1_NUM:
@@ -839,8 +886,6 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
-    | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m)
     end.
 
   Lemma measure2_NUM:
@@ -887,8 +932,6 @@ Section Sigma.
     var x22 >= 1;
     var x23 >= 1;
     var x24 >= 1;
-    var x25 >= 1;
-    var x26 >= 1;
 
     subject to lift: x7 + x11 + 1 <= x5;
     subject to subst: x10 + x12 + x16 + x17 + 1 <= x6;
@@ -897,8 +940,8 @@ Section Sigma.
     subject to upn_join: x14 + x24 + 1 <= 2 * x14;
 
     minimize s: x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 +
-                x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 +
-                x20 + x21 + x22 + x23 + x24 + x25 + x26;
+                x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 +
+                x18 + x19 + x20 + x21 + x22 + x23 + x24;
 
     end; *)
 
@@ -926,8 +969,6 @@ Section Sigma.
   Definition X22 := 1.
   Definition X23 := 1.
   Definition X24 := 1.
-  Definition X25 := 1.
-  Definition X26 := 1.
 
   Hint Unfold X1: sigma.
   Hint Unfold X2: sigma.
@@ -953,8 +994,6 @@ Section Sigma.
   Hint Unfold X22: sigma.
   Hint Unfold X23: sigma.
   Hint Unfold X24: sigma.
-  Hint Unfold X25: sigma.
-  Hint Unfold X26: sigma.
 
   Ltac unfold_weight :=
     autounfold with sigma.
@@ -989,8 +1028,6 @@ Section Sigma.
     | length v => X22 + measure3 v
     | SUB n m => X23 + measure3 n + measure3 m
     | ADD n m => X24 + measure3 n + measure3 m
-    | MIN n m => X25 + measure3 n + measure3 m
-    | MAX n m => X26 + measure3 n + measure3 m
     end.
 
   Lemma measure1_subst_pos:
@@ -1202,15 +1239,6 @@ Section Sigma.
     - eapply H1; now try reflexivity.
   Qed.
 
-  Lemma num_step_measure3:
-    forall n m,
-    @step NUM n m ->
-    measure3 n > measure3 m.
-  Proof.
-    intros.
-    dependent induction H.
-  Qed.
-
   Lemma sumup0_measure1_simpl:
     forall v,
     sumup 0 measure1 v = measure1 v.
@@ -1329,12 +1357,7 @@ Section Sigma.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         nia.
     (* From this point forward, congruences... *)
-    - constructor 3; simpl.
-      + do 2 rewrite measure1_NUM.
-        now rewrite interpretation_consistent_num with n1 n2.
-      + reflexivity.
-      + apply num_step_measure3 in H.
-        nia.
+    - admit.
     - dependent destruction IHstep.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
@@ -1353,15 +1376,13 @@ Section Sigma.
       + do 3 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with i1 i2.
       + simpl; ring_simplify.
-        apply num_step_measure3 in H.
-        nia.
+        admit.
     - constructor 3; simpl.
       + reflexivity.
       + do 3 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with k1 k2.
       + simpl; ring_simplify.
-        apply num_step_measure3 in H.
-        nia.
+        admit.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 x > 0) by apply measure1_term_pos.
@@ -1393,8 +1414,7 @@ Section Sigma.
       + do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with k1 k2.
       + ring_simplify.
-        apply num_step_measure3 in H.
-        lia.
+        admit.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
@@ -1425,8 +1445,7 @@ Section Sigma.
       * rewrite interpretation_consistent_num with n1 n2; auto.
       * do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
-      * apply num_step_measure3 in H.
-        nia.
+      * admit.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         do 2 rewrite sumup0_measure1_simpl.
@@ -1474,8 +1493,7 @@ Section Sigma.
       + reflexivity.
       + do 2 rewrite measure2_NUM.
         now rewrite interpretation_consistent_num with n1 n2.
-      + apply num_step_measure3 in H.
-        nia.
+      + admit.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assumption.
@@ -1542,6 +1560,12 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Theorem normalization:
@@ -1585,10 +1609,22 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - repeat break.
+      + work.
+      + work.
+      + work.
+      + work.
+      + work.
+      + work.
+      + work.
+      + rename j0 into l, s0 into t.
+        admit.
+      + work.
+      + work.
+      + work.
     - admit.
     - admit.
     - admit.
-    - admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1611,6 +1647,12 @@ Section Sigma.
     - just do it.
     - admit.
     - admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
