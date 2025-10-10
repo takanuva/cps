@@ -26,6 +26,7 @@ theories/Conservation.v
 theories/Structural.v
 theories/Normalization.v
 theories/Lambda/Calculus.v
+theories/Lambda/Translation.v
 theories/Lambda/PlotkinCBN.v
 theories/Lambda/PlotkinCBV.v
 theories/Lambda/ANF.v
