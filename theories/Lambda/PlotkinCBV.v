@@ -296,15 +296,11 @@ Proof.
        now, this isn't even true. *)
     + admit.
     + admit.
-    + admit.
-    + admit.
-    + admit.
-  - admit.
-  - admit.
-  - admit.
   - admit.
   - admit.
 Admitted.
+
+(* TODO: is this true? Cause the term might be stuck! *)
 
 Lemma closed_normal_cbv_implies_value:
   forall e,
@@ -355,12 +351,6 @@ Proof.
       * (* TODO: not true yet, as we can't reduce inside a pair. *)
         admit.
       * admit.
-      * admit.
-      * admit.
-      * admit.
-    + admit.
-    + admit.
-    + admit.
     + admit.
     + admit.
 Admitted.
@@ -466,9 +456,6 @@ Proof.
     eauto with cps.
   (* TODO: not yet true, we didn't define the CPS translations for pairs and
      thunks. *)
-  - admit.
-  - admit.
-  - admit.
   - admit.
   - admit.
 Admitted.
@@ -770,6 +757,10 @@ Proof.
     apply rt_R_bind_left.
     apply rt_R_lift.
     now apply IHcompatible.
+  - (* TODO! Define translation for delay! *)
+    inversion H0.
+  - (* TODO! Define translation for force! *)
+    inversion H0.
 Qed.
 
 Local Lemma technical1:
@@ -1073,9 +1064,6 @@ Proof.
         contradiction.
       * inversion H.
       * inversion H.
-      * inversion H.
-      * inversion H.
-      * inversion H.
     + (* In here, the expression is like (\x.e) f. So, the only way this is not
          a redex is if f is not a value (and can't become one). So this will
          follow directly by the inductive hypothesis. *)
@@ -1116,15 +1104,6 @@ Proof.
       inversion H3.
     + inversion H1.
       inversion H3.
-    + inversion H1.
-      inversion H3.
-    + inversion H1.
-      inversion H3.
-    + inversion H1.
-      inversion H3.
-  - inversion H1.
-  - inversion H1.
-  - inversion H1.
   - inversion H1.
   - inversion H1.
 Qed.
@@ -1147,13 +1126,11 @@ Proof.
       * dependent destruction H0.
         do 2 constructor.
       * inversion H0.
-      * inversion H0.
   - destruct termination_nonvalue with e c as (k, ?, ?).
     + assumption.
     + assumption.
     + assumption.
-    + exists (1 + k).
-      assumption.
+    + now exists (1 + k).
 Qed.
 
 Lemma normal_form_preservation:
@@ -1300,10 +1277,6 @@ Proof.
     apply barb_bind_left.
     apply barb_lift.
     apply IHh; auto.
-  - inversion H2.
-  - inversion H2.
-  - inversion H2.
-  - inversion H2.
   - inversion H2.
   - inversion H2.
 Qed.
@@ -1523,44 +1496,3 @@ Section TypePreservation.
   Admitted.
 
 End TypePreservation.
-
-(* -------------------------------------------------------------------------- *)
-
-(* This should ideally be moved to a new file. Anyway, the naive one-pass CPS
-   translation of Danvy and Filinski's that Kennedy describes in his paper is
-   given as follows:
-
-     [-]: term -> (var -> pseudoterm) -> pseudoterm
-
-                            +------------+
-     [x] K = K(x)          \|/           |
-     [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) }
-     [e1 e2] K = [e1] (\z1.
-                   [e2] (\z2.
-                    z1<z2, k> { k<v> = K(v) }))
-                                  |     /|\
-                                  +------+
-
-   As of writing, I'm still not sure how to handle the de Bruijn indexes in here
-   correctly. Probably applying a substitution would be a nice way, as we don't
-   know in advance how far the variable will be pushed inside a term... can we
-   calculate that? Sigh...
-
-   The final version, which avoids the introduction of tail-calls, i.e., (ETA)
-   redexes, can be defined by modifying the above with:
-
-     [\x.e] K = K(f) { f<x, k> = (e) k }
-
-   Along with the introduction of an auxiliary definition:
-
-     (-): term -> var -> pseudoterm
-
-     (x) k = k<x>
-     (\x.e) k = k<f> { f<x, j> = (e) j }
-     (e1 e2) k = [e1] (\z1.[e2] (\z2.z1<z2, k>))
-
-   Ideally, we would like to show that we can get from Plotkin's translation to
-   the naive one by performing some jumps, then from the naive one to the final
-   one by performing some tail-call eliminations. The combination would lead to
-   the result that these translations are adequate and that they give a sound
-   denotational semantics for the lambda calculus. *)

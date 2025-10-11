@@ -46,11 +46,11 @@ Inductive cbn: relation term :=
     cbn
       (application (abstraction t b) x)
       (subst x 0 b)
-  | cbn_app1:
+  | cbn_application_left:
     forall f1 f2 x,
     cbn f1 f2 ->
     cbn (application f1 x) (application f2 x)
-  | cbn_app2:
+  | cbn_application_right:
     (* This rule is hardly ever considered, probably because it's only necessary
        for open terms, but it was used in Plotkin's paper, so we'll add it here
        as well. *)
@@ -64,17 +64,21 @@ Lemma full_characterization:
   same_relation full (compatible cbn).
 Proof.
   split; induction 1.
-  - do 2 constructor.
-  - now constructor 2.
-  - now constructor 3.
-  - now constructor 4.
+  - repeat constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
   - induction H.
     + constructor.
-    + now constructor 3.
-    + now constructor 4.
-  - now constructor 2.
-  - now constructor 3.
-  - now constructor 4.
+    + now constructor.
+    + now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
+  - now constructor.
 Qed.
 
 Lemma full_cbn:
@@ -156,15 +160,6 @@ Proof.
       inversion H0.
     + left; inversion_clear 1.
       inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-  - left; inversion 1.
-  - left; inversion 1.
-  - left; inversion 1.
   - left; inversion 1.
   - left; inversion 1.
 Qed.
@@ -192,6 +187,10 @@ Proof.
     apply closed_application_left with x.
     assumption.
 Qed.
+
+(* TODO: we might have a problem here. I don't think this is true in the
+   presence of thunks, cause we could have [force (\x.x)], which is closed but
+   it is not a value, it's just stuck... *)
 
 Lemma closed_normal_cbn_implies_value:
   forall e,
@@ -230,12 +229,6 @@ Proof.
       * (* TODO: not true yet, as we can't reduce inside a pair. *)
         admit.
       * admit.
-      * admit.
-      * admit.
-      * admit.
-    + admit.
-    + admit.
-    + admit.
     + admit.
     + admit.
 Admitted.
@@ -345,9 +338,6 @@ Proof.
     eauto with cps.
   (* TODO: not yet true, we didn't define the CPS translations for pairs and
      thunks. *)
-  - admit.
-  - admit.
-  - admit.
   - admit.
   - admit.
 Admitted.
@@ -618,14 +608,6 @@ Proof.
     inversion H0.
   - simpl in H0.
     inversion H0.
-  - simpl in H0.
-    inversion H0.
-  - simpl in H0.
-    inversion H0.
-  - simpl in H0.
-    inversion H0.
-  - simpl in H0.
-    inversion H0.
 Qed.
 
 Local Lemma technical1:
@@ -710,7 +692,7 @@ Proof.
   intros e.
   (* To simulate the substitution step of a redex, we perform induction on the
      number of occurrences of the variable in the term. *)
-  destruct free_count_is_decidable with e 0 as (k, ?).
+  destruct free_count_is_decidable with e 0 as (k, ?H).
   generalize dependent e.
   induction k; intros.
   (* Case: zero. *)
@@ -919,7 +901,7 @@ Proof.
     + apply star_trans with d.
       * now apply star_t_head.
       * assumption.
-  (* Case: full_abs. *)
+  (* Case: full_abstraction. *)
   - dependent destruction H0.
     dependent destruction H1.
     apply cbn_cps_lift_inversion in H0 as (c1, ?, ?).
@@ -928,7 +910,7 @@ Proof.
     apply star_bind_right.
     apply star_lift.
     now apply IHfull.
-  (* Case: full_app1. *)
+  (* Case: full_application_left. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (c0 = c); eauto 2 with cps.
@@ -939,7 +921,7 @@ Proof.
     apply star_bind_left.
     apply star_lift.
     now apply IHfull.
-  (* Case: full_app2. *)
+  (* Case: full_application_right. *)
   - dependent destruction H0.
     dependent destruction H1.
     assert (b0 = b); eauto 2 with cps.
@@ -951,6 +933,12 @@ Proof.
     apply star_bind_right.
     apply star_lift.
     now apply IHfull.
+  (* Case: full_delay. *)
+  - (* TODO: we don't have the translation yet! *)
+    inversion H0.
+  (* Case: full_force. *)
+  - (* TODO: we don't have the translation yet! *)
+    inversion H0.
 Qed.
 
 Lemma termination_nonvalue:
@@ -1004,15 +992,6 @@ Proof.
       inversion H1_.
     + dependent destruction H1.
       inversion H1_.
-    + dependent destruction H1.
-      inversion H1_.
-    + dependent destruction H1.
-      inversion H1_.
-    + dependent destruction H1.
-      inversion H1_.
-  - inversion H1.
-  - inversion H1.
-  - inversion H1.
   - inversion H1.
   - inversion H1.
 Qed.
@@ -1038,14 +1017,12 @@ Proof.
       eexists 0.
       do 2 constructor.
     + inversion H0.
-    + inversion H0.
   (* Case: e is not a value. *)
   - destruct termination_nonvalue with e c.
     + assumption.
     + intros f ?.
       apply H with f.
-      apply cbn_whr.
-      assumption.
+      now apply cbn_whr.
     + assumption.
     + exists (1 + x).
       assumption.
@@ -1111,8 +1088,7 @@ Proof.
     + apply cbn_simulation with x y; auto.
       apply full_cbn; auto.
     + destruct H2 with y c as (k, ?).
-      * apply t_step.
-        assumption.
+      * now apply t_step.
       * (* Reduction can't introduce free variables! *)
         admit.
       * assumption.
@@ -1233,10 +1209,6 @@ Proof.
     apply IHh; auto.
   - inversion H2.
   - inversion H2.
-  - inversion H2.
-  - inversion H2.
-  - inversion H2.
-  - inversion H2.
 Qed.
 
 Local Hint Resolve cbn_cps_is_compositional: cps.
@@ -1330,10 +1302,6 @@ Proof.
     assumption.
   - inversion H.
   - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
-  - inversion H.
 Qed.
 
 Lemma foo:
@@ -1346,13 +1314,7 @@ Proof.
   intros.
   eapply transitive_closure_preserves_diagram; eauto with cps.
   destruct 1; eauto with cps.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
-Admitted.
+Qed.
 
 Lemma bar:
   forall e,
@@ -1399,9 +1361,6 @@ Proof.
   - dependent destruction H0.
     apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
     admit.
-  - admit.
-  - admit.
-  - admit.
   - admit.
   - admit.
   - admit.

@@ -127,9 +127,6 @@ Proof.
     destruct (le_gt_dec k n); sigma; auto.
   - reflexivity.
   - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
 Qed.
 
 Lemma unnamed_subterms_context_lift:
@@ -144,10 +141,6 @@ Proof.
   - rewrite unnamed_subterms_lift.
     rewrite IHh; destruct f; simpl; auto.
     destruct (le_gt_dec k n); sigma; auto.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - reflexivity.
   - reflexivity.
 Qed.
@@ -181,15 +174,6 @@ Proof.
     + right.
       rewrite unnamed_subterms_lift.
       lia.
-    + right.
-      rewrite unnamed_subterms_lift.
-      lia.
-    + right.
-      rewrite unnamed_subterms_lift.
-      lia.
-    + right.
-      rewrite unnamed_subterms_lift.
-      lia.
   (* Case: sigma-3. *)
   - left.
     destruct H; simpl.
@@ -197,7 +181,6 @@ Proof.
     + rewrite unnamed_subterms_lift.
       sigma; simpl.
       lia.
-    + auto.
     + auto.
   (* Case: beta-flat. *)
   - (* Here it decreases! *)
@@ -251,9 +234,6 @@ Proof.
   - reflexivity.
   - destruct e1; simpl; auto.
     destruct (le_gt_dec k n); sigma; auto.
-  - reflexivity.
-  - reflexivity.
-  - reflexivity.
   - reflexivity.
   - reflexivity.
 Qed.

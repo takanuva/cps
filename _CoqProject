@@ -29,6 +29,7 @@ theories/Lambda/Calculus.v
 theories/Lambda/Translation.v
 theories/Lambda/PlotkinCBN.v
 theories/Lambda/PlotkinCBV.v
+theories/Lambda/Kennedy.v
 theories/Lambda/ANF.v
 # The following file is temporary...
 theories/Lambda/Control.v

@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -16,17 +16,12 @@ Import ListNotations.
 Inductive type: Set :=
   | base
   | arrow (a: type) (b: type)
-  (* | cross (a: type) (b: type)
-  | thunk (a: type) *).
+  (* | thunk (a: type) *).
 
 Inductive term: Set :=
   | bound (n: nat)
   | abstraction (t: type) (b: term)
   | application (f: term) (x: term)
-  (* ... *)
-  | pair (e: term) (f: term)
-  | proj1 (e: term)
-  | proj2 (e: term)
   | delay (e: term)
   | force (e: term).
 
@@ -39,18 +34,13 @@ Inductive value: term -> Prop :=
   | value_abstraction:
     forall t b,
     value (abstraction t b)
-  | value_pair:
-    forall e f,
-    value e ->
-    value f ->
-    value (pair e f)
   | value_delay:
     forall e,
     value (delay e).
 
 Global Hint Constructors value: cps.
 
-(* TODO: I have to fix a naming convention, either "_dec" or "_is_decidable". *)
+(* TODO: I have to fix a naming convention, either "_dec" or "_is_decidable"! *)
 
 Lemma value_dec:
   forall e,
@@ -59,19 +49,6 @@ Proof.
   induction e.
   - left; auto with cps.
   - left; auto with cps.
-  - right; intro.
-    inversion H.
-  - destruct IHe1.
-    + destruct IHe2.
-      * left; auto with cps.
-      * right; intro.
-        dependent destruction H.
-        contradiction.
-    + right; intro.
-      dependent destruction H.
-      contradiction.
-  - right; intro.
-    inversion H.
   - right; intro.
     inversion H.
   - left; auto with cps.
@@ -87,12 +64,6 @@ Fixpoint traverse g k e: term :=
     abstraction t (traverse g (S k) b)
   | application f x =>
     application (traverse g k f) (traverse g k x)
-  | pair e f =>
-    pair (traverse g k e) (traverse g k f)
-  | proj1 e =>
-    proj1 (traverse g k e)
-  | proj2 e =>
-    proj2 (traverse g k e)
   | delay e =>
     delay (traverse g k e)
   | force e =>
@@ -153,27 +124,6 @@ Proof.
   auto.
 Qed.
 
-Lemma inst_distributes_over_pair:
-  forall s e f,
-  inst s (pair e f) = pair (inst s e) (inst s f).
-Proof.
-  auto.
-Qed.
-
-Lemma inst_distributes_over_proj1:
-  forall s e,
-  inst s (proj1 e) = proj1 (inst s e).
-Proof.
-  auto.
-Qed.
-
-Lemma inst_distributes_over_proj2:
-  forall s e,
-  inst s (proj2 e) = proj2 (inst s e).
-Proof.
-  auto.
-Qed.
-
 Lemma inst_distributes_over_delay:
   forall s e,
   inst s (delay e) = delay (inst s e).
@@ -191,9 +141,6 @@ Qed.
 Global Hint Rewrite bound_var_equality_stuff using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_abstraction using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_application using sigma_solver: sigma.
-Global Hint Rewrite inst_distributes_over_pair using sigma_solver: sigma.
-Global Hint Rewrite inst_distributes_over_proj1 using sigma_solver: sigma.
-Global Hint Rewrite inst_distributes_over_proj2 using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_delay using sigma_solver: sigma.
 Global Hint Rewrite inst_distributes_over_force using sigma_solver: sigma.
 
@@ -248,12 +195,6 @@ Fixpoint size (e: term): nat :=
     1 + size b
   | application f x =>
     1 + size f + size x
-  | pair e f =>
-    1 + size e + size f
-  | proj1 e =>
-    1 + size e
-  | proj2 e =>
-    1 + size e
   | delay e =>
     1 + size e
   | force e =>
@@ -271,9 +212,6 @@ Proof.
   - sigma; simpl; auto.
   - sigma; simpl; auto.
   - sigma; simpl; auto.
-  - sigma; simpl; auto.
-  - sigma; simpl; auto.
-  - sigma; simpl; auto.
 Qed.
 
 Inductive subterm: relation term :=
@@ -286,18 +224,6 @@ Inductive subterm: relation term :=
   | subterm_application_right:
     forall f x,
     subterm x (application f x)
-  | subterm_pair_left:
-    forall e f,
-    subterm e (pair e f)
-  | subterm_pair_right:
-    forall e f,
-    subterm f (pair e f)
-  | subterm_proj1:
-    forall e,
-    subterm e (proj1 e)
-  | subterm_proj2:
-    forall e,
-    subterm e (proj2 e)
   | subterm_delay:
     forall e,
     subterm e (delay e)
@@ -315,19 +241,13 @@ Proof.
   - constructor.
     inversion 1.
   - constructor.
-    inversion_clear 1; auto.
+    now inversion_clear 1.
   - constructor.
-    inversion_clear 1; auto.
+    now inversion_clear 1.
   - constructor.
-    inversion_clear 1; auto.
+    now inversion_clear 1.
   - constructor.
-    inversion_clear 1; auto.
-  - constructor.
-    inversion_clear 1; auto.
-  - constructor.
-    inversion_clear 1; auto.
-  - constructor.
-    inversion_clear 1; auto.
+    now inversion_clear 1.
 Qed.
 
 Inductive context: Set :=
@@ -335,10 +255,6 @@ Inductive context: Set :=
   | context_abstraction (t: type) (b: context)
   | context_application_left (f: context) (x: term)
   | context_application_right (f: term) (x: context)
-  | context_pair_left (e: context) (f: term)
-  | context_pair_right (e: term) (f: context)
-  | context_proj1 (e: context)
-  | context_proj2 (e: context)
   | context_delay (e: context)
   | context_force (e: context).
 
@@ -352,14 +268,6 @@ Fixpoint apply_context h e :=
     application (apply_context f e) x
   | context_application_right f x =>
     application f (apply_context x e)
-  | context_pair_left x y =>
-    pair (apply_context x e) y
-  | context_pair_right x y =>
-    pair x (apply_context y e)
-  | context_proj1 x =>
-    proj1 (apply_context x e)
-  | context_proj2 x =>
-    proj2 (apply_context x e)
   | context_delay x =>
     delay (apply_context x e)
   | context_force x =>
@@ -378,14 +286,6 @@ Fixpoint context_bvars h: nat :=
     context_bvars f
   | context_application_right f x =>
     context_bvars x
-  | context_pair_left e f =>
-    context_bvars e
-  | context_pair_right e f =>
-    context_bvars f
-  | context_proj1 e =>
-    context_bvars e
-  | context_proj2 e =>
-    context_bvars e
   | context_delay e =>
     context_bvars e
   | context_force e =>
@@ -402,14 +302,6 @@ Fixpoint context_depth h: nat :=
     1 + context_depth f
   | context_application_right f x =>
     1 + context_depth x
-  | context_pair_left e f =>
-    1 + context_depth e
-  | context_pair_right e f =>
-    1 + context_depth f
-  | context_proj1 e =>
-    1 + context_depth e
-  | context_proj2 e =>
-    1 + context_depth e
   | context_delay e =>
     1 + context_depth e
   | context_force e =>
@@ -426,14 +318,6 @@ Fixpoint context_lift i k h: context :=
     context_application_left (context_lift i k f) (lift i k x)
   | context_application_right f x =>
     context_application_right (lift i k f) (context_lift i k x)
-  | context_pair_left e f =>
-    context_pair_left (context_lift i k e) (lift i k f)
-  | context_pair_right e f =>
-    context_pair_right (lift i k e) (context_lift i k f)
-  | context_proj1 e =>
-    context_proj1 (context_lift i k e)
-  | context_proj2 e =>
-    context_proj2 (context_lift i k e)
   | context_delay e =>
     context_delay (context_lift i k e)
   | context_force e =>
@@ -459,14 +343,6 @@ Proof.
     repeat (progress f_equal; try lia).
   - sigma; rewrite IHh.
     repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
 Qed.
 
 Lemma context_lift_depth:
@@ -475,15 +351,11 @@ Lemma context_lift_depth:
 Proof.
   induction h; intros; simpl.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Lemma context_lift_bvars:
@@ -492,15 +364,11 @@ Lemma context_lift_bvars:
 Proof.
   induction h; intros; simpl.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Fixpoint context_subst y k h: context :=
@@ -513,14 +381,6 @@ Fixpoint context_subst y k h: context :=
     context_application_left (context_subst y k f) (subst y k x)
   | context_application_right f x =>
     context_application_right (subst y k f) (context_subst y k x)
-  | context_pair_left e f =>
-    context_pair_left (context_subst y k e) (subst y k f)
-  | context_pair_right e f =>
-    context_pair_right (subst y k e) (context_subst y k f)
-  | context_proj1 e =>
-    context_proj1 (context_subst y k e)
-  | context_proj2 e =>
-    context_proj2 (context_subst y k e)
   | context_delay e =>
     context_delay (context_subst y k e)
   | context_force e =>
@@ -546,14 +406,6 @@ Proof.
     repeat (progress f_equal; try lia).
   - sigma; rewrite IHh.
     repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
-  - sigma; rewrite IHh.
-    repeat (progress f_equal; try lia).
 Qed.
 
 Lemma context_subst_depth:
@@ -562,15 +414,11 @@ Lemma context_subst_depth:
 Proof.
   induction h; intros; simpl.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Lemma context_subst_bvars:
@@ -579,15 +427,11 @@ Lemma context_subst_bvars:
 Proof.
   induction h; intros; simpl.
   - reflexivity.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
-  - rewrite IHh; auto.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
+  - now rewrite IHh.
 Qed.
 
 Inductive not_free: nat -> term -> Prop :=
@@ -603,19 +447,6 @@ Inductive not_free: nat -> term -> Prop :=
     not_free n f ->
     not_free n x ->
     not_free n (application f x)
-  | not_free_pair:
-    forall e f n,
-    not_free n e ->
-    not_free n f ->
-    not_free n (pair e f)
-  | not_free_proj1:
-    forall e n,
-    not_free n e ->
-    not_free n (proj1 e)
-  | not_free_proj2:
-    forall e n,
-    not_free n e ->
-    not_free n (proj2 e)
   | not_free_delay:
     forall e n,
     not_free n e ->
@@ -698,26 +529,6 @@ Proof.
     + now apply IHe2 with k.
   - dependent destruction H.
     constructor.
-    + now apply IHe1.
-    + now apply IHe2.
-  - dependent destruction H.
-    constructor.
-    + now apply IHe1 with k.
-    + now apply IHe2 with k.
-  - dependent destruction H.
-    constructor.
-    now apply IHe.
-  - dependent destruction H.
-    constructor.
-    now apply IHe with k.
-  - dependent destruction H.
-    constructor.
-    now apply IHe.
-  - dependent destruction H.
-    constructor.
-    now apply IHe with k.
-  - dependent destruction H.
-    constructor.
     now apply IHe.
   - dependent destruction H.
     constructor.
@@ -764,13 +575,6 @@ Proof.
     + apply IHe1; lia.
     + apply IHe2; lia.
   - sigma; constructor.
-    + apply IHe1; lia.
-    + apply IHe2; lia.
-  - sigma; constructor.
-    apply IHe; lia.
-  - sigma; constructor.
-    apply IHe; lia.
-  - sigma; constructor.
     apply IHe; lia.
   - sigma; constructor.
     apply IHe; lia.
@@ -793,19 +597,6 @@ Inductive free_count: nat -> nat -> term -> Prop :=
     free_count i n f ->
     free_count j n x ->
     free_count (i + j) n (application f x)
-  | free_count_pair:
-    forall i j e f n,
-    free_count i n e ->
-    free_count j n f ->
-    free_count (i + j) n (pair e f)
-  | free_count_proj1:
-    forall i e n,
-    free_count i n e ->
-    free_count i n (proj1 e)
-  | free_count_proj2:
-    forall i e n,
-    free_count i n e ->
-    free_count i n (proj2 e)
   | free_count_delay:
     forall i e n,
     free_count i n e ->
@@ -828,9 +619,6 @@ Proof.
     + replace 0 with (0 + 0) by auto.
       now constructor.
     + now constructor.
-    + now constructor.
-    + now constructor.
-    + now constructor.
   - dependent induction H.
     + now constructor.
     + constructor.
@@ -840,21 +628,13 @@ Proof.
       constructor.
       * now apply IHfree_count1.
       * now apply IHfree_count2.
-    + assert (i = 0) by lia; subst.
-      assert (j = 0) by lia; subst.
-      constructor.
-      * now apply IHfree_count1.
-      * now apply IHfree_count2.
-    + constructor; auto.
-    + constructor; auto.
     + constructor; auto.
     + constructor; auto.
 Qed.
 
 Lemma free_count_is_decidable:
   forall e n,
-  exists k,
-  free_count k n e.
+  { k & free_count k n e }.
 Proof.
   induction e; intros.
   + rename n0 into m.
@@ -870,14 +650,6 @@ Proof.
     destruct IHe2 with n as (j, ?).
     exists (k + j).
     now constructor.
-  + destruct IHe1 with n as (k, ?).
-    destruct IHe2 with n as (j, ?).
-    exists (k + j).
-    now constructor.
-  + destruct IHe with n as (k, ?).
-    exists k; now constructor.
-  + destruct IHe with n as (k, ?).
-    exists k; now constructor.
   + destruct IHe with n as (k, ?).
     exists k; now constructor.
   + destruct IHe with n as (k, ?).
@@ -909,19 +681,6 @@ Proof.
       destruct IHfree_count1 as (h, ?); auto with arith; subst.
       exists (context_application_left h x).
       now simpl.
-  - destruct i.
-    + simpl in H1.
-      destruct IHfree_count2 as (h, ?); auto; subst.
-      exists (context_pair_right e h).
-      now simpl.
-    + clear H1.
-      destruct IHfree_count1 as (h, ?); auto with arith; subst.
-      exists (context_pair_left h f).
-      now simpl.
-  - destruct IHfree_count as (h, ?); auto; subst.
-    exists (context_proj1 h); now simpl.
-  - destruct IHfree_count as (h, ?); auto; subst.
-    exists (context_proj2 h); now simpl.
   - destruct IHfree_count as (h, ?); auto; subst.
     exists (context_delay h); now simpl.
   - destruct IHfree_count as (h, ?); auto; subst.
@@ -952,14 +711,6 @@ Proof.
     now rewrite IHh.
   - simpl; sigma.
     now rewrite IHh.
-  - simpl; sigma.
-    now rewrite IHh.
-  - simpl; sigma.
-    now rewrite IHh.
-  - simpl; sigma.
-    now rewrite IHh.
-  - simpl; sigma.
-    now rewrite IHh.
 Qed.
 
 Lemma free_usage_isnt_zero:
@@ -977,16 +728,6 @@ Proof.
     now apply IHh with n.
   - dependent destruction H.
     assert (j = 0) by lia; subst.
-    now apply IHh with n.
-  - dependent destruction H.
-    assert (i = 0) by lia; subst.
-    now apply IHh with n.
-  - dependent destruction H.
-    assert (j = 0) by lia; subst.
-    now apply IHh with n.
-  - dependent destruction H.
-    now apply IHh with n.
-  - dependent destruction H.
     now apply IHh with n.
   - dependent destruction H.
     now apply IHh with n.
@@ -1028,30 +769,6 @@ Proof.
       now apply IHh.
   - dependent destruction H.
     rename n0 into k.
-    destruct i.
-    + exfalso.
-      eapply free_usage_isnt_zero; eauto.
-    + replace n with (i + j) by lia.
-      constructor; auto;
-      now apply IHh.
-  - dependent destruction H.
-    rename n0 into k.
-    destruct j.
-    + exfalso.
-      eapply free_usage_isnt_zero; eauto.
-    + replace n with (i + j) by lia.
-      constructor; auto;
-      now apply IHh.
-  - dependent destruction H.
-    rename n0 into k.
-    constructor.
-    now apply IHh.
-  - dependent destruction H.
-    rename n0 into k.
-    constructor.
-    now apply IHh.
-  - dependent destruction H.
-    rename n0 into k.
     constructor.
     now apply IHh.
   - dependent destruction H.
@@ -1062,9 +779,12 @@ Qed.
 
 (* Full beta reduction relation. Note that we do not consider eta because it is
    not justified by Plotkin's CBN translation, which captures the observational
-   equivalence for the intensional lambda calculus, where eta does not hold. *)
+   equivalence for the intensional lambda calculus, where eta does not hold. As
+   an example, note that \x.e x has halted, it is a value, even if e contains
+   any redexes in it. *)
 
 Inductive full: relation term :=
+  (* TODO: thunks. *)
   | full_beta:
     forall t b x,
     full
@@ -1082,7 +802,14 @@ Inductive full: relation term :=
     forall f x1 x2,
     full x1 x2 ->
     full (application f x1) (application f x2)
-  (* TODO: apply inside pairs and thunks. *).
+  | full_delay:
+    forall e1 e2,
+    full e1 e2 ->
+    full (delay e1) (delay e2)
+  | full_force:
+    forall e1 e2,
+    full e1 e2 ->
+    full (force e1) (force e2).
 
 Global Hint Constructors full: cps.
 
@@ -1097,12 +824,11 @@ Proof.
   - destruct IHe.
     + left; intros b ?.
       dependent destruction H.
-      eapply n; eauto.
+      now apply n with b2.
     + right; intros ?.
-      eapply n; intros b ?.
-      eapply H.
-      apply full_abstraction.
-      eassumption.
+      apply n; intros b ?.
+      apply H with (abstraction t b).
+      now apply full_abstraction.
   - destruct IHe1.
     + destruct IHe2.
       * destruct e1.
@@ -1110,49 +836,46 @@ Proof.
         --- left; intros b ?.
             dependent destruction H.
             +++ inversion H.
-            +++ eapply n0; eauto.
+            +++ now apply n0 with x2.
         --- right; intro.
-            eapply H.
+            apply H with (subst e2 0 e1).
             apply full_beta.
         --- left; intros b ?.
             dependent destruction H.
-            +++ eapply n; eauto.
-            +++ eapply n0; eauto.
+            +++ now apply n with f2.
+            +++ now apply n0 with x2.
         --- left; intros b ?.
             dependent destruction H.
-            +++ inversion H.
-            +++ eapply n0; eauto.
+            +++ now apply n with f2.
+            +++ now apply n0 with x2.
         --- left; intros b ?.
             dependent destruction H.
-            +++ inversion H.
-            +++ eapply n0; eauto.
-        --- left; intros b ?.
-            dependent destruction H.
-            +++ inversion H.
-            +++ eapply n0; eauto.
-        --- left; intros b ?.
-            dependent destruction H.
-            +++ inversion H.
-            +++ eapply n0; eauto.
-        --- left; intros b ?.
-            dependent destruction H.
-            +++ inversion H.
-            +++ eapply n0; eauto.
+            +++ now apply n with f2.
+            +++ now apply n0 with x2.
       * clear n; rename n0 into n; right.
-        intros ?; eapply n.
-        intros b ?; eapply H.
-        apply full_application_right.
-        eassumption.
+        repeat intro; apply n; intros e3 ?.
+        apply H with (application e1 e3).
+        now apply full_application_right.
     + clear IHe2; right.
-      intros ?; eapply n.
-      intros b ?; eapply H.
-      apply full_application_left.
-      eassumption.
-  - left; inversion 1.
-  - left; inversion 1.
-  - left; inversion 1.
-  - left; inversion 1.
-  - left; inversion 1.
+      repeat intro; apply n; intros e3 ?.
+      apply H with (application e3 e2).
+      now apply full_application_left.
+  - destruct IHe.
+    + left; repeat intro.
+      dependent destruction H.
+      now apply n with e2.
+    + right; repeat intro.
+      apply n; repeat intro.
+      apply H with (delay b).
+      now apply full_delay.
+  - destruct IHe.
+    + left; repeat intro.
+      dependent destruction H.
+      now apply n with e2.
+    + right; repeat intro.
+      apply n; repeat intro.
+      apply H with (force b).
+      now apply full_force.
 Qed.
 
 Inductive whr: relation term :=
@@ -1219,15 +942,6 @@ Proof.
       inversion H0.
     + left; inversion_clear 1.
       inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-  - left; inversion_clear 1.
-  - left; inversion_clear 1.
-  - left; inversion_clear 1.
   - left; inversion_clear 1.
   - left; inversion_clear 1.
 Qed.
@@ -1240,9 +954,9 @@ Lemma whnf_application_left:
   whnf (application f x) ->
   whnf f.
 Proof.
-  intros f1 x ? f2 ?.
-  eapply H; constructor.
-  eassumption.
+  intros f1 f3 ? f2 ?.
+  apply H with (application f2 f3).
+  now constructor.
 Qed.
 
 (* -------------------------------------------------------------------------- *)
@@ -1251,19 +965,26 @@ Inductive compatible (R: relation term): relation term :=
   | compatible_step:
     forall e f,
     R e f -> compatible R e f
-  | compatible_abs:
+  | compatible_abstraction:
     forall t b1 b2,
     compatible R b1 b2 ->
     compatible R (abstraction t b1) (abstraction t b2)
-  | compatible_app1:
+  | compatible_application_left:
     forall f1 f2 x,
     compatible R f1 f2 ->
     compatible R (application f1 x) (application f2 x)
-  | compatible_app2:
+  | compatible_application_right:
     forall f x1 x2,
     compatible R x1 x2 ->
     compatible R (application f x1) (application f x2)
-  (* TODO: consider pairs and thunks. *).
+  | compatible_delay:
+    forall e1 e2,
+    compatible R e1 e2 ->
+    compatible R (delay e1) (delay e2)
+  | compatible_force:
+    forall e1 e2,
+    compatible R e1 e2 ->
+    compatible R (force e1) (force e2).
 
 (* -------------------------------------------------------------------------- *)
 
