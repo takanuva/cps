@@ -64,30 +64,30 @@ Import ListNotations.
    studying ANF, as this translation should eliminate administrative redexes. *)
 
 Local Definition tail: Type :=
-  nat -> CPS.pseudoterm -> Prop.
+  nat -> nat -> CPS.pseudoterm -> Prop.
 
 Local Definition halt: tail :=
-  fun n b =>
-    b = CPS.jump (CPS.bound 0) [CPS.bound (S n)].
+  fun k n b =>
+    b = CPS.jump (CPS.bound k) [CPS.bound (lift 1 k n)].
+
+Local Notation ABS b t1 t2 c :=
+  (CPS.bind b [t1; t2] c) (only parsing).
 
 Inductive kennedy: term -> tail -> CPS.pseudoterm -> Prop :=
   | kennedy_bound:
+    (* [x] K = K(x)*)
     forall K n b,
-    K n b ->
-    kennedy (bound n) K b.
+    K 0 n b ->
+    kennedy (bound n) K b
+  | kennedy_abstraction:
+    (* [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) } *)
+    forall K t e b c,
+    K 1 0 b ->
+    kennedy e halt c ->
+    kennedy (abstraction t e) K (ABS b CPS.void CPS.void c)
 
-(*
-     [-]: term -> (var -> pseudoterm) -> pseudoterm
-
-                            +------------+
-     [x] K = K(x)          \|/           |
-     [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) }
-     [e1 e2] K = [e1] (\z1.
-                   [e2] (\z2.
-                    z1<z2, k> { k<v> = K(v) }))
-                                  |     /|\
-                                  +------+
-*)
+  (* | kennedy_application:
+    (* [e1 e2] K = [e1] (\z1.[e2] (\z2. z1<z2, k> { k<v> = K(v) })) *) *).
 
 Goal
   forall e b,
@@ -100,6 +100,8 @@ Proof.
   induction 1; intros.
   - dependent destruction H.
     apply Local.Reduction.conv_refl.
-  - admit.
+  - dependent destruction H0.
+    change (lift 1 1 0) with 0.
+    admit.
   - admit.
 Admitted.
