@@ -8,9 +8,10 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
-Require Import Local.Residuals.
 Require Import Local.Lambda.Calculus.
 Require Import Local.Lambda.PlotkinCBV.
+
+Require Local.Residuals.
 
 Import ListNotations.
 
@@ -189,3 +190,119 @@ Proof.
   vm_compute.
   reflexivity.
 Qed.
+
+Section ModifiedCBV.
+
+  Local Notation mark := (Residuals.redexes_jump true).
+
+  Local Notation jump := (Residuals.redexes_jump false).
+
+  Local Notation bind := Residuals.redexes_bind.
+
+  Local Notation VAR n :=
+    (* [x] = k<x> *)
+    (mark (CPS.bound 0) [CPS.bound (S n)]) (only parsing).
+
+  Local Notation ABS b t1 t2 :=
+    (* [\x.e] = k<f> { f<x, k> = [e] } *)
+    (bind (mark (CPS.bound 1) [CPS.bound 0]) [t1; t2] b) (only parsing).
+
+  Local Notation APP b c t1 t2 :=
+    (* [e f] = [e] { k<f> = [f] { k<v> = f<v, k> } } *)
+    (bind b [t1] (bind c [t2]
+      (jump (CPS.bound 1) [CPS.bound 2; CPS.bound 0]))) (only parsing).
+
+  (* TODO: these lifts should be moved from source to target! *)
+
+  Inductive modified_cbv_cps: term -> Residuals.redexes -> Prop :=
+    | modified_cbv_cps_bound:
+      forall n: nat,
+      modified_cbv_cps n (VAR n)
+    | modified_cbv_cps_abstraction:
+      forall t e b,
+      modified_cbv_cps (lift 1 1 e) b ->
+      modified_cbv_cps (abstraction t e) (ABS b CPS.void CPS.void)
+    | modified_cbv_cps_application:
+      forall f x b c,
+      modified_cbv_cps (lift 1 0 f) b ->
+      modified_cbv_cps (lift 2 0 x) c ->
+      modified_cbv_cps (application f x) (APP b c CPS.void CPS.void).
+
+  Local Notation V := CPS.void.
+  Local Coercion Syntax.bound: nat >-> CPS.pseudoterm.
+
+  Goal
+    let e := (application (application 0 1) (application 2 3)) in
+    let x := (CPS.bind
+                (CPS.jump 2 [var 0; var 3])
+                [V]
+                (CPS.bind
+                   (CPS.jump 5 [var 0; var 6])
+                   [V]
+                   (CPS.jump 1 [var 2; var 0]))) in
+    forall b,
+    modified_cbv_cps e b ->
+    exists2 c,
+    Residuals.residuals [] b b c &
+      rt(Reduction.smol) (Residuals.unmark c) x.
+  Proof.
+    simpl; intros.
+    dependent destruction H.
+    vm_compute in *.
+    dependent destruction H.
+    dependent destruction H1.
+    vm_compute in *.
+    dependent destruction H.
+    dependent destruction H0.
+    dependent destruction H1_.
+    dependent destruction H1_0.
+    vm_compute.
+    eexists.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    constructor; vm_compute.
+    vm_compute.
+    eapply rt_trans.
+    apply rt_step.
+    apply Reduction.smol_bind_left.
+    apply Reduction.smol_gc.
+    repeat constructor; simpl; auto.
+    vm_compute.
+    eapply rt_trans.
+    apply rt_step.
+    apply Reduction.smol_bind_left.
+    apply Reduction.smol_gc.
+    repeat constructor; simpl; auto.
+    vm_compute.
+    eapply rt_trans.
+    apply rt_step.
+    apply Reduction.smol_bind_right.
+    apply Reduction.smol_bind_left.
+    apply Reduction.smol_gc.
+    repeat constructor; simpl; auto.
+    vm_compute.
+    eapply rt_trans.
+    apply rt_step.
+    apply Reduction.smol_bind_right.
+    apply Reduction.smol_bind_left.
+    apply Reduction.smol_gc.
+    repeat constructor; simpl; auto.
+    vm_compute.
+    apply rt_refl.
+  Qed.
+
+End ModifiedCBV.
