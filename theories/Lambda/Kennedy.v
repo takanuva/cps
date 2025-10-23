@@ -15,56 +15,62 @@ Require Local.Residuals.
 
 Import ListNotations.
 
-(* The naive one-pass CPS translation of Danvy and Filinski's that Kennedy
-   describes in his paper is given as follows:
+(* The naive one-pass CPS translation, credited to Danvy and Filinsk, that
+   Kennedy describes in his paper is given as follows:
 
-     [-]: term -> (var -> pseudoterm) -> pseudoterm
+     [-] -: Lambda.term -> (nat -> CPS.pseudoterm) -> CPS.pseudoterm
 
-                            +------------+
-     [x] K = K(x)          \|/           |
-     [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) }
-     [e1 e2] K = [e1] (\z1.
-                   [e2] (\z2.
-                    z1<z2, k> { k<v> = K(v) }))
-                                  |     /|\
-                                  +------+
+     [x] K = K(x) +----+    +------------+
+                  |   \|/  \|/           |
+     [\x.e] K = K(g) { g<x, k> = [e] (\z.k<z>) }
+
+     [f e] K = [f] (\h.              (NOTE: g, h and v fresh)
+                 [e] (\v.
+                   h<v, k> { k<w> = K(w) }))
+                              /|\     |
+                               +------+
 
    This translation corresponds to Plotkin's CBV translation semantically, of
    course. Also, modulo a very minor change in the application rule, the above
    is also used in Appel's book (ch. 5.4), and it's given in Thielecke's thesis;
    namely, Appel's version is given by changing application to:
 
-     [e1 e2] K = [e1] (\z1.            (NOTE: k is outside the lambda now!)
-                   [e2] (\z2.
-                    z1<z2, k>)) { k<v> = K(v) }
+     [f e] K = [f] (\h.            (NOTE: inner k is outside the lambda now!)
+                 [e] (\v.
+                   h<v, k>)) { k<w> = K(w) }
 
-   ...which, clearly, doesn't change the meaning of the term (assuming k fresh).
-   We use Kennedy's version merely as the continuation is immediately bound, so
-   it's easier to deal with (as it remains as de Bruijn index zero).
+   ...which, clearly, doesn't change the meaning of the term (assuming k always
+   fresh, which is a given). We use Kennedy's version merely as the continuation
+   is immediately bound, so it's a bit easier to deal with (as it remains as de
+   Bruijn index zero).
 
-   Kennedy provides an additional translation later in this paper which we shall
-   also adapt, in that tail-calls are optimized on the fly. This may be done by
-   modifying the above with the following rule:
+   Kennedy provides an additional translation later in this paper which we also
+   adapt, in that tail-calls are removed on the fly. This is done by modifying
+   the above with the following rule:
 
      [\x.e] K = K(f) { f<x, k> = (e) k }
 
-   Along with the introduction of an auxiliary, mutually defined function:
+   Along with the introduction of an additional, mutually defined function:
 
-     (-): term -> var -> pseudoterm
+     (-) -: Lambda.term -> var -> CPS.pseudoterm
 
      (x) k = k<x>
-     (\x.e) k = k<f> { f<x, j> = (e) j }
-     (e1 e2) k = [e1] (\z1.[e2] (\z2.z1<z2, k>))
 
-   We ignore that Kennedy's version is given as a so called double-barrelled
-   translation, in which he also gives an additional continuation for exception
-   handlers. Of course, we also ignored that Appel's version covers primitives.
+     (\x.e) k = k<g> { g<x, k> = (e) k }
 
-   We would like to show that we can get from Plotkin's translation to the first
-   one by performing administrative jumps, then from the that to the final one
-   by performing some shrinking reductions. The combination should lead to the
-   result that these translations are adequate and that they give a sound
-   denotational semantics for the lambda calculus. *)
+     (e f) k = [e] (\h.[f] (\v.h<v, k>))
+
+   The above function represents a tail context; note we use it for the toplevel
+   term as well (since in the toplevel we don't know how to proceed in a sense,
+   as the toplevel k stands for termination). Note we use the former translation
+   when we know how to continue (in the case of an application) and the latter
+   translation when the continuation is not yet bound.
+
+   We would like to show that we can get from Plotkin's CBV translation into the
+   optimized translation above by performing administrative jumps and garbage
+   collection. This combination show result that this translation is adequate
+   and that it gives a sound denotational semantics for the lambda calculus as
+   Kennedy intended. *)
 
 Inductive kennedy_callback: Set :=
   | kennedy_halt
