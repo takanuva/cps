@@ -162,7 +162,29 @@ Fixpoint code_context (K: kennedy_code): list term :=
     var f :: map (lift j 0) (code_context J)
   end.
 
-Goal
+Lemma Forall_not_free_map_lift:
+  forall xs i k,
+  Forall (not_free k) xs <->
+  Forall (not_free (i + k)) (map (lift i 0) xs).
+Proof.
+  induction xs; split; intros.
+  - constructor.
+  - constructor.
+  - dependent destruction H.
+    simpl; constructor.
+    + replace (i + k) with (k + i + 0) by lia.
+      apply not_free_lift.
+      now rewrite Nat.add_0_r.
+    + now apply IHxs.
+  - dependent destruction H.
+    simpl; constructor.
+    + replace (i + k) with (k + i + 0) in H by lia.
+      apply not_free_lift in H.
+      now rewrite Nat.add_0_r in H.
+    + now apply IHxs with i.
+Qed.
+
+Lemma kennedy_not_free_generalized:
   forall e K b,
   kennedy e K b ->
   forall i,
@@ -193,8 +215,8 @@ Proof.
     + apply IHkennedy.
       * lia.
       * repeat constructor; try lia.
-        (* Seems about right! *)
-        admit.
+        (* Fix the offset as we're adding a binder. *)
+        now apply Forall_not_free_map_lift.
     + repeat constructor.
     + simpl.
       apply IHkennedy0.
@@ -216,8 +238,8 @@ Proof.
       now rewrite Nat.add_comm in H1.
     + apply IHkennedy in H1_.
       * dependent destruction H1_.
-        (* Seems about right! *)
-        admit.
+        (* Fix the offset as we're removing a binder. *)
+        now apply Forall_not_free_map_lift with 1.
       * lia.
   - simpl in IHkennedy.
     dependent destruction H0.
@@ -267,7 +289,8 @@ Proof.
     change (lift k 0 (var f): term) with (var (k + f): term) in H2;
     simpl in H2.
     constructor.
-    + constructor.
+    + repeat constructor.
+      * admit.
       * admit.
       * admit.
     + repeat constructor.
@@ -302,6 +325,22 @@ Proof.
         lia.
     + admit.
 Admitted.
+
+Lemma kennedy_not_free:
+  forall e b,
+  kennedy e kennedy_halt b ->
+  forall i,
+  not_free i e <-> CPS.not_free (1 + i) b.
+Proof.
+  intros.
+  pose proof kennedy_not_free_generalized.
+  specialize (H0 e kennedy_halt b H i).
+  simpl in H0; destruct H0.
+  split; intro.
+  - apply H0; auto.
+  - specialize (H1 H2).
+    now inversion H1.
+Qed.
 
 Local Notation V := CPS.void.
 
