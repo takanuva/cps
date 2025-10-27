@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -235,7 +235,8 @@ Section Interpretation.
           (* Trivial since t2 is an input type. *)
           exists t2; destruct t2.
           dependent destruction H2; simpl.
-          apply type_composition_oi with (map dual ts); auto with cps.
+          apply type_composition_oi with (map dual ts);
+          eauto with cps.
         * exfalso.
           dependent destruction H3.
           apply H1; now exists t2.

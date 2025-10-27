@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -358,7 +358,9 @@ Proof.
       contradiction.
     + destruct Forall_dec with nat (fun m => j <> m) ns; intros.
       * destruct (Nat.eq_dec j x); auto.
-      * left; now constructor.
+      * (* XXX: for some reason, Coq 8.16 and 8.17 give me an error by running
+           [now constructor] in here, while 8.18 and up accepts it... *)
+        left; constructor; auto.
       * right; intro.
         dependent destruction H.
         contradiction.
@@ -368,7 +370,8 @@ Proof.
       dependent destruction H.
       contradiction.
     + destruct IHp with (length ts + j).
-      * left; now constructor.
+      * (* XXX: same as above. *)
+        left; constructor; auto.
       * right; intro.
         dependent destruction H.
         contradiction.
@@ -378,7 +381,8 @@ Proof.
       dependent destruction H.
       contradiction.
     + destruct IHp with (length ts + j).
-      * left; now constructor.
+      * (* XXX: same as above. *)
+        left; constructor; auto.
       * right; intro.
         dependent destruction H.
         contradiction.
