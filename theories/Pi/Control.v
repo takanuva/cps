@@ -474,11 +474,11 @@ Definition env_mode (m: mode) (g: env): Prop :=
 
 (* -------------------------------------------------------------------------- *)
 
-Instance env_dbTraverse: dbTraverse env nat :=
+Global Instance env_dbTraverse: dbTraverse env nat :=
   fun f k g =>
     graph_bind (fun v => vertex (f k (fst v), snd v)) g.
 
-Instance env_dbTraverseLaws: dbTraverseLaws env nat.
+Global Instance env_dbTraverseLaws: dbTraverseLaws env nat.
 Proof.
   split; unfold Substitution.traverse; intros.
   - unfold env_dbTraverse, graph_bind.
