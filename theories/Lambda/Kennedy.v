@@ -88,11 +88,9 @@ Inductive kennedy_code: Set :=
     CPS.bind (CPS.jump (CPS.bound f) [CPS.bound k; CPS.bound (lift 1 k n)]) [t] c
   end. *)
 
-Axiom CNT: nat -> nat -> nat.
-
+Definition CNT j k := 1 + k + j.
 Definition A (j k f: nat): nat := (2 + k + f).
 Definition B (j k v: nat): nat := (2 + v).
-Axiom X: nat.
 
 Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
   (* [x] K = K(x) *)
@@ -132,8 +130,9 @@ with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
     kennedy_apply K (CNT j k) 0 b ->
     kennedy_apply (kennedy_call f j K) k v
       (CPS.bind (CPS.jump (var (A j k f))
-                          [var X; var (B j k v)])
+                          [var 0; var (B j k v)])
                 [CPS.void]
+                  (* We gotta lift this b somehow... *)
                   b).
 
 Local Notation HALT := kennedy_halt.
@@ -254,7 +253,7 @@ Proof.
     dependent destruction H1.
     now repeat constructor.
   - dependent destruction H0.
-    clear H1.
+    clear H1; simpl in H.
     dependent destruction H0.
     rename n0 into i.
     repeat constructor.
@@ -270,7 +269,7 @@ Proof.
     dependent destruction H0.
     dependent destruction H1.
     dependent destruction H1.
-    clear H2.
+    clear H2; simpl in H.
     destruct (le_gt_dec k n).
     + replace (lift 1 k n) with (1 + n) in H1 by admit.
       lia.
@@ -294,7 +293,7 @@ Proof.
     + repeat constructor.
       * dependent destruction H2.
         unfold A; lia.
-      * admit.
+      * lia.
       * dependent destruction H1.
         unfold B; lia.
     + repeat constructor.
@@ -304,7 +303,6 @@ Proof.
       * constructor.
         constructor.
         lia.
-        (* So that's probably... 1 + j + k? *)
         admit.
   - simpl.
     dependent destruction H1.
@@ -331,7 +329,9 @@ Proof.
         reflexivity.
         lia.
         lia.
-    + admit.
+    + simpl in H0.
+      unfold CNT.
+      admit.
 Admitted.
 
 Lemma kennedy_not_free:
