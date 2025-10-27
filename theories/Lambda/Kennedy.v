@@ -89,8 +89,10 @@ Inductive kennedy_code: Set :=
   end. *)
 
 Axiom CNT: nat -> nat -> nat.
-Axiom A: nat -> nat -> nat -> nat.
-Axiom B: nat -> nat -> nat -> nat.
+
+Definition A (j k f: nat): nat := (2 + k + f).
+Definition B (j k v: nat): nat := (2 + v).
+Axiom X: nat.
 
 Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
   (* [x] K = K(x) *)
@@ -130,7 +132,7 @@ with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
     kennedy_apply K (CNT j k) 0 b ->
     kennedy_apply (kennedy_call f j K) k v
       (CPS.bind (CPS.jump (var (A j k f))
-                          [var (j + k); var (B j k v)])
+                          [var X; var (B j k v)])
                 [CPS.void]
                   b).
 
@@ -290,9 +292,11 @@ Proof.
     simpl in H2.
     constructor.
     + repeat constructor.
+      * dependent destruction H2.
+        unfold A; lia.
       * admit.
-      * admit.
-      * admit.
+      * dependent destruction H1.
+        unfold B; lia.
     + repeat constructor.
     + simpl.
       apply IHkennedy.
@@ -311,11 +315,15 @@ Proof.
     apply IHkennedy in H1_0.
     + dependent destruction H1_0.
       constructor.
-      * admit.
+      * unfold B in H2.
+        dependent destruction H2.
+        constructor; lia.
       * constructor.
         change (lift k 0 (var f): term) with (var (k + f): term);
         simpl.
-        admit.
+        dependent destruction H1_.
+        constructor.
+        unfold A in H1; lia.
         rewrite map_map.
         rewrite map_ext with (g := lift (k + j) 0); intros.
         admit.
