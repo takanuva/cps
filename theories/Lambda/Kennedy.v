@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import List.
+Require Import Arith.
 Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
@@ -72,11 +73,12 @@ Import ListNotations.
    and that it gives a sound denotational semantics for the lambda calculus as
    Kennedy intended. *)
 
-Inductive kennedy_callback: Set :=
+Inductive kennedy_code: Set :=
   | kennedy_halt
-  | kennedy_call (f: nat) (t: CPS.pseudoterm) (c: CPS.pseudoterm).
+  | kennedy_then (e: term) (K: kennedy_code)
+  | kennedy_call (f: nat) (j: nat) (K: kennedy_code).
 
-Fixpoint kennedy_apply (K: kennedy_callback) (k n: nat): CPS.pseudoterm :=
+(* Fixpoint kennedy_apply (K: kennedy_callback) (k n: nat): CPS.pseudoterm :=
   match K with
   (* (k, n) => k<n> *)
   | kennedy_halt =>
@@ -84,43 +86,258 @@ Fixpoint kennedy_apply (K: kennedy_callback) (k n: nat): CPS.pseudoterm :=
   (* (k, n) => f<n, k> { k<v: t> = b } *)
   | kennedy_call f t c =>
     CPS.bind (CPS.jump (CPS.bound f) [CPS.bound k; CPS.bound (lift 1 k n)]) [t] c
-  end.
+  end. *)
 
-Local Coercion kennedy_apply: kennedy_callback >-> Funclass.
+Axiom CNT: nat -> nat -> nat.
+Axiom A: nat -> nat -> nat -> nat.
+Axiom B: nat -> nat -> nat -> nat.
 
-Inductive kennedy: term -> kennedy_callback -> CPS.pseudoterm -> Prop :=
+Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
   (* [x] K = K(x) *)
   | kennedy_bound:
-    forall K n,
-    (* Straightforward; the current continuation is 0 and thus everything else
-       gets shifted by 1 up. *)
-    kennedy (bound n) K (K 0 n)
+    forall K n b,
+    kennedy_apply K 0 n b ->
+    kennedy (bound n) K b
+
   (* [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) } *)
   | kennedy_abstraction:
-    forall K t e c,
-    (* We have to add the outer k variable to e; of course, we could also add
-       it after the translation if we'd deem fit. *)
+    forall K t e b c,
+    kennedy_apply K 1 0 b ->
     kennedy (lift 1 1 e) kennedy_halt c ->
-    kennedy (abstraction t e) K (CPS.bind
-                                  (* The current continuation is 1, thus 0 here
-                                     is bound and refers to f. *)
-                                  (K 1 0)
-                                  [CPS.void; CPS.void]
-                                  (* Unchanged (we already added k). *)
-                                  c)
-  (* [f e] K = [f] (\f.
-                       [e] (\v.
-                               f<v, k> { k<x> = K(x) }
-                           )
-                   )
+    kennedy (abstraction t e) K (CPS.bind b [CPS.void; CPS.void] c)
 
-      In the term f<v, k> { ... }, i.e., the anchor, both *)
-  (* | kennedy_application:
-    forall (K: kennedy_callback) f e b c,
-    (* Oh boy, a tricky one... *)
-    kennedy (lift 2 0 e) (kennedy_call 0 CPS.void (K 0 1)) c ->
-    kennedy (lift 1 0 f) *)
-  .
+  (* [f e] K = [f] (\f.[e] (\v.f<v, k> { k<x> = K(x) })) *)
+  | kennedy_application:
+    forall K f e b,
+    kennedy f (kennedy_then e K) b ->
+    kennedy (application f e) K b
+
+with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
+  (* k, x => k<x> *)
+  | kennedy_apply_halt:
+    forall k n,
+    kennedy_apply kennedy_halt k n (CPS.jump (var k) [var (lift 1 k n)])
+
+  (* e, K; k, f => [e] (\v.f<v, k> { k<x> = K(x) }) *)
+  | kennedy_apply_then:
+    forall K e k f b,
+    kennedy (lift k 0 e) (kennedy_call f k K) b ->
+    kennedy_apply (kennedy_then e K) k f b
+
+  (* f, j, K; k, v => f<v, k> { k<x> = K(x) } *)
+  | kennedy_apply_call:
+    forall K f j k v b,
+    kennedy_apply K (CNT j k) 0 b ->
+    kennedy_apply (kennedy_call f j K) k v
+      (CPS.bind (CPS.jump (var (A j k f))
+                          [var (j + k); var (B j k v)])
+                [CPS.void]
+                  b).
+
+Local Notation HALT := kennedy_halt.
+Local Notation THEN := kennedy_then.
+Local Notation CALL := kennedy_call.
+
+Scheme kennedy_ind2 := Minimality for kennedy Sort Prop
+  with kennedy_apply_ind2 := Minimality for kennedy_apply Sort Prop.
+
+Definition kennedy_well_behaved (K: kennedy_code) k n c: kennedy_apply K k n c -> Prop :=
+  fun _ =>
+    match K with
+    | kennedy_halt =>
+      forall j,
+      j <> k ->
+      j <> (lift 1 k n) ->
+      CPS.not_free j c
+    | _ =>
+      True
+    end.
+
+Fixpoint code_context (K: kennedy_code): list term :=
+  match K with
+  | kennedy_halt => []
+  | kennedy_then e J =>
+    e :: code_context J
+  | kennedy_call f j J =>
+    var f :: map (lift j 0) (code_context J)
+  end.
+
+Goal
+  forall e K b,
+  kennedy e K b ->
+  forall i,
+  Forall (not_free i) (e :: code_context K) <-> CPS.not_free (1 + i) b.
+Proof.
+  induction 1 using kennedy_ind2 with (P0 :=
+    fun K k n c =>
+      forall i,
+      i >= k ->
+      Forall (not_free i) (var n :: map (lift k 0) (code_context K)) <->
+        CPS.not_free (1 + i) c
+  ); repeat split; intros.
+  - apply IHkennedy.
+    + lia.
+    + erewrite map_ext; intros.
+      * now rewrite map_id.
+      * now rewrite lift_zero_e_equals_e.
+  - rewrite <- map_id.
+    rewrite map_ext with (g := lift 0 0); intros.
+    + simpl.
+      apply IHkennedy.
+      * lia.
+      * assumption.
+    + now rewrite lift_zero_e_equals_e.
+  - simpl in IHkennedy, IHkennedy0.
+    dependent destruction H1.
+    constructor.
+    + apply IHkennedy.
+      * lia.
+      * repeat constructor; try lia.
+        (* Seems about right! *)
+        admit.
+    + repeat constructor.
+    + simpl.
+      apply IHkennedy0.
+      repeat constructor.
+      dependent destruction H1.
+      replace (S (S n)) with (n + 1 + 1) by lia.
+      apply not_free_lift.
+      now rewrite Nat.add_comm.
+  - simpl in IHkennedy0.
+    dependent destruction H1.
+    clear H1; simpl in H1_, H1_0.
+    constructor.
+    + constructor.
+      apply IHkennedy0 in H1_0.
+      dependent destruction H1_0.
+      clear H1_0.
+      replace (S (S i)) with (i + 1 + 1) in H1 by lia.
+      apply not_free_lift in H1.
+      now rewrite Nat.add_comm in H1.
+    + apply IHkennedy in H1_.
+      * dependent destruction H1_.
+        (* Seems about right! *)
+        admit.
+      * lia.
+  - simpl in IHkennedy.
+    dependent destruction H0.
+    dependent destruction H0.
+    apply IHkennedy.
+    now repeat constructor.
+  - simpl in IHkennedy.
+    apply IHkennedy in H0.
+    dependent destruction H0.
+    dependent destruction H1.
+    now repeat constructor.
+  - dependent destruction H0.
+    clear H1.
+    dependent destruction H0.
+    rename n0 into i.
+    repeat constructor.
+    + lia.
+    + destruct (le_gt_dec k n).
+      * replace (lift 1 k n) with (1 + n) by admit.
+        lia.
+      * replace (lift 1 k n) with n by admit.
+        lia.
+  - simpl.
+    repeat constructor.
+    dependent destruction H0.
+    dependent destruction H0.
+    dependent destruction H1.
+    dependent destruction H1.
+    clear H2.
+    destruct (le_gt_dec k n).
+    + replace (lift 1 k n) with (1 + n) in H1 by admit.
+      lia.
+    + replace (lift 1 k n) with n in H1 by admit.
+      lia.
+  - apply IHkennedy; simpl.
+    dependent destruction H1.
+    dependent destruction H2.
+    auto.
+  - simpl in IHkennedy |- *.
+    apply IHkennedy in H1.
+    dependent destruction H1.
+    dependent destruction H2.
+    auto.
+  - dependent destruction H1.
+    dependent destruction H2.
+    (* TODO: use sigma! *)
+    change (lift k 0 (var f): term) with (var (k + f): term) in H2;
+    simpl in H2.
+    constructor.
+    + constructor.
+      * admit.
+      * admit.
+    + repeat constructor.
+    + simpl.
+      apply IHkennedy.
+      * admit.
+      * constructor.
+        constructor.
+        lia.
+        (* So that's probably... 1 + j + k? *)
+        admit.
+  - simpl.
+    dependent destruction H1.
+    dependent destruction H1_.
+    dependent destruction H1.
+    dependent destruction H2.
+    clear H3 H4; simpl in H1_0.
+    apply IHkennedy in H1_0.
+    + dependent destruction H1_0.
+      constructor.
+      * admit.
+      * constructor.
+        change (lift k 0 (var f): term) with (var (k + f): term);
+        simpl.
+        admit.
+        rewrite map_map.
+        rewrite map_ext with (g := lift (k + j) 0); intros.
+        admit.
+        rewrite lift_lift_simplification.
+        reflexivity.
+        lia.
+        lia.
+    + admit.
+Admitted.
+
+Local Notation V := CPS.void.
+
+Goal
+  let e :=
+    application (
+      application
+        (abstraction (arrow base base) 0)
+        (abstraction base 0))
+      42
+  in
+  exists2 b,
+  kennedy e kennedy_halt b & CPS.free 43 b.
+Proof.
+  compute; eexists.
+  constructor.
+  constructor.
+  constructor.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  constructor.
+  change (lift (CNT 1 1) 0 (bound 42)) with
+    (bound (CNT 1 1 + 42)).
+  constructor.
+  constructor.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  admit.
+Admitted.
 
 Goal
   let e := (application 42 51) in
@@ -157,6 +374,13 @@ Proof.
   apply Reduction.step_gc.
   repeat constructor; auto.
   vm_compute.
+  dependent destruction H1.
+  dependent destruction H1.
+  dependent destruction H.
+  vm_compute in H.
+  dependent destruction H.
+  dependent destruction H.
+  vm_compute.
   admit.
 Admitted.
 
@@ -176,23 +400,38 @@ Proof.
   vm_compute in H.
   dependent destruction H.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
   vm_compute.
   reflexivity.
   destruct n.
   vm_compute in H.
   dependent destruction H.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
   vm_compute.
   reflexivity.
   vm_compute in H.
   dependent destruction H.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
+  vm_compute in H0.
   dependent destruction H0.
+  dependent destruction H.
   vm_compute.
   reflexivity.
 Qed.
@@ -243,7 +482,6 @@ Section ModifiedCBV.
     - now constructor.
   Qed.
 
-  Local Notation V := CPS.void.
   Local Coercion Syntax.bound: nat >-> CPS.pseudoterm.
 
   Goal
