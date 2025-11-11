@@ -253,20 +253,17 @@ Proof.
         CPS.not_free (1 + i) c
   ); repeat split; intros.
   (* Case: bound, only if. *)
-  - dependent destruction H1.
-    apply IHkennedy.
+  - apply IHkennedy.
     + assumption.
-    + constructor; auto.
-      (* TODO: change to id. *)
+    + (* Note lift 0 0 is the identity on terms. *)
       rewrite map_ext with (g := fun x => x); intros.
       * now rewrite map_id.
       * apply lift_zero_e_equals_e.
   (* Case: bound, if. *)
   - apply IHkennedy in H1.
-    + dependent destruction H1.
-      rewrite map_ext with (g := fun x => x) in H2; intros.
-      * rewrite map_id in H2.
-        now constructor.
+    + (* Ditto. *)
+      rewrite map_ext with (g := fun x => x) in H1; intros.
+      * now rewrite map_id in H1.
       * apply lift_zero_e_equals_e.
     + assumption.
   (* Case: abstraction, only if. *)
