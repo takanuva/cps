@@ -384,7 +384,17 @@ Proof.
     dependent destruction H2.
     rewrite map_map in H3.
     repeat constructor; simpl.
-    + admit.
+    + dependent destruction H1.
+      destruct (le_gt_dec k v).
+      * (* TODO: fix sigma! *)
+        change v with (@var nat _ v); sigma.
+        unfold var, nat_dbVar, Datatypes.id.
+        lia.
+      * (* TODO: ditto! *)
+        change v with (@var nat _ v); sigma.
+        unfold var, nat_dbVar, Datatypes.id.
+        (* Hmm, I better check this condition here... *)
+        admit.
     + lia.
     + admit.
     + apply IHkennedy; [| constructor ].
