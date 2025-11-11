@@ -88,7 +88,6 @@ Inductive kennedy_code: Set :=
     CPS.bind (CPS.jump (CPS.bound f) [CPS.bound k; CPS.bound (lift 1 k n)]) [t] c
   end. *)
 
-Axiom A: nat -> nat -> nat -> nat -> nat.
 Axiom B: nat -> nat -> nat -> nat -> nat.
 
 Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
@@ -127,9 +126,11 @@ with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
   | kennedy_apply_call:
     forall K f j k v b,
     kennedy_apply K (1 + k + j) 0 b ->
+    (* Here lies the optimization for the tail-recursion optimized version of
+       the translation. *)
     kennedy_apply (kennedy_call f j K) k v
       (CPS.bind
-        (CPS.jump (var (A f j k v)) [var 0; var (B f j k v)])
+        (CPS.jump (var (1 + lift 1 k v)) [var 0; var (B f j k v)])
         [CPS.void] b).
 
 Local Notation HALT := kennedy_halt.
@@ -138,8 +139,6 @@ Local Notation CALL := kennedy_call.
 
 Scheme kennedy_ind2 := Minimality for kennedy Sort Prop
   with kennedy_apply_ind2 := Minimality for kennedy_apply Sort Prop.
-
-Axiom P: CPS.pseudoterm -> Prop.
 
 Notation V := CPS.void.
 
@@ -166,7 +165,7 @@ Goal
   kennedy (application
             (application 10 20)
             (application 30 40))
-    kennedy_halt b & P b.
+    kennedy_halt b & b = V.
 Proof.
   eexists.
   constructor.
@@ -202,6 +201,13 @@ Fixpoint code_context (K: kennedy_code): list term :=
     var f :: map (lift j 0) (code_context J)
   end.
 
+Fixpoint kennedy_offset (K: kennedy_code): nat :=
+  match K with
+  | kennedy_halt => 0
+  | kennedy_then _ J => kennedy_offset J
+  | kennedy_call _ j J => j + kennedy_offset J
+  end.
+
 Local Lemma Forall_not_free_map_lift:
   forall xs i k,
   Forall (not_free k) xs <->
@@ -224,13 +230,6 @@ Proof.
     + now apply IHxs with i.
 Qed.
 
-Fixpoint kennedy_offset (K: kennedy_code): nat :=
-  match K with
-  | kennedy_halt => 0
-  | kennedy_then _ _ => 0
-  | kennedy_call _ j J => j + kennedy_offset J
-  end.
-
 Lemma kennedy_not_free_generalized:
   forall e K b,
   kennedy e K b ->
@@ -238,24 +237,38 @@ Lemma kennedy_not_free_generalized:
   i >= kennedy_offset K ->
   Forall (not_free i) (e :: code_context K) <-> CPS.not_free (1 + i) b.
 Proof.
-  (* A complicated case; proceed by mutual induction with the defunctionalized
-     code, keeping an invariant about how they generate terms. *)
+  (* A complicated issue; proceed by mutual induction with the defunctionalized
+     code, keeping an invariant about how they generate terms! *)
   induction 1 using kennedy_ind2 with (P0 :=
-    (* For code K, with k binders, instantiated with variable n, making c... *)
+    (* For code K, with k new binders, invoked with variable n, producing c... *)
     fun K k n c =>
       (* For any non-fresh variable i... *)
-      forall i,
-      i >= kennedy_offset K + k ->
-      (* If i is not free in n, nor in the terms captured... *)
+      forall i, (* Note that variables less than that will be used for the... *)
+      i >= k + kennedy_offset K -> (* ...local names of computations. *)
+      (* If i is not free in n, nor in the terms captured (which will be placed
+         in c after k binders)... *)
       Forall (not_free i) (var n :: map (lift k 0) (code_context K)) <->
         (* Then it isn't free on the resulting term (remember that there is now
            space for the current continuation; also: lift 1 k i = 1 + i. *)
         CPS.not_free (1 + i) c
   ); repeat split; intros.
   (* Case: bound, only if. *)
-  - admit.
+  - dependent destruction H1.
+    apply IHkennedy.
+    + assumption.
+    + constructor; auto.
+      (* TODO: change to id. *)
+      rewrite map_ext with (g := fun x => x); intros.
+      * now rewrite map_id.
+      * apply lift_zero_e_equals_e.
   (* Case: bound, if. *)
-  - admit.
+  - apply IHkennedy in H1.
+    + dependent destruction H1.
+      rewrite map_ext with (g := fun x => x) in H2; intros.
+      * rewrite map_id in H2.
+        now constructor.
+      * apply lift_zero_e_equals_e.
+    + assumption.
   (* Case: abstraction, only if. *)
   - simpl in IHkennedy, IHkennedy0.
     dependent destruction H2.
@@ -349,7 +362,9 @@ Proof.
       * lia.
       * constructor.
         lia.
-      * admit.
+      * (* Fix the offset as we're adding a binder. This still comes from H3,
+           clearly. *)
+        admit.
   (* Case: call, if. *)
   - simpl in H0 |- *.
     dependent destruction H1.
@@ -367,7 +382,7 @@ Proof.
     repeat constructor.
     + admit.
     + admit.
-    + (* Clearly! *)
+    + (* One less binder, but this information clearly comes from H4. *)
       admit.
 Admitted.
 
