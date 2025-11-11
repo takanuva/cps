@@ -270,16 +270,20 @@ Proof.
   - simpl in IHkennedy, IHkennedy0.
     dependent destruction H2.
     constructor.
-    + apply IHkennedy.
+    + (* On the left, we proceed by applying the code to the new function. *)
+      apply IHkennedy.
       * lia.
       * repeat constructor; try lia.
-        (* Fix the offset as we're adding a binder. *)
+        (* Fix the offset as we're adding a binder (the function). *)
         now apply Forall_not_free_map_lift.
     + repeat constructor.
-    + simpl.
+    + (* On the right, we proceed with the function body and a new, fresh
+         current continuation. *)
+      simpl.
       apply IHkennedy0; try lia.
       repeat constructor.
       dependent destruction H2.
+      (* We just have to skip the outer current continuation, which is fresh. *)
       replace (S (S n)) with (n + 1 + 1) by lia.
       apply not_free_lift.
       rewrite Nat.add_comm.
@@ -290,7 +294,8 @@ Proof.
     clear H2; simpl in H2_, H2_0.
     rename H2_ into H2, H2_0 into H3.
     constructor.
-    + constructor.
+    + (* From the recursive application we proceed for the original term. *)
+      constructor.
       apply IHkennedy0 in H3; try lia.
       dependent destruction H3.
       clear H4.
@@ -298,20 +303,23 @@ Proof.
       apply not_free_lift in H3.
       rewrite Nat.add_comm in H3.
       assumption.
-    + apply IHkennedy in H2.
+    + (* We may preserve the invariant of the code for remaining terms. *)
+      apply IHkennedy in H2.
       * dependent destruction H2.
         (* Fix the offset as we're removing a binder. *)
         now apply Forall_not_free_map_lift with 1.
       * lia.
   (* Case: application, only if. *)
-  - simpl in IHkennedy.
+  - (* Simply proceed by induction. *)
+    simpl in IHkennedy.
     dependent destruction H1.
     dependent destruction H1.
     apply IHkennedy.
     + lia.
     + now repeat constructor.
   (* Case: application, if. *)
-  - simpl in IHkennedy.
+  - (* Ditto. *)
+    simpl in IHkennedy.
     apply IHkennedy in H1.
     + dependent destruction H1.
       dependent destruction H2.
