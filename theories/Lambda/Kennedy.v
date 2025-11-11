@@ -332,9 +332,13 @@ Proof.
     repeat constructor.
     + lia.
     + destruct (le_gt_dec k n).
-      * replace (lift 1 k n) with (1 + n) by admit.
+      * (* TODO: enhance sigma! *)
+        change n with (@var nat _ n); sigma.
+        unfold var, nat_dbVar, Datatypes.id.
         lia.
-      * replace (lift 1 k n) with n by admit.
+      * (* TODO: ditto! *)
+        change n with (@var nat _ n); sigma.
+        unfold var, nat_dbVar, Datatypes.id.
         lia.
   (* Case: halt, if. *)
   - repeat constructor.
@@ -344,9 +348,14 @@ Proof.
     dependent destruction H1.
     clear H2; simpl in H.
     destruct (le_gt_dec k n).
-    + replace (lift 1 k n) with (1 + n) in H1 by admit.
+    + (* TODO: improve sigma, please! *)
+      generalize H1; clear H1.
+      change n with (@var nat _ n) at 1; sigma.
+      unfold var, nat_dbVar, Datatypes.id; intro.
       lia.
-    + replace (lift 1 k n) with n in H1 by admit.
+    + generalize H1; clear H1.
+      change n with (@var nat _ n) at 1; sigma.
+      change (var n) with n; intro.
       lia.
   (* Case: then, only if. *)
   - simpl in IHkennedy, H1.
