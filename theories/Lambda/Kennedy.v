@@ -230,6 +230,11 @@ Proof.
     + now apply IHxs with i.
 Qed.
 
+(* While the following could be proven by possibly simpler means, like showing
+   the relation between Kennedy's translation and Plotkin's, the following was
+   rather important in helping to derive the proper points for lifting; finding
+   the proper invariants was key! Thus, this proof is valuable on its own. *)
+
 Lemma kennedy_not_free_generalized:
   forall e K b,
   kennedy e K b ->
@@ -315,7 +320,7 @@ Proof.
     dependent destruction H1.
     dependent destruction H1.
     apply IHkennedy.
-    + lia.
+    + assumption.
     + now repeat constructor.
   (* Case: application, if. *)
   - (* Ditto. *)
@@ -324,7 +329,7 @@ Proof.
     + dependent destruction H1.
       dependent destruction H2.
       now repeat constructor.
-    + lia.
+    + assumption.
   (* Case: halt, only if. *)
   - dependent destruction H0.
     dependent destruction H0.
@@ -358,11 +363,21 @@ Proof.
       change (var n) with n; intro.
       lia.
   (* Case: then, only if. *)
-  - simpl in IHkennedy, H1.
-    admit.
+  - simpl in IHkennedy, H0, H1.
+    dependent destruction H1.
+    dependent destruction H1.
+    dependent destruction H2.
+    apply IHkennedy.
+    + assumption.
+    + now repeat constructor.
   (* Case: then, if. *)
-  - simpl in IHkennedy |- *.
-    admit.
+  - simpl in IHkennedy, H0 |- *.
+    apply IHkennedy in H1.
+    + dependent destruction H1.
+      dependent destruction H2.
+      dependent destruction H2.
+      now repeat constructor.
+    + assumption.
   (* Case: call, only if. *)
   - simpl in IHkennedy, H0, H1.
     dependent destruction H1.
