@@ -78,17 +78,8 @@ Inductive kennedy_code: Set :=
   | kennedy_then (e: term) (K: kennedy_code)
   | kennedy_call (f: nat) (j: nat) (K: kennedy_code).
 
-(* Fixpoint kennedy_apply (K: kennedy_callback) (k n: nat): CPS.pseudoterm :=
-  match K with
-  (* (k, n) => k<n> *)
-  | kennedy_halt =>
-    CPS.jump (CPS.bound k) [CPS.bound (lift 1 k n)]
-  (* (k, n) => f<n, k> { k<v: t> = b } *)
-  | kennedy_call f t c =>
-    CPS.bind (CPS.jump (CPS.bound f) [CPS.bound k; CPS.bound (lift 1 k n)]) [t] c
-  end. *)
-
-Axiom B: nat -> nat -> nat -> nat -> nat.
+Axiom A: nat -> nat -> nat -> nat.
+Axiom B: nat -> nat -> nat -> nat.
 
 Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
   (* [x] K = K(x) *)
@@ -130,7 +121,7 @@ with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
        the translation. *)
     kennedy_apply (kennedy_call f j K) k v
       (CPS.bind
-        (CPS.jump (var (1 + lift 1 k v)) [var 0; var (B f j k v)])
+        (CPS.jump (var (A j k v)) [var 0; var (B j k f)])
         [CPS.void] b).
 
 Local Notation HALT := kennedy_halt.
@@ -386,15 +377,8 @@ Proof.
     repeat constructor; simpl.
     + dependent destruction H1.
       destruct (le_gt_dec k v).
-      * (* TODO: fix sigma! *)
-        change v with (@var nat _ v); sigma.
-        unfold var, nat_dbVar, Datatypes.id.
-        lia.
-      * (* TODO: ditto! *)
-        change v with (@var nat _ v); sigma.
-        unfold var, nat_dbVar, Datatypes.id.
-        (* Hmm, I better check this condition here... *)
-        admit.
+      * admit.
+      * admit.
     + lia.
     + admit.
     + apply IHkennedy; [| constructor ].
@@ -581,6 +565,10 @@ Proof.
   reflexivity.
 Qed.
 
+(* TODO: question, is Kennedy's translation (the tail-recursive version) really
+   the same as Plotkin's CBV then administrative reductions (linear jumps)? I am
+   starting to think that maybe there's need for some floating too... *)
+
 Section ModifiedCBV.
 
   Local Notation jump := Residuals.redexes_jump.
@@ -626,8 +614,6 @@ Section ModifiedCBV.
     - now constructor.
     - now constructor.
   Qed.
-
-  Local Coercion Syntax.bound: nat >-> CPS.pseudoterm.
 
   Goal
     let e := (application (application 0 1) (application 2 3)) in
