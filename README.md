@@ -8,6 +8,7 @@ but I'll get back in here to improve this documentation.
 ![Coq 8.16](https://github.com/takanuva/cps/actions/workflows/coq-8.16.yml/badge.svg)
 ![Coq 8.17](https://github.com/takanuva/cps/actions/workflows/coq-8.17.yml/badge.svg)
 ![Coq 8.18](https://github.com/takanuva/cps/actions/workflows/coq-8.18.yml/badge.svg)
+![Coq 8.19.2](https://github.com/takanuva/cps/actions/workflows/coq-8.19.2.yml/badge.svg)
 
 # Summary of files
 
