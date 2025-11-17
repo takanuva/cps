@@ -515,18 +515,27 @@ Section ModifiedCBV.
           simpl; lia.
   Admitted.
 
+  Lemma modified_cbv_residuals:
+    forall e r,
+    modified_cbv_cps false e r ->
+    exists2 s,
+    Residuals.residuals [] r r s & Residuals.redexes_count s = 0.
+  Proof.
+    intros.
+    apply modified_cbv_residuals_generalized with false e; intros.
+    - assumption.
+    - trivial.
+  Qed.
+
   Lemma modified_cbv_regular:
     forall e r,
     modified_cbv_cps false e r ->
     Residuals.regular r.
   Proof.
     intros.
-    edestruct modified_cbv_residuals_generalized as (s, ?, ?).
-    - eassumption.
-    - simpl.
-      trivial.
-    - exists r, s.
-      eassumption.
+    destruct modified_cbv_residuals with e r as (s, ?, ?).
+    - assumption.
+    - now exists r, s.
   Qed.
 
 End ModifiedCBV.
