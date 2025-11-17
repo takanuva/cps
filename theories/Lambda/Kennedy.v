@@ -453,8 +453,6 @@ Section ModifiedCBV.
     - now constructor.
   Qed.
 
-  Print Residuals.regular.
-
   Lemma modified_cbv_residuals_generalized:
     forall b e r,
     modified_cbv_cps b e r ->
@@ -476,7 +474,10 @@ Section ModifiedCBV.
         * constructor; simpl.
           eassumption.
         * simpl.
-          admit.
+          rewrite Residuals.mark_unmark_is_sound with s by auto.
+          rewrite <- Residuals.mark_lift_is_sound.
+          rewrite <- Residuals.mark_apply_parameters_is_sound.
+          apply Residuals.redexes_count_mark.
       + (* No jump will be performed, so no problem. *)
         eexists.
         * constructor.
@@ -490,7 +491,11 @@ Section ModifiedCBV.
           eassumption.
         * eassumption.
         * simpl.
-          admit.
+          rewrite Residuals.mark_unmark_is_sound with s by auto.
+          rewrite <- Residuals.mark_lift_is_sound.
+          rewrite <- Residuals.mark_apply_parameters_is_sound.
+          rewrite Residuals.redexes_count_mark.
+          now simpl.
       + eexists; try constructor; simpl.
         * constructor.
         * eassumption.
@@ -513,7 +518,7 @@ Section ModifiedCBV.
         * eexists; eauto with cps.
           (* None of these items have marks anymore. *)
           simpl; lia.
-  Admitted.
+  Qed.
 
   Lemma modified_cbv_residuals:
     forall e r,
