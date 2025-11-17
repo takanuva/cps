@@ -453,6 +453,8 @@ Section ModifiedCBV.
     - now constructor.
   Qed.
 
+  Print Residuals.regular.
+
   Lemma modified_cbv_residuals_generalized:
     forall b e r,
     modified_cbv_cps b e r ->
@@ -513,16 +515,18 @@ Section ModifiedCBV.
           simpl; lia.
   Admitted.
 
-  Lemma modified_cbv_residuals:
+  Lemma modified_cbv_regular:
     forall e r,
     modified_cbv_cps false e r ->
-    exists2 s,
-    Residuals.residuals [] r r s & Residuals.redexes_count s = 0.
+    Residuals.regular r.
   Proof.
     intros.
-    apply modified_cbv_residuals_generalized with false e; intros.
-    - assumption.
-    - trivial.
+    edestruct modified_cbv_residuals_generalized as (s, ?, ?).
+    - eassumption.
+    - simpl.
+      trivial.
+    - exists r, s.
+      eassumption.
   Qed.
 
 End ModifiedCBV.
