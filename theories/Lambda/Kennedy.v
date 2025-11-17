@@ -422,7 +422,11 @@ Section ModifiedCBV.
     (bind b [t1] (bind c [t2]
       (jump false (var 1) [var 2; var 0]))) (only parsing).
 
-  (* TODO: these lifts should be moved from source to target! *)
+  (* The modified CBV translation is just Plotkin's CBV translation, but instead
+     it returns marked terms. We underline every jump to a current continuation
+     whose content is defined and thus the jump may be performed. We define two
+     versions by mutual induction (note the first argument, being a boolean), so
+     that we may know whether the current continuation is defined or not. *)
 
   Inductive modified_cbv_cps: bool -> term -> Residuals.redexes -> Prop :=
     | modified_cbv_cps_bound:
@@ -447,6 +451,78 @@ Section ModifiedCBV.
     - constructor.
     - now constructor.
     - now constructor.
+  Qed.
+
+  Lemma modified_cbv_residuals_generalized:
+    forall b e r,
+    modified_cbv_cps b e r ->
+    forall g,
+    (if b then
+      exists2 s,
+      item (Some (1, s)) g 0 & Residuals.redexes_count s = 0
+    else
+      True) ->
+    exists2 t,
+    Residuals.residuals g r r t & Residuals.redexes_count t = 0.
+  Proof.
+    induction 1; intros.
+    - (* Are we performing this jump...? *)
+      destruct d.
+      + (* If we are, we know that it's defined: this was administrative. *)
+        destruct H as (s, ?, ?).
+        eexists.
+        * constructor; simpl.
+          eassumption.
+        * simpl.
+          admit.
+      + (* No jump will be performed, so no problem. *)
+        eexists.
+        * constructor.
+        * reflexivity.
+    - specialize (IHmodified_cbv_cps (None :: None :: g) ltac:(trivial)).
+      destruct IHmodified_cbv_cps as (b', ?, ?).
+      destruct d.
+      + destruct H0 as (s, ?, ?).
+        eexists; try constructor; simpl.
+        * do 2 constructor; simpl.
+          eassumption.
+        * eassumption.
+        * simpl.
+          admit.
+      + eexists; try constructor; simpl.
+        * constructor.
+        * eassumption.
+        * simpl; lia.
+    - (* The continuation given to c will be our anchor, which should be put in
+         place, but that itself will not be performed as it represents a source
+         redex. *)
+      set (anchor := jump false (var 1) [var 2; var 0]).
+      specialize (IHmodified_cbv_cps2 (Some (1, anchor) :: None :: g)).
+      (* By induction, c is fine. *)
+      edestruct IHmodified_cbv_cps2 as (c', ?, ?); intros.
+      + eexists; eauto with cps.
+      + (* The continuation given to b will be c (along with the anchor), which
+           is expected to be performed. *)
+        specialize (IHmodified_cbv_cps1 (Some (1, bind c' [V] anchor) :: g)).
+        (* By induction, b is fine. *)
+        edestruct IHmodified_cbv_cps1 as (b', ?, ?); intros.
+        * eexists; eauto with cps.
+          simpl; lia.
+        * eexists; eauto with cps.
+          (* None of these items have marks anymore. *)
+          simpl; lia.
+  Admitted.
+
+  Lemma modified_cbv_residuals:
+    forall e r,
+    modified_cbv_cps false e r ->
+    exists2 s,
+    Residuals.residuals [] r r s & Residuals.redexes_count s = 0.
+  Proof.
+    intros.
+    apply modified_cbv_residuals_generalized with false e; intros.
+    - assumption.
+    - trivial.
   Qed.
 
 End ModifiedCBV.
