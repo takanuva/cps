@@ -101,6 +101,8 @@ Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
     kennedy f (kennedy_then e K) b ->
     kennedy (application f e) K b
 
+  (* TODO: come up with translations for thunks (delay and force). *)
+
 with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
   (* k, x => k<x> *)
   | kennedy_apply_halt:
@@ -131,19 +133,19 @@ Local Notation CALL := kennedy_call.
 Scheme kennedy_ind2 := Minimality for kennedy Sort Prop
   with kennedy_apply_ind2 := Minimality for kennedy_apply Sort Prop.
 
-Notation V := CPS.void.
+Local Notation V := CPS.void.
 
 (* Quick sketch to help debugging; I will need a proper notation library later
    on. *)
 
-Notation "b '{' ts '=' c '}'" :=
+Local Notation "b '{' ts '=' c '}'" :=
   (CPS.bind b ts c)
   (at level 200,
    b at level 200,
    format "'[v' b '//' '{'  ts  '=' '/  ' '[' c ']' '/' '}' ']'",
    only printing).
 
-Notation "x xs" :=
+Local Notation "x xs" :=
   (CPS.jump x xs)
   (at level 199,
    format "'[v' x xs ']'",
@@ -151,46 +153,16 @@ Notation "x xs" :=
 
 Local Coercion CPS.bound: nat >-> CPS.pseudoterm.
 
-Goal
-  exists2 b,
-  kennedy (application
-            (application 10 20)
-            (application 30 40))
-    kennedy_halt b & b = V.
-Proof.
-  eexists.
-  constructor.
-  constructor.
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  all: vm_compute.
-  constructor.
-  vm_compute.
-  constructor.
-  (* The issue starts here... *)
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  all: vm_compute.
-  constructor.
-  all: vm_compute.
-  constructor.
-  vm_compute.
-Admitted.
-
-Fixpoint code_context (K: kennedy_code): list term :=
+Fixpoint kennedy_code_context (K: kennedy_code): list term :=
   match K with
   | kennedy_halt => []
   | kennedy_then e J =>
-    e :: code_context J
+    e :: kennedy_code_context J
   | kennedy_call f j J =>
-    var f :: map (lift j 0) (code_context J)
+    var f :: map (lift j 0) (kennedy_code_context J)
   end.
+
+Local Notation code_context := kennedy_code_context.
 
 Fixpoint kennedy_offset (K: kennedy_code): nat :=
   match K with
@@ -236,7 +208,8 @@ Proof.
   (* A complicated issue; proceed by mutual induction with the defunctionalized
      code, keeping an invariant about how they generate terms! *)
   induction 1 using kennedy_ind2 with (P0 :=
-    (* For code K, with k new binders, invoked with variable n, producing c... *)
+    (* For code K, with k new binders, invoked with variable n, producing term
+       c... *)
     fun K k n c =>
       (* For any non-fresh variable i... *)
       forall i, (* Note that variables less than that will be used for the... *)
@@ -426,145 +399,6 @@ Proof.
       now inversion H1.
 Qed.
 
-Goal
-  let e :=
-    application (
-      application
-        (abstraction (arrow base base) 0)
-        (abstraction base 0))
-      42
-  in
-  exists2 b,
-  kennedy e kennedy_halt b & CPS.free 43 b.
-Proof.
-  compute; eexists.
-  constructor.
-  constructor.
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  vm_compute.
-  constructor.
-  constructor.
-  vm_compute.
-  intros ?H.
-  dependent destruction H.
-  dependent destruction H.
-  dependent destruction H.
-  dependent destruction H1.
-  dependent destruction H1_.
-  dependent destruction H1_.
-  apply H1; simpl.
-  admit.
-Admitted.
-
-Goal
-  let e := (application 42 51) in
-  forall b c,
-  cbv_cps e b ->
-  kennedy e kennedy_halt c ->
-  Reduction.star b c.
-Proof.
-  compute; intros.
-  dependent destruction H.
-  vm_compute in H, H0.
-  dependent destruction H.
-  dependent destruction H0.
-  vm_compute.
-  eapply rt_trans.
-  apply rt_step.
-  apply Reduction.step_bind_right.
-  apply Reduction.step_ctxjmp with (h := Context.context_hole).
-  reflexivity.
-  vm_compute.
-  eapply rt_trans.
-  apply rt_step.
-  apply Reduction.step_bind_right.
-  apply Reduction.step_gc.
-  repeat constructor; auto.
-  vm_compute.
-  eapply rt_trans.
-  apply rt_step.
-  apply Reduction.step_ctxjmp with (h := Context.context_hole).
-  reflexivity.
-  vm_compute.
-  eapply rt_trans.
-  apply rt_step.
-  apply Reduction.step_gc.
-  repeat constructor; auto.
-  vm_compute.
-  dependent destruction H1.
-  dependent destruction H1.
-  dependent destruction H.
-  vm_compute in H.
-  dependent destruction H.
-  dependent destruction H.
-  vm_compute.
-  admit.
-Admitted.
-
-Goal
-  forall t u n,
-  let e := (abstraction t (abstraction u (bound n))) in
-  forall b,
-  cbv_cps e b ->
-  forall c,
-  kennedy e kennedy_halt c ->
-  b = c.
-Proof.
-  compute; intros.
-  dependent destruction H.
-  dependent destruction H.
-  destruct n.
-  vm_compute in H.
-  dependent destruction H.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute.
-  reflexivity.
-  destruct n.
-  vm_compute in H.
-  dependent destruction H.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute.
-  reflexivity.
-  vm_compute in H.
-  dependent destruction H.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute in H0.
-  dependent destruction H0.
-  dependent destruction H.
-  vm_compute.
-  reflexivity.
-Qed.
-
 (* TODO: question, is Kennedy's translation (the tail-recursive version) really
    the same as Plotkin's CBV then administrative reductions (linear jumps)? I am
    starting to think that maybe there's need for some floating too... *)
@@ -604,7 +438,7 @@ Section ModifiedCBV.
       modified_cbv_cps true (lift 2 0 x) c ->
       modified_cbv_cps d (application f x) (APP b c CPS.void CPS.void).
 
-  Goal
+  Local Goal
     forall d e r,
     modified_cbv_cps d e r ->
     cbv_cps e (Residuals.unmark r).
@@ -613,105 +447,6 @@ Section ModifiedCBV.
     - constructor.
     - now constructor.
     - now constructor.
-  Qed.
-
-  Goal
-    let e := (application (application 0 1) (application 2 3)) in
-    let x := (CPS.bind
-                (CPS.jump 2 [var 0; var 3])
-                [V]
-                (CPS.bind
-                   (CPS.jump 5 [var 0; var 6])
-                   [V]
-                   (CPS.jump 1 [var 2; var 0]))) in
-    forall b,
-    modified_cbv_cps false e b ->
-    exists2 c,
-    Residuals.residuals [] b b c &
-      rt(Reduction.smol) (Residuals.unmark c) x.
-  Proof.
-    simpl; intros.
-    dependent destruction H.
-    vm_compute in *.
-    dependent destruction H.
-    dependent destruction H1.
-    vm_compute in *.
-    dependent destruction H.
-    dependent destruction H0.
-    dependent destruction H1_.
-    dependent destruction H1_0.
-    vm_compute.
-    eexists.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    vm_compute.
-    eapply rt_trans.
-    apply rt_step.
-    apply Reduction.smol_bind_left.
-    apply Reduction.smol_gc.
-    repeat constructor; simpl; auto.
-    vm_compute.
-    eapply rt_trans.
-    apply rt_step.
-    apply Reduction.smol_bind_left.
-    apply Reduction.smol_gc.
-    repeat constructor; simpl; auto.
-    vm_compute.
-    eapply rt_trans.
-    apply rt_step.
-    apply Reduction.smol_bind_right.
-    apply Reduction.smol_bind_left.
-    apply Reduction.smol_gc.
-    repeat constructor; simpl; auto.
-    vm_compute.
-    eapply rt_trans.
-    apply rt_step.
-    apply Reduction.smol_bind_right.
-    apply Reduction.smol_bind_left.
-    apply Reduction.smol_gc.
-    repeat constructor; simpl; auto.
-    vm_compute.
-    apply rt_refl.
-  Qed.
-
-  Goal
-    let e := (abstraction base 1) in
-    let x := (Syntax.bind
-                (Syntax.jump 1 [var 0])
-                [V; V]
-                (Syntax.jump 0 [var 3])) in
-    forall b,
-    modified_cbv_cps false e b ->
-    exists2 c,
-    Residuals.residuals [] b b c &
-      rt(Reduction.smol) (Residuals.unmark c) x.
-  Proof.
-    vm_compute; intros.
-    dependent destruction x0.
-    vm_compute in *.
-    dependent destruction x0.
-    vm_compute.
-    eexists.
-    constructor; simpl.
-    constructor; simpl.
-    constructor; simpl.
-    simpl.
-    apply rt_refl.
   Qed.
 
 End ModifiedCBV.
