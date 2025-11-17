@@ -256,7 +256,8 @@ Example ex2: pseudoterm :=
         [base; negation [base; base]; base]
           (jump 1 [bound 5; bound 0]))).
 
-Goal [ex1 == ex2].
+Local Goal
+  [ex1 == ex2].
 Proof.
   apply sema_distr.
   repeat constructor.
@@ -553,7 +554,7 @@ Qed.
 
 Global Hint Resolve sema_right_cycle: cps.
 
-Goal
+Local Goal
   forall m a k,
   not_free (k + a) m ->
   remove_binding (k + a) m =
@@ -592,7 +593,7 @@ Admitted.
    before I forget yet again, check up on the definition for FLOAT_RIGHT and fix
    it. *)
 
-Goal
+Local Goal
   forall b k,
   not_free (1 + k) b ->
   remove_binding k (switch_bindings k b) = remove_binding (1 + k) b.

@@ -177,7 +177,7 @@ End Technique.
    using (DISTR) doesn't require us to join/split a reference. I gotta write
    some explanation about this. *)
 
-Goal
+Local Goal
   forall c,
   SN beta c ->
   SN (modulo beta equi) c.

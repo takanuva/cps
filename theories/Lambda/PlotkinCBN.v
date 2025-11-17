@@ -1405,7 +1405,7 @@ Fixpoint cbn_type_alt (t: type): pseudoterm :=
 Definition cbn_env_alt (g: env): list pseudoterm :=
   map (fun t => CPS.negation [CPS.negation [cbn_type_alt t]]) g.
 
-Goal
+Local Goal
   forall g,
   cbn_env g = cbn_env_alt g.
 Proof.

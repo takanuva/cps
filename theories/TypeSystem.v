@@ -54,7 +54,7 @@ Inductive typing: env -> relation pseudoterm :=
 
 Global Hint Constructors typing: cps.
 
-Goal
+Local Goal
   let G := [base; base; base; negation [base; base]] in
   typing G ex1 void.
 Proof.
@@ -62,7 +62,7 @@ Proof.
   repeat econstructor.
 Qed.
 
-Goal
+Local Goal
   let G := [base; base; base; negation [base; base]] in
   typing G ex2 void.
 Proof.
@@ -70,7 +70,7 @@ Proof.
   repeat econstructor.
 Qed.
 
-Goal
+Local Goal
   let G := [base; base; base; negation [base; base]] in
   typing G ex3 void.
 Proof.
@@ -734,7 +734,7 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Goal
+Local Goal
   (* We do NOT have subject expansion! *)
   exists b c,
   beta b c /\ typing [negation []] c void /\ ~typing [negation []] b void.

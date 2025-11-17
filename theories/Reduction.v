@@ -646,7 +646,8 @@ Example ex3: pseudoterm :=
     [base; negation [base; base]; base]
       (jump 1 [bound 3; bound 0])).
 
-Goal [ex1 => ex3].
+Local Goal
+  [ex1 => ex3].
 Proof.
   apply step_ctxjmp with (h := context_left context_hole ?[ts] ?[c]); auto.
 Qed.

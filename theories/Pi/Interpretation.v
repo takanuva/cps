@@ -61,7 +61,7 @@ Section Interpretation.
   Local Notation cO cs := (channel O cs).
   Local Notation cI cs := (channel I cs).
 
-  Goal
+  Local Goal
     (* TODO: give an example number here. *)
     let p :=
       (* \j.\x.\y.\z.
@@ -91,7 +91,7 @@ Section Interpretation.
   (* To be honest, it's amazing that this is true up to the same [k]; i.e., the
      same number of variables is introduced in head position for both CPS term
      and the resulting process for the interpretation. *)
-  Goal
+  Local Goal
     forall b p,
     interpret b p ->
     forall k,

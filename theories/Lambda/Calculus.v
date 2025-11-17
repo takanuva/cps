@@ -59,7 +59,7 @@ Qed.
 Fixpoint traverse g k e: term :=
   match e with
   | bound n =>
-    g k n 
+    g k n
   | abstraction t b =>
     abstraction t (traverse g (S k) b)
   | application f x =>
@@ -1013,7 +1013,7 @@ Example id :=
     | S m => application (id m (arrow t t)) (abstraction t 0)
     end.
 
-Goal
+Local Goal
   forall n t,
   typing [] (id n t) (arrow t t).
 Proof.

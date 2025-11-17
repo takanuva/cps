@@ -34,7 +34,7 @@ Inductive evaluation: context -> Prop :=
     value v ->
     evaluation (context_application_right v x).
 
-Goal
+Local Goal
   forall e1 e2,
   cbv e1 e2 ->
   forall h,
@@ -147,7 +147,7 @@ Qed.
 
 Notation cmp a b := (a = b \/ a > b).
 
-Goal
+Local Goal
   forall a b,
   anf a b ->
   cmp (unnamed_subterms a) (unnamed_subterms b).
@@ -261,7 +261,7 @@ Fixpoint inner_computations e: nat :=
   Rule 4 decreases the number of unnamed stuff.
 *)
 
-Goal
+Local Goal
   forall e1 e2,
   anf e1 e2 ->
   rst(full) e1 e2.

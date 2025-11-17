@@ -1028,7 +1028,7 @@ End ObservationalRelations.
 (* TODO: move this one. It might be useful, specially for reasoning about extra
    reductions on the call-by-value calculus. *)
 
-Goal
+Local Goal
   forall T L,
   forall R S: relation T,
   forall P: T -> L -> Prop,
@@ -1490,7 +1490,7 @@ Section StrongBisimulation.
     exists2 d,
     R l b d & S c d.
 
-  Goal
+  Local Goal
     forall S,
     strong_simulation S <-> (forall l, commutes (R l) S).
   Proof.
@@ -1554,7 +1554,7 @@ Section StrongBisimulation.
 
   Hypothesis S_is_bisim: strong_bisimulation S.
 
-  Goal
+  Local Goal
     forall a1 b1,
     rst(S) a1 b1 ->
     (exists a2, R l a1 a2) <-> (exists b2, R l b1 b2).
@@ -1572,7 +1572,7 @@ Section StrongBisimulation.
     - firstorder.
   Qed.
 
-  Goal
+  Local Goal
     forall x y,
     S x y ->
     forall n z,
@@ -1596,7 +1596,7 @@ Section StrongBisimulation.
       econstructor 2; eauto.
   Qed.
 
-  Goal
+  Local Goal
     forall x y,
     S x y ->
     SN (R l) x <-> SN (R l) y.
@@ -1650,7 +1650,7 @@ Section StrongBisimulationCoind.
       R l p p' & strong_bisimilarity_coind p' q'
   }.
 
-  Goal
+  Local Goal
     reflexive strong_bisimilarity_coind.
   Proof.
     cofix CH.
@@ -1659,7 +1659,7 @@ Section StrongBisimulationCoind.
     - exists q'; auto.
   Qed.
 
-  Goal
+  Local Goal
     symmetric strong_bisimilarity_coind.
   Proof.
     cofix CH.
@@ -1674,7 +1674,7 @@ Section StrongBisimulationCoind.
       + eexists; eauto.
   Qed.
 
-  Goal
+  Local Goal
     transitive strong_bisimilarity_coind.
   Proof.
     cofix CH.
@@ -1689,7 +1689,7 @@ Section StrongBisimulationCoind.
       apply CH with w; auto.
   Qed.
 
-  Goal
+  Local Goal
     same_relation strong_bisimilarity_coind (strong_bisimilarity R).
   Proof.
     split.

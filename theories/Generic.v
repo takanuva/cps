@@ -78,7 +78,7 @@ Definition UTLC: Description True :=
     else
       child _ [I] I (done _ I)).
 
-Goal
+Local Goal
   interpret True UTLC S I [].
 Proof.
   compute.

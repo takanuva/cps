@@ -141,7 +141,7 @@ Inductive big: configuration -> Prop :=
 
 (* Quick test! *)
 
-Goal
+Local Goal
   big (ex1, []) (* 3 *).
 Proof.
   unfold ex1.
@@ -246,7 +246,7 @@ Example ohno: pseudoterm :=
     [base]
     0.
 
-Goal
+Local Goal
   eval ohno 0.
 Proof.
   eexists.
@@ -264,7 +264,7 @@ Proof.
     constructor.
 Qed.
 
-Goal
+Local Goal
   big (ohno, []).
 Proof.
   constructor.
@@ -391,7 +391,7 @@ Qed.
 
 Global Hint Resolve ids_proper: cps.
 
-Goal
+Local Goal
   forall f,
   `{proper f} ->
   forall p k n,

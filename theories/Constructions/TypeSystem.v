@@ -253,7 +253,7 @@ Section TypeSystem.
     pi (sort iset) (pi (bound 0) (bound 1)).
 
   (* Let's check typeability. *)
-  Goal
+  Local Goal
     infer (typing [] polymorphic_id_term polymorphic_id_type).
   Proof.
     repeat econstructor.
@@ -262,7 +262,7 @@ Section TypeSystem.
   Qed.
 
   (* Are we safe with higher sigma types? *)
-  Goal
+  Local Goal
     infer (typing [] (sigma iset (bound 0)) (type 0)).
   Proof.
     repeat econstructor.

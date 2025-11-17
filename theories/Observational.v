@@ -400,7 +400,7 @@ Qed.
 
 (* Just a quick (legacy) check: an eta step also conserves convergence. *)
 
-Goal
+Local Goal
   forall h k xs y,
   static h ->
   forall c j p,
@@ -646,7 +646,7 @@ Defined.
    This might be useful in showing that sema is a barbed bisimulation by tracing
    its individual axioms. *)
 
-Goal
+Local Goal
   forall R,
   (* TODO: generalize this. *)
   barbed_simulation step converges R ->

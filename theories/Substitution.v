@@ -1041,7 +1041,7 @@ Section Tests.
      differ a bit from the paper because they take non-zero indexes to be zero
      applied to the lifting substitution in there, i.e., n = 0[S^n]. *)
 
-  Goal
+  Local Goal
     forall y s,
     (* FVarCons: 0[y, s] = y *)
     subst_cons y s 0 (var 0) = y.
@@ -1050,7 +1050,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall y s n,
     (* RVarCons: (1+n)[y, s] = n[s] *)
     subst_cons y s 0 (var (1 + n)) = s 0 (var n).
@@ -1059,7 +1059,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall n,
     (* VarShift1: n[S] = 1+n *)
     subst_lift 1 0 (var n) = var (1 + n).
@@ -1068,7 +1068,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall k x,
     (* Id: x[I] = x *)
     subst_ids k x = x.
@@ -1077,7 +1077,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t x,
     (* Clos: x[s][t] = x[s o t] *)
     t 0 (s 0 x) = subst_comp s t 0 x.
@@ -1086,7 +1086,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall k x,
     (* VarShift: (0, S) ~ I *)
     subst_cons (var 0) (subst_lift 1) k x = x.
@@ -1095,7 +1095,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall y s k x,
     (* ShiftCons: S o (y, s) ~ s *)
     subst_comp (subst_lift 1) (subst_cons y s) k x = s k x.
@@ -1104,7 +1104,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s k x,
     (* IdL: I o s ~ s *)
     subst_comp subst_ids s k x = s k x.
@@ -1113,7 +1113,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s k x,
     (* IdR: s o I ~ s *)
     subst_comp s subst_ids k x = s k x.
@@ -1122,7 +1122,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t u k x,
     (* AssEnv: (s o t) o u ~ s o (t o u) *)
     subst_comp (subst_comp s t) u k x = subst_comp s (subst_comp t u) k x.
@@ -1131,7 +1131,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall y s t k x,
     (* MapEnv: (y, s) o t ~ (y[t], s o t) *)
     subst_comp (subst_cons y s) t k x = subst_cons (t 0 y) (subst_comp s t) k x.
@@ -1140,7 +1140,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s k x,
     (* SCons: (0[s], S o s) ~ s *)
     subst_cons (s 0 (var 0)) (subst_comp (subst_lift 1) s) k x = s k x.
@@ -1154,7 +1154,7 @@ Section Tests.
      the (SCons) rule, although we still want those because it allows us to
      equate more terms in the presence of metavariables. *)
 
-  Goal
+  Local Goal
     forall s n,
     (* VarShift2: n[S o s] = (1+n)[s] *)
     subst_comp (subst_lift 1) s 0 (var n) = s 0 (var (1 + n)).
@@ -1163,7 +1163,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s,
     (* FVarLift1: 0[U(s)] = 0 *)
     subst_upn 1 s 0 (var 0) = var 0.
@@ -1172,7 +1172,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t,
     (* FVarLift2: 0[U(s) o t] = 0[t] *)
     subst_comp (subst_upn 1 s) t 0 (var 0) = t 0 (var 0).
@@ -1181,7 +1181,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s n,
     (* RVarLift1: (1+n)[U(s)] = n[s o S] *)
     subst_upn 1 s 0 (var (1 + n)) = subst_comp s (subst_lift 1) 0 (var n).
@@ -1190,7 +1190,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t n,
     (* RVarLift2: (1+n)[U(s) o t] = n[s o S o t] *)
     subst_comp (subst_upn 1 s) t 0 (var (1 + n)) =
@@ -1200,7 +1200,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s k x,
     (* ShiftLift1: S o U(s) ~ s o S *)
     subst_comp (subst_lift 1) (subst_upn 1 s) k x =
@@ -1210,7 +1210,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t k x,
     (* ShiftLift2: S o (U(s) o t) ~ s o S o t *)
     subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t) k x =
@@ -1220,7 +1220,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t k x,
     (* Lift1: U(s) o U(t) ~ U(s o t) *)
     subst_comp (subst_upn 1 s) (subst_upn 1 t) k x =
@@ -1230,7 +1230,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t u k x,
     (* Lift2: U(s) o (U(t) o u) ~ U(s o t) o u *)
     subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u) k x =
@@ -1240,7 +1240,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall s t y k x,
     (* LiftEnv: U(s) o (y, t) ~ (y, s o t) *)
     subst_comp (subst_upn 1 s) (subst_cons y t) k x =
@@ -1250,7 +1250,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall i k x,
     (* LiftId: U(I) ~ I *)
     subst_upn i subst_ids k x = subst_ids k x.
@@ -1269,7 +1269,7 @@ Section Tests.
 
   Local Hint Extern 0 => equal_modulo_arith: core.
 
-  Goal
+  Local Goal
     (* Lifting by zero is a no-op. *)
     forall k x,
     lift 0 k x = x.
@@ -1278,7 +1278,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     (* Instantiation and lifting commutation. *)
     forall x s i k j,
     k <= j ->
@@ -1288,7 +1288,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     (* Instantiation and substitution commutation. *)
     forall x y i k j,
     k <= j ->
@@ -1298,7 +1298,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     (* Lifting permutation. *)
     forall x i j k l,
     k <= l ->
@@ -1308,7 +1308,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     (* Lifting simplification. *)
     forall x i j k l,
     k <= l + j ->
@@ -1319,7 +1319,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     (* Simplification of substitution and lifting. *)
     forall x y i p k,
     p <= i + k ->
@@ -1330,7 +1330,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall i x y p k,
     lift i (p + k) (subst y p x) = subst (lift i k y) p (lift i (1 + p + k) x).
   Proof.
@@ -1338,7 +1338,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall x y z p k,
     subst y (p + k) (subst z p x) =
       subst (subst y k z) p (subst y (1 + p + k) x).
@@ -1349,7 +1349,7 @@ Section Tests.
 
   (* The following six rules appear in the s_e-calculus for confluence. *)
 
-  Goal
+  Local Goal
     forall x y z i j,
     i <= j ->
     subst z j (subst y i x) =
@@ -1359,7 +1359,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall x y i j k,
     k < j ->
     j < k + i ->
@@ -1369,7 +1369,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall x y i j k,
     k + i <= j ->
     subst y j (lift i k x) = lift i k (subst y (j - i) x).
@@ -1378,7 +1378,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall x y i j k,
     j <= k + 1 ->
     (* Phi-sigma-transition... *)
@@ -1395,7 +1395,7 @@ Section Tests.
       admit.
   Admitted.
 
-  Goal
+  Local Goal
     forall x i j k l,
     l + j <= k ->
     lift i k (lift j l x) = lift j l (lift i (k - j) x).
@@ -1404,7 +1404,7 @@ Section Tests.
     now sigma.
   Qed.
 
-  Goal
+  Local Goal
     forall x i j k l,
     l <= k ->
     k < l + j ->
@@ -1415,7 +1415,7 @@ Section Tests.
   Qed.
 
   (* This rule appears in the simulation proof for the CBN CPS translation. *)
-  Goal
+  Local Goal
     forall b n,
     subst (subst (var 1) n (var 0)) 0
       (lift (2 + n) 1 b) =
@@ -1433,7 +1433,7 @@ Section Tests.
 
   (* An useful property. This is required by the machine semantics; luckly, we
      can solve it using sigma with a very simple case analysis. *)
-  Goal
+  Local Goal
     forall s p k n,
     s (p + k) (var (p + n)) = lift p 0 (s k (var n)).
   Proof.
@@ -1450,7 +1450,7 @@ Section Tests.
 
   (* Oh no... *)
 
-  Goal
+  Local Goal
     forall x xs k,
     bsmap (subst_cons (var 0) subst_ids) k
       (bsmap (subst_app [var 1; var 0] (subst_lift 2)) k

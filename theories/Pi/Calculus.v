@@ -650,7 +650,7 @@ Proof.
     now apply IHts.
 Qed.
 
-Goal
+Local Goal
   (* Let's check that the bound output version, i.e., [[y] p | x(y).q] ->
      [(\y)(p | q)], as described in Honda's paper, is derivable with the above
      definitions. *)

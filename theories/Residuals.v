@@ -264,7 +264,7 @@ Inductive compatible: relation redexes :=
 
 Global Hint Constructors compatible: cps.
 
-Goal
+Local Goal
   forall b c,
   compatible b c <-> unmark b = unmark c.
 Proof.

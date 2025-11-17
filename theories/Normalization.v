@@ -423,7 +423,7 @@ Record reducibility (g: env) (R: env -> candidate): Prop := {
     R g c
 }.
 
-Goal
+Local Goal
   forall ts,
   valid_env ts ->
   forall g b,
@@ -1071,7 +1071,7 @@ Proof.
   - assumption.
 Qed.
 
-Goal
+Local Goal
   WEAKENING (fun g e => valid_env g -> L g e).
 Proof.
   unfold WEAKENING; intros.
@@ -1083,7 +1083,7 @@ Proof.
     now dependent destruction H1.
 Qed.
 
-Goal
+Local Goal
   EXCHANGE (fun g e => valid_env g -> L g e).
 Proof.
   unfold EXCHANGE; intros.
@@ -1095,7 +1095,7 @@ Proof.
     now apply valid_env_switch_bindings with n h.
 Qed.
 
-Goal
+Local Goal
   CONTRACTION (fun g e => valid_env g -> L g e).
 Proof.
   unfold CONTRACTION; intros.
