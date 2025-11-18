@@ -1,0 +1,14 @@
+# .gitignore
+theories/**/*.aux
+theories/**/*.vo
+theories/**/*.vok
+theories/**/*.vos
+theories/**/*.glob
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+.lia.cache
+theories/Sketch*.v
+ICFP24.v
+ICFP24-output.txt
+# Sigma.v
