@@ -11,6 +11,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Lambda.Calculus.
 Require Import Local.Lambda.PlotkinCBV.
+Require Import Local.Lambda.ModifiedCBV.
 
 Import ListNotations.
 
@@ -61,14 +62,20 @@ Import ListNotations.
 
    The above function represents a tail context; note we use it for the toplevel
    term as well (since in the toplevel we don't know how to proceed in a sense,
-   as the toplevel k stands for termination). Note we use the former translation
-   when we know how to continue (in the case of an application) and the latter
-   translation when the continuation is not yet bound.
+   as the toplevel k stands for termination). We may see we use the former
+   translation when we know how to continue (in the case of an application) and
+   the latter translation when the continuation is not yet bound. As we call
+   [(e) k] if and only if we would be calling [[e] K] with [K] being the return
+   continuation (which has been noted by Danvy and Filinski already!), these two
+   functions may be merged in case we use a defunctionalized version of the
+   definition instead of using actual meta-level functions because we are able
+   to check for equality then; this is, indeed, how we define the relation in
+   this formalization.
 
    We would like to show that we can get from Plotkin's CBV translation into the
    optimized translation above by performing administrative jumps and garbage
    collection. This combination show result that this translation is adequate
-   and that it gives a sound denotational semantics for the lambda calculus as
+   and that it gives a sound denotational semantics for the lambda calculus, as
    Kennedy intended. *)
 
 Inductive kennedy_code: Set :=
@@ -79,61 +86,67 @@ Inductive kennedy_code: Set :=
 Axiom A: nat -> nat -> nat -> nat.
 Axiom B: nat -> nat -> nat -> nat.
 
-Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
-  (* [x] K = K(x) *)
-  | kennedy_bound:
-    forall K n b,
-    kennedy_apply K 0 n b ->
-    kennedy (bound n) K b
+Section Kennedy.
 
-  (* [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) } *)
-  | kennedy_abstraction:
-    forall K t e b c,
-    kennedy_apply K 1 0 b ->
-    kennedy (lift 1 1 e) kennedy_halt c ->
-    kennedy (abstraction t e) K (CPS.bind b [CPS.void; CPS.void] c)
+  Variable optimize: bool.
 
-  (* [f e] K = [f] (\f.[e] (\v.f<v, k> { k<x> = K(x) })) *)
-  | kennedy_application:
-    forall K f e b,
-    kennedy f (kennedy_then e K) b ->
-    kennedy (application f e) K b
+  Inductive kennedy: term -> kennedy_code -> CPS.pseudoterm -> Prop :=
+    (* [x] K = K(x) *)
+    | kennedy_bound:
+      forall K n b,
+      kennedy_apply K 0 n b ->
+      kennedy (bound n) K b
 
-  (* TODO: come up with translations for thunks (delay and force). *)
+    (* [\x.e] K = K(f) { f<x, k> = [e] (\z.k<z>) } *)
+    | kennedy_abstraction:
+      forall K t e b c,
+      kennedy_apply K 1 0 b ->
+      kennedy (lift 1 1 e) kennedy_halt c ->
+      kennedy (abstraction t e) K (CPS.bind b [CPS.void; CPS.void] c)
 
-with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
-  (* k, x => k<x> *)
-  | kennedy_apply_halt:
-    forall k n,
-    kennedy_apply kennedy_halt k n (CPS.jump (var k) [var (lift 1 k n)])
+    (* [f e] K = [f] (\f.[e] (\v.f<v, k> { k<x> = K(x) })) *)
+    | kennedy_application:
+      forall K f e b,
+      kennedy f (kennedy_then e K) b ->
+      kennedy (application f e) K b
 
-  (* e, K; k, f => [e] (\v.f<v, k> { k<x> = K(x) }) *)
-  | kennedy_apply_then:
-    forall K e k f b,
-    kennedy (lift k 0 e) (kennedy_call f k K) b ->
-    kennedy_apply (kennedy_then e K) k f b
+    (* TODO: come up with translations for thunks (delay and force). *)
 
-  (* f, j, K; k, v => f<v, k> { k<x> = K(x) } *)
-  | kennedy_apply_call:
-    forall K f j k v b,
-    kennedy_apply K (1 + k + j) 0 b ->
-    (* Here lies the optimization for the tail-recursion optimized version of
-       the translation. *)
-    kennedy_apply (kennedy_call f j K) k v
-      (CPS.bind
-        (CPS.jump (var (A j k v)) [var 0; var (B j k f)])
-        [CPS.void] b).
+  with kennedy_apply: kennedy_code -> nat -> nat -> CPS.pseudoterm -> Prop :=
+    (* k, x => k<x> *)
+    | kennedy_apply_halt:
+      forall k n,
+      kennedy_apply kennedy_halt k n (CPS.jump (var k) [var (lift 1 k n)])
+
+    (* e, K; k, f => [e] (\v.f<v, k> { k<x> = K(x) }) *)
+    | kennedy_apply_then:
+      forall K e k f b,
+      kennedy (lift k 0 e) (kennedy_call f k K) b ->
+      kennedy_apply (kennedy_then e K) k f b
+
+    (* f, j, K; k, v => f<v, k> { k<x> = K(x) } *)
+    | kennedy_apply_call1:
+      forall K f j k v b,
+      (* We pick this either for the naive version, where there is never a tail
+         optimization, or for the optimized version in case this is NOT a tail
+         call. *)
+      optimize = false \/ K <> kennedy_halt ->
+      kennedy_apply K (1 + k + j) 0 b ->
+      kennedy_apply (kennedy_call f j K) k v
+        (CPS.bind
+          (CPS.jump (var (A j k v)) [var 0; var (B j k f)])
+          [CPS.void] b).
+
+End Kennedy.
+
+Scheme kennedy_ind2 := Minimality for kennedy Sort Prop
+  with kennedy_apply_ind2 := Minimality for kennedy_apply Sort Prop.
 
 (* TODO: remove me. *)
 
 Local Notation HALT := kennedy_halt.
 Local Notation THEN := kennedy_then.
 Local Notation CALL := kennedy_call.
-
-Scheme kennedy_ind2 := Minimality for kennedy Sort Prop
-  with kennedy_apply_ind2 := Minimality for kennedy_apply Sort Prop.
-
-(* TODO: remove me. *)
 
 Local Notation V := CPS.void.
 
@@ -201,8 +214,8 @@ Qed.
    the proper invariants was key! Thus, this proof is valuable on its own. *)
 
 Lemma kennedy_not_free_generalized:
-  forall e K b,
-  kennedy e K b ->
+  forall o e K b,
+  kennedy o e K b ->
   forall i,
   i >= kennedy_offset K ->
   Forall (not_free i) (e :: code_context K) <-> CPS.not_free (1 + i) b.
@@ -344,13 +357,13 @@ Proof.
       dependent destruction H2.
       now repeat constructor.
     + assumption.
-  (* Case: call, only if. *)
-  - simpl in IHkennedy, H0, H1.
-    dependent destruction H1.
+  (* Case: non-tail call, only if. *)
+  - simpl in IHkennedy, H1, H2.
     dependent destruction H2.
-    rewrite map_map in H3.
+    dependent destruction H3.
+    rewrite map_map in H4.
     repeat constructor; simpl.
-    + dependent destruction H1.
+    + dependent destruction H2.
       destruct (le_gt_dec k v).
       * admit.
       * admit.
@@ -363,20 +376,20 @@ Proof.
       * (* Fix the offset as we're adding a binder. This still comes from H3,
            clearly. *)
         admit.
-  (* Case: call, if. *)
-  - simpl in H0 |- *.
-    dependent destruction H1.
-    dependent destruction H1_.
-    dependent destruction H1_.
+  (* Case: non-tail call, if. *)
+  - simpl in H1 |- *.
     dependent destruction H2.
-    clear H2.
-    dependent destruction H3.
-    dependent destruction H2.
-    clear H3 H4.
-    rename H1_0 into H3; simpl in H3.
-    apply IHkennedy in H3; try lia.
+    dependent destruction H2_.
+    dependent destruction H2_.
     dependent destruction H3.
     clear H3.
+    dependent destruction H4.
+    dependent destruction H3.
+    clear H4 H5.
+    rename H2_0 into H4; simpl in H4.
+    apply IHkennedy in H4; try lia.
+    dependent destruction H4.
+    clear H4.
     repeat constructor.
     + admit.
     + admit.
@@ -385,14 +398,14 @@ Proof.
 Admitted.
 
 Lemma kennedy_not_free:
-  forall e b,
-  kennedy e kennedy_halt b ->
+  forall o e b,
+  kennedy o e kennedy_halt b ->
   forall i,
   not_free i e <-> CPS.not_free (1 + i) b.
 Proof.
   intros.
   pose proof kennedy_not_free_generalized.
-  specialize (H0 e kennedy_halt b H i).
+  specialize (H0 o e kennedy_halt b H i).
   simpl in H0; destruct H0.
   - lia.
   - split; intro.
