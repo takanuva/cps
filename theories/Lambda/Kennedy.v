@@ -85,6 +85,9 @@ Inductive kennedy_code: Set :=
 
 Axiom A: nat -> nat -> nat -> nat.
 Axiom B: nat -> nat -> nat -> nat.
+Axiom C: nat -> nat -> nat -> nat.
+Axiom D: nat -> nat -> nat -> nat.
+Axiom X: nat -> nat -> nat.
 
 Section Kennedy.
 
@@ -135,7 +138,17 @@ Section Kennedy.
       kennedy_apply (kennedy_call f j K) k v
         (CPS.bind
           (CPS.jump (var (A j k v)) [var 0; var (B j k f)])
-          [CPS.void] b).
+          [CPS.void] b)
+
+    (* f, j; k, v => f<v, k> *)
+    | kennedy_apply_call2:
+      forall K f j k v,
+      (* We pick this case in the optimized version if we are in a tail call.
+         There is no need for a recursive call anymore, as we are only required
+         to introduce the anchor now. *)
+      optimize = true /\ K = kennedy_halt ->
+      kennedy_apply (kennedy_call f j K) k v
+        (CPS.jump (var (C j k v)) [var (X j k); var (D j k f)]).
 
 End Kennedy.
 
@@ -395,6 +408,27 @@ Proof.
     + admit.
     + (* One less binder, but this information clearly comes from H4. *)
       admit.
+  (* Case: tail call, only if. *)
+  - simpl in H1 |- *.
+    dependent destruction H1.
+    dependent destruction H2.
+    rewrite map_map in H3.
+    repeat constructor; simpl.
+    + admit.
+    + admit.
+    + admit.
+  (* Case: tail call, if. *)
+  - simpl in H0, H1 |- *.
+    dependent destruction H1.
+    dependent destruction H2.
+    dependent destruction H3.
+    clear H4.
+    repeat constructor.
+    + admit.
+    + admit.
+    + destruct H as (_, ?).
+      subst; simpl.
+      constructor.
 Admitted.
 
 Lemma kennedy_not_free:
