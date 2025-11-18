@@ -54,7 +54,11 @@ Section ModifiedCBV.
       forall d f x b c,
       modified_cbv_cps true (lift 1 0 f) b ->
       modified_cbv_cps true (lift 2 0 x) c ->
-      modified_cbv_cps d (application f x) (APP b c CPS.void CPS.void).
+      modified_cbv_cps d (application f x) (APP b c CPS.void CPS.void)
+    (* TODO: extend this translation for thunks. *).
+
+  (* The modified CBV translation is merely Plotkin's translation, but we mark
+     each jump to the current continuation which is a redex. *)
 
   Local Goal
     forall d e r,
@@ -71,7 +75,7 @@ Section ModifiedCBV.
     forall b e r,
     modified_cbv_cps b e r ->
     forall g,
-    (if b then
+    (if b then (* Not ideal to use a conditional here, but it works... *)
       exists2 s,
       item (Some (1, s)) g 0 & Residuals.redexes_count s = 0
     else
@@ -156,5 +160,19 @@ Section ModifiedCBV.
     - assumption.
     - now exists r, s.
   Qed.
+
+  (* Main idea: do the CPS translation, take the residuals, and then perform
+     exhaustive garbage collection to remove all the inlined contexts. NOTE:
+     this will NOT work anymore once we introduce thunks and then we'll need be
+     a bit smarter. TODO: I'll leave this task for future me. *)
+
+  Inductive optimal_cbv_cps: term -> Syntax.pseudoterm -> Prop :=
+    | optimal_cbv_cps_mk:
+      forall e r b c,
+      modified_cbv_cps false e r ->
+      Residuals.residuals [] r r (Residuals.mark b) ->
+      rt(Reduction.smol) b c ->
+      normal Reduction.smol c ->
+      optimal_cbv_cps e c.
 
 End ModifiedCBV.
