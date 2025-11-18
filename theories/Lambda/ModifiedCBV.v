@@ -164,13 +164,21 @@ Section ModifiedCBV.
   (* Main idea: do the CPS translation, take the residuals, and then perform
      exhaustive garbage collection to remove all the inlined contexts. NOTE:
      this will NOT work anymore once we introduce thunks and then we'll need be
-     a bit smarter. TODO: I'll leave this task for future me. *)
+     a bit smarter. TODO: I'll leave this task for future me. To do this in the
+     proper way, we'll either actually perform garbage collection for the marked
+     terms alone, OR we could use the notion of an intuitionistic term and show
+     there are no unused continuations. Are unused thunks actually fine? TODO:
+     check Danvy and Filinski's paper! *)
 
   Inductive optimal_cbv_cps: term -> Syntax.pseudoterm -> Prop :=
     | optimal_cbv_cps_mk:
       forall e r b c,
+      (* The toplevel continuation is not defined, hence false. *)
       modified_cbv_cps false e r ->
+      (* This is expected to work on any context, so the empty one suffices,
+         producing a term with no marks. *)
       Residuals.residuals [] r r (Residuals.mark b) ->
+      (* Then just perform all garbage collection available. *)
       rt(Reduction.smol) b c ->
       normal Reduction.smol c ->
       optimal_cbv_cps e c.
