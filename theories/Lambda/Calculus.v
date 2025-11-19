@@ -434,6 +434,19 @@ Proof.
   - now rewrite IHh.
 Qed.
 
+Inductive cbv_context: context -> Prop :=
+  | cbv_context_hole:
+    cbv_context context_hole
+  | cbv_context_application_left:
+    forall e h,
+    cbv_context h ->
+    cbv_context (context_application_left h e)
+  | cbv_context_application_right:
+    forall v h,
+    cbv_context h ->
+    value v ->
+    cbv_context (context_application_right v h).
+
 Inductive not_free: nat -> term -> Prop :=
   | not_free_bound:
     forall n m,
