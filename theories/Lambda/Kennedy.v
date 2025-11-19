@@ -76,7 +76,8 @@ Import ListNotations.
    optimized translation above by performing administrative jumps and garbage
    collection. This combination show result that this translation is adequate
    and that it gives a sound denotational semantics for the lambda calculus, as
-   Kennedy intended. *)
+   Kennedy intended. TODO: do we wanna compare this to Sabry and Felleisen's
+   translation, given in the ANF paper? Might be cool. *)
 
 Inductive kennedy_code: Set :=
   | kennedy_halt
