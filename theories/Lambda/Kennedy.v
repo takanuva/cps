@@ -448,3 +448,167 @@ Proof.
     + specialize (H1 H2).
       now inversion H1.
 Qed.
+
+Example foo :=
+  application (application 10 20) (application 30 40).
+
+Example bar :=
+  Syntax.bind
+    (Syntax.jump 12 [var 0; var 22])
+    [V]
+    (Syntax.bind
+       (Syntax.jump 33 [var 0; var 43])
+          [V]
+          (Syntax.jump 1 [var 2; var 0])).
+
+Local Coercion Syntax.bound: nat >-> Syntax.pseudoterm.
+
+Local Goal
+  exists2 b,
+  cbv_cps foo b & rt(Reduction.step) b bar.
+Proof.
+  eexists.
+  unfold foo.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  vm_compute.
+  (* Jump #1. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_left.
+  change (Syntax.jump (Syntax.bound 0) [Syntax.bound 13]) with
+    (Context.apply_context Context.context_hole (Syntax.jump 0 [Syntax.bound 13])).
+  apply Reduction.step_ctxjmp.
+  reflexivity.
+  vm_compute.
+  (* GC #1. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_left.
+  apply Reduction.step_gc.
+  repeat constructor; simpl; lia.
+  vm_compute.
+  (* Jump #2. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_left.
+  change (Syntax.jump (Syntax.bound 0) [Syntax.bound 23]) with
+    (Context.apply_context Context.context_hole (Syntax.jump 0 [Syntax.bound 23])).
+  apply Reduction.step_ctxjmp.
+  reflexivity.
+  vm_compute.
+  (* GC #2. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_left.
+  apply Reduction.step_gc.
+  repeat constructor; simpl; lia.
+  vm_compute.
+  (* Jump #3. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_right.
+  apply Reduction.step_bind_left.
+  change (Syntax.jump (Syntax.bound 0) [Syntax.bound 34]) with
+    (Context.apply_context Context.context_hole (Syntax.jump 0 [Syntax.bound 34])).
+  apply Reduction.step_ctxjmp.
+  reflexivity.
+  vm_compute.
+  (* GC #3. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_right.
+  apply Reduction.step_bind_left.
+  apply Reduction.step_gc.
+  repeat constructor; simpl; lia.
+  vm_compute.
+  (* Step #4. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_right.
+  apply Reduction.step_bind_left.
+  change (Syntax.jump (Syntax.bound 0) [Syntax.bound 44]) with
+    (Context.apply_context Context.context_hole (Syntax.jump 0 [Syntax.bound 44])).
+  apply Reduction.step_ctxjmp.
+  reflexivity.
+  vm_compute.
+  (* GC #4. *)
+  eapply rt_trans.
+  apply rt_step.
+  apply Reduction.step_bind_right.
+  apply Reduction.step_bind_left.
+  apply Reduction.step_gc.
+  repeat constructor; simpl; lia.
+  vm_compute.
+  (* Done! *)
+  apply rt_refl.
+Qed.
+
+Local Goal
+  normal Reduction.step bar.
+Proof.
+  do 2 intro.
+  dependent destruction H.
+  destruct h; simpl in x.
+  inversion x.
+  inversion x.
+  inversion x.
+  dependent destruction H.
+  dependent destruction H0.
+  dependent destruction H0.
+  contradiction.
+  inversion H.
+  dependent destruction H.
+  destruct h; simpl in x.
+  inversion x.
+  inversion x.
+  inversion x.
+  dependent destruction H.
+  dependent destruction H0.
+  dependent destruction H0.
+  contradiction.
+  inversion H.
+  inversion H.
+Qed.
+
+Local Goal
+  exists2 b,
+  kennedy true foo kennedy_halt b & b = bar.
+Proof.
+  eexists.
+  constructor.
+  constructor.
+  constructor.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  now right.
+  vm_compute.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  constructor.
+  vm_compute.
+  constructor.
+  constructor.
+  now right.
+  vm_compute.
+  constructor 4.
+  now split.
+  vm_compute.
+  (* What the hell happened here??? *)
+  admit.
+Admitted.
