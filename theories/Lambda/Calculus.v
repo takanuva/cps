@@ -434,6 +434,14 @@ Proof.
   - now rewrite IHh.
 Qed.
 
+Inductive cbn_context: context -> Prop :=
+  | cbn_context_hole:
+    cbn_context context_hole
+  | cbn_context_application_left:
+    forall e h,
+    cbn_context h ->
+    cbn_context (context_application_left h e).
+
 Inductive cbv_context: context -> Prop :=
   | cbv_context_hole:
     cbv_context context_hole
@@ -446,6 +454,16 @@ Inductive cbv_context: context -> Prop :=
     cbv_context h ->
     value v ->
     cbv_context (context_application_right v h).
+
+Lemma cbv_context_cbn:
+  forall h,
+  cbn_context h ->
+  cbv_context h.
+Proof.
+  induction 1.
+  - constructor.
+  - now constructor.
+Qed.
 
 Inductive not_free: nat -> term -> Prop :=
   | not_free_bound:
