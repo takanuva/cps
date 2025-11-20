@@ -138,7 +138,7 @@ Section Kennedy.
       kennedy_apply K (1 + k + j) 0 b ->
       kennedy_apply (kennedy_call f j K) k v
         (CPS.bind
-          (CPS.jump (var (A j k v)) [var 0; var (B j k f)])
+          (CPS.jump (var (A j k f)) [var 0; var (B j k v)])
           [CPS.void] b)
 
     (* f, j; k, v => f<v, k> *)
@@ -149,7 +149,7 @@ Section Kennedy.
          to introduce the anchor now. *)
       optimize = true /\ K = kennedy_halt ->
       kennedy_apply (kennedy_call f j K) k v
-        (CPS.jump (var (C j k v)) [var (X j k); var (D j k f)]).
+        (CPS.jump (var (C j k f)) [var (X j k); var (D j k v)]).
 
 End Kennedy.
 
@@ -609,6 +609,5 @@ Proof.
   constructor 4.
   now split.
   vm_compute.
-  (* What the hell happened here??? *)
   admit.
 Admitted.
