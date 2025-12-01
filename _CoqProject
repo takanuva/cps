@@ -29,6 +29,7 @@ theories/Lambda/Calculus.v
 theories/Lambda/Translation.v
 theories/Lambda/PlotkinCBN.v
 theories/Lambda/PlotkinCBV.v
+theories/Lambda/Thunking.v
 theories/Lambda/ModifiedCBV.v
 theories/Lambda/Kennedy.v
 theories/Lambda/BackToDS.v
