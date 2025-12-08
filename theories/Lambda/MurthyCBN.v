@@ -14,9 +14,11 @@ Require Import Local.Lambda.Calculus.
 (*
   This CPS translation for the "extensional" lambda-calculus appears in Murthy's
   "A computational analysis of Girard's translation and LC" paper, and is also
-  apdated and presented in Thielecke's thesis. Murthy calls it a "truly CBN"
+  adapted and presented in Thielecke's thesis. Murthy calls it a "truly CBN"
   translation; of course, it captures the idea that we're identifying terms up
-  to HNF instead of WHNF as in the (standard) call-by-name translation.
+  to HNF instead of WHNF as in the (standard) call-by-name translation. This
+  also means this translation is expected to validate extensionality, i.e., the
+  full eta law.
 
   The original translation is given as follows:
 
@@ -30,10 +32,10 @@ Require Import Local.Lambda.Calculus.
 
     [x] = x(k)
     [\x.M] = let x(h) =
-               let f(a, k) = a(h) in k(f)
+               let f(a, _) = a(h) in k(f)   (a control effect?)
              in
              let k(b) =
-               let f(a, k) = k(b) in k(f)
+               let f(_, k) = k(b) in k(f)
              in [M]
     [M N] = let k(f) =
               let v(k) = [N]
