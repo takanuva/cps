@@ -7,11 +7,15 @@ Require Import Arith.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
 
+(* Slightly unusual type system: we don't have an universe of propositions yet,
+   but we do have impredicative (computationally relevant) sets and an infinite
+   hierarchy of predicative types. *)
+
 Variant universe: Set :=
   | iset
   | type (n: nat).
 
-Definition supremum (s1: universe) (s2: universe) :=
+Definition top (s1: universe) (s2: universe) :=
   match s1, s2 with
   | _, iset => s1
   | iset, _ => s2
@@ -22,7 +26,7 @@ Definition sort_of_product (s1: universe) (s2: universe) :=
   if s2 (* is iset *) then
     iset
   else
-    supremum s1 s2.
+    top s1 s2.
 
 Inductive term: Set :=
   (* Sorts. *)

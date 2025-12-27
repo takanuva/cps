@@ -44,14 +44,25 @@ Section TypeSystem.
       infer (valid_env g) ->
       infer (typing g (type n) (type (1 + n)))
     (*
-        (x: T) or (x = e: T) in G
-      -----------------------------
+        G |-     (x: T) in G
+      ------------------------
+             G |- x : T
+    *)
+    | typing_var:
+      forall g t n u,
+      infer (valid_env g) ->
+      item (None, t) g n ->
+      u = lift (1 + n) 0 t ->
+      infer (typing g (bound n) u)
+    (*
+        G |-     (x = e: T) in G
+      ----------------------------
                G |- x : T
     *)
-    | typing_bound:
-      forall g n d t u,
+    | typing_ref:
+      forall g e t n u,
       infer (valid_env g) ->
-      item (d, t) g n ->
+      item (Some e, t) g n ->
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
     (*
@@ -107,7 +118,7 @@ Section TypeSystem.
       forall g t u s1 s2 s3,
       infer (typing g t (sort s1)) ->
       infer (typing (decl_var t :: g) u (sort s2)) ->
-      s3 = supremum s1 s2 ->
+      s3 = top s1 s2 ->
       infer (typing g (sigma t u) s3)
     (*
                G |- e : T     G |- f : U[e/x]
@@ -244,6 +255,22 @@ Section TypeSystem.
       infer (typing g t (sort s)) ->
       infer (valid_env (decl_def e t :: g)).
 
+  Lemma typing_bound:
+    forall g n p t u,
+    infer (valid_env g) ->
+    item p g n ->
+    snd p = t ->
+    u = lift (1 + n) 0 t ->
+    infer (typing g (bound n) u).
+  Proof.
+    intros.
+    destruct p as ([ e |], p2).
+    - simpl in H1; subst.
+      now apply typing_ref with e t.
+    - simpl in H1; subst.
+      now apply typing_var with t.
+  Qed.
+
   (* Coq term: [\X: Prop.\x: X.x]. *)
   Example polymorphic_id_term: term :=
     abstraction (sort iset) (abstraction (bound 0) (bound 0)).
@@ -337,8 +364,10 @@ Proof.
   - now apply typing_iset.
   (* Case: type. *)
   - now apply typing_type.
-  (* Case: bound. *)
-  - now apply typing_bound with d t.
+  (* Case: var. *)
+  - now apply typing_var with t.
+  (* Case: ref. *)
+  - now apply typing_ref with e t.
   (* Case: pi. *)
   - now apply typing_pi with s1 s2.
   (* Case: abstraction. *)

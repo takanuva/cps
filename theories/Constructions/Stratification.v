@@ -22,7 +22,7 @@ Import ListNotations.
    there are no unique types anymore (or, rather, a universe of types may have
    both large and small types).
 
-   Independent if we use cumulativity or not, we may check that there's a
+   Independently if we use cumulativity or not, we may check that there's a
    syntactic way to check for type schemes: their types are typeable by arities,
    as they are called in the MetaCoq project and the "Coq Coq Correct!" paper.
    We do not assume here that arities are well-typed (though they must be!). *)
@@ -38,16 +38,19 @@ Inductive is_arity: term -> Prop :=
   (* Note that this constructor will not appear in normal forms. *)
   | is_arity_def:
     forall v t u,
-    (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. *)
+    (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. TODO: is this
+       enough, tho? *)
     is_arity u ->
     is_arity (definition v t u).
 
 Inductive type_scheme (R: typing_equivalence) (g: env): term -> Prop :=
-  | type_scheme_make:
+  | type_scheme_mk:
     forall e t,
     typing g e t R ->
     is_arity t ->
     type_scheme R g e.
+
+(* Every sort is, trivially, a type scheme. *)
 
 Lemma type_scheme_sort:
   forall R g s,
@@ -56,18 +59,20 @@ Lemma type_scheme_sort:
 Proof.
   intros.
   destruct s.
-  - apply type_scheme_make with (type 0).
+  - apply type_scheme_mk with (type 0).
     + now repeat constructor.
     + constructor.
-  - apply type_scheme_make with (type (1 + n)).
+  - apply type_scheme_mk with (type (1 + n)).
     + now repeat constructor.
     + constructor.
 Qed.
 
-(* Goal
-  type_scheme polymorphic_id_type.
+(* Local Goal
+  forall R,
+  type_scheme R [] polymorphic_id_type.
 Proof.
-  apply type_scheme_mk with [] (sort iset).
+  intros.
+  apply type_scheme_mk with (sort iset).
   - repeat econstructor.
     + now vm_compute.
     + now vm_compute.
@@ -76,10 +81,11 @@ Proof.
   - constructor.
 Qed.
 
-Goal
-  ~type_scheme polymorphic_id_term.
+Local Goal
+  forall R,
+  ~type_scheme R [] polymorphic_id_term.
 Proof.
-  intro.
+  repeat intro.
   dependent destruction H.
   (* We need a few inversion lemmas... *)
   admit.
@@ -140,9 +146,16 @@ Proof.
     exists (type (2 + n)).
     + now constructor.
     + constructor.
-  (* Case: bound. *)
+  (* Case: var. *)
   - subst; split; auto.
-    destruct IHinfer with (d, t) n as (s, ?).
+    destruct IHinfer with (@None term, t) n as (s, ?).
+    + assumption.
+    + econstructor.
+      * eassumption.
+      * constructor.
+  (* Case: ref. *)
+  - subst; split; auto.
+    destruct IHinfer with (Some e, t) n as (s, ?).
     + assumption.
     + econstructor.
       * eassumption.

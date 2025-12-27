@@ -51,15 +51,17 @@ Lemma typing_bound_inv:
 Proof.
   intros.
   dependent induction H.
-  - clear IHinfer; destruct d.
-    + eexists.
-      * eassumption.
-      * simpl.
-        apply conv_refl.
-    + eexists.
-      * eassumption.
-      * simpl.
-        apply conv_refl.
+  (* Case: var. *)
+  - clear IHinfer.
+    eexists.
+    + eassumption.
+    + apply conv_refl.
+  (* Case: ref. *)
+  - clear IHinfer.
+    eexists.
+    + eassumption.
+    + apply conv_refl.
+  (* Case: conv. *)
   - clear IHinfer2.
     specialize (IHinfer1 _ _ _ eq_refl JMeq_refl) as (x, ?, ?).
     exists x.
@@ -89,9 +91,15 @@ Proof.
   - clear IHinfer.
     destruct typing_bound_inv with g n t2.
     + assumption.
-    + assert (x = (d, t)) by now apply item_unique with g n.
-      dependent destruction H4.
-      simpl in H3.
+    + assert (x = (None, t)) by now apply item_unique with g n.
+      dependent destruction H4; simpl in H3.
+      now apply conv_sym.
+  - clear IHinfer.
+    destruct typing_bound_inv with g n t2.
+    + assumption.
+    + rename e0 into e.
+      assert (x = (Some e, t)) by now apply item_unique with g n.
+      dependent destruction H4; simpl in H3.
       now apply conv_sym.
   - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl).
     specialize (IHinfer2 _ _ _ eq_refl JMeq_refl).
