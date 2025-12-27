@@ -14,10 +14,14 @@ Require Local.Intuitionistic.
 
 Import ListNotations.
 
+(* TODO: we need to make a module for this already! *)
+
 Module CPS.
   Include Local.Syntax.
   Include Local.Intuitionistic.
 End CPS.
+
+(* TODO: remove/refactor those. *)
 
 Notation polarity := CPS.polarity.
 Notation consume := CPS.consume.
