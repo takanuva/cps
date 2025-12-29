@@ -28,13 +28,23 @@ Local Coercion TT.lift_judgement: TT.typing_judgement >-> Funclass.
                in fun (x: f Set bool) =>
                  f bool x. *)
 
+Example dependent_example1a: TT.term :=
+  TT.abstraction (TT.type 0) (TT.abstraction 0 0).
+
+Example dependent_example1b: TT.term :=
+  TT.pi (TT.type 0) (TT.pi 0 1).
+
+Example dependent_example1c: TT.term :=
+  TT.application (TT.application 0 TT.iset) TT.boolean.
+
+Example dependent_example1d: TT.term :=
+  TT.application (TT.application 1 TT.boolean) 0.
+
 Example dependent_example1: TT.term :=
   TT.definition
-    (TT.abstraction (TT.type 0)
-      (TT.abstraction 0 0))
-    (TT.pi (TT.type 0) (TT.pi 0 1))
-    (TT.abstraction (TT.application (TT.application 0 TT.iset) TT.boolean)
-      (TT.application (TT.application 1 TT.boolean) 0)).
+    dependent_example1a
+    dependent_example1b
+    (TT.abstraction dependent_example1c dependent_example1d).
 
 Example dependent_example1_type: TT.term :=
   TT.pi TT.boolean TT.boolean.
@@ -42,7 +52,8 @@ Example dependent_example1_type: TT.term :=
 Example dependent_example1_typed:
   TT.typing [] dependent_example1 dependent_example1_type TT.conv.
 Proof.
-  (* TODO: can't do this one yet, we don't have the subtyping relation yet. *)
+  (* This will need cumulativity and conversion. Oh boy! *)
+  admit.
 Admitted.
 
 (*
