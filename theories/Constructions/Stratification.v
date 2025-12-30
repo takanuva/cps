@@ -25,7 +25,11 @@ Import ListNotations.
    Independently if we use cumulativity or not, we may check that there's a
    syntactic way to check for type schemes: their types are typeable by arities,
    as they are called in the MetaCoq project and the "Coq Coq Correct!" paper.
-   We do not assume here that arities are well-typed (though they must be!). *)
+   We do not assume here that arities are well-typed (though they must be!).
+
+   TODO: this is quite conservative. Consider, for example, branching terms such
+   as [if b then X else Y] where [X] and [Y] are arities themselves (e.g., Prop
+   and Set). Coq will extract those as terms! *)
 
 Inductive is_arity: term -> Prop :=
   | is_arity_now:
@@ -38,8 +42,9 @@ Inductive is_arity: term -> Prop :=
   (* Note that this constructor will not appear in normal forms. *)
   | is_arity_def:
     forall v t u,
-    (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. TODO: is this
-       enough, tho? *)
+    (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. TODO: this
+       doesn't seem to be what Coq is doing! Could it be that it's only checked
+       in normal form...? *)
     is_arity u ->
     is_arity (definition v t u).
 

@@ -8,6 +8,7 @@ Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
 Require Local.Constructions.
 Require Import Local.Syntax.
+Require Import Local.Context.
 Require Import Local.Intuitionistic.
 
 Import ListNotations.
@@ -58,6 +59,8 @@ Admitted.
 
 (*
 
+  Some musings (TODO: rewrite or move later)...
+
   Consider a source term:
 
     |-
@@ -92,4 +95,63 @@ Admitted.
 
 (* -------------------------------------------------------------------------- *)
 
-Inductive dependent_cbv_cps: TT.typing_judgement -> pseudoterm -> Prop :=.
+(*
+  The dependent CPS language makes a more strict distinction between commands,
+  type schemes and arities than the calculus of constructions does. Also, as we
+  wish to use negation for small types rather than (as Kennedy does) interpret
+  arrow types, we use codes and an interpretation function (à la Tarski). Codes
+  may be erased at runtime if so desired, but they could carry information to
+  allow for type cases such as done in Idris.
+
+  We start with the a simple CPS translation, unoptimized, based on Plotkin's
+  CBV translation, extending it as required with thunks and coproducts.
+*)
+
+Local Notation R := TT.conv.
+
+Definition RET (k: nat) (n: nat): pseudoterm :=
+  jump (bound k) [bound n].
+
+Definition LET (h: context) (b: pseudoterm): pseudoterm :=
+  h b.
+
+Definition FUN (ts: list pseudoterm) (c: pseudoterm): context :=
+  context_left context_hole ts c.
+
+Inductive cbv_dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
+  (*
+    [G |- x] = k<x>
+
+    Given that G |- x : T, and x is not a type scheme under G. Note that it
+    could only possibly be one if it is defined as one in G.
+  *)
+  | cbv_dcps_return:
+    forall g n t,
+    TT.typing g (TT.bound n) t R ->
+    ~TT.type_scheme R g (TT.bound n) ->
+    cbv_dcps g (TT.bound n) (RET 0 (1 + n))
+  (*
+    [G |- \x: T.e] = k<v> { v<x: [G |- T], k: ~[G |- U]> = [e] }
+
+    Given that G, x: T |- e : U, and e is not a type scheme under (G, x: T).
+  *)
+  | cbv_dcps_letfun:
+    forall g t e u c,
+    TT.typing (TT.decl_var t :: g) e u R ->
+    ~TT.type_scheme R (TT.decl_var t :: g) e ->
+    (* TODO: derive c and types... *)
+    cbv_dcps g (TT.abstraction t e) (LET (FUN [void; void] c) (RET 1 0)).
+
+Lemma TT_typing_cbv_dcps:
+  forall g e b,
+  cbv_dcps g e b ->
+  exists t,
+  TT.typing g e t R.
+Proof.
+  induction 1.
+  - now exists t.
+  - exists (TT.pi t u).
+    now apply TT.typing_abs.
+Qed.
+
+(* TODO: prove that cbv_dcps is total for typed terms! *)
