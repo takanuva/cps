@@ -15,6 +15,8 @@ Require Import Local.Constructions.Reduction.
 
 Import ListNotations.
 
+(*
+
 (* We can't properly define this relation the standard way as it would violate
    the strict positivity rule. Instead, we use a trick similar to Sangiorgi's
    definition of stratified strong bisimilarity (definition 2.2.10 on the "The
@@ -304,3 +306,5 @@ Proof.
   (* ... *)
   admit.
 Admitted.
+
+*)

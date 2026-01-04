@@ -44,7 +44,7 @@ Section TypeSystem.
       infer (valid_env g) ->
       infer (typing g (type n) (type (1 + n)))
     (*
-        G |-     (x: T) in G
+        |- G     (x: T) in G
       ------------------------
              G |- x : T
     *)
@@ -55,7 +55,7 @@ Section TypeSystem.
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
     (*
-        G |-     (x = e: T) in G
+        |- G     (x = e: T) in G
       ----------------------------
                G |- x : T
     *)
@@ -103,7 +103,7 @@ Section TypeSystem.
       ---------------------------------------
           G |- let x = e: T in f : U[e/x]
     *)
-    | typing_def:
+    (* | typing_def:
       forall g e f t u v,
       infer (typing g e t) ->
       infer (typing (decl_def e t :: g) f u) ->
@@ -217,7 +217,7 @@ Section TypeSystem.
     | typing_force:
       forall g e t,
       infer (typing g e (thunk t)) ->
-      infer (typing g (force e) t)
+      infer (typing g (force e) t) *)
     (*
         G |- e : T     G |- U : s     G |- T R U
       --------------------------------------------
@@ -288,14 +288,15 @@ Section TypeSystem.
     now vm_compute.
   Qed.
 
-  (* Are we safe with higher sigma types? *)
+  (* (* Are we safe with higher sigma types? *)
   Local Goal
     infer (typing [] (sigma iset (bound 0)) (type 0)).
   Proof.
+    (* TODO: assert that this CAN'T live in iset! *)
     repeat econstructor.
     - now vm_compute.
     - now vm_compute.
-  Qed.
+  Qed. *)
 
 End TypeSystem.
 
@@ -374,7 +375,7 @@ Proof.
   - now apply typing_abs.
   (* Case: application. *)
   - now apply typing_app with t u.
-  (* Case: definition. *)
+  (* (* Case: definition. *)
   - now apply typing_def with u.
   (* Case: sigma. *)
   - now apply typing_sigma with s1 s2.
@@ -397,7 +398,8 @@ Proof.
   (* Case: delay. *)
   - now apply typing_delay.
   (* Case: force. *)
-  - now apply typing_force.
+  - now apply typing_force. *)
+  (* Case: conv. *)
   - (* The only difference in the structure is on the (CONV) rule, which will
        require us to show that [t] and [u] are still convertible under the new
        rule. *)

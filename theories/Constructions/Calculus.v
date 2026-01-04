@@ -37,7 +37,7 @@ Inductive term: Set :=
   | pi (t: term) (u: term)
   | abstraction (t: term) (e: term)
   | application (e: term) (f: term)
-  | definition (e: term) (t: term) (f: term)
+  (* | definition (e: term) (t: term) (f: term)
   (* Pairs. *)
   | sigma (t: term) (u: term)
   | pair (e: term) (f: term) (t: term)
@@ -51,7 +51,7 @@ Inductive term: Set :=
   (* Thunks. *)
   | thunk (t: term)
   | delay (e: term)
-  | force (e: term).
+  | force (e: term) *).
 
 Global Coercion sort: universe >-> term.
 
@@ -67,7 +67,7 @@ Fixpoint traverse g k e: term :=
     abstraction (traverse g k t) (traverse g (S k) e)
   | application e f =>
     application (traverse g k e) (traverse g k f)
-  | definition e t f =>
+  (* | definition e t f =>
     definition (traverse g k e) (traverse g k t) (traverse g (S k) f)
   | sigma t u =>
     sigma (traverse g k t) (traverse g (S k) u)
@@ -91,7 +91,7 @@ Fixpoint traverse g k e: term :=
   | delay e =>
     delay (traverse g k e)
   | force e =>
-    force (traverse g k e)
+    force (traverse g k e) *)
   end.
 
 Global Instance cc_dbVar: dbVar term :=
@@ -131,7 +131,7 @@ Proof.
         replace (l + S k) with (S l + k) by lia.
         replace (l + S j) with (S l + j) by lia.
         apply H.
-    + f_equal.
+    (* + f_equal.
       * apply IHx1; intros.
         apply H.
       * apply IHx2; intros.
@@ -157,7 +157,7 @@ Proof.
       * apply IHx3; intros.
         apply H.
       * apply IHx4; intros.
-        apply H.
+        apply H. *)
   - generalize dependent k.
     induction x; simpl; intros; auto;
     f_equal; auto.
@@ -171,7 +171,7 @@ Inductive context: Set :=
   | context_abs_body (t: term) (e: context)
   | context_app_left (f: context) (e: term)
   | context_app_right (f: term) (e: context)
-  | context_def_val (e: context) (t: term) (f: term)
+  (* | context_def_val (e: context) (t: term) (f: term)
   | context_def_type (e: term) (t: context) (f: term)
   | context_def_body (e: term) (t: term) (f: context)
   | context_sigma_type (t: context) (u: term)
@@ -187,7 +187,7 @@ Inductive context: Set :=
   | context_if_else (e: term) (t: term) (f1: term) (f2: context)
   | context_thunk (t: context)
   | context_delay (e: context)
-  | context_force (e: context).
+  | context_force (e: context) *).
 
 Fixpoint apply_context (h: context) (x: term): term :=
   match h with
@@ -205,7 +205,7 @@ Fixpoint apply_context (h: context) (x: term): term :=
     application (apply_context f x) e
   | context_app_right f e =>
     application f (apply_context e x)
-  | context_def_val e t f =>
+  (* | context_def_val e t f =>
     definition (apply_context e x) t f
   | context_def_type e t f =>
     definition e (apply_context t x) f
@@ -238,7 +238,7 @@ Fixpoint apply_context (h: context) (x: term): term :=
   | context_delay e =>
     delay (apply_context e x)
   | context_force e =>
-    force (apply_context e x)
+    force (apply_context e x) *)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -268,7 +268,7 @@ Inductive value: term -> Prop :=
   | value_abstraction:
     forall t e,
     value (abstraction t e)
-  | value_sigma:
+  (* | value_sigma:
     forall t u,
     value (sigma t u)
   | value_pair:
@@ -280,6 +280,6 @@ Inductive value: term -> Prop :=
     value bool_tt
   | value_false:
     value bool_ff
-  (* TODO: thunks... *).
+  (* TODO: thunks... *) *).
 
 Global Hint Constructors value: cps.

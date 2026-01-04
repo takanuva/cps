@@ -14,7 +14,7 @@ Inductive step: env -> relation term :=
   | step_beta:
     forall g t e f,
     step g (application (abstraction t e) f) (subst f 0 e)
-  (* Zeta reduction. *)
+  (* (* Zeta reduction. *)
   | step_zeta:
     forall g e t f,
     step g (definition e t f) (subst e 0 f)
@@ -36,7 +36,7 @@ Inductive step: env -> relation term :=
     step g (bool_if bool_tt t f1 f2) f1
   | step_ff:
     forall g t f1 f2,
-    step g (bool_if bool_ff t f1 f2) f2
+    step g (bool_if bool_ff t f1 f2) f2 *)
   (* Congruence closure... many rules! *)
   | step_pi_type:
     forall g t1 t2 u,
@@ -62,7 +62,7 @@ Inductive step: env -> relation term :=
     forall g e f1 f2,
     step g f1 f2 ->
     step g (application e f1) (application e f2)
-  | step_def_term:
+  (* | step_def_term:
     forall g e1 e2 t f,
     step g e1 e2 ->
     step g (definition e1 t f) (definition e2 t f)
@@ -129,7 +129,7 @@ Inductive step: env -> relation term :=
   | step_force:
     forall g e1 e2,
     step g e1 e2 ->
-    step g (force e1) (force e2).
+    step g (force e1) (force e2) *).
 
 Global Hint Constructors step: cps.
 
@@ -176,7 +176,7 @@ Proof.
   induction x; auto with cps.
 Qed.
 
-Lemma pair_is_decidable:
+(* Lemma pair_is_decidable:
   forall P: term -> Type,
   forall f1: (forall t e f, P (pair t e f)),
   forall f2: (forall x, (forall t e f, x <> pair t e f) -> P x),
@@ -184,9 +184,9 @@ Lemma pair_is_decidable:
   P x.
 Proof.
   induction x; auto with cps.
-Qed.
+Qed. *)
 
-Lemma bool_value_is_decidable:
+(* Lemma bool_value_is_decidable:
   forall P: term -> Type,
   forall f1: P bool_tt,
   forall f2: P bool_ff,
@@ -195,7 +195,7 @@ Lemma bool_value_is_decidable:
   P x.
 Proof.
   induction x; auto with cps.
-Qed.
+Qed. *)
 
 (* Pick a reduct for a term, arbitrarily defined in a call-by-name order in a
    computationally relevant way, or return a proof that there is none. *)
@@ -211,14 +211,15 @@ Proof with eauto with cps.
   - (* Sorts are atomics, of course. *)
     right; easy.
   (* Case: bound. *)
-  - (* A variable can reduce if and only if the environment defines it. *)
+  - (* (* A variable can reduce if and only if the environment defines it. *)
     destruct declaration_existance_is_decidable with g n as [ (e, ?H) | ?H ].
     + (* It does, so we have a delta reduction. *)
       left; eexists.
       destruct H as (t, ?H)...
     + (* There's no definition, so no reduction either. *)
       right; intros x ?.
-      inversion H0; firstorder.
+      inversion H0; firstorder. *)
+    right; inversion 1.
   (* Case: pi. *)
   - (* Check subterms, left to right. *)
     destruct IHe1 with g as [ (x, ?H) | ?H ]...
@@ -246,7 +247,7 @@ Proof with eauto with cps.
     + subst; now apply H with t e.
     + firstorder.
     + firstorder.
-  (* Case: definition. *)
+  (* (* Case: definition. *)
   - (* Easy. This is always a zeta-redex! *)
     left...
   (* Case: sigma. *)
@@ -325,7 +326,7 @@ Proof with eauto with cps.
     right; intros x ?.
     inversion H0.
     subst; rename e into e1.
-    now apply H with e2.
+    now apply H with e2. *)
 Qed.
 
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
@@ -365,7 +366,7 @@ Inductive conv: env -> relation term :=
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2
-  (* Surjective pairing, pair on the left. *)
+  (* (* Surjective pairing, pair on the left. *)
   | conv_sur_left:
     forall g e1 p q t e2 f,
     rt(step g) e1 (pair p q t) ->
@@ -382,7 +383,7 @@ Inductive conv: env -> relation term :=
     conv g (proj2 f) q ->
     conv g e1 e2
   (* TODO: eta for thunks. *)
-  (* TODO: add congruence rules. *).
+  (* TODO: add congruence rules. *) *).
 
 Global Hint Constructors conv: cps.
 
@@ -406,8 +407,8 @@ Proof.
   - now apply conv_join with f.
   - eapply conv_eta_right; eauto with cps.
   - eapply conv_eta_left; eauto with cps.
-  - eapply conv_sur_right; eauto with cps.
-  - eapply conv_sur_left; eauto with cps.
+  (* - eapply conv_sur_right; eauto with cps.
+  - eapply conv_sur_left; eauto with cps. *)
 Qed.
 
 Global Hint Resolve conv_sym: cps.
@@ -431,7 +432,7 @@ Proof.
   admit.
 Admitted.
 
-Lemma surjective_pairing:
+(* Lemma surjective_pairing:
   forall g e t,
   conv g (pair (proj1 e) (proj2 e) t) e.
 Proof.
@@ -441,4 +442,4 @@ Proof.
   - apply rt_refl.
   - apply conv_refl.
   - apply conv_refl.
-Qed.
+Qed. *)

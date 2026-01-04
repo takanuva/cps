@@ -40,13 +40,13 @@ Inductive is_arity: term -> Prop :=
     is_arity u ->
     is_arity (pi t u)
   (* Note that this constructor will not appear in normal forms. *)
-  | is_arity_def:
+  (* | is_arity_def:
     forall v t u,
     (* We take [u] instead of [u[v/x]] in here as MetaCoq does it. TODO: this
        doesn't seem to be what Coq is doing! Could it be that it's only checked
        in normal form...? *)
     is_arity u ->
-    is_arity (definition v t u).
+    is_arity (definition v t u) *).
 
 Inductive type_scheme (R: typing_equivalence) (g: env): term -> Prop :=
   | type_scheme_mk:
@@ -108,7 +108,7 @@ Proof.
     + right; now inversion 1.
   - right; inversion 1.
   - right; inversion 1.
-  - destruct IHt3.
+  (* - destruct IHt3.
     + left; now constructor.
     + right; now inversion 1.
   - right; inversion 1.
@@ -121,7 +121,7 @@ Proof.
   - right; inversion 1.
   - right; inversion 1.
   - right; inversion 1.
-  - right; inversion 1.
+  - right; inversion 1. *)
 Qed.
 
 Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
@@ -182,7 +182,7 @@ Proof.
   - (* Type schemes are stable under substitution according to "A New
        Extraction for Coq". *)
     admit.
-  (* Case: definition. *)
+  (* (* Case: definition. *)
   - (* Ditto. *)
     admit.
   (* Case: sigma. *)
@@ -206,7 +206,7 @@ Proof.
   (* Case: delay. *)
   - admit.
   (* Case: force. *)
-  - admit.
+  - admit. *)
   (* Case: conv. *)
   - admit.
   (* Case: empty env. *)

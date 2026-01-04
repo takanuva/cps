@@ -64,7 +64,7 @@ Qed.
 
 (* fun (T: Set) (U: T -> Set) (x: T) (y: U x): Sigma z: T, U z => (x, y) *)
 
-Example dependent_example2: TT.term :=
+(* Example dependent_example2: TT.term :=
   TT.abstraction TT.iset
     (TT.abstraction (TT.pi 0 TT.iset)
       (TT.abstraction 1
@@ -132,7 +132,7 @@ Example dependent_example3_typed:
 Proof.
   (* This will need cumulativity and conversion. Oh boy! *)
   admit.
-Admitted.
+Admitted. *)
 
 (*
 
@@ -208,7 +208,7 @@ Inductive cbv_dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
     ~TT.type_scheme R g (TT.bound n) ->
     cbv_dcps g (TT.bound n) (RET 0 (1 + n))
   (*
-    [G |- \x: T.e] = k<v> { v<x: [G |- T], k: ~[G |- U]> = [e] }
+    [G |- \x: T.e] = k<v> { v<x: [T], k: ~[U]> = [e] }
 
     Given that G, x: T |- e : U, and e is not a type scheme under (G, x: T).
   *)

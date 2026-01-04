@@ -113,6 +113,7 @@ Proof.
     + clear IHinfer2.
       specialize (IHinfer1 _ _ _ _ eq_refl JMeq_refl).
       eapply conv_trans with t0; auto.
+  (* - admit.
   - admit.
   - admit.
   - admit.
@@ -123,8 +124,7 @@ Proof.
   - admit.
   - admit.
   - admit.
-  - admit.
-  - admit.
+  - admit. *)
   - admit.
   - admit.
   - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl _ H2).
