@@ -80,12 +80,15 @@ Definition LET (h: context) (b: pseudoterm): pseudoterm :=
 Definition FUN (ts: list pseudoterm) (c: pseudoterm): context :=
   context_left context_hole ts c.
 
+(* TODO: check requirements for constructors, please. *)
+
+Axiom PLACEHOLDER: TT.decl.
+
 Inductive cbv_dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
   (*
     [G |- x] = k<x>
 
-    Given that G |- x : T, and x is not a type scheme under G. Note that it
-    could only possibly be one if it is defined as one in G.
+             = RETURN x
   *)
   | cbv_dcps_return:
     forall g n t,
@@ -95,14 +98,18 @@ Inductive cbv_dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
   (*
     [G |- \x: T.e] = k<v> { v<x: [T], k: ~[U]> = [e] }
 
-    Given that G, x: T |- e : U, and e is not a type scheme under (G, x: T).
+                   = LET
+                       v = FUN[x: [T], k: ~[U]] => [e]
+                     IN RETURN v
   *)
   | cbv_dcps_letfun:
-    forall g t e u c,
+    forall g t e u b,
     TT.typing (TT.decl_var t :: g) e u R ->
     ~TT.type_scheme R (TT.decl_var t :: g) e ->
+    (* Hmmm... *)
+    cbv_dcps (TT.decl_var (lift 1 0 t) :: PLACEHOLDER :: g) (lift 1 1 e) b ->
     (* TODO: derive c and types... *)
-    cbv_dcps g (TT.abstraction t e) (LET (FUN [void; void] c) (RET 1 0)).
+    cbv_dcps g (TT.abstraction t e) (LET (FUN [void; void] b) (RET 1 0)).
 
 Lemma TT_typing_cbv_dcps:
   forall g e b,
@@ -117,3 +124,97 @@ Proof.
 Qed.
 
 (* TODO: prove that cbv_dcps is total for typed terms! *)
+
+Local Notation V := void.
+
+(* Quick sketch to help debugging; I will need a proper notation library later
+   on. *)
+
+Local Notation "b '{' ts '=' c '}'" :=
+  (bind b ts c)
+  (at level 200,
+   b at level 200,
+   format "'[v' b '//' '{'  ts  '=' '/  ' '[' c ']' '/' '}' ']'",
+   only printing).
+
+Local Notation "x xs" :=
+  (jump x xs)
+  (at level 199,
+   format "'[v' x xs ']'",
+   only printing).
+
+Local Goal
+  exists2 b,
+  cbv_dcps [] TT.dependent_example1 b & b = V.
+Proof.
+  eexists.
+  unfold TT.dependent_example1.
+  eapply cbv_dcps_letfun.
+  eapply TT.typing_abs.
+  eapply TT.typing_abs.
+  eapply TT.typing_abs.
+  eapply TT.typing_app.
+  eapply TT.typing_bound.
+  repeat econstructor; vm_compute; reflexivity.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  eapply TT.typing_bound.
+  repeat econstructor; vm_compute; reflexivity.
+  constructor.
+  now simpl.
+  now vm_compute.
+  now vm_compute.
+  admit.
+  vm_compute.
+  eapply cbv_dcps_letfun.
+  eapply TT.typing_abs.
+  eapply TT.typing_abs.
+  eapply TT.typing_app.
+  eapply TT.typing_bound.
+  admit.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  eapply TT.typing_bound.
+  admit.
+  constructor.
+  now simpl.
+  now vm_compute.
+  now vm_compute.
+  admit.
+  vm_compute.
+  eapply cbv_dcps_letfun.
+  eapply TT.typing_abs.
+  eapply TT.typing_app.
+  eapply TT.typing_bound.
+  admit.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  eapply TT.typing_bound.
+  admit.
+  constructor.
+  now simpl.
+  now vm_compute.
+  now vm_compute.
+  admit.
+  vm_compute.
+  eapply cbv_dcps_letfun.
+  eapply TT.typing_app.
+  eapply TT.typing_bound.
+  admit.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  eapply TT.typing_bound.
+  admit.
+  constructor.
+  now simpl.
+  now vm_compute.
+  now vm_compute.
+  admit.
+  vm_compute.
+  admit.
+  simpl.
+Admitted.
