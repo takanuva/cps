@@ -90,6 +90,15 @@ Definition CALL (f: nat) (x: nat) (k: nat): pseudoterm :=
 
 Axiom PLACEHOLDER: TT.decl.
 
+Local Notation VAR n :=
+  (RET 0 (1 + n)).
+
+Local Notation ABS b t1 t2 :=
+  (LET (FUN [t1; t2] b) (RET 1 0)).
+
+Local Notation APP b c t1 t2 :=
+  (BIND b [t1] (BIND c [t2] (CALL 1 2 0))).
+
 Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
   (*
     [G |- x] = k<x>
@@ -100,7 +109,7 @@ Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
     forall g n t,
     TT.typing g (TT.bound n) t R ->
     ~TT.type_scheme R g (TT.bound n) ->
-    dcps g (TT.bound n) (RET 0 (1 + n))
+    dcps g (TT.bound n) (VAR n)
   (*
     [G |- \x: T.e] = k<v> { v<x: [T], k: ~[U]> = [e] }
 
@@ -115,7 +124,7 @@ Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
     (* Hmmm... *)
     dcps (TT.decl_var (lift 1 0 t) :: PLACEHOLDER :: g) (lift 1 1 e) b ->
     (* TODO: derive c and types... *)
-    dcps g (TT.abstraction t e) (LET (FUN [void; void] b) (RET 1 0))
+    dcps g (TT.abstraction t e) (ABS b void void)
   (*
     [G |- f e] = [f] { k<y: [Pi x: T.U]> = [e] { k<z: [T]> = y<z, k> } }
 
@@ -127,7 +136,7 @@ Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
     forall g e f b c,
     dcps (PLACEHOLDER :: g) (lift 1 0 f) b ->
     dcps (PLACEHOLDER :: PLACEHOLDER :: g) (lift 2 0 e) c ->
-    dcps g (TT.application f e) (BIND b [void] (BIND c [void] (CALL 1 2 0))).
+    dcps g (TT.application f e) (APP b c void void).
 
 Lemma TT_typing_cbv_dcps:
   forall g e b,
