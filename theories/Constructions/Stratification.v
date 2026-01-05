@@ -5,6 +5,7 @@
 Require Import List.
 Require Import Equality.
 Require Import Local.Prelude.
+Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
@@ -282,93 +283,62 @@ Qed.
    classification to live in Prop...? *)
 
 Variant class: Set :=
-  | class_kind
-  | class_type
+  | class_arity
+  | class_type_scheme
   | class_term.
 
-Inductive stratify: class -> term -> Prop :=
-  (* [Prop] *)
-  | stratify_prop:
-    stratify class_kind iset
-  (* [Pi x: T.S] *)
-  | stratify_pi_type_kind:
-    forall t u,
-    stratify class_type t ->
-    stratify class_kind u ->
-    stratify class_kind (pi t u)
-  (* [Pi X: S.S] *)
-  | stratify_pi_kind_kind:
-    forall t u,
-    stratify class_kind t ->
-    stratify class_kind u ->
-    stratify class_kind (pi t u)
-  (* [X] *)
-  | stratify_bound_type:
-    forall n,
-    stratify class_type (bound n)
-  (* [Pi x: T.T] *)
-  | stratify_pi_type_type:
-    forall t u,
-    stratify class_type t ->
-    stratify class_type u ->
-    stratify class_type (pi t u)
-  (* [Pi X: S.T] *)
-  | stratify_pi_kind_type:
-    forall t u,
-    stratify class_kind t ->
-    stratify class_type u ->
-    stratify class_type (pi t u)
-  (* [\x: T.T] *)
-  | stratify_abs_type_type:
-    forall t u,
-    stratify class_type t ->
-    stratify class_type u ->
-    stratify class_type (abstraction t u)
-  (* [\X: S.T] *)
-  | stratify_abs_sort_type:
-    forall t u,
-    stratify class_kind t ->
-    stratify class_type u ->
-    stratify class_type (abstraction t u)
-  (* [T e] *)
-  | stratify_app_type_term:
-    forall t e,
-    stratify class_type t ->
-    stratify class_term e ->
-    stratify class_type (application t e)
-  (* [T T] *)
-  | stratify_app_type_type:
-    forall t u,
-    stratify class_type t ->
-    stratify class_type u ->
-    stratify class_type (application t u)
-  (* [x] *)
-  | stratify_bound_term:
-    forall n,
-    stratify class_term (bound n)
-  (* [\x: T.e] *)
-  | stratify_abs_type_term:
-    forall t e,
-    stratify class_type t ->
-    stratify class_term e ->
-    stratify class_term (abstraction t e)
-  (* [\X: S.e] *)
-  | stratify_abs_sort_term:
-    forall t e,
-    stratify class_kind t ->
-    stratify class_term e ->
-    stratify class_term (abstraction t e)
-  (* [e e] *)
-  | stratify_app_term_term:
-    forall e f,
-    stratify class_term e ->
-    stratify class_term f ->
-    stratify class_term (application e f)
-  (* [e T] *)
-  | stratify_app_term_type:
-    forall e t,
-    stratify class_term e ->
-    stratify class_type t ->
-    stratify class_term (application e t).
+Local Notation KIND := class_arity.
+Local Notation TYPE := class_type_scheme.
+Local Notation TERM := class_term.
+
+(*
+  ...
+*)
+
+Inductive stratify: class -> list class -> term -> Prop :=
+  | stratify_universe:
+    forall h u,
+    stratify KIND h (sort u)
+  (* --------------------------- *)
+  | stratify_type_variable:
+    forall h n,
+    item KIND h n ->
+    stratify TYPE h (bound n)
+  (* --------------------------- *)
+  | stratify_term_variable:
+    forall h n,
+    item TYPE h n ->
+    stratify TERM h (bound n).
 
 Global Coercion stratify: class >-> Funclass.
+
+Lemma syntactic_class_is_unique:
+  forall c1 g e,
+  stratify c1 g e ->
+  forall c2,
+  stratify c2 g e ->
+  c1 = c2.
+Proof.
+  induction 1; intros.
+  - dependent destruction H.
+    reflexivity.
+  - dependent destruction H0.
+    + reflexivity.
+    + exfalso.
+      enough (TYPE = KIND) by discriminate.
+      now apply item_unique with h n.
+  - dependent destruction H0.
+    + exfalso.
+      enough (TYPE = KIND) by discriminate.
+      now apply item_unique with h n.
+    + reflexivity.
+Qed.
+
+Inductive stratified_env: env -> list class -> Prop :=
+  | stratified_env_nil:
+    stratified_env [] []
+  | stratified_env_cons:
+    forall d t c g h,
+    stratified_env g h ->
+    stratify c h t ->
+    stratified_env ((d, t) :: g) (c :: h).
