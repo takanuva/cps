@@ -55,7 +55,8 @@ Section Cumulativity.
     | cumul_pi:
       forall g t u1 u2,
       cumul (decl_var t :: g) u1 u2 ->
-      cumul g (pi t u1) (pi t u2).
+      cumul g (pi t u1) (pi t u2)
+    (* TODO: cumulativity for sigma, plus check coproducts. *).
 
   Hypothesis R_is_equiv: forall g, equivalence (R g).
 
