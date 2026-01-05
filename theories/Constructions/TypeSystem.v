@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -10,11 +10,9 @@ Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
+Require Import Local.Constructions.Cumulativity.
 
 Import ListNotations.
-
-Definition typing_equivalence: Type :=
-  env -> relation term.
 
 Section TypeSystem.
 
@@ -219,15 +217,15 @@ Section TypeSystem.
       infer (typing g e (thunk t)) ->
       infer (typing g (force e) t) *)
     (*
-        G |- e : T     G |- U : s     G |- T R U
-      --------------------------------------------
-                       G |- e : U
+        G |- e : T     G |- U : s     G |- T <=R U
+      ----------------------------------------------
+                        G |- e : U
     *)
     | typing_conv:
       forall g e t u s,
       infer (typing g e t) ->
       infer (typing g u (sort s)) ->
-      R g t u ->
+      cumul R g t u ->
       infer (typing g e u)
     (*
       --------
@@ -352,6 +350,22 @@ Proof.
   assumption.
 Qed.
 
+Lemma cumul_subset:
+  forall R S,
+  (forall g, inclusion (R g) (S g)) ->
+  forall g e1 e2,
+  cumul R g e1 e2 ->
+  cumul S g e1 e2.
+Proof.
+  induction 2.
+  - apply cumul_refl.
+    now apply H.
+  - now apply cumul_trans with e2.
+  - apply cumul_iset.
+  - now apply cumul_type.
+  - now apply cumul_pi.
+Qed.
+
 Lemma infer_subset:
   forall R S,
   (forall g, inclusion (R g) (S g)) ->
@@ -406,7 +420,7 @@ Proof.
     apply typing_conv with t s.
     + assumption.
     + assumption.
-    + now apply H.
+    + now apply cumul_subset with R.
   (* Case: empty env. *)
   - apply valid_env_nil.
   (* Case: env var. *)

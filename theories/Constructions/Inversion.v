@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -9,11 +9,14 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
+Require Import Local.Constructions.Cumulativity.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Confluence.
 (* Require Import Local.Constructions.Normalization. *)
 
 (* TODO: why are we using conv here instead of any R? *)
+
+(*
 
 Lemma typing_type_inv:
   forall g n t,
@@ -27,6 +30,8 @@ Proof.
     apply conv_trans with u.
     + now apply conv_sym.
     + now apply IHinfer1.
+  - rename t0 into u.
+    apply cumul_trans with u.
 Qed.
 
 Lemma typing_iset_inv:
@@ -63,7 +68,7 @@ Proof.
     + apply conv_refl.
   (* Case: conv. *)
   - clear IHinfer2.
-    specialize (IHinfer1 _ _ _ eq_refl JMeq_refl) as (x, ?, ?).
+    specialize (IHinfer1 _ _ _ eq_refl eq_refl) as (x, ?, ?).
     exists x.
     + assumption.
     + rename t0 into u.
@@ -101,8 +106,8 @@ Proof.
       assert (x = (Some e, t)) by now apply item_unique with g n.
       dependent destruction H4; simpl in H3.
       now apply conv_sym.
-  - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl).
-    specialize (IHinfer2 _ _ _ eq_refl JMeq_refl).
+  - specialize (IHinfer1 _ _ _ eq_refl eq_refl).
+    specialize (IHinfer2 _ _ _ eq_refl eq_refl).
     generalize dependent s2.
     generalize dependent s1.
     dependent induction H1; intros.
@@ -111,7 +116,7 @@ Proof.
       specialize (IHinfer3 _ H1_0).
       admit.
     + clear IHinfer2.
-      specialize (IHinfer1 _ _ _ _ eq_refl JMeq_refl).
+      specialize (IHinfer1 _ _ _ _ eq_refl eq_refl).
       eapply conv_trans with t0; auto.
   (* - admit.
   - admit.
@@ -127,8 +132,9 @@ Proof.
   - admit. *)
   - admit.
   - admit.
-  - specialize (IHinfer1 _ _ _ eq_refl JMeq_refl _ H2).
+  - specialize (IHinfer1 _ _ _ eq_refl eq_refl _ H2).
     apply conv_trans with t.
     + now apply conv_sym.
     + assumption.
 Admitted.
+*)

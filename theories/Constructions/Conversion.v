@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Relations.
@@ -329,6 +329,9 @@ Proof with eauto with cps.
     now apply H with e2. *)
 Qed.
 
+Definition typing_equivalence: Type :=
+  env -> relation term.
+
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
 
    The documentation doesn't seem to suggest this is a congruence relation, but,
@@ -345,7 +348,7 @@ Qed.
    terms that are checked for convertibility by the typechecking algorithm are
    already expected to have the same type. *)
 
-Inductive conv: env -> relation term :=
+Inductive conv: typing_equivalence :=
   (* Common reduct. *)
   | conv_join:
     forall g e1 e2 f,

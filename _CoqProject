@@ -49,6 +49,7 @@ theories/Pi/Control.v
 theories/Pi/Interpretation.v
 theories/Constructions/Calculus.v
 theories/Constructions/Conversion.v
+theories/Constructions/Cumulativity.v
 theories/Constructions/Confluence.v
 theories/Constructions/TypeSystem.v
 theories/Constructions/Inversion.v
