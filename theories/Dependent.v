@@ -71,8 +71,8 @@ Local Notation R := TT.conv.
 
 Local Coercion TT.lift_judgement: TT.typing_judgement >-> Funclass.
 
-Definition RET (k: nat) (n: nat): pseudoterm :=
-  jump (bound k) [bound n].
+Definition RET (k: nat) (x: nat): pseudoterm :=
+  jump (bound k) [bound x].
 
 Definition LET (h: context) (b: pseudoterm): pseudoterm :=
   h b.
@@ -80,48 +80,63 @@ Definition LET (h: context) (b: pseudoterm): pseudoterm :=
 Definition FUN (ts: list pseudoterm) (c: pseudoterm): context :=
   context_left context_hole ts c.
 
+Definition BIND (b: pseudoterm) ts (c: pseudoterm): pseudoterm :=
+  bind b ts c.
+
+Definition CALL (f: nat) (x: nat) (k: nat): pseudoterm :=
+  jump (bound f) [bound x; bound k].
+
 (* TODO: check requirements for constructors, please. *)
 
 Axiom PLACEHOLDER: TT.decl.
 
-Inductive cbv_dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
+Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
   (*
     [G |- x] = k<x>
 
-             = RETURN x
+             = RETURN x TO k
   *)
-  | cbv_dcps_return:
+  | dcps_return:
     forall g n t,
     TT.typing g (TT.bound n) t R ->
     ~TT.type_scheme R g (TT.bound n) ->
-    cbv_dcps g (TT.bound n) (RET 0 (1 + n))
+    dcps g (TT.bound n) (RET 0 (1 + n))
   (*
     [G |- \x: T.e] = k<v> { v<x: [T], k: ~[U]> = [e] }
 
                    = LET
                        v = FUN[x: [T], k: ~[U]] => [e]
-                     IN RETURN v
+                     IN RETURN v TO k
   *)
-  | cbv_dcps_letfun:
+  | dcps_letfun:
     forall g t e u b,
     TT.typing (TT.decl_var t :: g) e u R ->
     ~TT.type_scheme R (TT.decl_var t :: g) e ->
     (* Hmmm... *)
-    cbv_dcps (TT.decl_var (lift 1 0 t) :: PLACEHOLDER :: g) (lift 1 1 e) b ->
+    dcps (TT.decl_var (lift 1 0 t) :: PLACEHOLDER :: g) (lift 1 1 e) b ->
     (* TODO: derive c and types... *)
-    cbv_dcps g (TT.abstraction t e) (LET (FUN [void; void] b) (RET 1 0)).
+    dcps g (TT.abstraction t e) (LET (FUN [void; void] b) (RET 1 0))
+  (*
+    [G |- f e] = [f] { k<y: [Pi x: T.U]> = [e] { k<z: [T]> = y<z, k> } }
+
+               = BIND y: [Pi x: T.U] = [f] IN
+                 BIND z: [T] = [e] IN
+                 CALL y WITH z TO k
+  *)
+  | dcps_dobind:
+    forall g e f b c,
+    dcps (PLACEHOLDER :: g) (lift 1 0 f) b ->
+    dcps (PLACEHOLDER :: PLACEHOLDER :: g) (lift 2 0 e) c ->
+    dcps g (TT.application f e) (BIND b [void] (BIND c [void] (CALL 1 2 0))).
 
 Lemma TT_typing_cbv_dcps:
   forall g e b,
-  cbv_dcps g e b ->
+  dcps g e b ->
   exists t,
   TT.typing g e t R.
 Proof.
-  induction 1.
-  - now exists t.
-  - exists (TT.pi t u).
-    now apply TT.typing_abs.
-Qed.
+  admit.
+Admitted.
 
 (* TODO: prove that cbv_dcps is total for typed terms! *)
 
@@ -145,11 +160,11 @@ Local Notation "x xs" :=
 
 Local Goal
   exists2 b,
-  cbv_dcps [] TT.dependent_example1 b & b = V.
+  dcps [] TT.dependent_example1 b & b = V.
 Proof.
   eexists.
   unfold TT.dependent_example1.
-  eapply cbv_dcps_letfun.
+  eapply dcps_letfun.
   eapply TT.typing_abs.
   eapply TT.typing_abs.
   eapply TT.typing_abs.
@@ -167,7 +182,7 @@ Proof.
   now vm_compute.
   admit.
   vm_compute.
-  eapply cbv_dcps_letfun.
+  eapply dcps_letfun.
   eapply TT.typing_abs.
   eapply TT.typing_abs.
   eapply TT.typing_app.
@@ -184,7 +199,7 @@ Proof.
   now vm_compute.
   admit.
   vm_compute.
-  eapply cbv_dcps_letfun.
+  eapply dcps_letfun.
   eapply TT.typing_abs.
   eapply TT.typing_app.
   eapply TT.typing_bound.
@@ -200,7 +215,7 @@ Proof.
   now vm_compute.
   admit.
   vm_compute.
-  eapply cbv_dcps_letfun.
+  eapply dcps_letfun.
   eapply TT.typing_app.
   eapply TT.typing_bound.
   admit.
@@ -215,6 +230,22 @@ Proof.
   now vm_compute.
   admit.
   vm_compute.
+  eapply dcps_dobind.
+  vm_compute.
+  eapply dcps_return.
+  eapply TT.typing_bound.
   admit.
-  simpl.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  admit.
+  vm_compute.
+  eapply dcps_return.
+  eapply TT.typing_bound.
+  admit.
+  repeat constructor.
+  now simpl.
+  now vm_compute.
+  admit.
+  unfold LET, FUN, BIND, RET, CALL; simpl.
 Admitted.
