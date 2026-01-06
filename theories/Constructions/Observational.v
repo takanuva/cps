@@ -25,6 +25,8 @@ Import ListNotations.
    define that two terms are observationally equivalent if they are equivalent
    no matter for every possible number of steps we need. *)
 
+(* TODO: check also https://www.cs.ox.ac.uk/files/293/lazy.pdf. *)
+
 Fixpoint observational_approx (n: nat): env -> relation term :=
   fun g e1 e2 =>
     match n with
