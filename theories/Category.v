@@ -2,41 +2,23 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Setoid.
 Require Import Relations.
 Require Import Morphisms.
 
 Set Primitive Projections.
 
-Polymorphic Definition structure: Type := Type -> Type.
-
-Polymorphic Record packed {S: structure}: Type := pack_carrier {
-  carrier :> Type;
-  structure_def: S carrier
+Polymorphic Class Setoid: Type := {
+  carrier: Type;
+  equiv: relation carrier;
+  setoid_equiv: Equivalence equiv
 }.
 
-Global Coercion packed: structure >-> Sortclass.
-
-Global Canonical Structure structure_search :=
-  fun (T: Set) {S: structure} `{H: S T} => pack_carrier S T H.
-
-Polymorphic Inductive Setoid: structure :=
-  | Setoid_mk:
-    forall C: Type,
-    forall R: relation C,
-    Equivalence R -> Setoid C.
-
-Existing Class Setoid.
 Add Printing Let Setoid.
 
-Definition setoid_def: forall S: Setoid, Setoid S :=
-  structure_def.
+Global Coercion carrier: Setoid >-> Sortclass.
 
-Existing Instance setoid_def.
-
-Definition equiv {T} `{S: Setoid T}: relation T :=
-  match S in Setoid X return relation X with
-  | Setoid_mk _ R _ => R
-  end.
+Existing Instance setoid_equiv.
 
 Notation "x == y" := (equiv x y)
   (at level 70, no associativity): type_scope.
@@ -44,28 +26,30 @@ Notation "x == y" := (equiv x y)
 Notation "x =/= y" := (complement equiv x y)
   (at level 70, no associativity): type_scope.
 
-Instance setoid_equiv: forall {T} (S: Setoid T), Equivalence (@equiv T S).
-Proof.
-  intros.
-  destruct S as (C, R, H).
-  assumption.
-Qed.
+Polymorphic Class Category: Type := {
+  obj: Type;
+  hom: obj -> obj -> Setoid;
+  id {x}: hom x x;
+  post {x y z}: hom x y -> hom y z -> hom x z;
+  post_respectful {x y z}:
+    Proper (equiv ==> equiv ==> equiv) (@post x y z);
+  post_id_left {x y}:
+    forall f: hom x y,
+    post id f == f;
+  post_id_right {x y}:
+    forall f: hom x y,
+    post f id == f;
+  post_assoc {x y z w}:
+    forall f: hom x y,
+    forall g: hom y z,
+    forall h: hom z w,
+    post f (post g h) == post (post f g) h
+}.
 
-Polymorphic Inductive Category: structure :=
-  | Category_mk:
-    forall obj: Type,
-    forall arr: obj -> obj -> Setoid,
-    forall id: (forall {X: obj}, arr X X),
-    forall postcomp: (forall {X Y Z}, arr X Y -> arr Y Z -> arr X Z),
-    (forall {x y z},
-       Proper (equiv ==> equiv ==> equiv) (@postcomp x y z)) ->
-    (forall {x y} (f: arr x y),
-       postcomp id f == f) ->
-    (forall {x y} (f: arr x y),
-       postcomp f id == f) ->
-    (forall {x y z w} (f: arr x y) (g: arr y z) (h: arr z w),
-       postcomp f (postcomp g h) == postcomp (postcomp f g) h) ->
-    Category obj.
-
-Existing Class Category.
 Add Printing Let Category.
+
+Global Coercion obj: Category >-> Sortclass.
+
+Global Coercion hom: Category >-> Funclass.
+
+Existing Instance post_respectful.
