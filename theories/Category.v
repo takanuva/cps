@@ -26,11 +26,33 @@ Polymorphic Inductive Setoid: structure :=
     Equivalence R -> Setoid C.
 
 Existing Class Setoid.
+Add Printing Let Setoid.
+
+Definition equiv {T} `{S: Setoid T}: relation T :=
+  match S in Setoid X return relation X with
+  | Setoid_mk _ R _ => R
+  end.
+
+Instance setoid_equiv: forall {T} (S: Setoid T), Equivalence (@equiv T S).
+Proof.
+  intros.
+  destruct S as (C, R, H).
+  assumption.
+Qed.
+
+Notation "x == y" := (equiv x y)
+  (at level 70, no associativity): type_scope.
+
+Notation "x =/= y" := (complement equiv x y)
+  (at level 70, no associativity): type_scope.
 
 Polymorphic Inductive Category: structure :=
   | Category_mk:
-    forall O: Type,
-    forall A: O -> O -> Setoid,
-    Category O.
+    forall obj: Type,
+    forall arr: obj -> obj -> Setoid,
+    forall id: (forall X: obj, arr X X),
+    forall postcompose: (forall X Y Z, arr X Y -> arr Y Z -> arr X Z),
+    Category obj.
 
 Existing Class Category.
+Add Printing Let Category.
