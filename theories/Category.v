@@ -28,10 +28,21 @@ Polymorphic Inductive Setoid: structure :=
 Existing Class Setoid.
 Add Printing Let Setoid.
 
+Definition setoid_def: forall S: Setoid, Setoid S :=
+  structure_def.
+
+Existing Instance setoid_def.
+
 Definition equiv {T} `{S: Setoid T}: relation T :=
   match S in Setoid X return relation X with
   | Setoid_mk _ R _ => R
   end.
+
+Notation "x == y" := (equiv x y)
+  (at level 70, no associativity): type_scope.
+
+Notation "x =/= y" := (complement equiv x y)
+  (at level 70, no associativity): type_scope.
 
 Instance setoid_equiv: forall {T} (S: Setoid T), Equivalence (@equiv T S).
 Proof.
@@ -40,18 +51,20 @@ Proof.
   assumption.
 Qed.
 
-Notation "x == y" := (equiv x y)
-  (at level 70, no associativity): type_scope.
-
-Notation "x =/= y" := (complement equiv x y)
-  (at level 70, no associativity): type_scope.
-
 Polymorphic Inductive Category: structure :=
   | Category_mk:
     forall obj: Type,
     forall arr: obj -> obj -> Setoid,
-    forall id: (forall X: obj, arr X X),
-    forall postcompose: (forall X Y Z, arr X Y -> arr Y Z -> arr X Z),
+    forall id: (forall {X: obj}, arr X X),
+    forall postcomp: (forall {X Y Z}, arr X Y -> arr Y Z -> arr X Z),
+    (forall {x y z},
+       Proper (equiv ==> equiv ==> equiv) (@postcomp x y z)) ->
+    (forall {x y} (f: arr x y),
+       postcomp id f == f) ->
+    (forall {x y} (f: arr x y),
+       postcomp f id == f) ->
+    (forall {x y z w} (f: arr x y) (g: arr y z) (h: arr z w),
+       postcomp f (postcomp g h) == postcomp (postcomp f g) h) ->
     Category obj.
 
 Existing Class Category.
