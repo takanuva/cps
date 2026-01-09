@@ -161,15 +161,16 @@ Global Program Instance Cat: Category := {
   obj := Category;
   hom T U := {|
     carrier := Functor T U;
+    (* TODO: this equality is too strong! *)
     equiv f g := forall x, f x = g x
   |};
   id C := {|
-    mapping (x: C) := x;
-    fmap x y (f: C x y) := f
+    mapping x := x;
+    fmap x y f := f
   |};
-  post C D F (f: Functor C D) (g: Functor D F) := {|
-    mapping (x: C) := g (f x);
-    fmap (x y: C) (a: C x y) := fmap (fmap a)
+  post C D F f g := {|
+    mapping x := g (f x);
+    fmap x y a := fmap (fmap a)
   |}
 }.
 
