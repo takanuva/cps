@@ -15,6 +15,8 @@ Polymorphic Class Setoid: Type := {
   setoid_equiv: Equivalence equiv
 }.
 
+Arguments carrier Setoid: clear implicits.
+
 Add Printing Let Setoid.
 
 Global Coercion carrier: Setoid >-> Sortclass.
@@ -82,6 +84,8 @@ Polymorphic Class Functor (C: Category) (D: Category): Type := {
 
 Global Coercion mapping: Functor >-> Funclass.
 
+Global Existing Instance fmap_respectful.
+
 (* -------------------------------------------------------------------------- *)
 
 Global Polymorphic Program Instance SetCategory: Category := {
@@ -90,8 +94,8 @@ Global Polymorphic Program Instance SetCategory: Category := {
     carrier := T -> U;
     equiv f g := forall x, f x = g x
   |};
-  id {T} x := x;
-  post {T U V} f g x := g (f x)
+  id T x := x;
+  post T U V f g x := g (f x)
 }.
 
 Next Obligation of SetCategory.
@@ -112,10 +116,10 @@ Global Polymorphic Program Instance SetoidCategory: Category := {
     carrier := T ~> U;
     equiv f g := forall x, f x == g x
   |};
-  id {T} := {|
+  id T := {|
     function x := x
   |};
-  post {T U V} f g := {|
+  post T U V f g := {|
     function x := g (f x)
   |}
 }.
@@ -151,4 +155,57 @@ Qed.
 
 Next Obligation of SetoidCategory.
   reflexivity.
+Qed.
+
+Global Polymorphic Program Instance Cat: Category := {
+  obj := Category;
+  hom T U := {|
+    carrier := Functor T U;
+    equiv f g := forall x, f x = g x
+  |};
+  id C := {|
+    mapping (x: C) := x;
+    fmap x y (f: C x y) := f
+  |};
+  post C D F (f: Functor C D) (g: Functor D F) := {|
+    mapping (x: C) := g (f x);
+    fmap (x y: C) (a: C x y) := fmap (fmap a)
+  |}
+}.
+
+Next Obligation of Cat.
+  split; repeat intro.
+  - reflexivity.
+  - now rewrite H.
+  - now rewrite H, H0.
+Qed.
+
+Next Obligation of Cat.
+  firstorder.
+Qed.
+
+Next Obligation of Cat.
+  reflexivity.
+Qed.
+
+Next Obligation of Cat.
+  reflexivity.
+Qed.
+
+Next Obligation of Cat.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation of Cat.
+  now do 2 rewrite fmap_id.
+Qed.
+
+Next Obligation of Cat.
+  now do 2 rewrite fmap_comp.
+Qed.
+
+Next Obligation of Cat.
+  repeat intro; simpl.
+  now rewrite H, H0.
 Qed.
