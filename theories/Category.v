@@ -67,7 +67,7 @@ Global Coercion hom: Category >-> Funclass.
 
 Global Existing Instance post_respectful.
 
-Polymorphic Program Instance SetCategory: Category := {
+Global Polymorphic Program Instance SetCategory: Category := {
   obj := Set;
   hom T U := {|
     carrier := T -> U;
@@ -89,7 +89,7 @@ Next Obligation of SetCategory.
   now rewrite H, H0.
 Qed.
 
-Polymorphic Program Instance SetoidCategory: Category := {
+Global Polymorphic Program Instance SetoidCategory: Category := {
   obj := Setoid;
   hom T U := {|
     carrier := T ~> U;
