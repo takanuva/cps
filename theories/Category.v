@@ -19,7 +19,7 @@ Add Printing Let Setoid.
 
 Global Coercion carrier: Setoid >-> Sortclass.
 
-Existing Instance setoid_equiv.
+Global Existing Instance setoid_equiv.
 
 Notation "x == y" := (equiv x y)
   (at level 70, no associativity): type_scope.
@@ -35,7 +35,7 @@ Polymorphic Class SetoidFunction (S: Setoid) (T: Setoid): Type := {
 
 Global Coercion function: SetoidFunction >-> Funclass.
 
-Existing Instance function_respectful.
+Global Existing Instance function_respectful.
 
 Infix "~>" := SetoidFunction (at level 90, right associativity).
 
@@ -65,7 +65,7 @@ Global Coercion obj: Category >-> Sortclass.
 
 Global Coercion hom: Category >-> Funclass.
 
-Existing Instance post_respectful.
+Global Existing Instance post_respectful.
 
 Polymorphic Program Instance SetCategory: Category := {
   obj := Set;
