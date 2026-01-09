@@ -67,6 +67,23 @@ Global Coercion hom: Category >-> Funclass.
 
 Global Existing Instance post_respectful.
 
+Polymorphic Class Functor (C: Category) (D: Category): Type := {
+  mapping: C -> D;
+  fmap {x y}: C x y -> D (mapping x) (mapping y);
+  fmap_respectful {x y}:
+    Proper (equiv ==> equiv) (@fmap x y);
+  fmap_id {x}:
+    @fmap x x (@id C x) == (@id D (mapping x));
+  fmap_comp {x y z}:
+    forall f: C x y,
+    forall g: C y z,
+    fmap (post f g) == post (fmap f) (fmap g)
+}.
+
+Global Coercion mapping: Functor >-> Funclass.
+
+(* -------------------------------------------------------------------------- *)
+
 Global Polymorphic Program Instance SetCategory: Category := {
   obj := Set;
   hom T U := {|
