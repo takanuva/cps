@@ -88,7 +88,7 @@ Global Existing Instance fmap_respectful.
 
 (* -------------------------------------------------------------------------- *)
 
-Global Polymorphic Program Instance SetCategory: Category := {
+Global Program Instance SetCategory: Category := {
   obj := Set;
   hom T U := {|
     carrier := T -> U;
@@ -110,7 +110,7 @@ Next Obligation of SetCategory.
   now rewrite H, H0.
 Qed.
 
-Global Polymorphic Program Instance SetoidCategory: Category := {
+Global Program Instance SetoidCategory: Category := {
   obj := Setoid;
   hom T U := {|
     carrier := T ~> U;
@@ -157,7 +157,7 @@ Next Obligation of SetoidCategory.
   reflexivity.
 Qed.
 
-Global Polymorphic Program Instance Cat: Category := {
+Global Program Instance Cat: Category := {
   obj := Category;
   hom T U := {|
     carrier := Functor T U;
