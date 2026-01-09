@@ -77,14 +77,14 @@ Polymorphic Program Instance SetCategory: Category := {
   post {T U V} f g x := g (f x)
 }.
 
-Next Obligation.
+Next Obligation of SetCategory.
   split; repeat intro.
   - reflexivity.
   - now rewrite H.
   - now rewrite H, H0.
 Qed.
 
-Next Obligation.
+Next Obligation of SetCategory.
   repeat intro.
   now rewrite H, H0.
 Qed.
@@ -103,35 +103,35 @@ Polymorphic Program Instance SetoidCategory: Category := {
   |}
 }.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   split; repeat intro.
   - reflexivity.
   - now rewrite H.
   - now rewrite H, H0.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   firstorder.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   repeat intro.
   now rewrite H.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   repeat intro; simpl.
   now rewrite H, H0.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   reflexivity.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   reflexivity.
 Qed.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   reflexivity.
 Qed.
