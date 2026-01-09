@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Setoid.
+Require Import Program.
 Require Import Relations.
 Require Import Morphisms.
 
@@ -25,6 +26,18 @@ Notation "x == y" := (equiv x y)
 
 Notation "x =/= y" := (complement equiv x y)
   (at level 70, no associativity): type_scope.
+
+Polymorphic Class SetoidFunction (S: Setoid) (T: Setoid): Type := {
+  function: S -> T;
+  function_respectful:
+    Proper (equiv ==> equiv) function
+}.
+
+Global Coercion function: SetoidFunction >-> Funclass.
+
+Existing Instance function_respectful.
+
+Infix "~>" := SetoidFunction (at level 90, right associativity).
 
 Polymorphic Class Category: Type := {
   obj: Type;
@@ -53,3 +66,72 @@ Global Coercion obj: Category >-> Sortclass.
 Global Coercion hom: Category >-> Funclass.
 
 Existing Instance post_respectful.
+
+Polymorphic Program Instance SetCategory: Category := {
+  obj := Set;
+  hom T U := {|
+    carrier := T -> U;
+    equiv f g := forall x, f x = g x
+  |};
+  id {T} x := x;
+  post {T U V} f g x := g (f x)
+}.
+
+Next Obligation.
+  split; repeat intro.
+  - reflexivity.
+  - now rewrite H.
+  - now rewrite H, H0.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H, H0.
+Qed.
+
+Polymorphic Program Instance SetoidCategory: Category := {
+  obj := Setoid;
+  hom T U := {|
+    carrier := T ~> U;
+    equiv f g := forall x, f x == g x
+  |};
+  id {T} := {|
+    function x := x
+  |};
+  post {T U V} f g := {|
+    function x := g (f x)
+  |}
+}.
+
+Next Obligation.
+  split; repeat intro.
+  - reflexivity.
+  - now rewrite H.
+  - now rewrite H, H0.
+Qed.
+
+Next Obligation.
+  firstorder.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation.
+  repeat intro; simpl.
+  now rewrite H, H0.
+Qed.
+
+Next Obligation.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  reflexivity.
+Qed.
