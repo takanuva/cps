@@ -318,6 +318,17 @@ Proof.
   now rewrite H.
 Qed.
 
+(* *)
+
+Polymorphic Structure Terminal (C: Category): Type := {
+  terminal: C;
+  terminal_hom X: C X terminal;
+  terminal_unique:
+    forall X: C,
+    forall f: C X terminal,
+    f == terminal_hom X
+}.
+
 (* We define the notion of a category with family. This is a category C, such
    that:
 
@@ -331,5 +342,6 @@ Polymorphic Structure CwF: Type := {
   cwf_cat: Category;
   cwf_type: cwf_cat -> Setoid;
   cwf_elem: forall G, cwf_type G -> Setoid;
-  cwf_empty: cwf_cat
+  (* Should be terminal! *)
+  cwf_empty: Terminal cwf_cat
 }.
