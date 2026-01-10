@@ -70,6 +70,10 @@ Arguments post_id_left {c x y}.
 Arguments post_id_right {c x y}.
 Arguments post_assoc {c x y z w}.
 
+Definition SmallCategory: Type := Category@{Set Set}.
+
+Global Typeclasses Transparent SmallCategory.
+
 Polymorphic Program Definition opposite (C: Category): Category := {|
   obj := C;
   hom := flip C;
