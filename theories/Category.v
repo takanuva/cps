@@ -9,19 +9,15 @@ Require Import Morphisms.
 
 Set Primitive Projections.
 
-Polymorphic Class Setoid: Type := {
-  carrier: Type;
+Polymorphic Structure Setoid: Type := {
+  carrier :> Type;
   equiv: relation carrier;
-  setoid_equiv: Equivalence equiv
+  setoid_equiv :: Equivalence equiv
 }.
-
-Arguments carrier Setoid: clear implicits.
 
 Add Printing Let Setoid.
 
-Global Coercion carrier: Setoid >-> Sortclass.
-
-Global Existing Instance setoid_equiv.
+Arguments equiv {s}.
 
 Notation "x == y" := (equiv x y)
   (at level 70, no associativity): type_scope.
@@ -29,19 +25,19 @@ Notation "x == y" := (equiv x y)
 Notation "x =/= y" := (complement equiv x y)
   (at level 70, no associativity): type_scope.
 
-Polymorphic Class SetoidFunction (S: Setoid) (T: Setoid): Type := {
-  function: S -> T;
-  function_respectful:
-    Proper (equiv ==> equiv) function
+Polymorphic Structure SetoidMorphism (S: Setoid) (T: Setoid): Type := {
+  setoid_fun: S -> T;
+  setoid_fun_respectful:
+    Proper (equiv ==> equiv) setoid_fun
 }.
 
-Global Coercion function: SetoidFunction >-> Funclass.
+Global Coercion setoid_fun: SetoidMorphism >-> Funclass.
 
-Global Existing Instance function_respectful.
+Global Existing Instance setoid_fun_respectful.
 
-Infix "~>" := SetoidFunction (at level 90, right associativity).
+Infix "~>" := SetoidMorphism (at level 90, right associativity).
 
-Polymorphic Class Category: Type := {
+Polymorphic Structure Category: Type := {
   obj: Type;
   hom: obj -> obj -> Setoid;
   id {x}: hom x x;
@@ -63,16 +59,21 @@ Polymorphic Class Category: Type := {
 
 Add Printing Let Category.
 
-Arguments obj Category: clear implicits.
+Global Existing Instance post_respectful.
 
 Global Coercion obj: Category >-> Sortclass.
 
 Global Coercion hom: Category >-> Funclass.
 
-Global Existing Instance post_respectful.
+Arguments id {c x}.
+Arguments post {c x y z}.
+Arguments post_respectful {c x y z}.
+Arguments post_id_left {c x y}.
+Arguments post_id_right {c x y}.
+Arguments post_assoc {c x y z w}.
 
-Polymorphic Class Functor (C: Category) (D: Category): Type := {
-  mapping: C -> D;
+Polymorphic Structure Functor (C: Category) (D: Category): Type := {
+  mapping :> C -> D;
   fmap {x y}: C x y -> D (mapping x) (mapping y);
   fmap_respectful {x y}:
     Proper (equiv ==> equiv) (@fmap x y);
@@ -84,77 +85,107 @@ Polymorphic Class Functor (C: Category) (D: Category): Type := {
     fmap (post f g) == post (fmap f) (fmap g)
 }.
 
-Global Coercion mapping: Functor >-> Funclass.
-
 Global Existing Instance fmap_respectful.
 
 (* -------------------------------------------------------------------------- *)
 
-Global Program Instance SetCategory: Category := {
-  obj := Set;
-  hom T U := {|
-    carrier := T -> U;
-    equiv f g := forall x, f x = g x
-  |};
-  id T x := x;
-  post T U V f g x := g (f x)
-}.
+Polymorphic Definition funext_eq T U: relation (T -> U) :=
+  fun f g => forall x, f x = g x.
 
-Next Obligation of SetCategory.
+Global Polymorphic Program Definition FunctionSetoid T U: Setoid := {|
+  carrier := T -> U;
+  equiv := funext_eq T U
+|}.
+
+Obligation 1 of FunctionSetoid.
   split; repeat intro.
   - reflexivity.
   - now rewrite H.
   - now rewrite H, H0.
 Qed.
 
-Next Obligation of SetCategory.
+Global Canonical Structure FunctionSetoid.
+
+Global Program Definition SetCategory: Category := {|
+  obj := Set;
+  hom T U := T -> U;
+  id T x := x;
+  post T U V f g x := g (f x)
+|}.
+
+Obligation 1 of SetCategory.
   repeat intro.
   now rewrite H, H0.
 Qed.
 
-Global Program Instance SetoidCategory: Category := {
-  obj := Setoid;
-  hom T U := {|
-    carrier := T ~> U;
-    equiv f g := forall x, f x == g x
-  |};
-  id T := {|
-    function x := x
-  |};
-  post T U V f g := {|
-    function x := g (f x)
-  |}
-}.
+Obligation 2 of SetCategory.
+  repeat intro.
+  reflexivity.
+Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 3 of SetCategory.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Obligation 4 of SetCategory.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Global Canonical Structure SetCategory.
+
+Global Polymorphic Program Definition MorphismSetoid S T: Setoid := {|
+  carrier := S ~> T;
+  equiv f g := forall x, f x == g x
+|}.
+
+Obligation 1 of MorphismSetoid.
   split; repeat intro.
   - reflexivity.
   - now rewrite H.
   - now rewrite H, H0.
 Qed.
 
-Next Obligation of SetoidCategory.
+Global Canonical Structure MorphismSetoid.
+
+Global Program Definition SetoidCategory: Category := {|
+  obj := Setoid;
+  hom T U := T ~> U;
+  (* TODO: can we coerce those from regular functions...? *)
+  id T := {|
+    setoid_fun x := x
+  |};
+  post T U V f g := {|
+    setoid_fun x := g (f x)
+  |}
+|}.
+
+Obligation 1 of SetoidCategory.
   firstorder.
 Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 2 of SetoidCategory.
   repeat intro.
   now rewrite H.
 Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 3 of SetoidCategory.
   repeat intro; simpl.
   now rewrite H, H0.
 Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 4 of SetoidCategory.
   reflexivity.
 Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 5 of SetoidCategory.
   reflexivity.
 Qed.
 
-Next Obligation of SetoidCategory.
+Obligation 6 of SetoidCategory.
   reflexivity.
 Qed.
+
+(* TODO: fix this warning. *)
+Global Canonical Structure SetoidCategory.
