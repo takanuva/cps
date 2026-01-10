@@ -304,7 +304,7 @@ End Restriction.
 
 Arguments restrict {C X Y} F {G}.
 
-Lemma restrict_id:
+Polymorphic Lemma restrict_id:
   forall C: Category,
   forall G: Presheaf C,
   forall X: C,
@@ -317,3 +317,19 @@ Proof.
   simpl in H.
   now rewrite H.
 Qed.
+
+(* We define the notion of a category with family. This is a category C, such
+   that:
+
+   - we call the objects of C contexts;
+   - we call the morphisms of C substitutions;
+   - an empty context, object of C;
+   - ...
+*)
+
+Polymorphic Structure CwF: Type := {
+  cwf_cat: Category;
+  cwf_type: cwf_cat -> Setoid;
+  cwf_elem: forall G, cwf_type G -> Setoid;
+  cwf_empty: cwf_cat
+}.
