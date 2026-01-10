@@ -70,24 +70,6 @@ Arguments post_id_left {c x y}.
 Arguments post_id_right {c x y}.
 Arguments post_assoc {c x y z w}.
 
-Polymorphic Structure Functor (C: Category) (D: Category): Type := {
-  mapping :> C -> D;
-  fmap {x y}: C x y -> D (mapping x) (mapping y);
-  fmap_respectful {x y}:
-    Proper (equiv ==> equiv) (@fmap x y);
-  fmap_id {x}:
-    @fmap x x (@id C x) == (@id D (mapping x));
-  fmap_comp {x y z}:
-    forall f: C x y,
-    forall g: C y z,
-    fmap (post f g) == post (fmap f) (fmap g)
-}.
-
-Global Existing Instance fmap_respectful.
-
-Arguments mapping {C D} F: rename.
-Arguments fmap {C D} F {x y}: rename.
-
 Polymorphic Program Definition opposite (C: Category): Category := {|
   obj := C;
   hom := flip C;
@@ -112,6 +94,24 @@ Obligation 4 of opposite.
   symmetry.
   apply post_assoc.
 Qed.
+
+Polymorphic Structure Functor (C: Category) (D: Category): Type := {
+  mapping :> C -> D;
+  fmap {x y}: C x y -> D (mapping x) (mapping y);
+  fmap_respectful {x y}:
+    Proper (equiv ==> equiv) (@fmap x y);
+  fmap_id {x}:
+    @fmap x x (@id C x) == (@id D (mapping x));
+  fmap_comp {x y z}:
+    forall f: C x y,
+    forall g: C y z,
+    fmap (post f g) == post (fmap f) (fmap g)
+}.
+
+Global Existing Instance fmap_respectful.
+
+Arguments mapping {C D} F: rename.
+Arguments fmap {C D} F {x y}: rename.
 
 (* -------------------------------------------------------------------------- *)
 
