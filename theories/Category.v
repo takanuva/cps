@@ -38,7 +38,7 @@ Global Existing Instance setoid_fun_respectful.
 Infix "~>" := SetoidMorphism (at level 90, right associativity).
 
 Polymorphic Structure Category: Type := {
-  obj: Type;
+  obj :> Type;
   hom: obj -> obj -> Setoid;
   id {x}: hom x x;
   post {x y z}: hom x y -> hom y z -> hom x z;
@@ -60,8 +60,6 @@ Polymorphic Structure Category: Type := {
 Add Printing Let Category.
 
 Global Existing Instance post_respectful.
-
-Global Coercion obj: Category >-> Sortclass.
 
 Global Coercion hom: Category >-> Funclass.
 
