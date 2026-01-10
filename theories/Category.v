@@ -63,6 +63,8 @@ Polymorphic Class Category: Type := {
 
 Add Printing Let Category.
 
+Arguments obj Category: clear implicits.
+
 Global Coercion obj: Category >-> Sortclass.
 
 Global Coercion hom: Category >-> Funclass.
@@ -155,58 +157,4 @@ Qed.
 
 Next Obligation of SetoidCategory.
   reflexivity.
-Qed.
-
-Global Program Instance Cat: Category := {
-  obj := Category;
-  hom T U := {|
-    carrier := Functor T U;
-    (* TODO: this equality is too strong! *)
-    equiv f g := forall x, f x = g x
-  |};
-  id C := {|
-    mapping x := x;
-    fmap x y f := f
-  |};
-  post C D F f g := {|
-    mapping x := g (f x);
-    fmap x y a := fmap (fmap a)
-  |}
-}.
-
-Next Obligation of Cat.
-  split; repeat intro.
-  - reflexivity.
-  - now rewrite H.
-  - now rewrite H, H0.
-Qed.
-
-Next Obligation of Cat.
-  firstorder.
-Qed.
-
-Next Obligation of Cat.
-  reflexivity.
-Qed.
-
-Next Obligation of Cat.
-  reflexivity.
-Qed.
-
-Next Obligation of Cat.
-  repeat intro.
-  now rewrite H.
-Qed.
-
-Next Obligation of Cat.
-  now do 2 rewrite fmap_id.
-Qed.
-
-Next Obligation of Cat.
-  now do 2 rewrite fmap_comp.
-Qed.
-
-Next Obligation of Cat.
-  repeat intro; simpl.
-  now rewrite H, H0.
 Qed.
