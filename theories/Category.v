@@ -85,6 +85,9 @@ Polymorphic Structure Functor (C: Category) (D: Category): Type := {
 
 Global Existing Instance fmap_respectful.
 
+Arguments mapping {C D} F: rename.
+Arguments fmap {C D} F {x y}: rename.
+
 Polymorphic Program Definition opposite (C: Category): Category := {|
   obj := C;
   hom := flip C;
@@ -217,3 +220,18 @@ Global Canonical Structure SetoidCategory.
 
 Polymorphic Definition Presheaf (C: Category): Type :=
   Functor (opposite C) Setoid.
+
+Polymorphic Section Restriction.
+
+  Variable C: Category.
+  Variable X: C.
+  Variable Y: C.
+  Variable F: C Y X.
+  Variable G: Presheaf C.
+
+  Polymorphic Definition restrict: G X -> G Y :=
+    fmap G F.
+
+End Restriction.
+
+Arguments restrict {C X Y} F {G}.
