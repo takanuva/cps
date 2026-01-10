@@ -212,3 +212,8 @@ Qed.
 
 (* TODO: fix this warning. *)
 Global Canonical Structure SetoidCategory.
+
+(* -------------------------------------------------------------------------- *)
+
+Polymorphic Definition Presheaf (C: Category): Type :=
+  Functor (opposite C) Setoid.
