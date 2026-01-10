@@ -85,6 +85,31 @@ Polymorphic Structure Functor (C: Category) (D: Category): Type := {
 
 Global Existing Instance fmap_respectful.
 
+Polymorphic Program Definition opposite (C: Category): Category := {|
+  obj := C;
+  hom := flip C;
+  id x := id;
+  post x y z := flip post
+|}.
+
+Obligation 1 of opposite.
+  repeat intro.
+  now apply post_respectful.
+Qed.
+
+Obligation 2 of opposite.
+  apply post_id_right.
+Qed.
+
+Obligation 3 of opposite.
+  apply post_id_left.
+Qed.
+
+Obligation 4 of opposite.
+  symmetry.
+  apply post_assoc.
+Qed.
+
 (* -------------------------------------------------------------------------- *)
 
 Polymorphic Definition funext_eq T U: relation (T -> U) :=
