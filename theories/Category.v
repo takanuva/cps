@@ -303,3 +303,17 @@ Polymorphic Section Restriction.
 End Restriction.
 
 Arguments restrict {C X Y} F {G}.
+
+Lemma restrict_id:
+  forall C: Category,
+  forall G: Presheaf C,
+  forall X: C,
+  forall S: G X,
+  restrict id S == S.
+Proof.
+  intros; unfold restrict.
+  (* TODO: I'd like to have rewrite fmap_id in here! *)
+  assert (fmap G id (y := X) == id) by apply fmap_id.
+  simpl in H.
+  now rewrite H.
+Qed.
