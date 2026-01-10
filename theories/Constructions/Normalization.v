@@ -4,6 +4,7 @@
 
 Require Import List.
 Require Import Local.Prelude.
+Require Import Local.Category.
 Require Import Local.AbstractRewriting.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
@@ -11,6 +12,15 @@ Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Inversion.
 
 Import ListNotations.
+
+(* -------------------------------------------------------------------------- *)
+
+(* Quick and dirty trial to actually prove strong normalization by using the
+   proof given by Zongpu Xie in their master's thesis. Just cause it's fun! *)
+
+(* TODO *)
+
+(* -------------------------------------------------------------------------- *)
 
 (* We're dealing with a subset of Coq's theory inside of Coq. Although it might
    be possible that strong normalization for this is actually provable, at some
