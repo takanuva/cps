@@ -361,5 +361,8 @@ Polymorphic Structure CwF: Type := {
     forall s, cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
   (* TODO: laws... *)
   (* Context extension operation. *)
-  cwf_extension G: cwf_type G -> cwf_cat
+  cwf_ctxext {G}: cwf_type G -> cwf_cat;
+  (* Sigma calculus primitives... *)
+  cwf_lift {G A}: cwf_cat (cwf_ctxext A) G;
+  cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A)
 }.

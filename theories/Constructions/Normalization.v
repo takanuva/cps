@@ -28,7 +28,7 @@ Section Normalization.
   Local Notation TYPE := (cwf_type M).
 
   Local Notation NIL := (cwf_empty M).
-  Local Notation SNOC := (cwf_extension M).
+  Local Notation SNOC := (cwf_ctxext M).
 
   (* Following both Coquand and Xie, a telescope is defined inductively as:
      - () is telescope;
