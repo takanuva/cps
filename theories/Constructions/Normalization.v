@@ -16,9 +16,14 @@ Import ListNotations.
 (* -------------------------------------------------------------------------- *)
 
 (* Quick and dirty trial to actually prove strong normalization by using the
-   proof given by Zongpu Xie in their master's thesis. Just cause it's fun! *)
+   proof given by Zongpu Xie in their master's thesis, along with Coquand's
+   paper on the matter. Just cause it's fun! *)
 
-(* TODO *)
+Section Normalization.
+
+  Variable M: CwF.
+
+End Normalization.
 
 (* -------------------------------------------------------------------------- *)
 

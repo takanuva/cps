@@ -334,7 +334,7 @@ Polymorphic Structure Terminal (C: Category): Type := {
 
    - we call the objects of C contexts;
    - we call the morphisms of C substitutions;
-   - an empty context, object of C;
+   - an empty context, which is a terminal object of C;
    - ...
 *)
 
@@ -342,6 +342,15 @@ Polymorphic Structure CwF: Type := {
   cwf_cat: Category;
   cwf_type: cwf_cat -> Setoid;
   cwf_elem: forall G, cwf_type G -> Setoid;
-  (* Should be terminal! *)
-  cwf_empty: Terminal cwf_cat
+  (* Empty context. *)
+  cwf_empty: Terminal cwf_cat;
+  (* Substitution on types. *)
+  cwf_tsubst {G D}: cwf_type G -> cwf_cat D G -> cwf_type D;
+  cwf_tsubst_id:
+    forall G (A: cwf_type G), cwf_tsubst A id == A;
+  cwf_tsubst_post:
+    forall G D E (A: cwf_type G) (f: cwf_cat D G) (g: cwf_cat E D),
+    cwf_tsubst (cwf_tsubst A f) g == cwf_tsubst A (post g f);
+  (* Context extension operation. *)
+  cwf_extension G: cwf_type G -> cwf_cat
 }.
