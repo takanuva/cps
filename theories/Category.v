@@ -345,12 +345,18 @@ Polymorphic Structure CwF: Type := {
   (* Empty context. *)
   cwf_empty: Terminal cwf_cat;
   (* Substitution on types. *)
-  cwf_tsubst {G D}: cwf_type G -> cwf_cat D G -> cwf_type D;
+  cwf_tsubst {G D}:
+    cwf_cat D G -> cwf_type G -> cwf_type D;
   cwf_tsubst_id:
-    forall G (A: cwf_type G), cwf_tsubst A id == A;
+    forall G (A: cwf_type G),
+    cwf_tsubst id A == A;
   cwf_tsubst_post:
     forall G D E (A: cwf_type G) (f: cwf_cat D G) (g: cwf_cat E D),
-    cwf_tsubst (cwf_tsubst A f) g == cwf_tsubst A (post g f);
+    cwf_tsubst g (cwf_tsubst f A) == cwf_tsubst (post g f) A;
+  (* Substitution on terms. *)
+  cwf_esubst {G A D}:
+    forall s, cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
+  (* TODO: laws... *)
   (* Context extension operation. *)
   cwf_extension G: cwf_type G -> cwf_cat
 }.
