@@ -342,6 +342,7 @@ Polymorphic Structure CwF: Type := {
   cwf_cat: Category;
   cwf_type: cwf_cat -> Setoid;
   cwf_elem: forall G, cwf_type G -> Setoid;
+  (* TODO: elements should be respectful! *)
   (* Empty context. *)
   cwf_empty: Terminal cwf_cat;
   (* Substitution on types. *)
