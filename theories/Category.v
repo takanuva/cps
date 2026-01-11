@@ -329,11 +329,13 @@ Polymorphic Structure Terminal (C: Category): Type := {
     f == terminal_hom X
 }.
 
+Global Coercion terminal: Terminal >-> obj.
+
 (* We define the notion of a category with family. This is a category C, such
    that:
 
-   - we call the objects of C contexts;
-   - we call the morphisms of C substitutions;
+   - we call the objects of C contexts, and they model such;
+   - we call the morphisms of C substitutions, and they model such;
    - an empty context, which is a terminal object of C;
    - ...
 *)

@@ -23,6 +23,39 @@ Section Normalization.
 
   Variable M: CwF.
 
+  Local Notation CTX := (obj (cwf_cat M)).
+  Local Notation SUBST := (hom (cwf_cat M)).
+  Local Notation TYPE := (cwf_type M).
+
+  Local Notation NIL := (cwf_empty M).
+  Local Notation SNOC := (cwf_extension M).
+
+  (* Following both Coquand and Xie, a telescope is defined inductively as:
+     - () is telescope;
+     - if X is a telescope and A is a TYPE <X>, then (X.A) is a telescope;
+
+     Along with a recursive interpretation function <->, where:
+     - <()> is NIL;
+     - <X.A> is SNOC <X> A.
+
+     As noted by Coquand, we may have <X> == <Y> without X = Y. These will be
+     the objects of the category. Our morphisms are syntactic objects which
+     represeting  weakening, namely as:
+     - () is a morphism from () to ();
+     - if f is a morphism from X to Y, weak f is a morphism from X.A to Y;
+     - if f is a morphism from X to Y, plus f is a morphism from X.(subst <f> A)
+       to Y.A;
+
+     Again along an interpretation <f: X -> Y>: <X> -> <Y> from weakenings into
+     substitutions such that:
+     - <()> is ();
+     - <weak f> is weak <f>;
+     - <plus f> is plus <f>.
+
+     Both object and morphisms capture, syntactically, how a context and a
+     substitution were built. Both are also inductive-recursive, which is quite
+     annoying as this is not supported by Coq's type theory. Oh well. *)
+
 End Normalization.
 
 (* -------------------------------------------------------------------------- *)
