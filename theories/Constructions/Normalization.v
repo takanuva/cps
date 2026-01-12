@@ -16,8 +16,8 @@ Import ListNotations.
 (* -------------------------------------------------------------------------- *)
 
 (* Quick and dirty trial to actually prove strong normalization by using the
-   proof given by Zongpu Xie in their master's thesis, along with Coquand's
-   paper on the matter. Just cause it's fun! *)
+   proof given by Szumi Xie in their master's thesis, along with Coquand's paper
+   on the matter. Just cause it's fun! *)
 
 Section Normalization.
 
@@ -52,6 +52,9 @@ Section Normalization.
      - <weak f> is weak <f>;
      - <plus f> is plus <f>.
 
+     We can see a weakening from X to Y as a proof-relevant witness that X
+     extends Y.
+
      Both object and morphisms capture, syntactically, how a context and a
      substitution were built. Both are also inductive-recursive, which is quite
      annoying as this is not supported by Coq's type theory. We thus build the
@@ -63,7 +66,7 @@ Section Normalization.
       tel NIL
     | tel_snoc:
       forall (G: CTX) (X: tel G) (T: TYPE G),
-      tel (SNOC T).
+      tel (SNOC G T).
 
   Inductive tel_weak: forall {G D}, tel G -> tel D -> SUBST G D -> Type :=
     | tel_weak_nil:

@@ -349,29 +349,32 @@ Polymorphic Structure CwF: Type := {
      a terminal object, which represents the empty context. We require it to be
      small. *)
   cwf_cat: SmallCategory;
+  cwf_ctx := obj cwf_cat;
+  cwf_subst := hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
-  (* ------------------------------------------------------------------------ *)
-  (* TODO: do we want to force small setoids...? I don't think so! *)
-  cwf_type: cwf_cat -> Setoid;
-  cwf_elem: forall G, cwf_type G -> Setoid;
-  (* TODO: elements should be respectful! *)
-  (* Substitution on types. *)
+  (* ... *)
+  cwf_type: cwf_ctx -> Setoid;
+  cwf_ctxext G: cwf_type G -> cwf_ctx;
   cwf_tsubst {G D}:
-    cwf_cat D G -> cwf_type G -> cwf_type D;
-  cwf_tsubst_id:
-    forall G (A: cwf_type G),
-    cwf_tsubst id A == A;
-  cwf_tsubst_post:
-    forall G D E (A: cwf_type G) (f: cwf_cat D G) (g: cwf_cat E D),
-    cwf_tsubst g (cwf_tsubst f A) == cwf_tsubst (post g f) A;
-  (* Substitution on terms. *)
+    cwf_subst D G -> cwf_type G -> cwf_type D;
+  (* TODO: tsubst composition law. *)
+  (* TODO: tsubst identity law. *)
+  (* ... *)
+  cwf_elem: forall G: cwf_ctx, cwf_type G -> Setoid;
   cwf_esubst {G A D}:
-    forall s, cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
-  (* TODO: laws... *)
-  (* Context extension operation. *)
-  cwf_ctxext {G}: cwf_type G -> cwf_cat;
-  (* Sigma calculus primitives... *)
-  cwf_lift {G A}: cwf_cat (cwf_ctxext A) G;
-  cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A);
-  (* ------------------------------------------------------------------------ *)
+    forall s: cwf_subst D G,
+    cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
+  (* TODO: esubst composition law. *)
+  (* TODO: esubst identity law. *)
+  (* ... *)
+  cwf_comp {G A D}:
+    forall s: cwf_subst D G,
+    cwf_elem D (cwf_tsubst s A) -> cwf_subst D (cwf_ctxext G A);
+  cwf_proj {G}:
+    forall A,
+    cwf_subst (cwf_ctxext G A) G;
+  cwf_zero {G}:
+    forall A,
+    cwf_elem (cwf_ctxext G A) (cwf_tsubst (cwf_proj A) A)
+  (* TODO: laws on proj and zero. *)
 }.
