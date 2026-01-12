@@ -40,7 +40,7 @@ Section Normalization.
 
      As noted by Coquand, we may have <X> == <Y> without X = Y. These will be
      the objects of the category. Our morphisms are syntactic objects which
-     represeting  weakening, namely as:
+     represeting weakening, namely as:
      - () is a morphism from () to ();
      - if f is a morphism from X to Y, weak f is a morphism from X.A to Y;
      - if f is a morphism from X to Y, plus f is a morphism from X.(subst <f> A)
@@ -55,14 +55,20 @@ Section Normalization.
      Both object and morphisms capture, syntactically, how a context and a
      substitution were built. Both are also inductive-recursive, which is quite
      annoying as this is not supported by Coq's type theory. We thus build the
-     telescope and its interpretation together. *)
+     telescope and its interpretation together, and do the same for weakenings
+     as specified. *)
 
-  Inductive telescope: CTX -> Type :=
-    | telescope_nil:
-      telescope NIL
-    | telescope_snoc:
-      forall (G: CTX) (X: telescope G) (T: TYPE G),
-      telescope (SNOC G T).
+  Inductive tel: CTX -> Type :=
+    | tel_nil:
+      tel NIL
+    | tel_snoc:
+      forall (G: CTX) (X: tel G) (T: TYPE G),
+      tel (SNOC T).
+
+  Inductive tel_weak: forall {G D}, tel G -> tel D -> SUBST G D -> Type :=
+    | tel_weak_nil:
+      forall (G: CTX) (X: tel G),
+      tel_weak X tel_nil (NIL G).
 
 End Normalization.
 

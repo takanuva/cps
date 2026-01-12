@@ -330,6 +330,7 @@ Polymorphic Structure Terminal (C: Category): Type := {
 }.
 
 Global Coercion terminal: Terminal >-> obj.
+Global Coercion terminal_hom: Terminal >-> Funclass.
 
 (* We define the notion of a category with family, which forms a model of basic
    dependent type theory. This is a small category C, such that:
