@@ -345,7 +345,8 @@ Global Coercion terminal: Terminal >-> obj.
 
 Polymorphic Structure CwF: Type := {
   (* We start with a category of contexts and substitutions, such that it has
-     a terminal object, which represents the empty context. *)
+     a terminal object, which represents the empty context. We require it to be
+     small. *)
   cwf_cat: SmallCategory;
   cwf_empty: Terminal cwf_cat;
   (* ------------------------------------------------------------------------ *)
@@ -372,6 +373,4 @@ Polymorphic Structure CwF: Type := {
   cwf_lift {G A}: cwf_cat (cwf_ctxext A) G;
   cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A);
   (* ------------------------------------------------------------------------ *)
-  (* ... *)
-  cwf_universe {G}: nat -> cwf_type G
 }.
