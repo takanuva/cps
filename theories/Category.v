@@ -331,17 +331,20 @@ Polymorphic Structure Terminal (C: Category): Type := {
 
 Global Coercion terminal: Terminal >-> obj.
 
-(* We define the notion of a category with family. This is a category C, such
-   that:
+(* We define the notion of a category with family, which forms a model of
+   dependent type theory. This is a category C, such that:
 
    - we call the objects of C contexts, and they model such;
    - we call the morphisms of C substitutions, and they model such;
    - an empty context, which is a terminal object of C;
    - ...
+
+   TODO: properly document this, specially the relationship to explicit
+   substitution and to the sigma-calculus, which is quite evident.
 *)
 
 Polymorphic Structure CwF: Type := {
-  cwf_cat: Category;
+  cwf_cat: SmallCategory;
   cwf_type: cwf_cat -> Setoid;
   cwf_elem: forall G, cwf_type G -> Setoid;
   (* TODO: elements should be respectful! *)
@@ -364,5 +367,8 @@ Polymorphic Structure CwF: Type := {
   cwf_ctxext {G}: cwf_type G -> cwf_cat;
   (* Sigma calculus primitives... *)
   cwf_lift {G A}: cwf_cat (cwf_ctxext A) G;
-  cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A)
+  cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A);
+  (* ... *)
+  (* Universes and cumulativity. *)
+  (* TODO *)
 }.
