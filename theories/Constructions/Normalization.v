@@ -54,7 +54,15 @@ Section Normalization.
 
      Both object and morphisms capture, syntactically, how a context and a
      substitution were built. Both are also inductive-recursive, which is quite
-     annoying as this is not supported by Coq's type theory. Oh well. *)
+     annoying as this is not supported by Coq's type theory. We thus build the
+     telescope and its interpretation together. *)
+
+  Inductive telescope: CTX -> Type :=
+    | telescope_nil:
+      telescope NIL
+    | telescope_snoc:
+      forall (G: CTX) (X: telescope G) (T: TYPE G),
+      telescope (SNOC G T).
 
 End Normalization.
 
