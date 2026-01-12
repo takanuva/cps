@@ -331,8 +331,8 @@ Polymorphic Structure Terminal (C: Category): Type := {
 
 Global Coercion terminal: Terminal >-> obj.
 
-(* We define the notion of a category with family, which forms a model of
-   dependent type theory. This is a category C, such that:
+(* We define the notion of a category with family, which forms a model of basic
+   dependent type theory. This is a small category C, such that:
 
    - we call the objects of C contexts, and they model such;
    - we call the morphisms of C substitutions, and they model such;
@@ -344,12 +344,15 @@ Global Coercion terminal: Terminal >-> obj.
 *)
 
 Polymorphic Structure CwF: Type := {
+  (* We start with a category of contexts and substitutions, such that it has
+     a terminal object, which represents the empty context. *)
   cwf_cat: SmallCategory;
+  cwf_empty: Terminal cwf_cat;
+  (* ------------------------------------------------------------------------ *)
+  (* TODO: do we want to force small setoids...? I don't think so! *)
   cwf_type: cwf_cat -> Setoid;
   cwf_elem: forall G, cwf_type G -> Setoid;
   (* TODO: elements should be respectful! *)
-  (* Empty context. *)
-  cwf_empty: Terminal cwf_cat;
   (* Substitution on types. *)
   cwf_tsubst {G D}:
     cwf_cat D G -> cwf_type G -> cwf_type D;
@@ -368,7 +371,7 @@ Polymorphic Structure CwF: Type := {
   (* Sigma calculus primitives... *)
   cwf_lift {G A}: cwf_cat (cwf_ctxext A) G;
   cwf_zero {G} (A: cwf_type G): cwf_elem (cwf_ctxext A) (cwf_tsubst cwf_lift A);
+  (* ------------------------------------------------------------------------ *)
   (* ... *)
-  (* Universes and cumulativity. *)
-  (* TODO *)
+  cwf_universe {G}: nat -> cwf_type G
 }.
