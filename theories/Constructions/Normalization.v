@@ -89,6 +89,25 @@ Section Normalization.
       forall A: TYPE G,
       @tel_weak _ _ (tel_snoc D X (TSUBST s A)) (tel_snoc G Y A) (UP s).
 
+  Lemma telescope_id:
+    forall (G: CTX) (X: tel G),
+    { s: SUBST G G & tel_weak X X s & s == id }.
+  Proof.
+    induction X.
+    - exists (NIL NIL).
+      + constructor.
+      + admit.
+    - destruct IHX as (s, R, ?H).
+      eexists.
+      + enough (T == TSUBST s T).
+        * (* Rewrite on the first subterm... *)
+          admit.
+        * (* Sure! *)
+          admit.
+      + (* Hmm... *)
+        admit.
+  Admitted.
+
 End Normalization.
 
 (* -------------------------------------------------------------------------- *)
