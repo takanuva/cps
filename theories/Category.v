@@ -349,32 +349,117 @@ Polymorphic Structure CwF: Type := {
      a terminal object, which represents the empty context. We require it to be
      small. *)
   cwf_cat: SmallCategory;
-  cwf_ctx := obj cwf_cat;
-  cwf_subst := hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
   (* ... *)
-  cwf_type: cwf_ctx -> Setoid;
-  cwf_ctxext G: cwf_type G -> cwf_ctx;
+  cwf_type: cwf_cat -> Setoid;
+  cwf_ctxext G: cwf_type G -> cwf_cat;
   cwf_tsubst {G D}:
-    cwf_subst D G -> cwf_type G -> cwf_type D;
+    cwf_cat D G -> cwf_type G -> cwf_type D;
   (* TODO: tsubst composition law. *)
   (* TODO: tsubst identity law. *)
   (* ... *)
-  cwf_elem: forall G: cwf_ctx, cwf_type G -> Setoid;
+  cwf_elem: forall G: cwf_cat, cwf_type G -> Setoid;
   cwf_esubst {G A D}:
-    forall s: cwf_subst D G,
+    forall s: cwf_cat D G,
     cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
   (* TODO: esubst composition law. *)
   (* TODO: esubst identity law. *)
   (* ... *)
-  cwf_comp {G A D}:
-    forall s: cwf_subst D G,
-    cwf_elem D (cwf_tsubst s A) -> cwf_subst D (cwf_ctxext G A);
+  cwf_snoc {G A D}:
+    forall s: cwf_cat D G,
+    cwf_elem D (cwf_tsubst s A) -> cwf_cat D (cwf_ctxext G A);
   cwf_proj {G}:
-    forall A,
-    cwf_subst (cwf_ctxext G A) G;
+    forall A: cwf_type G,
+    cwf_cat (cwf_ctxext G A) G;
   cwf_zero {G}:
-    forall A,
+    forall A: cwf_type G,
     cwf_elem (cwf_ctxext G A) (cwf_tsubst (cwf_proj A) A)
   (* TODO: laws on proj and zero. *)
 }.
+
+(* Should be (cwf_comp C id a), with proper coercions... *)
+
+Fail Check forall {C G A} (a: cwf_elem C G A), cwf_comp C id a.
+
+Axiom cwf_subst:
+  forall {C G A} (a: cwf_elem C G A),
+  cwf_cat C G (cwf_ctxext C G A).
+
+(* Thus if B in Type(G.A) and a in Elem(G, A), we have B[a] in Type(G).
+
+   If b in Elem[G.A, B], we have b[a] in Elem(G, B[a]). *)
+
+(* We define, for s in D -> G and A in Type(G), our uplifting operation as
+   (s p, q), of course, in D.sA -> G.A. *)
+
+Variable M: CwF.
+
+Variable D: obj (cwf_cat M).
+Variable G: obj (cwf_cat M).
+
+Variable s: hom (cwf_cat M) D G.
+
+Variable A: cwf_type M G.
+
+Definition sA: cwf_type M D := (cwf_tsubst M s A).
+
+Definition p: cwf_cat M (cwf_ctxext M D sA) D :=
+  cwf_proj M (cwf_tsubst M s A).
+
+Definition ps: cwf_cat M (cwf_ctxext M D sA) G :=
+  post p s.
+
+Check cwf_zero M A.
+
+(*
+  s : D -> G
+
+  A : Type(G)
+
+  p : X.B -> X
+
+  (p; s) = (X.B -> X) and (D -> G)
+
+  Thus p should be D.sA -> D
+
+  And (p; s) : D.sA -> G
+
+    If r: E -> F,
+       B: Type(F),        (rB : Type(E))
+       b: Elem(E, rB),
+       (r, b) : E -> F.B
+
+  We need an element of the desired type now.
+
+    Here r: D.sA -> G,
+    so E = D.sA and F = G,
+    
+    so we need
+    
+    r: [D.sA -> G],
+    B: Type(G),
+
+    where rB : Type(D.sA),
+    b: Elem(D.sA, rB)
+
+    to get (r, b) := D.sA -> G.B
+
+    As we want G.B = G.A,
+
+
+    We need an element Elem(D.sA, rA)
+
+    Where r = (p; s), thus...
+
+    Elem(D.sA, (p; s)A)
+
+    If we recall the law of type substitution that says:
+      (p; s)A = p(sA),
+
+    We get need thus:
+
+    Elem(D.sA, p(sA))
+
+    Which we may have from q! :)
+
+*)
