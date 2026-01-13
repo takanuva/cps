@@ -392,7 +392,7 @@ Axiom cwf_subst:
 (* We define, for s in D -> G and A in Type(G), our uplifting operation as
    (s p, q), of course, in D.sA -> G.A. *)
 
-Variable M: CwF.
+(* Variable M: CwF.
 
 Variable D: obj (cwf_cat M).
 Variable G: obj (cwf_cat M).
@@ -411,6 +411,41 @@ Definition ps: cwf_cat M (cwf_ctxext M D sA) G :=
 
 Check cwf_zero M A.
 
+Definition q := cast (cwf_zero M sA).
+
+Check cwf_snoc M ps q.
+*)
+
+Local Lemma cast:
+  forall {M D G E},
+  forall {r: hom (cwf_cat M) D G} {s: hom (cwf_cat M) G E},
+  forall {A},
+  cwf_elem M D (cwf_tsubst M r (cwf_tsubst M s A)) ->
+  cwf_elem M D (cwf_tsubst M (post r s) A).
+Proof.
+  intros.
+  admit.
+Admitted.
+
+Section Uplift.
+
+  Variable M: CwF.
+
+  Variable D: obj (cwf_cat M).
+  Variable G: obj (cwf_cat M).
+  Variable A: cwf_type M G.
+  Variable s: hom (cwf_cat M) D G.
+
+  (* up(s) = (q, (p; s)). *)
+  Polymorphic Definition cwf_uplift:
+    hom (cwf_cat M) (cwf_ctxext M D (cwf_tsubst M s A)) (cwf_ctxext M G A) :=
+
+    let sA := (cwf_tsubst M s A) in
+    cwf_snoc M (post (cwf_proj M sA) s) (cast (cwf_zero M sA)).
+
+End Uplift.
+
+Arguments cwf_uplift M {D} {G} {A}.
 
 (*
   s : D -> G
@@ -447,7 +482,6 @@ Check cwf_zero M A.
 
     As we want G.B = G.A,
 
-
     We need an element Elem(D.sA, rA)
 
     Where r = (p; s), thus...
@@ -464,9 +498,3 @@ Check cwf_zero M A.
     Which we may have from q! :)
 
 *)
-
-Axiom cwf_uplift:
-  forall M {G A D},
-  forall s: hom (cwf_cat M) D G,
-  hom (cwf_cat M) (cwf_ctxext M D (cwf_tsubst M s A))
-                  (cwf_ctxext M G A).

@@ -128,7 +128,6 @@ Section Normalization.
 
   Variable G: CTX.
   Variable s: SUBST G G.
-  Check UP s.
 
   (* Lemma up_id_is_id:
     forall {G: CTX} A (s: SUBST G G),
