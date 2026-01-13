@@ -416,6 +416,18 @@ Definition q := cast (cwf_zero M sA).
 Check cwf_snoc M ps q.
 *)
 
+Check cwf_tsubst.
+
+Require Import Equality.
+
+Lemma foo:
+  forall M G A B,
+  A == B ->
+  cwf_elem M G A = cwf_elem M G B.
+Proof.
+  admit.
+Admitted.
+
 Local Lemma cast:
   forall {M D G E},
   forall {r: hom (cwf_cat M) D G} {s: hom (cwf_cat M) G E},
@@ -424,7 +436,9 @@ Local Lemma cast:
   cwf_elem M D (cwf_tsubst M (post r s) A).
 Proof.
   intros.
-  admit.
+  erewrite foo.
+  - exact X.
+  - admit.
 Admitted.
 
 Section Uplift.
@@ -436,65 +450,12 @@ Section Uplift.
   Variable A: cwf_type M G.
   Variable s: hom (cwf_cat M) D G.
 
-  (* up(s) = (q, (p; s)). *)
   Polymorphic Definition cwf_uplift:
     hom (cwf_cat M) (cwf_ctxext M D (cwf_tsubst M s A)) (cwf_ctxext M G A) :=
-
+    (* up(s) = (q, (p; s)). *)
     let sA := (cwf_tsubst M s A) in
     cwf_snoc M (post (cwf_proj M sA) s) (cast (cwf_zero M sA)).
 
 End Uplift.
 
 Arguments cwf_uplift M {D} {G} {A}.
-
-(*
-  s : D -> G
-
-  A : Type(G)
-
-  p : X.B -> X
-
-  (p; s) = (X.B -> X) and (D -> G)
-
-  Thus p should be D.sA -> D
-
-  And (p; s) : D.sA -> G
-
-    If r: E -> F,
-       B: Type(F),        (rB : Type(E))
-       b: Elem(E, rB),
-       (r, b) : E -> F.B
-
-  We need an element of the desired type now.
-
-    Here r: D.sA -> G,
-    so E = D.sA and F = G,
-    
-    so we need
-    
-    r: [D.sA -> G],
-    B: Type(G),
-
-    where rB : Type(D.sA),
-    b: Elem(D.sA, rB)
-
-    to get (r, b) := D.sA -> G.B
-
-    As we want G.B = G.A,
-
-    We need an element Elem(D.sA, rA)
-
-    Where r = (p; s), thus...
-
-    Elem(D.sA, (p; s)A)
-
-    If we recall the law of type substitution that says:
-      (p; s)A = p(sA),
-
-    We get need thus:
-
-    Elem(D.sA, p(sA))
-
-    Which we may have from q! :)
-
-*)
