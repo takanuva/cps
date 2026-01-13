@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import List.
+Require Import Program.
 Require Import Local.Prelude.
 Require Import Local.Category.
 Require Import Local.AbstractRewriting.
@@ -79,17 +80,49 @@ Section Normalization.
       forall D X,
       @tel_weak D NIL X tel_nil (NIL D)
     | tel_weak_shift:
-      forall D G X Y s,
+      forall D G X Y s A,
       @tel_weak D G X Y s ->
-      forall A: TYPE D,
-      @tel_weak _ _ (tel_snoc D X A) Y (post P s)
+      tel_weak (tel_snoc D X A) Y (post P s)
     | tel_weak_up:
-      forall D G X Y s,
+      forall D G X Y s A,
       @tel_weak D G X Y s ->
-      forall A: TYPE G,
-      @tel_weak _ _ (tel_snoc D X (TSUBST s A)) (tel_snoc G Y A) (UP s).
+      tel_weak (tel_snoc D X (TSUBST s A)) (tel_snoc G Y A) (UP s).
 
-  Lemma telescope_id:
+  Record telescope: Type := {
+    tel_int: CTX;
+    tel_syntax: tel tel_int
+  }.
+
+  Record telescope_weakening (X: telescope) (Y: telescope): Type := {
+    tel_weak_int: SUBST (tel_int X) (tel_int Y);
+    tel_weak_syntax: tel_weak (tel_syntax X) (tel_syntax Y) tel_weak_int;
+  }.
+
+  Definition pack_tel {G: CTX} (X: tel G): telescope :=
+    {| tel_syntax := X |}.
+
+  Coercion pack_tel: tel >-> telescope.
+
+  Program Definition weak_id_nil: telescope_weakening tel_nil tel_nil :=
+    {| tel_weak_syntax := tel_weak_nil NIL tel_nil |}.
+
+  Lemma NIL_NIL_is_identity:
+    NIL NIL == id.
+  Proof.
+    symmetry.
+    apply terminal_unique.
+  Qed.
+
+  (* Lemma telescope_id (X: telescope):
+    tel_weak (tel_syntax X) (tel_syntax X) id.
+  Proof.
+    destruct X as (i, X).
+    induction X.
+    - Print Terminal.
+    - destruct IHX as (s, R).
+      econstructor; simpl in *.
+
+  Lemma telescope_id_exists:
     forall (G: CTX) (X: tel G),
     { s: SUBST G G & tel_weak X X s & s == id }.
   Proof.
@@ -102,11 +135,11 @@ Section Normalization.
       + enough (T == TSUBST s T).
         * (* Rewrite on the first subterm... *)
           admit.
-        * (* Sure! *)
+        * (* Sure! But TSUBST needs to be proper... *)
           admit.
       + (* Hmm... *)
         admit.
-  Admitted.
+  Admitted. *)
 
 End Normalization.
 
