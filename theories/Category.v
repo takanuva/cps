@@ -466,7 +466,7 @@ Check cwf_zero M A.
 *)
 
 Axiom cwf_uplift:
-  forall {M G A D},
+  forall M {G A D},
   forall s: hom (cwf_cat M) D G,
   hom (cwf_cat M) (cwf_ctxext M D (cwf_tsubst M s A))
                   (cwf_ctxext M G A).

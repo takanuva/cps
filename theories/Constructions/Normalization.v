@@ -27,10 +27,13 @@ Section Normalization.
   Local Notation SUBST := (hom (cwf_cat M)).
   Local Notation TYPE := (cwf_type M).
 
+  Local Notation TSUBST := (cwf_tsubst M).
+
   Local Notation NIL := (cwf_empty M).
   Local Notation SNOC := (cwf_ctxext M).
 
-  Local Notation P := (cwf_proj M).
+  Local Notation P := (cwf_proj M _).
+  Local Notation UP := (cwf_uplift M).
 
   (* Following both Coquand and Xie, a telescope is defined inductively as:
      - () is telescope;
@@ -51,8 +54,8 @@ Section Normalization.
      Again along an interpretation <f: X -> Y>: <X> -> <Y> from weakenings into
      substitutions such that:
      - <()> is ();
-     - <shift f> is lift <f>;
-     - <up f> is plus <f>.
+     - <shift f> is (shift; <f>);
+     - <up f> is plus(<f>).
 
      We can see a weakening from X to Y as a proof-relevant witness that X
      extends Y. We reuse the names "shift" and "up" from the sigma-calculus, of
@@ -79,7 +82,12 @@ Section Normalization.
       forall D G X Y s,
       @tel_weak D G X Y s ->
       forall A: TYPE D,
-      @tel_weak _ _ (tel_snoc D X A) Y (post (P A) s).
+      @tel_weak _ _ (tel_snoc D X A) Y (post P s)
+    | tel_weak_up:
+      forall D G X Y s,
+      @tel_weak D G X Y s ->
+      forall A: TYPE G,
+      @tel_weak _ _ (tel_snoc D X (TSUBST s A)) (tel_snoc G Y A) (UP s).
 
 End Normalization.
 
