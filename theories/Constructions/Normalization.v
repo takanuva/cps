@@ -93,6 +93,9 @@ Section Normalization.
     tel_syntax: tel tel_int
   }.
 
+  Definition telescope_nil: telescope :=
+    {| tel_syntax := tel_nil |}.
+
   Record telescope_weakening (X: telescope) (Y: telescope): Type := {
     tel_weak_int: SUBST (tel_int X) (tel_int Y);
     tel_weak_syntax: tel_weak (tel_syntax X) (tel_syntax Y) tel_weak_int;
@@ -106,9 +109,10 @@ Section Normalization.
   Program Definition weak_id_nil: telescope_weakening tel_nil tel_nil :=
     {| tel_weak_syntax := tel_weak_nil NIL tel_nil |}.
 
-  Lemma NIL_NIL_is_identity:
-    NIL NIL == id.
+  Lemma weak_id_nil_int_is_identity:
+    tel_weak_int telescope_nil telescope_nil weak_id_nil == id.
   Proof.
+    simpl.
     symmetry.
     apply terminal_unique.
   Qed.
