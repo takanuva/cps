@@ -377,9 +377,9 @@ Polymorphic Structure CwF: Type := {
   (* TODO: laws on proj and zero. *)
 }.
 
-(* Should be (cwf_comp C id a), with proper coercions... *)
+(* Should be (cwf_snoc C id a), with proper coercions... *)
 
-Fail Check forall {C G A} (a: cwf_elem C G A), cwf_comp C id a.
+Fail Check forall {C G A} (a: cwf_elem C G A), cwf_snoc C id a.
 
 Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),
