@@ -353,19 +353,19 @@ Polymorphic Structure CwF: Type := {
   (* ... *)
   cwf_type: cwf_cat -> Setoid;
   cwf_ctxext G: cwf_type G -> cwf_cat;
-  cwf_tsubst {G D}:
+  cwf_tsubst {D G}:
     cwf_cat D G -> cwf_type G -> cwf_type D;
   (* TODO: tsubst composition law. *)
   (* TODO: tsubst identity law. *)
   (* ... *)
   cwf_elem: forall G: cwf_cat, cwf_type G -> Setoid;
-  cwf_esubst {G A D}:
+  cwf_esubst {D G A}:
     forall s: cwf_cat D G,
     cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
   (* TODO: esubst composition law. *)
   (* TODO: esubst identity law. *)
   (* ... *)
-  cwf_snoc {G A D}:
+  cwf_snoc {D G A}:
     forall s: cwf_cat D G,
     cwf_elem D (cwf_tsubst s A) -> cwf_cat D (cwf_ctxext G A);
   cwf_proj {G}:

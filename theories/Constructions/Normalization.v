@@ -117,6 +117,27 @@ Section Normalization.
     apply terminal_unique.
   Qed.
 
+  Local Lemma cast1:
+    forall {G A s},
+    s == id ->
+    SUBST (SNOC G (TSUBST s A)) (SNOC G A) ->
+    SUBST (SNOC G A) (SNOC G A).
+  Proof.
+    intros.
+  Admitted.
+
+  Variable G: CTX.
+  Variable s: SUBST G G.
+  Check UP s.
+
+  (* Lemma up_id_is_id:
+    forall {G: CTX} A (s: SUBST G G),
+    forall H: s == id,
+    @cast1 G A s H (@UP s) == id.
+  Proof.
+    intros.
+    unfold cast1. *)
+
   (* Lemma telescope_id (X: telescope):
     tel_weak (tel_syntax X) (tel_syntax X) id.
   Proof.
