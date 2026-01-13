@@ -30,6 +30,8 @@ Section Normalization.
   Local Notation NIL := (cwf_empty M).
   Local Notation SNOC := (cwf_ctxext M).
 
+  Local Notation P := (cwf_proj M).
+
   (* Following both Coquand and Xie, a telescope is defined inductively as:
      - () is telescope;
      - if X is a telescope and A is a TYPE <X>, then (X.A) is a telescope;
@@ -42,18 +44,19 @@ Section Normalization.
      the objects of the category. Our morphisms are syntactic objects which
      represeting weakening, namely as:
      - () is a morphism from () to ();
-     - if f is a morphism from X to Y, weak f is a morphism from X.A to Y;
-     - if f is a morphism from X to Y, plus f is a morphism from X.(subst <f> A)
+     - if f is a morphism from X to Y, shift f is a morphism from X.A to Y;
+     - if f is a morphism from X to Y, up f is a morphism from X.(subst <f> A)
        to Y.A;
 
      Again along an interpretation <f: X -> Y>: <X> -> <Y> from weakenings into
      substitutions such that:
      - <()> is ();
-     - <weak f> is weak <f>;
-     - <plus f> is plus <f>.
+     - <shift f> is lift <f>;
+     - <up f> is plus <f>.
 
      We can see a weakening from X to Y as a proof-relevant witness that X
-     extends Y.
+     extends Y. We reuse the names "shift" and "up" from the sigma-calculus, of
+     course.
 
      Both object and morphisms capture, syntactically, how a context and a
      substitution were built. Both are also inductive-recursive, which is quite
@@ -68,10 +71,15 @@ Section Normalization.
       forall (G: CTX) (X: tel G) (T: TYPE G),
       tel (SNOC G T).
 
-  Inductive tel_weak: forall {G D}, tel G -> tel D -> SUBST G D -> Type :=
+  Inductive tel_weak: forall {D G}, tel D -> tel G -> SUBST D G -> Type :=
     | tel_weak_nil:
-      forall (G: CTX) (X: tel G),
-      tel_weak X tel_nil (NIL G).
+      forall D X,
+      @tel_weak D NIL X tel_nil (NIL D)
+    | tel_weak_shift:
+      forall D G X Y s,
+      @tel_weak D G X Y s ->
+      forall A: TYPE D,
+      @tel_weak _ _ (tel_snoc D X A) Y (post (P A) s).
 
 End Normalization.
 

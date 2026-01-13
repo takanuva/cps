@@ -382,8 +382,8 @@ Polymorphic Structure CwF: Type := {
 Fail Check forall {C G A} (a: cwf_elem C G A), cwf_comp C id a.
 
 Axiom cwf_subst:
-  forall {C G A} (a: cwf_elem C G A),
-  cwf_cat C G (cwf_ctxext C G A).
+  forall {M G A} (a: cwf_elem M G A),
+  cwf_cat M G (cwf_ctxext M G A).
 
 (* Thus if B in Type(G.A) and a in Elem(G, A), we have B[a] in Type(G).
 
@@ -410,6 +410,7 @@ Definition ps: cwf_cat M (cwf_ctxext M D sA) G :=
   post p s.
 
 Check cwf_zero M A.
+
 
 (*
   s : D -> G
@@ -463,3 +464,9 @@ Check cwf_zero M A.
     Which we may have from q! :)
 
 *)
+
+Axiom cwf_uplift:
+  forall {M G A D},
+  forall s: hom (cwf_cat M) D G,
+  hom (cwf_cat M) (cwf_ctxext M D (cwf_tsubst M s A))
+                  (cwf_ctxext M G A).
