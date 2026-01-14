@@ -25,6 +25,8 @@ Include Stratification.
 Include Reduction.
 Include Observational.
 
+(* TODO: add initial model above. *)
+
 Local Coercion bound: nat >-> term.
 
 (* fun (T: Set) (U: T -> Set) (f: (Pi x: T.U x)) (y: T): U y => f y *)
