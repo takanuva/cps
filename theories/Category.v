@@ -377,6 +377,10 @@ Polymorphic Structure CwF: Type := {
   (* TODO: laws on proj and zero. *)
 }.
 
+Global Coercion cwf_cat: CwF >-> SmallCategory.
+
+(* -------------------------------------------------------------------------- *)
+
 (* Should be (cwf_snoc C id a), with proper coercions... *)
 
 Fail Check forall {C G A} (a: cwf_elem C G A), cwf_snoc C id a.
@@ -459,3 +463,27 @@ Section Uplift.
 End Uplift.
 
 Arguments cwf_uplift M {D} {G} {A}.
+
+(* -------------------------------------------------------------------------- *)
+
+Polymorphic Section Universes.
+
+  Variable C: CwF.
+
+  Polymorphic Structure CwF'U: Type := {
+    cwf_universe G: nat -> cwf_type C G;
+    cwf_el G n:
+      cwf_elem C G (cwf_universe G n) ->
+      cwf_type C G;
+    cwf_raise G n l:
+      l >= n ->
+      cwf_elem C G (cwf_universe G n) ->
+      cwf_elem C G (cwf_universe G l);
+    cwf_raise_simpl G n l:
+      forall H: l >= n,
+      forall X: cwf_elem C G (cwf_universe G n),
+      (* TODO: not equality, but an isomorphism! *)
+      cwf_el G l (cwf_raise G n l H X) = cwf_el G n X
+  }.
+
+End Universes.
