@@ -15,10 +15,11 @@ Require Import Local.Constructions.Inversion.
 
 Import ListNotations.
 
-(* We build here the term model (also called the initial model) for our type
+(* We build here the initial model (also called the term model) for our type
    theory. It is a category with family such that contexts (i.e., environments),
-   substitutions, types and elements are syntactic objects modulo the equational
-   reasoning. For this, we will consider our canonical reduction relation.
+   substitutions, types and elements are well-typed syntactic objects modulo the
+   equational reasoning. To build this model, we will consider our canonical
+   reduction relation.
 
    Let us be honest, I don't really care about proving that this model is indeed
    initial, so please bear with me. I'm very tired. :( *)
