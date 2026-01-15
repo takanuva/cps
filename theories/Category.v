@@ -275,6 +275,24 @@ Global Existing Instance fmap_respectful.
 Arguments mapping {C D} F: rename.
 Arguments fmap {C D} F {x y}: rename.
 
+(* ... *)
+
+Polymorphic Section NaturalTransformation.
+
+  Variable C: Category.
+  Variable D: Category.
+
+  Variable F: Functor C D.
+  Variable G: Functor C D.
+
+  Polymorphic Structure NaturalTransformation: Type := {
+    transformation: forall X: C, D (F X) (G X);
+    naturality X Y f:
+      post (fmap F f) (transformation Y) == post (transformation X) (fmap G f)
+  }.
+
+End NaturalTransformation.
+
 (* There are some distinct but equivalent definitions for presheafs; we take,
    perhaps, the most common one (or close enough to it): that a presheaf on C is
    a functor from C^op to the category of setoids. The usual definition goes to
@@ -318,7 +336,11 @@ Proof.
   now rewrite H.
 Qed.
 
-(* *)
+(* ... *)
+
+(* TODO: Yoneda. *)
+
+(* ... *)
 
 Polymorphic Structure Terminal (C: Category): Type := {
   terminal: C;
