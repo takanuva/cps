@@ -291,7 +291,44 @@ Polymorphic Section NaturalTransformation.
       post (fmap F f) (transformation Y) == post (transformation X) (fmap G f)
   }.
 
+  Polymorphic Program Definition NaturalTransformationSetoid: Setoid := {|
+    carrier := NaturalTransformation;
+    equiv A B :=
+      forall X: C,
+      transformation A X == transformation B X
+  |}.
+
+  Obligation 1 of NaturalTransformationSetoid.
+    split; repeat intro.
+    - reflexivity.
+    - now symmetry.
+    - now transitivity (transformation y X).
+  Qed.
+
+  (* TODO: fix this warning! *)
+
+  Global Canonical Structure NaturalTransformationSetoid.
+
 End NaturalTransformation.
+
+Arguments NaturalTransformation {C} {D}.
+Arguments NaturalTransformationSetoid {C} {D}.
+Arguments transformation {C} {D}.
+Arguments naturality {C} {D}.
+
+(* ... *)
+
+Polymorphic Section FunctorCategory.
+
+  Variable C: Category.
+  Variable D: Category.
+
+  (* Global Program Definition FunctorCategory: Category := {|
+    obj := Functor C D;
+    hom F G := NaturalTransformation F G
+  |}. *)
+
+End FunctorCategory.
 
 (* There are some distinct but equivalent definitions for presheafs; we take,
    perhaps, the most common one (or close enough to it): that a presheaf on C is
