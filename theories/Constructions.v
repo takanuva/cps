@@ -7,8 +7,9 @@ Require Local.Constructions.Calculus.
 Require Local.Constructions.Conversion.
 Require Local.Constructions.Confluence.
 Require Local.Constructions.TypeSystem.
-Require Local.Constructions.Normalization.
 Require Local.Constructions.Inversion.
+Require Local.Constructions.InitialModel.
+Require Local.Constructions.Normalization.
 Require Local.Constructions.Stratification.
 Require Local.Constructions.Reduction.
 Require Local.Constructions.Observational.
@@ -19,13 +20,12 @@ Include Calculus.
 Include Conversion.
 Include Confluence.
 Include TypeSystem.
-Include Normalization.
 Include Inversion.
+Include InitialModel.
+Include Normalization.
 Include Stratification.
 Include Reduction.
 Include Observational.
-
-(* TODO: add initial model above. *)
 
 Local Coercion bound: nat >-> term.
 
