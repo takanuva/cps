@@ -325,7 +325,7 @@ Polymorphic Section FunctorCategory.
 
   Print post.
 
-  Global Program Definition FunctorCategory: Category := {|
+  Global Polymorphic Program Definition FunctorCategory: Category := {|
     obj := Functor C D;
     hom F G := NaturalTransformation F G;
     id F :=
