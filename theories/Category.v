@@ -24,12 +24,14 @@ Set Primitive Projections.
 Polymorphic Structure Setoid: Type := {
   carrier :> Type;
   equiv: relation carrier;
-  setoid_equiv :: Equivalence equiv
+  setoid_equiv: Equivalence equiv
 }.
 
 Add Printing Let Setoid.
 
 Arguments equiv {s}.
+
+Global Existing Instance setoid_equiv.
 
 Notation "x == y" := (equiv x y)
   (at level 70, no associativity): type_scope.
@@ -322,8 +324,6 @@ Polymorphic Section FunctorCategory.
 
   Variable C: Category.
   Variable D: Category.
-
-  Print post.
 
   Global Polymorphic Program Definition FunctorCategory: Category := {|
     obj := Functor C D;
