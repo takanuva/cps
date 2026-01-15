@@ -313,8 +313,8 @@ End NaturalTransformation.
 
 Arguments NaturalTransformation {C} {D}.
 Arguments NaturalTransformationSetoid {C} {D}.
-Arguments transformation {C} {D}.
-Arguments naturality {C} {D}.
+Arguments transformation {C} {D} {F} {G}.
+Arguments naturality {C} {D} {F} {G}.
 
 (* ... *)
 
@@ -323,10 +323,49 @@ Polymorphic Section FunctorCategory.
   Variable C: Category.
   Variable D: Category.
 
-  (* Global Program Definition FunctorCategory: Category := {|
+  Print post.
+
+  Global Program Definition FunctorCategory: Category := {|
     obj := Functor C D;
-    hom F G := NaturalTransformation F G
-  |}. *)
+    hom F G := NaturalTransformation F G;
+    id F :=
+      (* TODO: can we use just id here...? *)
+      {| transformation X := @id D (F X) |};
+    post F G H A B :=
+      {| transformation X := post (transformation A X) (transformation B X) |}
+  |}.
+
+  Obligation 1 of FunctorCategory.
+    rewrite post_id_right.
+    rewrite post_id_left.
+    reflexivity.
+  Qed.
+
+  Obligation 2 of FunctorCategory.
+    rewrite post_assoc.
+    rewrite naturality.
+    rewrite <- post_assoc.
+    rewrite naturality.
+    rewrite post_assoc.
+    reflexivity.
+  Qed.
+
+  Obligation 3 of FunctorCategory.
+    repeat intro; simpl.
+    now rewrite H, H0.
+  Qed.
+
+  Obligation 4 of FunctorCategory.
+    now rewrite post_id_left.
+  Qed.
+
+  Obligation 5 of FunctorCategory.
+    now rewrite post_id_right.
+  Qed.
+
+  Obligation 6 of FunctorCategory.
+    now rewrite post_assoc.
+  Qed.
 
 End FunctorCategory.
 
