@@ -422,11 +422,14 @@ Polymorphic Section Yoneda.
 
   Polymorphic Program Definition Yoneda: Functor C (Presheaf C) := {|
     mapping X := {|
-      mapping Y := C Y X
+      mapping Y := C Y X;
+      fmap Y Z f := {|
+        setoid_fun g := post (f: C Z Y) (g: C Y X)
+      |}
     |};
     fmap Y Z f := {|
       transformation X := {|
-        setoid_fun g := post g f
+        setoid_fun g := post (g: C X Y) (f: C Y Z)
       |}
     |}
   |}.
