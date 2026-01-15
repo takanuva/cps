@@ -416,7 +416,59 @@ Qed.
 
 (* ... *)
 
-(* TODO: Yoneda. *)
+Polymorphic Section Yoneda.
+
+  Variable C: Category.
+
+  Polymorphic Program Definition Yoneda: Functor C (Presheaf C) := {|
+    mapping X := {|
+      mapping Y := C Y X
+    |};
+    fmap Y Z f := {|
+      transformation X := {|
+        setoid_fun g := post g f
+      |}
+    |}
+  |}.
+
+  Obligation 1 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 2 of Yoneda.
+    repeat intro.
+    admit.
+  Admitted.
+
+  Obligation 3 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 4 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 5 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 6 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 7 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 8 of Yoneda.
+    admit.
+  Admitted.
+
+  Obligation 9 of Yoneda.
+    admit.
+  Admitted.
+
+End Yoneda.
 
 (* ... *)
 
