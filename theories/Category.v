@@ -367,6 +367,8 @@ Polymorphic Section FunctorCategory.
     now rewrite post_assoc.
   Qed.
 
+  Global Canonical Structure FunctorCategory.
+
 End FunctorCategory.
 
 (* There are some distinct but equivalent definitions for presheafs; we take,
