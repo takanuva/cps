@@ -318,6 +318,8 @@ Arguments NaturalTransformationSetoid {C} {D}.
 Arguments transformation {C} {D} {F} {G}.
 Arguments naturality {C} {D} {F} {G}.
 
+Global Coercion transformation: NaturalTransformation >-> Funclass.
+
 (* ... *)
 
 Polymorphic Section FunctorCategory.
