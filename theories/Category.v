@@ -117,9 +117,9 @@ SubClass SmallCategory: Type := Category@{Set Set}.
 
 Polymorphic Program Definition opposite (C: Category): Category := {|
   obj := C;
-  hom := flip C;
+  hom X Y := C Y X;
   id x := id;
-  post x y z := flip post
+  post x y z f g := post g f
 |}.
 
 Obligation 1 of opposite.
@@ -435,41 +435,44 @@ Polymorphic Section Yoneda.
   |}.
 
   Obligation 1 of Yoneda.
-    admit.
-  Admitted.
+    repeat intro.
+    now rewrite H.
+  Qed.
 
   Obligation 2 of Yoneda.
-    repeat intro.
-    admit.
-  Admitted.
+    repeat intro; simpl.
+    now rewrite H.
+  Qed.
 
   Obligation 3 of Yoneda.
-    admit.
-  Admitted.
+    now rewrite post_id_left.
+  Qed.
 
   Obligation 4 of Yoneda.
-    admit.
-  Admitted.
+    now rewrite post_assoc.
+  Qed.
 
   Obligation 5 of Yoneda.
-    admit.
-  Admitted.
+    repeat intro.
+    now rewrite H.
+  Qed.
 
   Obligation 6 of Yoneda.
-    admit.
-  Admitted.
+    now rewrite post_assoc.
+  Qed.
 
   Obligation 7 of Yoneda.
-    admit.
-  Admitted.
+    repeat intro; simpl.
+    now rewrite H.
+  Qed.
 
   Obligation 8 of Yoneda.
-    admit.
-  Admitted.
+    now rewrite post_id_right.
+  Qed.
 
   Obligation 9 of Yoneda.
-    admit.
-  Admitted.
+    now rewrite post_assoc.
+  Qed.
 
 End Yoneda.
 
