@@ -422,6 +422,8 @@ Polymorphic Section Yoneda.
 
   Variable C: Category.
 
+  (* TODO: should this be an example...? *)
+
   Polymorphic Program Definition Yoneda: Functor C (Presheaf C) := {|
     mapping X := {|
       mapping Y := C Y X;
@@ -635,15 +637,15 @@ Polymorphic Section Universes.
     cwf_el G n:
       cwf_elem C G (cwf_universe G n) ->
       cwf_type C G;
-    cwf_raise G n l:
-      l >= n ->
+    cwf_foo G n m:
+      n <= m ->
       cwf_elem C G (cwf_universe G n) ->
-      cwf_elem C G (cwf_universe G l);
-    cwf_raise_simpl G n l:
-      forall H: l >= n,
+      cwf_elem C G (cwf_universe G m);
+    cwf_bar G n m:
+      forall H: n <= m,
       forall X: cwf_elem C G (cwf_universe G n),
-      (* TODO: not equality, but an isomorphism! *)
-      cwf_el G l (cwf_raise G n l H X) = cwf_el G n X
+      (* TODO: not an equality... an isomorphism? *)
+      cwf_el G m (cwf_foo G n m H X) = cwf_el G n X
   }.
 
 End Universes.
