@@ -100,6 +100,43 @@ Qed.
 Definition Deq: relation D :=
   rst(Dstep).
 
+Definition Deq_K:
+  forall x y,
+  Deq (K x y) x.
+Proof.
+  intros.
+  apply clos_rt_clos_rst.
+  apply rt_step.
+  apply Dstep_K.
+Qed.
+
+Definition Deq_S:
+  forall x y z,
+  Deq (S x y z) (x z (y z)).
+Proof.
+  intros.
+  apply clos_rt_clos_rst.
+  apply rt_step.
+  apply Dstep_S.
+Qed.
+
+Definition Deq_I:
+  forall x,
+  Deq (I x) x.
+Proof.
+  intros.
+  apply clos_rt_clos_rst.
+  apply Dstep_I.
+Qed.
+
+Definition Deq_B:
+  forall x y z,
+  Deq (B x y z) (x (y z)).
+  intros.
+  apply clos_rt_clos_rst.
+  apply Dstep_B.
+Qed.
+
 Lemma Deq_equiv: Equivalence Deq.
 Proof.
   split; repeat intro.
