@@ -145,6 +145,29 @@ Proof.
   - now apply rst_trans with y.
 Qed.
 
+Local Existing Instance Deq_equiv.
+
+Local Instance Deq_app_proper:
+  Proper (Deq ==> Deq ==> Deq) app.
+Proof.
+  repeat intro.
+  transitivity (y x0).
+  - clear H0 y0.
+    induction H.
+    + apply rst_step.
+      now apply Dstep_app_left.
+    + reflexivity.
+    + now symmetry.
+    + now transitivity (y x0).
+  - clear H x.
+    induction H0.
+    + apply rst_step.
+      now apply Dstep_app_right.
+    + reflexivity.
+    + now symmetry.
+    + now transitivity (y y0).
+Qed.
+
 Polymorphic Record Dset: Type := {
   Dset_carrier :> Type;
   Dset_realization:
