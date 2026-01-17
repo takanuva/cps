@@ -196,6 +196,7 @@ Qed.
 
 Polymorphic Record Dmap (X: Dset) (Y: Dset): Type := {
   Dmap_fun: X -> Y;
+  (* TODO: do we want this element to be irrelevant...? *)
   Dmap_preserve: exists x, forall y z, X y z -> Y (app x y) (Dmap_fun z)
 }.
 
