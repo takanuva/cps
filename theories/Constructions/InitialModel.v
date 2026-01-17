@@ -190,7 +190,8 @@ Polymorphic Program Definition Delta (A: Type): Dset := {|
 |}.
 
 Next Obligation of Delta.
-  exists K; trivial.
+  (* Any combinator is ok; we merely need to show that some exist. Pick I. *)
+  exists I; trivial.
 Qed.
 
 Polymorphic Record Dmap (X: Dset) (Y: Dset): Type := {
@@ -200,15 +201,20 @@ Polymorphic Record Dmap (X: Dset) (Y: Dset): Type := {
 
 Local Coercion Dmap_fun: Dmap >-> Funclass.
 
-Axiom Dmap_eq: forall {X Y}, relation (Dmap X Y).
+Definition Dmap_eq: forall {X Y}, relation (Dmap X Y) :=
+  fun X Y M N => forall x, M x = N x.
 
-Axiom Dmap_eq_equiv: forall X Y, Equivalence (@Dmap_eq X Y).
-
-Polymorphic Definition DmapSetoid {X Y}: Setoid := {|
+Polymorphic Program Definition DmapSetoid {X Y}: Setoid := {|
   carrier := Dmap X Y;
-  equiv := Dmap_eq;
-  setoid_equiv := Dmap_eq_equiv X Y
+  equiv := Dmap_eq
 |}.
+
+Obligation 1 of DmapSetoid.
+  split; repeat intro.
+  - reflexivity.
+  - now rewrite H.
+  - now rewrite H, H0.
+Qed.
 
 Global Canonical Structure DmapSetoid.
 
@@ -242,8 +248,6 @@ Obligation 1 of Dmap_post.
     assumption.
 Qed.
 
-(* TODO: force this to be small if possible! *)
-
 Program Definition DsetCategory: Category := {|
   obj := Dset;
   hom := Dmap;
@@ -252,17 +256,21 @@ Program Definition DsetCategory: Category := {|
 |}.
 
 Obligation 1 of DsetCategory.
-  admit.
-Admitted.
+  repeat intro; simpl.
+  now rewrite H, H0.
+Qed.
 
 Obligation 2 of DsetCategory.
-  admit.
-Admitted.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
 
 Obligation 3 of DsetCategory.
-  admit.
-Admitted.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
 
 Obligation 4 of DsetCategory.
-  admit.
-Admitted.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
