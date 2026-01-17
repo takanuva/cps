@@ -223,7 +223,7 @@ Obligation 1 of Dmap_id.
   - assumption.
 Qed.
 
-Polymorphic Program Definition Dmap_post {X Y Z} (M: Dmap X Y) (N: Dmap Y Z):
+Polymorphic Program Definition Dmap_post X Y Z (M: Dmap X Y) (N: Dmap Y Z):
   Dmap X Z :=
 {|
   Dmap_fun x := N (M x)
@@ -241,3 +241,28 @@ Obligation 1 of Dmap_post.
     apply H.
     assumption.
 Qed.
+
+(* TODO: force this to be small if possible! *)
+
+Program Definition DsetCategory: Category := {|
+  obj := Dset;
+  hom := Dmap;
+  id := Dmap_id;
+  post := Dmap_post
+|}.
+
+Obligation 1 of DsetCategory.
+  admit.
+Admitted.
+
+Obligation 2 of DsetCategory.
+  admit.
+Admitted.
+
+Obligation 3 of DsetCategory.
+  admit.
+Admitted.
+
+Obligation 4 of DsetCategory.
+  admit.
+Admitted.
