@@ -46,9 +46,32 @@ Definition I: D :=
 Definition B: D :=
   S (K S) K.
 
-Axiom Deq: relation D.
+Inductive Dstep: relation D :=
+  | Dstep_K:
+    forall x y,
+    Dstep (K x y) x
+  | Dstep_S:
+    forall x y z,
+    Dstep (S x y z) (x z (y z))
+  | Dstep_app_left:
+    forall x1 x2 y,
+    Dstep x1 x2 ->
+    Dstep (x1 y) (x2 y)
+  | Dstep_app_right:
+    forall (x: D) y1 y2,
+    Dstep y1 y2 ->
+    Dstep (x y1) (x y2).
 
-Axiom Deq_equiv: Equivalence Deq.
+Definition Deq: relation D :=
+  rst(Dstep).
+
+Lemma Deq_equiv: Equivalence Deq.
+Proof.
+  split; repeat intro.
+  - apply rst_refl.
+  - now apply rst_sym.
+  - now apply rst_trans with y.
+Qed.
 
 Polymorphic Record Dset: Type := {
   Dset_carrier :> Type;
