@@ -219,9 +219,9 @@ Polymorphic Program Definition Dmap_id (X: Dset): Dmap X X := {|
 Obligation 1 of Dmap_id.
   exists I; intros.
   apply Dset_respectful with y.
-  - admit.
+  - apply Deq_I.
   - assumption.
-Admitted.
+Qed.
 
 Polymorphic Program Definition Dmap_post {X Y Z} (M: Dmap X Y) (N: Dmap Y Z):
   Dmap X Z :=
@@ -236,8 +236,8 @@ Obligation 1 of Dmap_post.
   exists (B x y); intros.
   rename y0 into z, z into w.
   apply Dset_respectful with (x (y z)).
-  - admit.
+  - apply Deq_B.
   - apply H0.
     apply H.
     assumption.
-Admitted.
+Qed.
