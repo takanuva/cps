@@ -40,10 +40,10 @@ Inductive D: Set :=
 
 Local Coercion app: D >-> Funclass.
 
-Definition I: D :=
+Local Definition I: D :=
   S K K.
 
-Definition B: D :=
+Local Definition B: D :=
   S (K S) K.
 
 Inductive Dstep: relation D :=
@@ -61,6 +61,41 @@ Inductive Dstep: relation D :=
     forall (x: D) y1 y2,
     Dstep y1 y2 ->
     Dstep (x y1) (x y2).
+
+Definition Dstep_I:
+  forall x,
+  rt(Dstep) (I x) x.
+Proof.
+  intros.
+  unfold I.
+  eapply rt_trans.
+  - apply rt_step.
+    apply Dstep_S.
+  - apply rt_step.
+    apply Dstep_K.
+Qed.
+
+Definition Dstep_B:
+  forall x y z,
+  rt(Dstep) (B x y z) (x (y z)).
+Proof.
+  intros.
+  unfold B.
+  eapply rt_trans.
+  - apply rt_step.
+    do 2 apply Dstep_app_left.
+    apply Dstep_S.
+  - eapply rt_trans.
+    + apply rt_step.
+      do 3 apply Dstep_app_left.
+      apply Dstep_K.
+    + eapply rt_trans.
+      * apply rt_step.
+        apply Dstep_S.
+      * apply rt_step.
+        apply Dstep_app_left.
+        apply Dstep_K.
+Qed.
 
 Definition Deq: relation D :=
   rst(Dstep).
