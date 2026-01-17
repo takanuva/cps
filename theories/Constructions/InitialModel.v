@@ -4,9 +4,10 @@
 
 Require Import List.
 Require Import Program.
+Require Import Morphisms.
 Require Import Local.Prelude.
-Require Import Local.Category.
 Require Import Local.AbstractRewriting.
+Require Import Local.Category.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
@@ -28,3 +29,97 @@ Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
 
 (* TODO: we need to make a type system for substitutions! *)
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: move me, please? For now, let's play with the D-presheaf model! *)
+
+Inductive D: Set :=
+  | K: D
+  | S: D
+  | app: D -> D -> D.
+
+Local Coercion app: D >-> Funclass.
+
+Definition I: D :=
+  S K K.
+
+Definition B: D :=
+  S (K S) K.
+
+Axiom Deq: relation D.
+
+Axiom Deq_equiv: Equivalence Deq.
+
+Polymorphic Record Dset: Type := {
+  Dset_carrier :> Type;
+  Dset_realization:
+    D -> Dset_carrier -> Prop;
+  Dset_respectful:
+    forall d1 d2,
+    Deq d1 d2 ->
+    forall x,
+    Dset_realization d2 x -> Dset_realization d1 x;
+  Dset_surjective:
+    forall y: Dset_carrier,
+    { x: D | Dset_realization x y }
+}.
+
+Local Coercion Dset_realization: Dset >-> Funclass.
+
+Polymorphic Program Definition Delta (A: Type): Dset := {|
+  Dset_carrier := A;
+  Dset_realization x y := True
+|}.
+
+Next Obligation of Delta.
+  exists K; trivial.
+Qed.
+
+Polymorphic Record Dmap (X: Dset) (Y: Dset): Type := {
+  Dmap_fun: X -> Y;
+  Dmap_preserve: exists x, forall y z, X y z -> Y (app x y) (Dmap_fun z)
+}.
+
+Local Coercion Dmap_fun: Dmap >-> Funclass.
+
+Axiom Dmap_eq: forall {X Y}, relation (Dmap X Y).
+
+Axiom Dmap_eq_equiv: forall X Y, Equivalence (@Dmap_eq X Y).
+
+Polymorphic Definition DmapSetoid {X Y}: Setoid := {|
+  carrier := Dmap X Y;
+  equiv := Dmap_eq;
+  setoid_equiv := Dmap_eq_equiv X Y
+|}.
+
+Global Canonical Structure DmapSetoid.
+
+Polymorphic Program Definition Dmap_id (X: Dset): Dmap X X := {|
+  Dmap_fun x := x
+|}.
+
+Obligation 1 of Dmap_id.
+  exists I; intros.
+  apply Dset_respectful with y.
+  - admit.
+  - assumption.
+Admitted.
+
+Polymorphic Program Definition Dmap_post {X Y Z} (M: Dmap X Y) (N: Dmap Y Z):
+  Dmap X Z :=
+{|
+  Dmap_fun x := N (M x)
+|}.
+
+Obligation 1 of Dmap_post.
+  destruct M as (g, (y, ?H)).
+  destruct N as (f, (x, ?H)).
+  simpl.
+  exists (B x y); intros.
+  rename y0 into z, z into w.
+  apply Dset_respectful with (x (y z)).
+  - admit.
+  - apply H0.
+    apply H.
+    assumption.
+Admitted.
