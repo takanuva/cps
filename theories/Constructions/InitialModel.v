@@ -275,3 +275,81 @@ Obligation 4 of DsetCategory.
   repeat intro; simpl.
   reflexivity.
 Qed.
+
+Local Canonical Structure DsetCategory.
+
+(* -------------------------------------------------------------------------- *)
+
+Variable C: SmallCategory.
+
+Program Definition DsetModel: CwF := {|
+  cwf_cat := Functor (opposite C) Dset;
+  cwf_empty := {|
+    terminal := {|
+      mapping (X: C) := Delta unit;
+      fmap (X: C) (Y: C) (f: C Y X) := Dmap_id (Delta unit)
+    |};
+    terminal_hom (F: Functor (opposite C) Dset) := {|
+      transformation (X: C) := {|
+        Dmap_fun (A: F X) := tt
+      |}
+    |}
+  |}
+|}.
+
+Next Obligation.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  exists I; easy.
+Qed.
+
+Next Obligation.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  repeat intro; simpl.
+  enough (forall v: unit, v = ()); intros.
+  - apply H.
+  - now destruct v.
+Qed.
+
+Preterm.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.

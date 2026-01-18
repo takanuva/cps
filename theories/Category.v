@@ -508,9 +508,9 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
 
 Polymorphic Structure CwF: Type := {
   (* We start with a category of contexts and substitutions, such that it has
-     a terminal object, which represents the empty context. We require it to be
-     small. *)
-  cwf_cat: SmallCategory;
+     a terminal object, which represents the empty context. TODO: do we want it
+     to be small? *)
+  cwf_cat: Category;
   cwf_empty: Terminal cwf_cat;
   (* ... *)
   cwf_type: cwf_cat -> Setoid;
@@ -539,7 +539,7 @@ Polymorphic Structure CwF: Type := {
   (* TODO: laws on proj and zero. *)
 }.
 
-Global Coercion cwf_cat: CwF >-> SmallCategory.
+Global Coercion cwf_cat: CwF >-> Category.
 
 (* -------------------------------------------------------------------------- *)
 
