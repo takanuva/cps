@@ -393,9 +393,10 @@ Polymorphic Section Restriction.
   Variable X: C.
   Variable Y: C.
   Variable F: C Y X.
+  (* TODO: should we generalize to any category D instead of Setoid? *)
   Variable G: Presheaf C.
 
-  Polymorphic Definition restrict: G X -> G Y :=
+  Polymorphic Definition restrict: G X ~> G Y :=
     fmap G F.
 
 End Restriction.
