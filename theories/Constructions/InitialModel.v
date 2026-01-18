@@ -132,20 +132,19 @@ Qed.
 Definition Deq_B:
   forall x y z,
   Deq (B x y z) (x (y z)).
+Proof.
   intros.
   apply clos_rt_clos_rst.
   apply Dstep_B.
 Qed.
 
-Lemma Deq_equiv: Equivalence Deq.
+Local Instance Deq_equiv: Equivalence Deq.
 Proof.
   split; repeat intro.
   - apply rst_refl.
   - now apply rst_sym.
   - now apply rst_trans with y.
 Qed.
-
-Local Existing Instance Deq_equiv.
 
 Local Instance Deq_app_proper:
   Proper (Deq ==> Deq ==> Deq) app.
