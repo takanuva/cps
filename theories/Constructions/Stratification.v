@@ -137,7 +137,9 @@ Theorem sorting:
   forall R j,
   infer R j ->
   match j with
+  (* TODO: review subst here... *)
   | valid_env g => schemes_only R g
+  | valid_subst _ _ _ => True
   | typing g e t => well_sorted R g t
   end.
 Proof.
@@ -250,6 +252,14 @@ Proof.
       apply weakening.
       * assumption.
       * now apply valid_env_def with s.
+  (* Case: id substitution. *)
+  - trivial.
+  (* Case: lift substitution. *)
+  - trivial.
+  (* Case: comp substitution. *)
+  - trivial.
+  (* Case: cons substitution. *)
+  - trivial.
 Admitted.
 
 Corollary validity:

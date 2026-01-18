@@ -18,6 +18,7 @@ Section TypeSystem.
 
   Variant typing_judgement: Set :=
     | valid_env (g: env)
+    | valid_subst (s: @substitution term) (g: env) (g: env)
     | typing (g: env) (e: term) (t: term).
 
   Variable R: typing_equivalence.
@@ -251,7 +252,46 @@ Section TypeSystem.
       forall g e t s,
       infer (typing g e t) ->
       infer (typing g t (sort s)) ->
-      infer (valid_env (decl_def e t :: g)).
+      infer (valid_env (decl_def e t :: g))
+    (*
+           |- G
+      ----------------
+        G |- ids : G
+    *)
+    | valid_subst_ids:
+      forall g,
+      infer (valid_env g) ->
+      infer (valid_subst subst_ids g g)
+    (*
+             G |- T : s
+      -----------------------
+        G, x: T |- lift : G
+    *)
+    | valid_subst_lift:
+      forall g t s,
+      infer (typing g t (sort s)) ->
+      infer (valid_subst (subst_lift 1) g (decl_var t :: g))
+    (*
+        G1 |- f : G2     G2 |- g : G3
+      ---------------------------------
+             G1 |- (f; g) : G3
+    *)
+    | valid_subst_comp:
+      forall g1 g2 g3 f g,
+      infer (valid_subst f g1 g2) ->
+      infer (valid_subst g g2 g3) ->
+      infer (valid_subst (subst_comp f g) g1 g3)
+    (*
+        G1 |- f : G2     G2 |- T : s     G1 |- e : T[f]
+      ---------------------------------------------------
+                G1 |- (e/x, f) : (G2, x: T)
+    *)
+    | valid_subst_cons:
+      forall g1 g2 f t s e,
+      infer (valid_subst f g1 g2) ->
+      infer (typing g2 t (sort s)) ->
+      infer (typing g1 e (inst f t)) ->
+      infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2)).
 
   Lemma typing_bound:
     forall g n p t u,
@@ -306,6 +346,7 @@ Global Coercion lift_judgement: typing_judgement >-> Funclass.
 Definition get_environment (j: typing_judgement): env :=
   match j with
   | valid_env g => g
+  | valid_subst _ g _ => g
   | typing g _ _ => g
   end.
 
@@ -427,6 +468,14 @@ Proof.
   - now apply valid_env_var with s.
   (* Case: env def. *)
   - now apply valid_env_def with s.
+  (* Case: id substitution. *)
+  - now apply valid_subst_ids.
+  (* Case: lift substitution. *)
+  - now apply valid_subst_lift with s.
+  (* Case: comp substitution. *)
+  - now apply valid_subst_comp with g2.
+  (* Case: cons substitution. *)
+  - now apply valid_subst_cons with s.
 Qed.
 
 Conjecture weakening:
