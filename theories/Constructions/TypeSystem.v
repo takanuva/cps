@@ -379,6 +379,10 @@ Proof.
     + now apply valid_env_def with s.
     + (* Either one of the hypotheses work... *)
       apply IHinfer1.
+  (* Case: subst cons. *)
+  - destruct n; simpl.
+    + now apply valid_env_var with s.
+    + apply IHinfer.
 Qed.
 
 Lemma valid_env_typing:
