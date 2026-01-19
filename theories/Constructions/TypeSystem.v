@@ -597,7 +597,50 @@ Proof.
   dependent induction H; intros.
   - admit.
   - admit.
-  - admit.
+  - clear IHinfer.
+    rename t0 into t.
+    generalize dependent n.
+    generalize dependent t.
+    clear H.
+    dependent induction H1; intros.
+    + clear IHinfer.
+      sigma.
+      apply typing_var with t.
+      * assumption.
+      * assumption.
+      * now sigma.
+    + clear IHinfer.
+      change (bound n) with (var n).
+      rename t0 into u; sigma.
+      apply typing_var with u.
+      * apply valid_env_var with s.
+        assumption.
+      * now constructor.
+      * now sigma.
+    + specialize (IHinfer1 _ _ _ eq_refl).
+      specialize (IHinfer2 _ _ _ eq_refl).
+      change (bound n) with (var n).
+      rename f0 into f; sigma.
+      (* Oh no... *)
+      replace (inst (subst_comp f g) (var n)) with
+        (inst g (inst f (var n))) by now sigma.
+      specialize (IHinfer1 _ _ H0).
+      (* Would having the inductive principle here help...? *)
+      admit.
+    + clear IHinfer2 IHinfer3.
+      specialize (IHinfer1 _ _ _ eq_refl).
+      destruct n.
+      * change (bound 0) with (var 0).
+        dependent destruction H0.
+        now sigma.
+      * change (bound (S n)) with (var (S n)).
+        rename f0 into f, t0 into u.
+        replace (inst (subst_cons e f) (lift (1 + S n) 0 u)) with
+          (inst f (lift (S n) 0 u)) by now sigma.
+        replace (inst (subst_cons e f) (var (S n))) with
+          (inst f (var n)) by now sigma.
+        apply IHinfer1.
+        now dependent destruction H0.
   - admit.
   - rename t0 into t.
     specialize (IHinfer1 _ _ _ eq_refl).
