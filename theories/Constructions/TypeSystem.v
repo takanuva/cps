@@ -561,6 +561,30 @@ Proof.
   now induction s.
 Qed.
 
+Lemma typing_uplift:
+  forall f g1 g2 R,
+  valid_subst f g2 g1 R ->
+  forall t s,
+  typing g1 t (sort s) R ->
+  typing g2 (inst f t) (sort s) R ->
+  valid_subst
+    (subst_cons (var 0) (subst_comp f (subst_lift 1)))
+    (decl_var (inst f t) :: g2) (decl_var t :: g1) R.
+Proof.
+  intros.
+  apply valid_subst_cons with s.
+  - apply valid_subst_comp with g2.
+    + assumption.
+    + apply valid_subst_lift with s.
+      assumption.
+  - assumption.
+  - apply typing_var with (inst f t).
+    + apply valid_env_var with s.
+      assumption.
+    + constructor.
+    + now sigma.
+Qed.
+
 Lemma typing_inst:
   forall R g1 e t,
   typing g1 e t R ->
@@ -590,24 +614,10 @@ Proof.
       replace (inst (subst_upn 1 f) u) with
         (inst (subst_cons (var 0) (subst_comp f (subst_lift 1))) u) by admit.
       apply IHinfer2.
-      apply valid_subst_cons with s1.
-      * apply valid_subst_comp with g2.
-        assumption.
-        apply valid_subst_lift with s1.
-        replace (sort s1) with (inst f (sort s1)).
-        eapply IHinfer1.
-        assumption.
-        apply inst_sort_simpl.
+      apply typing_uplift with s1.
       * assumption.
-      * eapply typing_bound.
-        apply valid_env_var with s1.
-        apply IHinfer1.
-        assumption.
-        constructor.
-        simpl.
-        reflexivity.
-        sigma.
-        reflexivity.
+      * assumption.
+      * now apply IHinfer1.
     + reflexivity.
   - admit.
   - admit.
