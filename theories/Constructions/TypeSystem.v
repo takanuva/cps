@@ -270,16 +270,16 @@ Section TypeSystem.
     | valid_subst_lift:
       forall g t s,
       infer (typing g t (sort s)) ->
-      infer (valid_subst (subst_lift 1) g (decl_var t :: g))
+      infer (valid_subst (subst_lift 1) (decl_var t :: g) g)
     (*
-        G1 |- f : G2     G2 |- g : G3
+        G2 |- f : G3     G1 |- g : G2
       ---------------------------------
-             G1 |- (f; g) : G3
+             G1 |- (f o g) : G3
     *)
     | valid_subst_comp:
       forall g1 g2 g3 f g,
-      infer (valid_subst f g1 g2) ->
-      infer (valid_subst g g2 g3) ->
+      infer (valid_subst f g2 g3) ->
+      infer (valid_subst g g1 g2) ->
       infer (valid_subst (subst_comp f g) g1 g3)
     (*
         G1 |- f : G2     G2 |- T : s     G1 |- e : T[f]
@@ -550,4 +550,66 @@ Proof.
   - rewrite context_lift_simpl3; simpl in H0 |- *.
     (* We need inversion on H1 as well... *)
     admit.
+Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
+Lemma inst_sort_simpl:
+  forall f s,
+  inst f (sort s) = sort s.
+Proof.
+  now induction s.
+Qed.
+
+Lemma typing_inst:
+  forall R g1 e t,
+  typing g1 e t R ->
+  forall g2 f,
+  valid_subst f g2 g1 R ->
+  typing g2 (inst f e) (inst f t) R.
+Proof.
+  intros until 1.
+  (* TODO: sigma!!! *)
+  dependent induction H; intros.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - rename t0 into t.
+    specialize (IHinfer1 _ _ _ eq_refl).
+    specialize (IHinfer2 _ _ _ eq_refl).
+    change (inst f (pi t u)) with (pi (f 0 t) (f 1 u)).
+    rewrite inst_sort_simpl.
+    apply typing_pi with s1 s2.
+    + sigma.
+      replace (sort s1) with (inst f (sort s1)).
+      * now apply IHinfer1.
+      * apply inst_sort_simpl.
+    + sigma.
+      (* This is an equality, sure. *)
+      replace (inst (subst_upn 1 f) u) with
+        (inst (subst_cons (var 0) (subst_comp f (subst_lift 1))) u) by admit.
+      apply IHinfer2.
+      apply valid_subst_cons with s1.
+      * apply valid_subst_comp with g2.
+        assumption.
+        apply valid_subst_lift with s1.
+        replace (sort s1) with (inst f (sort s1)).
+        eapply IHinfer1.
+        assumption.
+        apply inst_sort_simpl.
+      * assumption.
+      * eapply typing_bound.
+        apply valid_env_var with s1.
+        apply IHinfer1.
+        assumption.
+        constructor.
+        simpl.
+        reflexivity.
+        sigma.
+        reflexivity.
+    + reflexivity.
+  - admit.
+  - admit.
+  - admit.
 Admitted.
