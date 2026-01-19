@@ -621,5 +621,14 @@ Proof.
     + reflexivity.
   - admit.
   - admit.
-  - admit.
+  - rename t0 into t, t into u.
+    specialize (IHinfer1 _ _ _ eq_refl).
+    specialize (IHinfer2 _ _ _ eq_refl).
+    apply typing_conv with (inst f t) s.
+    + now apply IHinfer1.
+    + replace (sort s) with (inst f (sort s)).
+      * now apply IHinfer2.
+      * apply inst_sort_simpl.
+    + (* Cumulativity is stable under substitution! *)
+      admit.
 Admitted.
