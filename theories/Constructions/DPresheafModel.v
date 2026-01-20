@@ -372,10 +372,6 @@ Section DPresheaf.
       + assumption.
   Qed.
 
-  Structure test (G: DPresheaf): Type := {
-    foo: forall X: C, Ty (G X)
-  }.
-
   Program Definition DPresheafModel: CwF := {|
     cwf_cat := DPresheaf;
     cwf_empty := {|
@@ -389,7 +385,6 @@ Section DPresheaf.
         |}
       |}
     |};
-    cwf_type (G: DPresheaf) := True -> True
   |}.
 
   Next Obligation.
@@ -422,6 +417,14 @@ Section DPresheaf.
     - apply H.
     - now destruct v.
   Qed.
+
+  Next Obligation.
+    admit.
+  Admitted.
+
+  Next Obligation.
+    admit.
+  Admitted.
 
   Next Obligation.
     admit.

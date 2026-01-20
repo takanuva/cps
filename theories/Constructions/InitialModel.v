@@ -27,3 +27,71 @@ Import ListNotations.
 
 Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
+
+Definition welltyped_sub (d: welltyped_env) (g: welltyped_env): Set :=
+  { s: @substitution term | valid_subst s (`d) (`g) conv }.
+
+Definition welltyped_sub_eq {d g}: relation (welltyped_sub d g) :=
+  fun s t => subst_equiv (`s) (`t).
+
+Program Definition WelltypedSubstSetoid d g: Setoid := {|
+  carrier := @welltyped_sub d g;
+  equiv := @welltyped_sub_eq d g
+|}.
+
+(* TODO: This is DEFINITELY wrong! *)
+Obligation 1 of WelltypedSubstSetoid.
+  split; repeat intro; simpl.
+  - reflexivity.
+  - symmetry.
+    now apply H.
+  - transitivity ((`y) k x0).
+    + now apply H.
+    + now apply H0.
+Qed.
+
+Global Canonical Structure WelltypedSubstSetoid.
+
+Program Definition TermCategory: Category := {|
+  obj := welltyped_env;
+  hom := welltyped_sub;
+  id X := subst_ids;
+  post X Y Z f g := subst_comp g f
+|}.
+
+Obligation 1 of TermCategory.
+  destruct X as (g, ?H); simpl.
+  now constructor.
+Qed.
+
+Obligation 2 of TermCategory.
+  destruct f as (s, ?H).
+  destruct g as (t, ?H).
+  simpl.
+  apply valid_subst_comp with (`Y).
+  - assumption.
+  - assumption.
+Qed.
+
+Obligation 3 of TermCategory.
+  repeat intro; simpl.
+  (* Oh boy, no way this is correct... *)
+  now apply subst_comp_proper.
+Qed.
+
+Obligation 4 of TermCategory.
+  repeat intro; simpl.
+  now sigma.
+Qed.
+
+Obligation 5 of TermCategory.
+  repeat intro; simpl.
+  now sigma.
+Qed.
+
+Obligation 6 of TermCategory.
+  repeat intro; simpl.
+  now sigma.
+Qed.
+
+Global Canonical Structure TermCategory.
