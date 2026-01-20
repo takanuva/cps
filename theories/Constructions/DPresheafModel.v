@@ -169,7 +169,8 @@ Polymorphic Record Dset: Type := {
     Dset_realization d2 x -> Dset_realization d1 x;
   Dset_surjective:
     forall y: Dset_carrier,
-    { x: D | Dset_realization x y }
+    exists x: D,
+    Dset_realization x y
 }.
 
 Local Coercion Dset_realization: Dset >-> Funclass.
@@ -300,11 +301,41 @@ Section DPresheaf.
   (* We build a model using the functor category [C^op, Dset] as the category of
      contexts and morphisms. Types... *)
 
+  (* Temprary definitions for the Dset model (not used); TODO: remove it! *)
+
   Definition Con: Type := Dset.
   Definition Sub: Con -> Con -> Setoid := Dmap'.
   Definition Ty (G: Con): Setoid := G -> Dset.
-  (* Definition El (G: Con) (A: Ty G): Setoid :=
-    Dmap G A. *)
+  Definition El (G: Con) (A: Ty G): Setoid := Dmap G A.
+
+  Axiom P1: D.
+  Axiom P2: D.
+  Axiom P3: D.
+
+  Program Definition ext (G: Con) (A: Ty G): Con := {|
+    Dset_carrier := { g: G & A g };
+    Dset_realization (x: D) p :=
+      let (g, a) := p in
+      G (P1 x) g /\ A g (P2 x) a
+  |}.
+
+  Next Obligation.
+    split.
+    - apply Dset_respectful with (P1 d2).
+      + now rewrite H.
+      + assumption.
+    - apply Dset_respectful with (P2 d2).
+      + now rewrite H.
+      + assumption.
+  Qed.
+
+  Next Obligation.
+    admit.
+  Admitted.
+
+  Structure test (G: DPresheaf): Type := {
+    foo: forall X: C, Ty (G X)
+  }.
 
   Program Definition DPresheafModel: CwF := {|
     cwf_cat := DPresheaf;
@@ -318,7 +349,8 @@ Section DPresheaf.
           Dmap_fun (A: F X) := tt
         |}
       |}
-    |}
+    |};
+    cwf_type (G: DPresheaf) := True -> True
   |}.
 
   Next Obligation.
