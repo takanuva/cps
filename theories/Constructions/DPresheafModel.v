@@ -43,7 +43,7 @@ Inductive Dstep: relation D :=
     Dstep y1 y2 ->
     Dstep (x y1) (x y2).
 
-Definition Dstep_I:
+Definition rt_Dstep_I:
   forall x,
   rt(Dstep) (I x) x.
 Proof.
@@ -56,7 +56,7 @@ Proof.
     apply Dstep_K.
 Qed.
 
-Definition Dstep_B:
+Definition rt_Dstep_B:
   forall x y z,
   rt(Dstep) (B x y z) (x (y z)).
 Proof.
@@ -107,7 +107,7 @@ Definition Deq_I:
 Proof.
   intros.
   apply clos_rt_clos_rst.
-  apply Dstep_I.
+  apply rt_Dstep_I.
 Qed.
 
 Definition Deq_B:
@@ -116,7 +116,7 @@ Definition Deq_B:
 Proof.
   intros.
   apply clos_rt_clos_rst.
-  apply Dstep_B.
+  apply rt_Dstep_B.
 Qed.
 
 Local Instance Deq_equiv: Equivalence Deq.
@@ -148,6 +148,14 @@ Proof.
     + now transitivity (y y0).
 Qed.
 
+(* A D-set is a pair (C, R) such that:
+   - G is a type that represents a context (the carrier type);
+   - R is a relation between D and C that specifies that an element x of D
+     realizes the context g in C;
+   - R is respectful of D's inner structure, so x R g <-> y R g when x == y;
+   - R is surjective, such that for every g in G, there is at least one x in D
+     such that x R g. *)
+
 Polymorphic Record Dset: Type := {
   Dset_carrier :> Type;
   Dset_realization:
@@ -164,26 +172,37 @@ Polymorphic Record Dset: Type := {
 
 Local Coercion Dset_realization: Dset >-> Funclass.
 
+(* We define an operation to lift an arbitrary type into a Dset by taking the
+   full relation as it's relation; i.e., any element x realizes contexts. *)
+
 Polymorphic Program Definition Delta (A: Type): Dset := {|
   Dset_carrier := A;
   Dset_realization x y := True
 |}.
 
 Next Obligation of Delta.
-  (* Any combinator is ok; we merely need to show that some exist. Pick I. *)
+  (* Any combinator is ok; we merely need to show that some exist. We pick I. *)
   exists I; trivial.
 Qed.
 
-Polymorphic Record Dmap (X: Dset) (Y: Dset): Type := {
-  Dmap_fun: X -> Y;
-  (* TODO: do we want this element to be irrelevant...? *)
-  Dmap_preserve: exists x, forall y z, X y z -> Y (app x y) (Dmap_fun z)
+(* A mapping between Dsets D and G is a function f between their carrier types
+   such that there is some combinator x where, for any element d of D, and for
+   any realizer y such y realizes d in D, then (x y) realizes (f d) in G. *)
+
+Polymorphic Record Dmap (D: Dset) (G: Dset): Type := {
+  Dmap_fun: D -> G;
+  (* TODO: does the realizer have to be always the same...? *)
+  Dmap_preserve: exists x, forall y d, D y d -> G (app x y) (Dmap_fun d)
 }.
 
 Local Coercion Dmap_fun: Dmap >-> Funclass.
 
+(* Two Dmaps are the same iff their inner mappings are extensionally equal. *)
+
 Definition Dmap_eq: forall {X Y}, relation (Dmap X Y) :=
   fun X Y M N => forall x, M x = N x.
+
+(* This, of course, forms a setoid. *)
 
 Polymorphic Program Definition DmapSetoid {X Y}: Setoid := {|
   carrier := Dmap X Y;
@@ -199,6 +218,8 @@ Qed.
 
 Global Canonical Structure DmapSetoid.
 
+(* We may consider the identity Dmap on Dsets, using the identity function. *)
+
 Polymorphic Program Definition Dmap_id (X: Dset): Dmap X X := {|
   Dmap_fun x := x
 |}.
@@ -210,6 +231,9 @@ Obligation 1 of Dmap_id.
   - assumption.
 Qed.
 
+(* Of course, we may compose Dmaps using composition of their functions, which
+   respects the proper conditions. *)
+
 Polymorphic Program Definition Dmap_post X Y Z (M: Dmap X Y) (N: Dmap Y Z):
   Dmap X Z :=
 {|
@@ -219,17 +243,16 @@ Polymorphic Program Definition Dmap_post X Y Z (M: Dmap X Y) (N: Dmap Y Z):
 Obligation 1 of Dmap_post.
   destruct M as (g, (y, ?H)).
   destruct N as (f, (x, ?H)).
-  simpl.
-  exists (B x y); intros.
-  rename y0 into z, z into w.
+  exists (B x y); intros; simpl.
+  rename y0 into z.
   apply Dset_respectful with (x (y z)).
   - apply Deq_B.
-  - apply H0.
-    apply H.
-    assumption.
+  - now apply H0, H.
 Qed.
 
-Program Definition DsetCategory: Category := {|
+(* Dsets and Dmaps form a category. *)
+
+Polymorphic Program Definition DsetCategory: Category := {|
   obj := Dset;
   hom := Dmap;
   id := Dmap_id;
@@ -260,76 +283,85 @@ Local Canonical Structure DsetCategory.
 
 (* -------------------------------------------------------------------------- *)
 
-Variable C: SmallCategory.
+Section DPresheaf.
 
-Program Definition DsetModel: CwF := {|
-  cwf_cat := Functor (opposite C) Dset;
-  cwf_empty := {|
-    terminal := {|
-      mapping (X: C) := Delta unit;
-      fmap (X: C) (Y: C) (f: C Y X) := Dmap_id (Delta unit)
-    |};
-    terminal_hom (F: Functor (opposite C) Dset) := {|
-      transformation (X: C) := {|
-        Dmap_fun (A: F X) := tt
+  Variable C: SmallCategory.
+
+  Local Definition DPresheaf: Type := Functor (opposite C) Dset.
+
+  (* We build a model using the functor category [C^op, Dset] as the category of
+     contexts and morphisms. *)
+
+  Program Definition DPresheafModel: CwF := {|
+    cwf_cat := DPresheaf;
+    cwf_empty := {|
+      terminal := {|
+        mapping (X: C) := Delta ();
+        fmap (X: C) (Y: C) (f: C Y X) := Dmap_id (Delta ())
+      |};
+      terminal_hom (F: DPresheaf) := {|
+        transformation (X: C) := {|
+          Dmap_fun (A: F X) := tt
+        |}
       |}
     |}
-  |}
-|}.
+  |}.
 
-Next Obligation.
-  repeat intro; simpl.
-  reflexivity.
-Qed.
+  Next Obligation.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
 
-Next Obligation.
-  repeat intro; simpl.
-  reflexivity.
-Qed.
+  Next Obligation.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
 
-Next Obligation.
-  repeat intro; simpl.
-  reflexivity.
-Qed.
+  Next Obligation.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
 
-Next Obligation.
-  exists I; easy.
-Qed.
+  Next Obligation.
+    exists I; easy.
+  Qed.
 
-Next Obligation.
-  repeat intro; simpl.
-  reflexivity.
-Qed.
+  Next Obligation.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
 
-Next Obligation.
-  repeat intro; simpl.
-  enough (forall v: unit, v = ()); intros.
-  - apply H.
-  - now destruct v.
-Qed.
+  Next Obligation.
+    repeat intro; simpl.
+    enough (forall v: unit, v = ()); intros.
+    - apply H.
+    - now destruct v.
+  Qed.
 
-Preterm.
+  Preterm.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
 
-Next Obligation.
-  admit.
-Admitted.
+  Next Obligation.
+    admit.
+  Admitted.
+
+End DPresheaf.
