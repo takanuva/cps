@@ -14,6 +14,8 @@ Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Inversion.
 
+Set Primitive Projections.
+
 Inductive D: Set :=
   | K: D
   | S: D
@@ -163,7 +165,7 @@ Polymorphic Record Dset: Type := {
   Dset_respectful:
     forall d1 d2,
     Deq d1 d2 ->
-    forall x,
+    forall x, (* Note that Deq is symmetric! *)
     Dset_realization d2 x -> Dset_realization d1 x;
   Dset_surjective:
     forall y: Dset_carrier,
@@ -191,7 +193,7 @@ Qed.
 
 Polymorphic Record Dmap (D: Dset) (G: Dset): Type := {
   Dmap_fun: D -> G;
-  (* TODO: does the realizer have to be always the same...? *)
+  (* TODO: does the element x have to be relevant...? *)
   Dmap_preserve: exists x, forall y d, D y d -> G (app x y) (Dmap_fun d)
 }.
 
@@ -290,7 +292,13 @@ Section DPresheaf.
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
 
   (* We build a model using the functor category [C^op, Dset] as the category of
-     contexts and morphisms. *)
+     contexts and morphisms. Types... *)
+
+  Definition Con: Type := Dset.
+  Definition Sub: Con -> Con -> Setoid := Dmap.
+  Definition Ty (G: Con): Setoid := G -> Dset.
+  (* Definition El (G: Con) (A: Ty G): Setoid :=
+    Dmap G A. *)
 
   Program Definition DPresheafModel: CwF := {|
     cwf_cat := DPresheaf;
@@ -337,8 +345,6 @@ Section DPresheaf.
     - apply H.
     - now destruct v.
   Qed.
-
-  Preterm.
 
   Next Obligation.
     admit.
