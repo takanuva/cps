@@ -338,30 +338,39 @@ Section DPresheaf.
   Definition Ty (G: Con): Setoid := G -> Dset.
   Definition El (G: Con) (A: Ty G): Setoid := Dmap G A.
 
-  Axiom P1: D.
-  Axiom P2: D.
-  Axiom P3: D.
-
   Program Definition ext (G: Con) (A: Ty G): Con := {|
     Dset_carrier := { g: G & A g };
     Dset_realization (x: D) p :=
       let (g, a) := p in
-      G (P1 x) g /\ A g (P2 x) a
+      G (x K) g /\ A g (x F) a
   |}.
 
   Next Obligation.
     split.
-    - apply Dset_respectful with (P1 d2).
+    - apply Dset_respectful with (d2 K).
       + now rewrite H.
       + assumption.
-    - apply Dset_respectful with (P2 d2).
+    - apply Dset_respectful with (d2 F).
       + now rewrite H.
       + assumption.
   Qed.
 
   Next Obligation.
-    admit.
-  Admitted.
+    rename y into x, X into y.
+    destruct Dset_surjective with G x as (a, ?H).
+    destruct Dset_surjective with (A x) y as (b, ?H).
+    exists (P a b); split.
+    - apply Dset_respectful with a.
+      + rewrite Deq_P.
+        rewrite Deq_K.
+        reflexivity.
+      + assumption.
+    - apply Dset_respectful with b.
+      + rewrite Deq_P.
+        rewrite Deq_F.
+        reflexivity.
+      + assumption.
+  Qed.
 
   Structure test (G: DPresheaf): Type := {
     foo: forall X: C, Ty (G X)
