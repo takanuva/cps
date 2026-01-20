@@ -29,6 +29,16 @@ Local Definition I: D :=
 Local Definition B: D :=
   S (K S) K.
 
+Local Definition C: D :=
+  S (S (K (S (K S) K)) S) (K K).
+
+Local Definition F: D :=
+  S K.
+
+Local Definition P: D :=
+  (* Shockingly, (fun x y f => f x y) becomes this. *)
+  C (B B (B C (B (C I) I))) I.
+
 Inductive Dstep: relation D :=
   | Dstep_K:
     forall x y,
@@ -44,41 +54,6 @@ Inductive Dstep: relation D :=
     forall (x: D) y1 y2,
     Dstep y1 y2 ->
     Dstep (x y1) (x y2).
-
-Definition rt_Dstep_I:
-  forall x,
-  rt(Dstep) (I x) x.
-Proof.
-  intros.
-  unfold I.
-  eapply rt_trans.
-  - apply rt_step.
-    apply Dstep_S.
-  - apply rt_step.
-    apply Dstep_K.
-Qed.
-
-Definition rt_Dstep_B:
-  forall x y z,
-  rt(Dstep) (B x y z) (x (y z)).
-Proof.
-  intros.
-  unfold B.
-  eapply rt_trans.
-  - apply rt_step.
-    do 2 apply Dstep_app_left.
-    apply Dstep_S.
-  - eapply rt_trans.
-    + apply rt_step.
-      do 3 apply Dstep_app_left.
-      apply Dstep_K.
-    + eapply rt_trans.
-      * apply rt_step.
-        apply Dstep_S.
-      * apply rt_step.
-        apply Dstep_app_left.
-        apply Dstep_K.
-Qed.
 
 Definition Deq: relation D :=
   rst(Dstep).
@@ -101,24 +76,6 @@ Proof.
   apply clos_rt_clos_rst.
   apply rt_step.
   apply Dstep_S.
-Qed.
-
-Definition Deq_I:
-  forall x,
-  Deq (I x) x.
-Proof.
-  intros.
-  apply clos_rt_clos_rst.
-  apply rt_Dstep_I.
-Qed.
-
-Definition Deq_B:
-  forall x y z,
-  Deq (B x y z) (x (y z)).
-Proof.
-  intros.
-  apply clos_rt_clos_rst.
-  apply rt_Dstep_B.
 Qed.
 
 Local Instance Deq_equiv: Equivalence Deq.
@@ -148,6 +105,79 @@ Proof.
     + reflexivity.
     + now symmetry.
     + now transitivity (y y0).
+Qed.
+
+Definition Deq_I:
+  forall x,
+  Deq (I x) x.
+Proof.
+  intros.
+  unfold I.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  reflexivity.
+Qed.
+
+Definition Deq_B:
+  forall x y z,
+  Deq (B x y z) (x (y z)).
+Proof.
+  intros.
+  unfold B.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  reflexivity.
+Qed.
+
+Definition Deq_C:
+  forall x y z,
+  Deq (C x y z) (x z y).
+Proof.
+  intros.
+  unfold C.
+  rewrite Deq_S.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  rewrite Deq_K.
+  reflexivity.
+Qed.
+
+Definition Deq_F:
+  forall x y,
+  Deq (F x y) y.
+Proof.
+  intros.
+  unfold F.
+  rewrite Deq_S.
+  rewrite Deq_K.
+  reflexivity.
+Qed.
+
+Definition Deq_P:
+  forall x y f,
+  Deq (P x y f) (f x y).
+Proof.
+  intros.
+  unfold P.
+  rewrite Deq_C.
+  rewrite Deq_B.
+  rewrite Deq_B.
+  rewrite Deq_B.
+  rewrite Deq_C.
+  rewrite Deq_B.
+  rewrite Deq_C.
+  rewrite Deq_I.
+  rewrite Deq_I.
+  rewrite Deq_I.
+  reflexivity.
 Qed.
 
 (* A D-set is a pair (C, R) such that:
@@ -383,14 +413,6 @@ Section DPresheaf.
     - apply H.
     - now destruct v.
   Qed.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
 
   Next Obligation.
     admit.
