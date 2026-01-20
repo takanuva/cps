@@ -568,22 +568,22 @@ Qed.
 Lemma typing_uplift:
   forall f g1 g2 R,
   valid_subst f g2 g1 R ->
-  forall t s,
-  typing g1 t (sort s) R ->
-  typing g2 (inst f t) (sort s) R ->
+  forall t s1 s2,
+  typing g1 t (sort s1) R ->
+  typing g2 (inst f t) (sort s2) R ->
   valid_subst
     (subst_cons (var 0) (subst_comp f (subst_lift 1)))
     (decl_var (inst f t) :: g2) (decl_var t :: g1) R.
 Proof.
   intros.
-  apply valid_subst_cons with s.
+  apply valid_subst_cons with s1.
   - apply valid_subst_comp with g2.
     + assumption.
-    + apply valid_subst_lift with s.
+    + apply valid_subst_lift with s2.
       assumption.
   - assumption.
   - apply typing_var with (inst f t).
-    + apply valid_env_var with s.
+    + apply valid_env_var with s2.
       assumption.
     + constructor.
     + now sigma.
@@ -661,10 +661,11 @@ Proof.
       replace (inst (subst_upn 1 f) u) with
         (inst (subst_cons (var 0) (subst_comp f (subst_lift 1))) u) by admit.
       apply IHinfer2.
-      apply typing_uplift with s1.
+      apply typing_uplift with s1 s1.
       * assumption.
       * assumption.
-      * now apply IHinfer1.
+      * change (sort s1) with (inst f (sort s1)).
+        now apply IHinfer1.
     + reflexivity.
   - admit.
   - admit.
