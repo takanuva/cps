@@ -187,14 +187,15 @@ Next Obligation of Delta.
   exists I; trivial.
 Qed.
 
-(* A mapping between Dsets D and G is a function f between their carrier types
-   such that there is some combinator x where, for any element d of D, and for
-   any realizer y such y realizes d in D, then (x y) realizes (f d) in G. *)
+(* A mapping between Dset D and D-indexed family of Dsets G is a function f
+   between their carrier types such that there is some combinator x where, for
+   any element d of D, and for any realizer y such y realizes d in D, then (x y)
+   realizes (f d) in G d. *)
 
-Polymorphic Record Dmap (D: Dset) (G: Dset): Type := {
-  Dmap_fun: D -> G;
+Polymorphic Record Dmap (D: Dset) (G: D -> Dset): Type := {
+  Dmap_fun: forall d: D, G d;
   (* TODO: does the element x have to be relevant...? *)
-  Dmap_preserve: exists x, forall y d, D y d -> G (app x y) (Dmap_fun d)
+  Dmap_preserve: exists x, forall y d, D y d -> G d (app x y) (Dmap_fun d)
 }.
 
 Local Coercion Dmap_fun: Dmap >-> Funclass.
@@ -220,13 +221,18 @@ Qed.
 
 Global Canonical Structure DmapSetoid.
 
+(* We will often want maps from Dsets into simple Dsets rather than into Dset
+   families, so we add an abbreviation for these. *)
+
+Polymorphic Definition Dmap' (D: Dset) (G: Dset) := Dmap D (const G).
+
 (* We may consider the identity Dmap on Dsets, using the identity function. *)
 
-Polymorphic Program Definition Dmap_id (X: Dset): Dmap X X := {|
+Polymorphic Program Definition Dmap'_id (X: Dset): Dmap' X X := {|
   Dmap_fun x := x
 |}.
 
-Obligation 1 of Dmap_id.
+Obligation 1 of Dmap'_id.
   exists I; intros.
   apply Dset_respectful with y.
   - apply Deq_I.
@@ -236,13 +242,13 @@ Qed.
 (* Of course, we may compose Dmaps using composition of their functions, which
    respects the proper conditions. *)
 
-Polymorphic Program Definition Dmap_post X Y Z (M: Dmap X Y) (N: Dmap Y Z):
-  Dmap X Z :=
+Polymorphic Program Definition Dmap'_post X Y Z (M: Dmap' X Y) (N: Dmap' Y Z):
+  Dmap' X Z :=
 {|
   Dmap_fun x := N (M x)
 |}.
 
-Obligation 1 of Dmap_post.
+Obligation 1 of Dmap'_post.
   destruct M as (g, (y, ?H)).
   destruct N as (f, (x, ?H)).
   exists (B x y); intros; simpl.
@@ -256,9 +262,9 @@ Qed.
 
 Polymorphic Program Definition DsetCategory: Category := {|
   obj := Dset;
-  hom := Dmap;
-  id := Dmap_id;
-  post := Dmap_post
+  hom := Dmap';
+  id := Dmap'_id;
+  post := Dmap'_post
 |}.
 
 Obligation 1 of DsetCategory.
@@ -295,7 +301,7 @@ Section DPresheaf.
      contexts and morphisms. Types... *)
 
   Definition Con: Type := Dset.
-  Definition Sub: Con -> Con -> Setoid := Dmap.
+  Definition Sub: Con -> Con -> Setoid := Dmap'.
   Definition Ty (G: Con): Setoid := G -> Dset.
   (* Definition El (G: Con) (A: Ty G): Setoid :=
     Dmap G A. *)
@@ -305,7 +311,7 @@ Section DPresheaf.
     cwf_empty := {|
       terminal := {|
         mapping (X: C) := Delta ();
-        fmap (X: C) (Y: C) (f: C Y X) := Dmap_id (Delta ())
+        fmap (X: C) (Y: C) (f: C Y X) := Dmap'_id (Delta ())
       |};
       terminal_hom (F: DPresheaf) := {|
         transformation (X: C) := {|
