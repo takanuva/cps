@@ -95,3 +95,9 @@ Obligation 6 of TermCategory.
 Qed.
 
 Global Canonical Structure TermCategory.
+
+Definition welltyped_type (g: welltyped_env): Type :=
+  { t: term | exists s, typing (`g) t (sort s) conv }.
+
+Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
+  { e: term | typing (`g) e (`t) conv }.
