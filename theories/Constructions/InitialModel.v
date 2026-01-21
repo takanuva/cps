@@ -29,7 +29,7 @@ Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
 
 Definition welltyped_sub (d: welltyped_env) (g: welltyped_env): Set :=
-  { s: @substitution term | valid_subst s (`d) (`g) conv }.
+  { s: substitution | valid_subst s (`d) (`g) conv }.
 
 Definition welltyped_sub_eq {d g}: relation (welltyped_sub d g) :=
   fun s t => subst_equiv (`s) (`t).
@@ -40,6 +40,7 @@ Program Definition WelltypedSubstSetoid d g: Setoid := {|
 |}.
 
 (* TODO: This is DEFINITELY wrong! *)
+
 Obligation 1 of WelltypedSubstSetoid.
   split; repeat intro; simpl.
   - reflexivity.
@@ -101,3 +102,49 @@ Definition welltyped_type (g: welltyped_env): Type :=
 
 Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
   { e: term | typing (`g) e (`t) conv }.
+
+Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
+  match n with
+  | 0 => x
+  | S m => f (iterate m f x)
+  end.
+
+Program Definition TermModel: CwF := {|
+  cwf_cat := TermCategory;
+  cwf_empty := {|
+    terminal := [];
+    terminal_hom g :=
+      (* Oh boy... *)
+      iterate (length (`g)) (fun s => subst_comp s (subst_lift 1)) subst_ids
+  |}
+|}.
+
+Obligation 1 of TermModel.
+  constructor.
+Qed.
+
+Obligation 2 of TermModel.
+  destruct g as (g, ?H); simpl.
+  induction g; simpl.
+  - do 2 constructor.
+  - apply valid_subst_comp with g.
+    + apply IHg; clear IHg.
+      dependent destruction H.
+      * now apply valid_env_typing with t s.
+      * now apply valid_env_typing with t s.
+    + clear IHg.
+      dependent destruction H.
+      * now apply valid_subst_lift with s.
+      * (* Oops! *)
+        admit.
+Admitted.
+
+Obligation 3 of TermModel.
+  destruct X as (g, ?H).
+  compute in f.
+  repeat intro; simpl.
+  (* Sure! *)
+  admit.
+Admitted.
+
+Admit Obligations.
