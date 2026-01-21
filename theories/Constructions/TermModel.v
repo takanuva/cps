@@ -100,6 +100,21 @@ Global Canonical Structure TermCategory.
 Definition welltyped_type (g: welltyped_env): Type :=
   { t: term | exists s, typing (`g) t (sort s) conv }.
 
+Definition welltyped_type_eq {g}: relation (welltyped_type g) :=
+  fun t u => conv (`g) (`t) (`u).
+
+Program Definition WelltypedTypeSetoid g: Setoid := {|
+  carrier := welltyped_type g;
+  equiv := welltyped_type_eq
+|}.
+
+Obligation 1 of WelltypedTypeSetoid.
+  split; repeat intro.
+  - apply conv_refl.
+  - now apply conv_sym.
+  - now apply (conv_trans (`g) (`x) (`y) (`z)).
+Qed.
+
 Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
   { e: term | typing (`g) e (`t) conv }.
 
