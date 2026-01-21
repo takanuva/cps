@@ -244,9 +244,6 @@ Qed.
 
 Section Structural.
 
-  (* TODO: the three proofs use almost identical cases for jump and bind; can we
-     just generalize stuff a bit and avoid duplication in here? *)
-
   Variable R: env -> pseudoterm -> Prop.
 
   Definition WEAKENING: Prop :=
@@ -775,14 +772,15 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-Local Goal
+Example subject_expansion_failure:
   (* We do NOT have subject expansion! *)
-  exists b c,
-  beta b c /\ typing [negation []] c void /\ ~typing [negation []] b void.
+  exists g b c,
+  beta b c /\ typing g c void /\ ~typing g b void.
 Proof.
   (*
     k: ~() |- j<j> { j<x> = k<> }   --->   k: ~() |- k<> { j<x> = k<> }
   *)
+  exists [negation []].
   exists (bind (jump 0 [bound 0]) [base] (jump 1 [])).
   exists (bind (jump 1 []) [base] (jump 1 [])).
   repeat split.
