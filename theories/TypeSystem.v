@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -119,7 +119,7 @@ Lemma simple_types_ignore_substitution:
   forall t,
   simple t ->
   forall s,
-  t = inst s t.
+  inst s t = t.
 Proof.
   induction t using pseudoterm_deepind; intros.
   - inversion H.
@@ -131,8 +131,10 @@ Proof.
       simpl; f_equal.
       * sigma; auto.
       * auto.
-  - inversion H0.
-  - inversion H0.
+  - exfalso.
+    inversion H0.
+  - exfalso.
+    inversion H0.
 Qed.
 
 Lemma simple_env_ignores_lift:
@@ -146,7 +148,7 @@ Proof.
   - f_equal; auto.
     rewrite traverse_list_length.
     sigma.
-    now apply simple_types_ignore_substitution.
+    now rewrite simple_types_ignore_substitution.
 Qed.
 
 Lemma simple_env_ignores_subst:
@@ -160,7 +162,7 @@ Proof.
   - f_equal; auto.
     rewrite traverse_list_length.
     sigma.
-    now apply simple_types_ignore_substitution.
+    now rewrite simple_types_ignore_substitution.
 Qed.
 
 Lemma not_free_typing:
