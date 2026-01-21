@@ -141,28 +141,28 @@ Lemma simple_env_ignores_lift:
   forall ts,
   valid_env ts ->
   forall i k,
-  ts = traverse_list (lift i) k ts.
+  traverse_list (lift i) k ts = ts.
 Proof.
   induction 1; simpl; intros.
   - reflexivity.
   - f_equal; auto.
     rewrite traverse_list_length.
     sigma.
-    now rewrite simple_types_ignore_substitution.
+    now apply simple_types_ignore_substitution.
 Qed.
 
 Lemma simple_env_ignores_subst:
   forall ts,
   valid_env ts ->
   forall y k,
-  ts = traverse_list (subst y) k ts.
+  traverse_list (subst y) k ts = ts.
 Proof.
   induction 1; simpl; intros.
   - reflexivity.
   - f_equal; auto.
     rewrite traverse_list_length.
     sigma.
-    now rewrite simple_types_ignore_substitution.
+    now apply simple_types_ignore_substitution.
 Qed.
 
 Lemma simple_types_are_closed:
@@ -337,20 +337,18 @@ Proof.
       * eapply IHe1; eauto.
         now constructor.
       * f_equal.
-        apply simple_env_ignores_lift.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        assumption.
+        now rewrite simple_env_ignores_lift.
     + replace (traverse_list (lift (length us)) k ts) with ts.
       * eapply IHe2; eauto.
         rewrite Nat.add_comm.
         now apply insert_app.
-      * apply simple_env_ignores_lift.
-        apply valid_env_typing in H0_.
+      * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        assumption.
+        now rewrite simple_env_ignores_lift.
 Qed.
 
 Theorem weakening:
@@ -538,8 +536,7 @@ Proof.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_env_ignores_subst.
-        assumption.
+        now rewrite simple_env_ignores_subst.
     + apply IHe2 with (ts ++ g); eauto.
       rewrite Nat.add_comm.
       replace (traverse_list (subst (bound 0)) n ts) with ts.
@@ -548,8 +545,7 @@ Proof.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_env_ignores_subst.
-        assumption.
+        now rewrite simple_env_ignores_subst.
 Admitted.
 
 Theorem contraction:
@@ -700,8 +696,7 @@ Proof.
         apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_env_ignores_subst.
-        assumption.
+        now rewrite simple_env_ignores_subst.
       * dependent destruction H2.
         assumption.
     + apply IHe2 with (ts ++ g); eauto.
@@ -712,8 +707,7 @@ Proof.
       * apply valid_env_typing in H0_.
         dependent destruction H0_.
         dependent destruction H0.
-        apply simple_env_ignores_subst.
-        assumption.
+        now rewrite simple_env_ignores_subst.
       * dependent destruction H2.
         rewrite Nat.add_comm.
         assumption.
