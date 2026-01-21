@@ -11,11 +11,11 @@ jobs:
         ocaml_version: default
         before_script: |
           startGroup "Workaround permission issue"
-            sudo chown -R coq:coq .
+            sudo chown -R rocq:rocq .
           endGroup
         script: |
           startGroup "Build project"
-            make
+            make COQ_MAKEFILE="rocq makefile"
           endGroup
         after_script: |
           startGroup "Revert permissions"
