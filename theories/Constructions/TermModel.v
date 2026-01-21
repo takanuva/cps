@@ -115,6 +115,8 @@ Obligation 1 of WelltypedTypeSetoid.
   - now apply (conv_trans (`g) (`x) (`y) (`z)).
 Qed.
 
+Global Canonical Structure WelltypedTypeSetoid.
+
 Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
   { e: term | typing (`g) e (`t) conv }.
 
@@ -133,6 +135,8 @@ Obligation 1 of WelltypedTermSetoid.
   - now apply (conv_trans (`g) (`x) (`y) (`z)).
 Qed.
 
+Global Canonical Structure WelltypedTermSetoid.
+
 Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
   match n with
   | 0 => x
@@ -146,7 +150,9 @@ Program Definition TermModel: CwF := {|
     terminal_hom g :=
       (* Oh boy... *)
       iterate (length (`g)) (fun s => subst_comp s (subst_lift 1)) subst_ids
-  |}
+  |};
+  cwf_type := welltyped_type;
+  cwf_elem := welltyped_term
 |}.
 
 Obligation 1 of TermModel.
@@ -165,7 +171,7 @@ Obligation 2 of TermModel.
     + clear IHg.
       dependent destruction H.
       * now apply valid_subst_lift with s.
-      * (* Oops! *)
+      * (* Oops! We need to allow lifting to consider definitions. *)
         admit.
 Admitted.
 
@@ -177,4 +183,18 @@ Obligation 3 of TermModel.
   admit.
 Admitted.
 
-Admit Obligations.
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
