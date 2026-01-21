@@ -1,0 +1,23 @@
+name: 8.20.1
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: coq-community/docker-coq-action@v1.4.1
+      with:
+        coq_version: "8.20.1"
+        ocaml_version: default
+        before_script: |
+          startGroup "Workaround permission issue"
+            sudo chown -R coq:coq .
+          endGroup
+        script: |
+          startGroup "Build project"
+            make
+          endGroup
+        after_script: |
+          startGroup "Revert permissions"
+            sudo chown -R 1001:116 .
+          endGroup
