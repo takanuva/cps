@@ -118,6 +118,21 @@ Qed.
 Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
   { e: term | typing (`g) e (`t) conv }.
 
+Definition welltyped_term_eq {g t}: relation (welltyped_term g t) :=
+  fun e f => conv (`g) (`e) (`f).
+
+Program Definition WelltypedTermSetoid g t: Setoid := {|
+  carrier := welltyped_term g t;
+  equiv := welltyped_term_eq
+|}.
+
+Obligation 1 of WelltypedTermSetoid.
+  split; repeat intro.
+  - apply conv_refl.
+  - now apply conv_sym.
+  - now apply (conv_trans (`g) (`x) (`y) (`z)).
+Qed.
+
 Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
   match n with
   | 0 => x
