@@ -165,6 +165,45 @@ Proof.
     now rewrite simple_types_ignore_substitution.
 Qed.
 
+Lemma simple_types_are_closed:
+  forall t,
+  simple t ->
+  forall k,
+  not_free k t.
+Proof.
+  induction t using pseudoterm_deepind; intros.
+  - exfalso.
+    inversion H.
+  - dependent destruction H0.
+    + clear H.
+      repeat constructor.
+    + constructor.
+      generalize dependent k.
+      induction ts; intros.
+      * constructor.
+      * dependent destruction H.
+        dependent destruction H1.
+        constructor; auto.
+  - exfalso.
+    inversion H0.
+  - exfalso.
+    inversion H0.
+Qed.
+
+Lemma not_free_list_negation:
+  forall ts,
+  valid_env ts ->
+  forall k,
+  not_free_list NEGATION k ts.
+Proof.
+  intros.
+  enough (not_free k (negation ts)).
+  - dependent destruction H0.
+    assumption.
+  - apply simple_types_are_closed.
+    now constructor. 
+Qed.
+
 Lemma not_free_typing:
   forall b g t,
   typing g b t ->
@@ -195,11 +234,11 @@ Proof.
       dependent destruction H0_.
       dependent destruction H0.
       clear H IHb1 IHb2 H0_ H0_0 H1 b1 b2 g.
-      (* Of course, simple types never have free variables. *)
-      admit.
+      (* Of course, simple types never have free variables! *)
+      now apply not_free_list_negation.
     + eapply IHb2; eauto.
       rewrite app_length; lia.
-Admitted.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
