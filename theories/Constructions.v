@@ -8,7 +8,8 @@ Require Local.Constructions.Conversion.
 Require Local.Constructions.Confluence.
 Require Local.Constructions.TypeSystem.
 Require Local.Constructions.Inversion.
-Require Local.Constructions.InitialModel.
+(* Require Local.Constructions.TermModel.
+Require Local.Constructions.DPresheafModel. *)
 Require Local.Constructions.Normalization.
 Require Local.Constructions.Stratification.
 Require Local.Constructions.Reduction.
@@ -21,7 +22,8 @@ Include Conversion.
 Include Confluence.
 Include TypeSystem.
 Include Inversion.
-Include InitialModel.
+(* Include TermModel.
+Include DPresheafModel. *)
 Include Normalization.
 Include Stratification.
 Include Reduction.
