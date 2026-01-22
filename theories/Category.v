@@ -495,8 +495,8 @@ Polymorphic Structure Terminal (C: Category): Type := {
 Global Coercion terminal: Terminal >-> obj.
 Global Coercion terminal_hom: Terminal >-> Funclass.
 
-(* We define the notion of a category with family, which forms a model of basic
-   dependent type theory. This is a small category C, such that:
+(* We define the notion of a category with families, which forms a model of
+   basic dependent type theory. This is a category C, such that:
 
    - we call the objects of C contexts, and they model such;
    - we call the morphisms of C substitutions, and they model such;
@@ -504,40 +504,61 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    - ...
 
    TODO: properly document this, specially the relationship to explicit
-   substitution and to the sigma-calculus, which is quite evident.
+   substitution and to the sigma-calculus, which is quite evident!
 *)
 
 Polymorphic Structure CwF: Type := {
-  (* We start with a category of contexts and substitutions, such that it has
-     a terminal object, which represents the empty context. TODO: do we want it
-     to be small? *)
+  (* TODO: can we enforce that it is small? Check later! *)
   cwf_cat: Category;
+  cwf_env := obj cwf_cat;
+  cwf_sub := hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
   (* ... *)
-  cwf_type: cwf_cat -> Setoid;
-  cwf_ctxext G: cwf_type G -> cwf_cat;
-  cwf_tsubst {D G}:
-    cwf_cat D G -> cwf_type G -> cwf_type D;
-  (* TODO: tsubst composition law. *)
-  (* TODO: tsubst identity law. *)
+  cwf_ty: cwf_env -> Setoid;
+  cwf_tsub {G D}:
+    cwf_sub D G -> cwf_ty G -> cwf_ty D;
   (* ... *)
-  cwf_elem: forall G: cwf_cat, cwf_type G -> Setoid;
-  cwf_esubst {D G A}:
-    forall s: cwf_cat D G,
-    cwf_elem G A -> cwf_elem D (cwf_tsubst s A);
-  (* TODO: esubst composition law. *)
-  (* TODO: esubst identity law. *)
+  cwf_el G: cwf_ty G -> Setoid;
+  cwf_esub {G D A}:
+    forall s: cwf_sub D G,
+    cwf_el G A -> cwf_el D (cwf_tsub s A);
   (* ... *)
-  cwf_snoc {D G A}:
-    forall s: cwf_cat D G,
-    cwf_elem D (cwf_tsubst s A) -> cwf_cat D (cwf_ctxext G A);
+  cwf_ext G: cwf_ty G -> cwf_env;
+  cwf_snoc {G D}:
+    forall s: cwf_sub D G,
+    forall A: cwf_ty G,
+    cwf_el D (cwf_tsub s A) ->
+    cwf_sub D (cwf_ext G A);
   cwf_proj {G}:
-    forall A: cwf_type G,
-    cwf_cat (cwf_ctxext G A) G;
+    forall A: cwf_ty G,
+    cwf_sub (cwf_ext G A) G;
   cwf_zero {G}:
-    forall A: cwf_type G,
-    cwf_elem (cwf_ctxext G A) (cwf_tsubst (cwf_proj A) A)
-  (* TODO: laws on proj and zero. *)
+    forall A: cwf_ty G,
+    cwf_el (cwf_ext G A) (cwf_tsub (cwf_proj A) A);
+  (* ... *)
+  cwf_tsub_respectful {G D}:
+    Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
+  (* TODO: we need to check that esub is respectful, but that is a form of
+     heterogeneous equality; figure it out how to do that later, please? *)
+  (* TODO: should cwf_ext be respectful? Cause it doesn't make much sense that
+     there would be an isomorphism between the resulting contexts afterwards, as
+     morphisms are meant to be substitutions! *)
+  (* TODO: show that snoc, proj and zero need to be respectful. *)
+  cwf_tsub_id {G}:
+    forall A: cwf_ty G,
+    cwf_tsub id A == A;
+  cwf_tsub_comp {G D E}:
+    forall s: cwf_sub D G,
+    forall r: cwf_sub E D,
+    forall A: cwf_ty G,
+    cwf_tsub (post r s) A == cwf_tsub r (cwf_tsub s A);
+  (* TODO: cwf_esub_id, same reason... *)
+  (* TODO: cwf_esub_comp, same reason... *)
+  (* TODO: law for p o (a, s) = s *)
+  (* TODO: law for q[a, s] = a *)
+  (* TODO: law for (a, s) * r = (a[r], s * r) *)
+  (* TODO: law for (q, p) = id *)
+  (* TODO: do we need eta? I.e., (q[s], p * s) = s? This derives the above... *)
 }.
 
 Global Coercion cwf_cat: CwF >-> Category.

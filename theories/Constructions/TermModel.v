@@ -137,22 +137,25 @@ Qed.
 
 Global Canonical Structure WelltypedTermSetoid.
 
+(* TODO: move me? Maybe? *)
+
 Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
   match n with
   | 0 => x
   | S m => f (iterate m f x)
   end.
 
+Definition terminal_substitution (g: env): @substitution term :=
+  iterate (length g) (fun s => subst_comp s (subst_lift 1)) subst_ids.
+
 Program Definition TermModel: CwF := {|
-  cwf_cat := TermCategory;
+  cwf_cat := welltyped_env;
   cwf_empty := {|
     terminal := [];
-    terminal_hom g :=
-      (* Oh boy... *)
-      iterate (length (`g)) (fun s => subst_comp s (subst_lift 1)) subst_ids
+    terminal_hom g := terminal_substitution (`g)
   |};
-  cwf_type := welltyped_type;
-  cwf_elem := welltyped_term
+  cwf_ty := welltyped_type;
+  cwf_el := welltyped_term
 |}.
 
 Obligation 1 of TermModel.
@@ -175,26 +178,4 @@ Obligation 2 of TermModel.
         admit.
 Admitted.
 
-Obligation 3 of TermModel.
-  destruct X as (g, ?H).
-  compute in f.
-  repeat intro; simpl.
-  (* Sure! *)
-  admit.
-Admitted.
-
-Next Obligation.
-  admit.
-Admitted.
-
-Next Obligation.
-  admit.
-Admitted.
-
-Next Obligation.
-  admit.
-Admitted.
-
-Next Obligation.
-  admit.
-Admitted.
+Admit Obligations.

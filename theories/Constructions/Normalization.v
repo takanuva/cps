@@ -26,16 +26,19 @@ Section Normalization.
 
   Variable M: CwF.
 
-  Local Notation CTX := (obj (cwf_cat M)).
-  Local Notation SUBST := (hom (cwf_cat M)).
-  Local Notation TYPE := (cwf_type M).
+  Local Notation Env := (cwf_env M).
+  Local Notation Sub := (cwf_sub M).
+  Local Notation Ty := (cwf_ty M).
 
-  Local Notation TSUBST := (cwf_tsubst M).
+  Local Notation Tsub := (cwf_tsub M).
 
-  Local Notation NIL := (cwf_empty M).
-  Local Notation SNOC := (cwf_ctxext M).
+  Local Notation Nil := (cwf_empty M).
+  Local Notation Ext := (cwf_ext M).
 
   Local Notation P := (cwf_proj M _).
+
+  (*
+
   Local Notation UP := (cwf_uplift M).
 
   (* Following both Coquand and Xie, a telescope is defined inductively as:
@@ -166,6 +169,8 @@ Section Normalization.
       + (* Hmm... *)
         admit.
   Admitted. *)
+
+  *)
 
 End Normalization.
 

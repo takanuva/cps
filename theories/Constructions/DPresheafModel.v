@@ -324,7 +324,7 @@ Local Canonical Structure DsetCategory.
 
 Section DPresheaf.
 
-  Variable C: SmallCategory.
+  Variable C: Category.
 
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
 
@@ -333,12 +333,12 @@ Section DPresheaf.
 
   (* Temprary definitions for the Dset model (not used); TODO: remove it! *)
 
-  Definition Con: Type := Dset.
-  Definition Sub: Con -> Con -> Setoid := Dmap'.
-  Definition Ty (G: Con): Setoid := G -> Dset.
-  Definition El (G: Con) (A: Ty G): Setoid := Dmap G A.
+  Definition Env: Type := Dset.
+  Definition Sub: Env -> Env -> Setoid := Dmap'.
+  Definition Ty (G: Env): Setoid := G -> Dset.
+  Definition El (G: Env) (A: Ty G): Setoid := Dmap G A.
 
-  Program Definition ext (G: Con) (A: Ty G): Con := {|
+  Program Definition ext (G: Env) (A: Ty G): Env := {|
     Dset_carrier := { g: G & A g };
     Dset_realization (x: D) p :=
       let (g, a) := p in
@@ -372,7 +372,7 @@ Section DPresheaf.
       + assumption.
   Qed.
 
-  Program Definition DPresheafModel: CwF := {|
+  (* Program Definition DPresheafModel: CwF := {|
     cwf_cat := DPresheaf;
     cwf_empty := {|
       terminal := {|
@@ -418,28 +418,6 @@ Section DPresheaf.
     - now destruct v.
   Qed.
 
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
+  Admit Obligations. *)
 
 End DPresheaf.
