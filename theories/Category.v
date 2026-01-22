@@ -546,11 +546,11 @@ Global Coercion cwf_cat: CwF >-> Category.
 
 (* Should be (cwf_snoc C id a), with proper coercions... *)
 
-Fail Check forall {C G A} (a: cwf_elem C G A), cwf_snoc C id a.
+(* Fail Check forall {C G A} (a: cwf_elem C G A), cwf_snoc C id a.
 
 Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),
-  cwf_cat M G (cwf_ctxext M G A).
+  cwf_cat M G (cwf_ctxext M G A). *)
 
 (* Thus if B in Type(G.A) and a in Elem(G, A), we have B[a] in Type(G).
 
@@ -583,7 +583,7 @@ Definition q := cast (cwf_zero M sA).
 Check cwf_snoc M ps q.
 *)
 
-Check cwf_tsubst.
+(* Check cwf_tsubst.
 
 Require Import Equality.
 
@@ -625,11 +625,11 @@ Section Uplift.
 
 End Uplift.
 
-Arguments cwf_uplift M {D} {G} {A}.
+Arguments cwf_uplift M {D} {G} {A}. *)
 
 (* -------------------------------------------------------------------------- *)
 
-Polymorphic Section Universes.
+(* Polymorphic Section Universes.
 
   Variable C: CwF.
 
@@ -649,4 +649,4 @@ Polymorphic Section Universes.
       cwf_el G m (cwf_foo G n m H X) = cwf_el G n X
   }.
 
-End Universes.
+End Universes. *)
