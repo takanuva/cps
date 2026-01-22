@@ -97,6 +97,29 @@ Qed.
 
 Global Canonical Structure TermCategory.
 
+(* TODO: move the iterate function? Maybe? *)
+
+Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
+  match n with
+  | 0 => x
+  | S m => f (iterate m f x)
+  end.
+
+Definition terminal_sub (g: env): @substitution term :=
+  iterate (length g) (fun s => subst_comp s (subst_lift 1)) subst_ids.
+
+Lemma terminal_sub_is_unique:
+  forall g s,
+  valid_subst s g [] conv ->
+  subst_equiv s (terminal_sub g).
+Proof.
+  induction g; intros.
+  - admit.
+  - admit.
+Admitted.
+
+(* -------------------------------------------------------------------------- *)
+
 Definition welltyped_type (g: welltyped_env): Type :=
   { t: term | exists s, typing (`g) t (sort s) conv }.
 
@@ -137,22 +160,11 @@ Qed.
 
 Global Canonical Structure WelltypedTermSetoid.
 
-(* TODO: move me? Maybe? *)
-
-Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
-  match n with
-  | 0 => x
-  | S m => f (iterate m f x)
-  end.
-
-Definition terminal_substitution (g: env): @substitution term :=
-  iterate (length g) (fun s => subst_comp s (subst_lift 1)) subst_ids.
-
 Program Definition TermModel: CwF := {|
   cwf_cat := welltyped_env;
   cwf_empty := {|
     terminal := [];
-    terminal_hom g := terminal_substitution (`g)
+    terminal_hom g := terminal_sub (`g)
   |};
   cwf_ty := welltyped_type;
   cwf_el := welltyped_term
@@ -177,5 +189,13 @@ Obligation 2 of TermModel.
       * (* Oops! We need to allow lifting to consider definitions. *)
         admit.
 Admitted.
+
+Obligation 3 of TermModel.
+  destruct X as (g, ?H).
+  destruct f as (s, ?H).
+  compute in H0.
+  repeat intro; simpl.
+  now apply terminal_sub_is_unique.
+Qed.
 
 Admit Obligations.
