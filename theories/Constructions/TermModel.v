@@ -198,7 +198,8 @@ Program Definition TermModel: CwF := {|
   cwf_ty := welltyped_type;
   cwf_tsub G D s t := inst (`s) (`t);
   cwf_el := welltyped_term;
-  cwf_esub G D A s t := inst (`s) (`t)
+  cwf_esub G D A s t := inst (`s) (`t);
+  cwf_ext G A := decl_var (`A) :: (`G)
 |}.
 
 (* The empty context is well-typed. *)
@@ -252,6 +253,13 @@ Obligation 5 of TermModel.
   destruct s as (s, ?H); simpl.
   destruct t as (e, ?H); simpl.
   now apply typing_inst with (`G).
+Qed.
+
+(* Environment extension with well-typed type is well-typed. *)
+
+Obligation 6 of TermModel.
+  destruct A as (t, (s, ?H)); simpl.
+  now apply valid_env_var with s.
 Qed.
 
 Admit Obligations.
