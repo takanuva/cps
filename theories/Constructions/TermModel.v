@@ -199,7 +199,10 @@ Program Definition TermModel: CwF := {|
   cwf_tsub G D s t := inst (`s) (`t);
   cwf_el := welltyped_term;
   cwf_esub G D A s t := inst (`s) (`t);
-  cwf_ext G A := decl_var (`A) :: (`G)
+  cwf_ext G A := decl_var (`A) :: (`G);
+  cwf_snoc G D s t e := subst_cons (`e) (`s);
+  cwf_proj G A := subst_lift 1;
+  cwf_zero G A := bound 0
 |}.
 
 (* The empty context is well-typed. *)
@@ -260,6 +263,33 @@ Qed.
 Obligation 6 of TermModel.
   destruct A as (t, (s, ?H)); simpl.
   now apply valid_env_var with s.
+Qed.
+
+(* Consing a well-typed term and a well-typed substitution is well-typed. *)
+
+Obligation 7 of TermModel.
+  destruct s as (s, ?H); simpl.
+  destruct t as (t, (u, ?H)); simpl.
+  destruct e as (e, ?H); simpl.
+  simpl in H1.
+  now apply valid_subst_cons with u.
+Qed.
+
+(* The shift substitution is well-typed. *)
+
+Obligation 8 of TermModel.
+  destruct A as (t, (u, ?H)); simpl.
+  now apply valid_subst_lift with u.
+Qed.
+
+(* The variable zero is well-typed, given a well-typed environment. *)
+
+Obligation 9 of TermModel.
+  destruct A as (t, (u, ?H)); simpl.
+  apply typing_var with t.
+  - now apply valid_env_var with u.
+  - constructor.
+  - now sigma.
 Qed.
 
 Admit Obligations.
