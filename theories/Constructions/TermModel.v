@@ -236,4 +236,22 @@ Obligation 3 of TermModel.
   now apply terminal_sub_is_unique.
 Qed.
 
+(* Instantiation of well-typed substitution and type is well-typed too. *)
+
+Obligation 4 of TermModel.
+  destruct s as (s, ?H); simpl.
+  destruct t as (t, (u, ?H)); simpl.
+  (* As sorts are stable under substitution... *)
+  exists u; change (sort u) with (inst s (sort u)).
+  now apply typing_inst with (`G).
+Qed.
+
+(* Instantiation of well-typed substitution and term is well-typed too. *)
+
+Obligation 5 of TermModel.
+  destruct s as (s, ?H); simpl.
+  destruct t as (e, ?H); simpl.
+  now apply typing_inst with (`G).
+Qed.
+
 Admit Obligations.
