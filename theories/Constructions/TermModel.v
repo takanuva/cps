@@ -196,12 +196,18 @@ Program Definition TermModel: CwF := {|
     terminal_hom g := terminal_sub (`g)
   |};
   cwf_ty := welltyped_type;
-  cwf_el := welltyped_term
+  cwf_tsub G D s t := inst (`s) (`t);
+  cwf_el := welltyped_term;
+  cwf_esub G D A s t := inst (`s) (`t)
 |}.
+
+(* The empty context is well-typed. *)
 
 Obligation 1 of TermModel.
   constructor.
 Qed.
+
+(* The terminal substitution is well-typed. *)
 
 Obligation 2 of TermModel.
   destruct g as (g, ?H); simpl.
@@ -215,9 +221,11 @@ Obligation 2 of TermModel.
     + clear IHg.
       dependent destruction H.
       * now apply valid_subst_lift with s.
-      * (* Oops! We need to allow lifting to consider definitions. *)
+      * (* Oops! We need to allow lifting to consider definitions! *)
         admit.
 Admitted.
+
+(* The terminal substitution is unique. *)
 
 Obligation 3 of TermModel.
   destruct X as (g, ?H).
