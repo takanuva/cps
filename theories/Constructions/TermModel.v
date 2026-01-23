@@ -113,9 +113,8 @@ Lemma terminal_sub_is_unique:
   valid_subst s g [] conv ->
   subst_equiv s (terminal_sub g).
 Proof.
-  induction g; intros.
-  - admit.
-  - admit.
+  (* TODO: I think the notion of equivalence has to change so that we only
+     consider well-typed instantiations in there... *)
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
