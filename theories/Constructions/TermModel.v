@@ -28,34 +28,44 @@ Import ListNotations.
 Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
 
-Definition welltyped_sub (d: welltyped_env) (g: welltyped_env): Set :=
-  { s: substitution | valid_subst s (`d) (`g) conv }.
+Definition welltyped_subst (g: welltyped_env) (d: welltyped_env): Set :=
+  { s: substitution | valid_subst s (`g) (`d) conv }.
 
-Definition welltyped_sub_eq {d g}: relation (welltyped_sub d g) :=
+(* ... *)
+
+Definition welltyped_type (g: welltyped_env): Type :=
+  { t: term | exists s, typing (`g) t (sort s) conv }.
+
+Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
+  { e: term | typing (`g) e (`t) conv }.
+
+(* ... *)
+
+Definition welltyped_subst_eq {g d}: relation (welltyped_subst g d) :=
   fun s t => subst_equiv (`s) (`t).
 
-Program Definition WelltypedSubstSetoid d g: Setoid := {|
-  carrier := @welltyped_sub d g;
-  equiv := @welltyped_sub_eq d g
+Definition welltyped_type_eq {g}: relation (welltyped_type g) :=
+  fun t u => conv (`g) (`t) (`u).
+
+Definition welltyped_term_eq {g t}: relation (welltyped_term g t) :=
+  fun e f => conv (`g) (`e) (`f).
+
+(* ... *)
+
+Program Definition WelltypedSubstSetoid g d: Setoid := {|
+  carrier := @welltyped_subst g d;
+  equiv := @welltyped_subst_eq g d
 |}.
 
-(* TODO: This is DEFINITELY wrong! *)
-
 Obligation 1 of WelltypedSubstSetoid.
-  split; repeat intro; simpl.
-  - reflexivity.
-  - symmetry.
-    now apply H.
-  - transitivity ((`y) k x0).
-    + now apply H.
-    + now apply H0.
-Qed.
+  admit.
+Admitted.
 
 Global Canonical Structure WelltypedSubstSetoid.
 
 Program Definition TermCategory: Category := {|
   obj := welltyped_env;
-  hom := welltyped_sub;
+  hom := welltyped_subst;
   id X := subst_ids;
   post X Y Z f g := subst_comp g f
 |}.
@@ -76,7 +86,7 @@ Qed.
 
 Obligation 3 of TermCategory.
   repeat intro; simpl.
-  (* Oh boy, no way this is correct... *)
+  (* Oh boy, no way this is correct... but this needs fixing in sigma! *)
   now apply subst_comp_proper.
 Qed.
 
@@ -113,17 +123,11 @@ Lemma terminal_sub_is_unique:
   valid_subst s g [] conv ->
   subst_equiv s (terminal_sub g).
 Proof.
-  (* TODO: I think the notion of equivalence has to change so that we only
-     consider well-typed instantiations in there... *)
+  (* TODO: we have to reason about how each well-typed substitution can map the
+     variables to make composition work. Alternatively: show a normal form! *)
 Admitted.
 
 (* -------------------------------------------------------------------------- *)
-
-Definition welltyped_type (g: welltyped_env): Type :=
-  { t: term | exists s, typing (`g) t (sort s) conv }.
-
-Definition welltyped_type_eq {g}: relation (welltyped_type g) :=
-  fun t u => conv (`g) (`t) (`u).
 
 Program Definition WelltypedTypeSetoid g: Setoid := {|
   carrier := welltyped_type g;
@@ -138,12 +142,6 @@ Obligation 1 of WelltypedTypeSetoid.
 Qed.
 
 Global Canonical Structure WelltypedTypeSetoid.
-
-Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
-  { e: term | typing (`g) e (`t) conv }.
-
-Definition welltyped_term_eq {g t}: relation (welltyped_term g t) :=
-  fun e f => conv (`g) (`e) (`f).
 
 Program Definition WelltypedTermSetoid g t: Setoid := {|
   carrier := welltyped_term g t;
