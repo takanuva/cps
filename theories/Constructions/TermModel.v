@@ -151,9 +151,40 @@ Lemma terminal_sub_is_unique:
   valid_subst s g [] conv ->
   subst_equiv s (subst_lift (length g)).
 Proof.
-  (* TODO: we have to reason about how each well-typed substitution can map the
-     variables to make composition work. Alternatively: show a normal form! *)
-Admitted.
+  intros.
+  dependent induction H.
+  - clear IHinfer; simpl.
+    now sigma.
+  - clear IHinfer; simpl.
+    reflexivity.
+  - rename g2 into d, f into s, g0 into t.
+    (* Composition gets complicated as we have an arbitrary substitution t on
+       the mix. We proceed with our inductive hypothesis, showing that s has to
+       be a lift with the appropriate length. *)
+    clear IHinfer2.
+    specialize (IHinfer1 _ _ eq_refl eq_refl).
+    rewrite IHinfer1.
+    clear H; clear IHinfer1 s.
+    (* Now that we have simplified our goal, we perform another induction to
+       show that, no matter which t : G -> D we have, it can't produce anything
+       that won't be skipped by the lift by (length d) here. *)
+    dependent induction H0.
+    + clear IHinfer.
+      now sigma.
+    + clear IHinfer.
+      now sigma.
+    + (* Most complicated case: we need both inductive hypotheses to show that
+         we'll accumulate the right amount of shifting! *)
+      specialize (IHinfer1 _ _ _ eq_refl).
+      specialize (IHinfer2 _ _ _ eq_refl).
+      rewrite <- IHinfer2.
+      rewrite <- IHinfer1.
+      now sigma.
+    + clear IHinfer2 IHinfer3.
+      specialize (IHinfer1 _ _ _ eq_refl).
+      rewrite <- IHinfer1; simpl.
+      now sigma.
+Qed.
 
 (* We declare well-typed types and well-typed terms as setoids, preparing to
    build our category with families. *)
