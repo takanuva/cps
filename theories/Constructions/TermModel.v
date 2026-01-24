@@ -143,8 +143,12 @@ Lemma terminal_sub_simpl:
   forall g,
   subst_equiv (terminal_sub g) (subst_lift (length g)).
 Proof.
-  admit.
-Admitted.
+  unfold terminal_sub.
+  induction g; simpl.
+  - now sigma.
+  - rewrite IHg.
+    now sigma.
+Qed.
 
 Lemma terminal_sub_is_unique:
   forall g s,
