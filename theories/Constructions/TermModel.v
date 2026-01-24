@@ -136,26 +136,28 @@ Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
   | S m => f (iterate m f x)
   end.
 
-Definition terminal_sub (g: env): @substitution term :=
+Definition terminal_subst (g: env): @substitution term :=
   iterate (length g) (fun s => subst_comp s (subst_lift 1)) subst_ids.
 
-Lemma terminal_sub_simpl:
+Lemma terminal_subst_simpl:
   forall g,
-  subst_equiv (terminal_sub g) (subst_lift (length g)).
+  subst_equiv (terminal_subst g) (subst_lift (length g)).
 Proof.
-  unfold terminal_sub.
   induction g; simpl.
-  - now sigma.
-  - rewrite IHg.
+  - unfold terminal_subst.
+    now sigma.
+  - unfold terminal_subst.
+    simpl; rewrite IHg.
     now sigma.
 Qed.
 
-Lemma terminal_sub_is_unique:
+Lemma terminal_subst_is_unique:
   forall g s,
   valid_subst s g [] conv ->
-  subst_equiv s (subst_lift (length g)).
+  subst_equiv s (terminal_subst g).
 Proof.
   intros.
+  rewrite terminal_subst_simpl.
   dependent induction H.
   - clear IHinfer; simpl.
     now sigma.
@@ -228,7 +230,7 @@ Program Definition TermModel: CwF := {|
   cwf_cat := welltyped_env;
   cwf_empty := {|
     terminal := [];
-    terminal_hom g := terminal_sub (`g)
+    terminal_hom := terminal_subst
   |};
   cwf_ty := welltyped_type;
   cwf_tsub G D s t := inst (`s) (`t);
@@ -249,7 +251,7 @@ Qed.
 (* The terminal substitution is well-typed. *)
 
 Obligation 2 of TermModel.
-  destruct g as (g, ?H); simpl.
+  destruct x as (g, ?H); simpl.
   induction g; simpl.
   - do 2 constructor.
   - apply valid_subst_comp with g.
@@ -271,8 +273,7 @@ Obligation 3 of TermModel.
   destruct f as (s, ?H).
   compute in H0.
   repeat intro; simpl.
-  rewrite terminal_sub_simpl; auto.
-  now apply terminal_sub_is_unique.
+  now apply terminal_subst_is_unique.
 Qed.
 
 (* Instantiation of well-typed substitution and type is well-typed too. *)
