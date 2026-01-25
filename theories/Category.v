@@ -498,7 +498,7 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
 (* We define the notion of a category with families, which forms a model of
    basic dependent type theory. This is a category C, such that:
 
-   - we call the objects of C contexts, and they model such;
+   - we call the objects of C contexts (environments), and they model such;
    - we call the morphisms of C substitutions, and they model such;
    - an empty context, which is a terminal object of C;
    - ...
@@ -529,12 +529,10 @@ Polymorphic Structure CwF: Type := {
     forall A: cwf_ty G,
     cwf_el D (cwf_tsub s A) ->
     cwf_sub D (cwf_ext G A);
-  cwf_proj {G}:
-    forall A: cwf_ty G,
+  cwf_proj {G A}:
     cwf_sub (cwf_ext G A) G;
-  cwf_zero {G}:
-    forall A: cwf_ty G,
-    cwf_el (cwf_ext G A) (cwf_tsub (cwf_proj A) A);
+  cwf_zero {G A}:
+    cwf_el (cwf_ext G A) (cwf_tsub cwf_proj A);
   (* ... *)
   cwf_tsub_respectful {G D}:
     Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
