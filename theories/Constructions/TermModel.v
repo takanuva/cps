@@ -157,6 +157,8 @@ Lemma terminal_subst_is_unique:
   subst_equiv s (terminal_subst g).
 Proof.
   intros.
+  (* Simplify this definition to something equivalent, just so sigma may help us
+     a bit more. *)
   rewrite terminal_subst_simpl.
   dependent induction H.
   - clear IHinfer; simpl.
@@ -169,6 +171,9 @@ Proof.
        be a lift with the appropriate length. *)
     clear IHinfer2.
     specialize (IHinfer1 _ _ eq_refl eq_refl).
+    (* We know that s is equivalent to the terminal substitution; an important
+       property is that: composition with the terminal substitution on the left
+       will always produce the terminal substitution again, as we show here. *)
     rewrite IHinfer1.
     clear H; clear IHinfer1 s.
     (* Now that we have simplified our goal, we perform another induction to
@@ -180,13 +185,15 @@ Proof.
     + clear IHinfer.
       now sigma.
     + (* Most complicated case: we need both inductive hypotheses to show that
-         we'll accumulate the right amount of shifting! *)
+         we'll accumulate the right amount of shifting! Luckly we can just
+         rewrite these and sigma will do the work. *)
       specialize (IHinfer1 _ _ _ eq_refl).
       specialize (IHinfer2 _ _ _ eq_refl).
       rewrite <- IHinfer2.
       rewrite <- IHinfer1.
       now sigma.
-    + clear IHinfer2 IHinfer3.
+    + (* Similar to the above. *)
+      clear IHinfer2 IHinfer3.
       specialize (IHinfer1 _ _ _ eq_refl).
       rewrite <- IHinfer1; simpl.
       now sigma.
