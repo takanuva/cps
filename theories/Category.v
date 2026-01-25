@@ -554,9 +554,9 @@ Polymorphic Structure CwF: Type := {
   (* TODO: cwf_esub_comp, same reason... *)
   (* TODO: law for p o (a, s) = s *)
   (* TODO: law for q[a, s] = a *)
-  (* TODO: law for (a, s) * r = (a[r], s * r) *)
+  (* TODO: law for (a, s) o r = (a[r], s o r) *)
   (* TODO: law for (q, p) = id *)
-  (* TODO: do we need eta? I.e., (q[s], p * s) = s? This derives the above... *)
+  (* TODO: do we need eta? I.e., (q[s], p o s) = s? This derives the above... *)
 }.
 
 Global Coercion cwf_cat: CwF >-> Category.

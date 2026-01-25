@@ -18,9 +18,11 @@ Import ListNotations.
 
 (* -------------------------------------------------------------------------- *)
 
-(* Quick and dirty trial to actually prove strong normalization by using the
-   proof given by Szumi Xie in their master's thesis, along with Coquand's paper
-   on the matter. Just cause it's fun! *)
+(* Quick and dirty attempt to actually prove strong normalization by using the
+   proof given by Szumi Xie in her master's thesis, along with Coquand's paper
+   on the matter. Mostly cause it looks like fun (I know, I know...), but also
+   cause I expect that this may give a closed proof of strong normalization for
+   the dependent CPS-calculus later on. *)
 
 Section Normalization.
 
@@ -35,7 +37,8 @@ Section Normalization.
   Local Notation Nil := (cwf_empty M).
   Local Notation Ext := (cwf_ext M).
 
-  Local Notation P := (cwf_proj M _).
+  Local Notation P := (cwf_proj M).
+  Local Notation Q := (cwf_zero M).
 
   (*
 
