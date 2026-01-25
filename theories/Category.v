@@ -563,11 +563,11 @@ Global Coercion cwf_cat: CwF >-> Category.
 
 (* -------------------------------------------------------------------------- *)
 
-(* Should be (cwf_snoc C id a), with proper coercions... *)
+(* Should be (cwf_snoc M id a), with proper coercions... *)
 
-(* Fail Check forall {C G A} (a: cwf_elem C G A), cwf_snoc C id a.
+Fail Check forall {M G A} (a: cwf_el M G A), cwf_snoc M id A a.
 
-Axiom cwf_subst:
+(* Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),
   cwf_cat M G (cwf_ctxext M G A). *)
 

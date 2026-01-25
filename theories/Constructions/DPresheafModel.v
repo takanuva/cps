@@ -328,6 +328,64 @@ Section DPresheaf.
 
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
 
+  Section Elements.
+
+    Variable G: DPresheaf.
+
+    Record elements: Type := elements_mk {
+      elements_obj: C;
+      elements_set: G elements_obj
+    }.
+
+    Inductive elements_hom: relation elements :=
+      | elements_hom_mk:
+        forall X: C,
+        forall Y: C,
+        forall f: C Y X,
+        forall r: G X,
+        forall s: G Y,
+        s = fmap G f r ->
+        elements_hom (elements_mk X r) (elements_mk Y s).
+
+    (* TODO: we surely want a different notion of equality! *)
+
+    Definition ElemenetsHomSetoid e f: Setoid := {|
+      carrier := elements_hom e f;
+      equiv := eq
+    |}.
+
+    Local Canonical Structure ElemenetsHomSetoid.
+
+    Program Definition ElementsCategory: Category := {|
+      obj := elements;
+      hom e f := elements_hom e f
+    |}.
+
+    Next Obligation.
+      apply elements_hom_mk with id.
+      rewrite (fmap_id _ _ G); simpl.
+      reflexivity.
+    Defined.
+
+    Next Obligation.
+      dependent destruction H.
+      dependent destruction H0.
+      rename f0 into g.
+      apply elements_hom_mk with (post (c := opposite C) f g).
+      rewrite (fmap_comp _ _ G); simpl.
+      subst; reflexivity.
+    Defined.
+
+    Next Obligation.
+      destruct f; simpl.
+      subst; compute.
+      admit.
+    Admitted.
+
+    Admit Obligations.
+
+  End Elements.
+
   (* We build a model using the functor category [C^op, Dset] as the category of
      contexts and morphisms. Types... *)
 
@@ -384,40 +442,7 @@ Section DPresheaf.
           Dmap_fun (A: F X) := tt
         |}
       |}
-    |};
-  |}.
-
-  Next Obligation.
-    repeat intro; simpl.
-    reflexivity.
-  Qed.
-
-  Next Obligation.
-    repeat intro; simpl.
-    reflexivity.
-  Qed.
-
-  Next Obligation.
-    repeat intro; simpl.
-    reflexivity.
-  Qed.
-
-  Next Obligation.
-    exists I; easy.
-  Qed.
-
-  Next Obligation.
-    repeat intro; simpl.
-    reflexivity.
-  Qed.
-
-  Next Obligation.
-    repeat intro; simpl.
-    enough (forall v: unit, v = ()); intros.
-    - apply H.
-    - now destruct v.
-  Qed.
-
-  Admit Obligations. *)
+    |}
+  |}. *)
 
 End DPresheaf.
