@@ -123,6 +123,18 @@ Section Sigma.
     (subst_comp (subst_lift i))
     (only parsing). *)
 
+  Inductive compctx: Set :=
+    | compctx_hole
+    | compctx_left (s: SUBST) (h: compctx).
+
+  Fixpoint fill (h: compctx) (r: SUBST): SUBST :=
+    match h with
+    | compctx_hole => r
+    | compctx_left s h => subst_comp s (fill h r)
+    end.
+
+  Local Coercion fill: compctx >-> Funclass.
+
   Inductive step: forall {s: sort}, relation (t s) :=
     (* Structural rules: *)
     | A1 e f s:
@@ -210,21 +222,39 @@ Section Sigma.
       interpretation n = 0 ->
       step (subst_upn n s)
            s
-    (* Simplifications with identity... *)
     | A11 s:
+      step (subst_app [] s)
+           s
+    | A12 x xs s:
+      step (subst_app [x] (subst_app xs s))
+           (subst_app (x :: xs) s)
+    | A13 xs ys s:
+      step (subst_app xs (subst_app ys s))
+           (subst_app (xs ++ ys) s)
+    | V01 x xs ys:
+      step ((x :: xs) ++ ys)
+           (x :: (xs ++ ys))
+    | V02 xs:
+      step ([] ++ xs)
+           xs
+    | V03 xs:
+      step (xs ++ [])
+           xs
+    (* Simplifications with identity... *)
+    | A14 s:
       step (subst_comp subst_ids s)
            s
-    | A12 s:
+    | A15 s:
       step (subst_comp s subst_ids)
            s
-    | A13 e:
+    | A16 e:
       step (inst subst_ids e)
            e
-    | A14 n:
+    | A17 n:
       step (subst_upn n subst_ids)
            subst_ids
     (* Composition is right-associative... *)
-    | A15 s t u:
+    | A18 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u)).
 
@@ -351,6 +381,9 @@ Section Sigma.
     intros.
     dependent induction H.
     - simpl; auto.
+    - simpl; eauto.
+    - simpl; eauto.
+    - simpl; eauto.
     - simpl; eauto.
     - simpl; eauto.
     - simpl; eauto.
@@ -812,6 +845,7 @@ Section Sigma.
     subject to traverse: x8 + x14 + 1 <= x7;
     subject to lift_ids: x10 <= x11;
     subject to upn_join: x14 + x24 + 1 <= 2 * x14;
+    subject to simpl_app: x18 + 1 <= x12;
 
     minimize s: x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 +
                 x10 + x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 +
@@ -824,13 +858,13 @@ Section Sigma.
   Definition X3 := 1.
   Definition X4 := 1.
   Definition X5 := 6.
-  Definition X6 := 5.
+  Definition X6 := 6.
   Definition X7 := 4.
   Definition X8 := 1.
   Definition X9 := 1.
   Definition X10 := 1.
   Definition X11 := 1.
-  Definition X12 := 1.
+  Definition X12 := 2.
   Definition X13 := 1.
   Definition X14 := 2.
   Definition X15 := 1.
@@ -1425,6 +1459,41 @@ Section Sigma.
         rewrite H; simpl.
         lia.
       + lia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + reflexivity.
+      + lia.
+    - constructor 3; simpl.
+      + rewrite sumup0_measure1_simpl.
+        lia.
+      + rewrite sumup1_measure2_simpl.
+        lia.
+      + unfold X16; ring_simplify.
+        lia.
+    - constructor 3; simpl.
+      + rewrite sumup0_measure1_simpl.
+        lia.
+      + rewrite sumup1_measure2_simpl.
+        lia.
+      + lia.
+    - constructor 3; simpl.
+      + do 2 rewrite sumup0_measure1_simpl.
+        lia.
+      + do 2 rewrite sumup1_measure2_simpl.
+        lia.
+      + admit.
+    - constructor 3; simpl.
+      + rewrite sumup0_measure1_simpl.
+        reflexivity.
+      + rewrite sumup1_measure2_simpl.
+        reflexivity.
+      + lia.
+    - constructor 3; simpl.
+      + rewrite sumup0_measure1_simpl.
+        lia.
+      + rewrite sumup1_measure2_simpl.
+        lia.
+      + lia.
     - constructor 1; simpl.
       assert (measure1 s > 1) by apply measure1_subst_pos.
       lia.
@@ -1546,6 +1615,8 @@ Section Sigma.
     repeat break;
     try solve [ work | eauto with sigma ].
 
+  Local Notation one := (succ zero).
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -1576,8 +1647,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-      join.
+    - admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1592,6 +1662,20 @@ Section Sigma.
     - just do it.
     - just do it.
       admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
