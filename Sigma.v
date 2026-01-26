@@ -191,13 +191,14 @@ Section Sigma.
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
     (* TODO: congruence rules for numbers! *)
-    (* Eta laws and definitions... *)
+    (* Eta laws... *)
     | A6 s:
       step (subst_app [inst s (index 0)] (subst_comp (subst_lift 1) s))
            s
     | A7:
       step (subst_app [index 0] (subst_lift 1))
            subst_ids
+    (* Definitions... *)
     | A8 s:
       step (subst_app [index 0] (subst_comp s (subst_lift 1)))
            (subst_upn 1 s)
@@ -218,7 +219,10 @@ Section Sigma.
            s
     | A13 e:
       step (inst subst_ids e)
-           e.
+           e
+    | A14 n:
+      step (subst_upn n subst_ids)
+           subst_ids.
 
   Create HintDb sigma.
 
@@ -1485,6 +1489,23 @@ Section Sigma.
     - constructor 1; simpl.
       assert (measure1 e > 0) by apply measure1_term_pos.
       lia.
+    - remember (interpretation n) as i.
+      destruct i.
+      + constructor 3; simpl.
+        * reflexivity.
+        * rewrite measure2_NUM.
+          rewrite <- Heqi; simpl.
+          reflexivity.
+        * simpl.
+          lia.
+      + constructor 2; simpl.
+        * reflexivity.
+        * rewrite measure2_NUM.
+          rewrite <- Heqi.
+          change (4 ^ S i) with (4 * 4 ^ i).
+          assert (4 ^ i > 0); try lia.
+          clear Heqi.
+          induction i; simpl; lia.
   Admitted.
 
   Theorem normalization:
@@ -1521,7 +1542,6 @@ Section Sigma.
     induction 3; intros.
     - just do it.
     - just do it.
-      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1540,7 +1560,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1553,15 +1572,13 @@ Section Sigma.
     (* ... *)
     - just do it.
     - just do it.
-    - repeat break.
-      + work.
-      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-      admit.
+    - just do it.
+    - just do it.
   Admitted.
 
   Hint Resolve clos_rt_rt1n: sigma.
