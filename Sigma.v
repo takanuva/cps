@@ -195,7 +195,11 @@ Section Sigma.
       step (subst_app [inst s (index 0)] (subst_comp (subst_lift 1) s))
            s
     | A7:
-      step (subst_app [index 0] (subst_lift 1)) subst_ids.
+      step (subst_app [index 0] (subst_lift 1))
+           subst_ids
+    | A8 s:
+      step (subst_app [index 0] (subst_comp s (subst_lift 1)))
+           (subst_upn 1 s).
 
   Create HintDb sigma.
 
@@ -1435,6 +1439,9 @@ Section Sigma.
       lia.
     - constructor 1; simpl.
       lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
   Admitted.
 
   Theorem normalization:
@@ -1499,6 +1506,7 @@ Section Sigma.
     - just do it.
     - just do it.
     (* ... *)
+    - just do it.
     - just do it.
     - just do it.
   Admitted.
