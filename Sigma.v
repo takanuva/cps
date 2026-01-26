@@ -222,7 +222,11 @@ Section Sigma.
            e
     | A14 n:
       step (subst_upn n subst_ids)
-           subst_ids.
+           subst_ids
+    (* Composition is right-associative... *)
+    | A15 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u)).
 
   Create HintDb sigma.
 
@@ -1512,6 +1516,13 @@ Section Sigma.
           change (4 ^ S i) with (4 * 4 ^ i).
           assert (4 ^ i > 0) by apply power_is_positive.
           lia.
+    - constructor 2; simpl.
+      + lia.
+      + rename t0 into t.
+        assert (measure2 s > 0) by apply measure2_subst_pos.
+        assert (measure2 t > 0) by apply measure2_subst_pos.
+        assert (measure2 u > 0) by apply measure2_subst_pos.
+        lia.
   Admitted.
 
   Theorem normalization:
@@ -1566,6 +1577,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1578,6 +1590,8 @@ Section Sigma.
     (* ... *)
     - just do it.
     - just do it.
+    - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
