@@ -1214,6 +1214,13 @@ Section Sigma.
     unfold_weight; nia.
   Qed.
 
+  Lemma power_is_positive:
+    forall i n,
+    S i ^ n > 0.
+  Proof.
+    induction n; simpl; lia.
+  Qed.
+
   Lemma decreasing:
     forall s x y,
     @step s x y ->
@@ -1503,9 +1510,8 @@ Section Sigma.
         * rewrite measure2_NUM.
           rewrite <- Heqi.
           change (4 ^ S i) with (4 * 4 ^ i).
-          assert (4 ^ i > 0); try lia.
-          clear Heqi.
-          induction i; simpl; lia.
+          assert (4 ^ i > 0) by apply power_is_positive.
+          lia.
   Admitted.
 
   Theorem normalization:
