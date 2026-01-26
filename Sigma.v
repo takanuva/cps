@@ -359,42 +359,6 @@ Section Sigma.
   Hint Resolve interpretation_consistent_num: sigma.
   Hint Resolve interpretation_consistent_len: sigma.
 
-  Ltac boundscheck :=
-    repeat match goal with
-    | H: @step NUM ?n ?m |- _ => apply interpretation_consistent_num in H
-    | H: @step VECTOR ?xs ?ys |- _ => apply interpretation_consistent_len in H
-    end;
-    subst;
-    autorewrite with interpretation in *;
-    solve [ lia ].
-
-  Hint Extern 1 (_ = _) => boundscheck: sigma.
-  Hint Extern 1 (_ <> _) => boundscheck: sigma.
-  Hint Extern 1 (_ > _) => boundscheck: sigma.
-  Hint Extern 1 (_ >= _) => boundscheck: sigma.
-  Hint Extern 1 (_ < _) => boundscheck: sigma.
-  Hint Extern 1 (_ <= _) => boundscheck: sigma.
-
-  Ltac reduce :=
-    eapply rt_trans; [
-      apply rt_step;
-      (* progress econstructor;
-      solve [ repeat eauto with sigma ] *)
-      idtac "applying step";
-      solve [ progress info_eauto 10 with sigma ]
-    | idtac ].
-
-  Ltac normalize :=
-    progress repeat reduce.
-
-  Ltac join :=
-    eexists;
-    [| idtac "right hand side";
-      try normalize;
-      reflexivity ];
-    idtac "left hand side";
-    try normalize.
-
   Definition joinable {s} (y: t s) (z: t s): Prop :=
     exists2 w,
     @star s y w & @star s z w.
@@ -706,36 +670,6 @@ Section Sigma.
   Hint Resolve C10_join: sigma.
   Hint Resolve C11_join: sigma.
   Hint Resolve C12_join: sigma.
-
-  Hint Extern 1 => reflexivity: sigma.
-  Hint Extern 4 => symmetry: sigma.
-
-  Ltac skip :=
-    now easy + now (exfalso; boundscheck).
-
-  Ltac break :=
-    match goal with
-    | H: @step _ (_ _) _ |- _ => dependent destruction H
-    | H: @step _ _ (_ _) |- _ => dependent destruction H
-    end;
-    try skip.
-
-  Axiom TODO: forall n m, interpretation n = interpretation m -> n = m.
-
-  Ltac force :=
-    match goal with
-    | |- @clos_refl_trans (t _) _ ?a ?b => replace b with a; try reflexivity
-    | |- @eq (t TERM) ?a ?b => f_equal
-    | |- @eq (t SUBST) ?a ?b => f_equal
-    | |- @eq (t VECTOR) ?a ?b => f_equal
-    | |- @eq (t NUM) ?a ?b => apply TODO
-    end.
-
-  Ltac work :=
-    try solve [ join; try easy; repeat force; boundscheck ].
-
-  Ltac wonder i j :=
-    destruct (le_gt_dec (interpretation i) (interpretation j)).
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
@@ -1542,6 +1476,72 @@ Section Sigma.
       assumption.
   Qed.
 
+  Ltac boundscheck :=
+    repeat match goal with
+    | H: @step NUM ?n ?m |- _ => apply interpretation_consistent_num in H
+    | H: @step VECTOR ?xs ?ys |- _ => apply interpretation_consistent_len in H
+    end;
+    subst;
+    autorewrite with interpretation in *;
+    solve [ lia ].
+
+  Hint Extern 1 (_ = _) => boundscheck: sigma.
+  Hint Extern 1 (_ <> _) => boundscheck: sigma.
+  Hint Extern 1 (_ > _) => boundscheck: sigma.
+  Hint Extern 1 (_ >= _) => boundscheck: sigma.
+  Hint Extern 1 (_ < _) => boundscheck: sigma.
+  Hint Extern 1 (_ <= _) => boundscheck: sigma.
+
+  Ltac reduce :=
+    eapply rt_trans; [
+      apply rt_step;
+      (* progress econstructor;
+      solve [ repeat eauto with sigma ] *)
+      idtac "applying step";
+      solve [ progress info_eauto 10 with sigma ]
+    | idtac ].
+
+  Ltac normalize :=
+    progress repeat reduce.
+
+  Ltac join :=
+    eexists;
+    [| idtac "right hand side";
+      try normalize;
+      reflexivity ];
+    idtac "left hand side";
+    try normalize.
+
+  Hint Extern 1 => reflexivity: sigma.
+  Hint Extern 4 => symmetry: sigma.
+
+  Ltac skip :=
+    now easy + now (exfalso; boundscheck).
+
+  Ltac break :=
+    match goal with
+    | H: @step _ (_ _) _ |- _ => dependent destruction H
+    | H: @step _ _ (_ _) |- _ => dependent destruction H
+    end;
+    try skip.
+
+  Axiom TODO: forall n m, interpretation n = interpretation m -> n = m.
+
+  Ltac force :=
+    match goal with
+    | |- @clos_refl_trans (t _) _ ?a ?b => replace b with a; try reflexivity
+    | |- @eq (t TERM) ?a ?b => f_equal
+    | |- @eq (t SUBST) ?a ?b => f_equal
+    | |- @eq (t VECTOR) ?a ?b => f_equal
+    | |- @eq (t NUM) ?a ?b => apply TODO
+    end.
+
+  Ltac work :=
+    try solve [ join; try easy; repeat force; boundscheck ].
+
+  Ltac wonder i j :=
+    destruct (le_gt_dec (interpretation i) (interpretation j)).
+
   Tactic Notation "just" "do" "it" :=
     repeat break;
     try solve [ work | eauto with sigma ].
@@ -1577,7 +1577,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      admit.
+      join.
     - just do it.
     - just do it.
     - just do it.
