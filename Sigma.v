@@ -42,8 +42,8 @@ Section Sigma.
     | length (v: t VECTOR): t NUM
     | SUB (n: t NUM) (m: t NUM): t NUM
     | ADD (n: t NUM) (m: t NUM): t NUM
-    | MIN (n: t NUM) (m: t NUM): t NUM
-    | MAX (n: t NUM) (m: t NUM): t NUM.
+    (* | MIN (n: t NUM) (m: t NUM): t NUM
+    | MAX (n: t NUM) (m: t NUM): t NUM *).
 
   Coercion t: sort >-> Sortclass.
 
@@ -84,14 +84,14 @@ Section Sigma.
       interpretation n - interpretation m
     | ADD n m =>
       interpretation n + interpretation m
-    | MIN n m =>
+    (* | MIN n m =>
       min (interpretation n) (interpretation m)
     | MAX n m =>
-      max (interpretation n) (interpretation m)
+      max (interpretation n) (interpretation m) *)
     end.
 
-  Definition DIF n m :=
-    SUB (MAX n m) (MIN n m).
+  (* Definition DIF n m :=
+    SUB (MAX n m) (MIN n m). *)
 
   Infix "::" := cons (at level 60, right associativity).
   Infix "++" := join (right associativity, at level 60).
@@ -204,7 +204,8 @@ Section Sigma.
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    (* TODO: congruence rules for numbers! *).
+    (* TODO: congruence rules for numbers! *)
+    .
 
   Create HintDb sigma.
 
@@ -264,7 +265,7 @@ Section Sigma.
     simpl; auto.
   Qed.
 
-  Lemma interpretation_min:
+  (* Lemma interpretation_min:
     forall a b,
     interpretation (MIN a b) = min (interpretation a) (interpretation b).
   Proof.
@@ -276,7 +277,7 @@ Section Sigma.
     interpretation (MAX a b) = max (interpretation a) (interpretation b).
   Proof.
     simpl; auto.
-  Qed.
+  Qed. *)
 
   Lemma interpretation_cons_length:
     forall y ys,
@@ -306,8 +307,8 @@ Section Sigma.
   Hint Rewrite interpretation_number: interpretation.
   Hint Rewrite interpretation_add: interpretation.
   Hint Rewrite interpretation_sub: interpretation.
-  Hint Rewrite interpretation_min: interpretation.
-  Hint Rewrite interpretation_max: interpretation.
+  (* Hint Rewrite interpretation_min: interpretation.
+  Hint Rewrite interpretation_max: interpretation. *)
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
@@ -756,8 +757,8 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
-    | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m)
+    (* | MIN n m => interpretation (MIN n m)
+    | MAX n m => interpretation (MAX n m) *)
     end.
 
   Lemma measure1_NUM:
@@ -800,8 +801,8 @@ Section Sigma.
     | length v => interpretation (length v)
     | SUB n m => interpretation (SUB n m)
     | ADD n m => interpretation (ADD n m)
-    | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m)
+    (* | MIN n m => interpretation (MIN n m)
+    | MAX n m => interpretation (MAX n m) *)
     end.
 
   Lemma measure2_NUM:
@@ -950,8 +951,8 @@ Section Sigma.
     | length v => X22 + measure3 v
     | SUB n m => X23 + measure3 n + measure3 m
     | ADD n m => X24 + measure3 n + measure3 m
-    | MIN n m => X25 + measure3 n + measure3 m
-    | MAX n m => X26 + measure3 n + measure3 m
+    (* | MIN n m => X25 + measure3 n + measure3 m
+    | MAX n m => X26 + measure3 n + measure3 m *)
     end.
 
   Lemma measure1_subst_pos:
