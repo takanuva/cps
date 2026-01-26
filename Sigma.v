@@ -191,6 +191,7 @@ Section Sigma.
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
     (* TODO: congruence rules for numbers! *)
+    (* Eta laws and definitions... *)
     | A6 s:
       step (subst_app [inst s (index 0)] (subst_comp (subst_lift 1) s))
            s
@@ -199,7 +200,25 @@ Section Sigma.
            subst_ids
     | A8 s:
       step (subst_app [index 0] (subst_comp s (subst_lift 1)))
-           (subst_upn 1 s).
+           (subst_upn 1 s)
+    | A9 n:
+      interpretation n = 0 ->
+      step (subst_lift n)
+           subst_ids
+    | A10 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s)
+           s
+    (* Simplifications with identity... *)
+    | A11 s:
+      step (subst_comp subst_ids s)
+           s
+    | A12 s:
+      step (subst_comp s subst_ids)
+           s
+    | A13 e:
+      step (inst subst_ids e)
+           e.
 
   Create HintDb sigma.
 
@@ -1442,6 +1461,30 @@ Section Sigma.
     - constructor 1; simpl.
       assert (measure1 s > 1) by apply measure1_subst_pos.
       lia.
+    - constructor 3; simpl.
+      + rewrite H; simpl.
+        reflexivity.
+      + rewrite measure2_NUM.
+        rewrite H.
+        reflexivity.
+      + simpl.
+        assert (measure3 n > 0) by apply measure3_pos.
+        unfold X10; lia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + rewrite measure2_NUM.
+        rewrite H; simpl.
+        lia.
+      + lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
+    - constructor 1; simpl.
+      assert (measure1 e > 0) by apply measure1_term_pos.
+      lia.
   Admitted.
 
   Theorem normalization:
@@ -1478,6 +1521,7 @@ Section Sigma.
     induction 3; intros.
     - just do it.
     - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1496,6 +1540,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1508,7 +1553,15 @@ Section Sigma.
     (* ... *)
     - just do it.
     - just do it.
+    - repeat break.
+      + work.
+      + admit.
     - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      admit.
   Admitted.
 
   Hint Resolve clos_rt_rt1n: sigma.
