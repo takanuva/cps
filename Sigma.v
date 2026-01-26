@@ -141,20 +141,6 @@ Section Sigma.
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    (* ... *)
-
-
-
-
-
-
-
-
-
-
-
-
-
     (* Congruence rules: *)
     | C0 n1 n2:
       step n1 n2 -> step (index n1) (index n2)
@@ -205,7 +191,11 @@ Section Sigma.
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
     (* TODO: congruence rules for numbers! *)
-    .
+    | A6 s:
+      step (subst_app [inst s (index 0)] (subst_comp (subst_lift 1) s))
+           s
+    | A7:
+      step (subst_app [index 0] (subst_lift 1)) subst_ids.
 
   Create HintDb sigma.
 
@@ -1440,7 +1430,11 @@ Section Sigma.
           nia.
         * nia.
     (* Rules for axioms. *)
-    (* ... *)
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
+    - constructor 1; simpl.
+      lia.
   Admitted.
 
   Theorem normalization:
@@ -1502,6 +1496,9 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+    (* ... *)
     - just do it.
     - just do it.
   Admitted.
