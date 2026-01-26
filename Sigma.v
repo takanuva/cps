@@ -141,58 +141,19 @@ Section Sigma.
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    (* RULES FOR LIFT *)
-    | L1 n:
-      interpretation n = 0 ->
-      step (subst_lift n)
-           subst_ids
-    (* RULES FOR CONS *)
+    (* ... *)
 
-    (* RULES FOR COMP *)
-    | Y1 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    (* RULES FOR UPLIFT *)
-    | U1 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s)
-           s
-    | U2 k j s:
-      step (subst_upn k (subst_upn j s))
-           (subst_upn (ADD j k) s)
-    | U3 s t k j:
-      interpretation k > interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn j (subst_comp (subst_upn (k - j) s) t))
-    | U4 s t k j:
-      interpretation j > interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_upn j t))
-           (subst_upn k (subst_comp s (subst_upn (j - k) t)))
-    | U5 s t u k j:
-      interpretation k > interpretation j ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn j (subst_comp (subst_upn (k - j) s) t)) u)
-    | U6 s t u k j:
-      interpretation j > interpretation k ->
-      step (subst_comp (subst_upn k s) (subst_comp (subst_upn j t) u))
-           (subst_comp (subst_upn k (subst_comp s (subst_upn (j - k) t))) u)
-    (* ITERACTIONS *)
-    | II1 e:
-      step (inst subst_ids e)
-           e
-    | UI1 n:
-      step (subst_upn n subst_ids)
-           subst_ids
-    | XI1 s:
-      step (subst_comp s subst_ids)
-           s
-    | XI2 s:
-      step (subst_comp subst_ids s)
-           s
-    | IY1 s t e:
-      step (inst t (inst s e))
-           (inst (subst_comp s t) e)
-    (* SIMPLIFICATION *)
+
+
+
+
+
+
+
+
+
+
+
 
     (* Congruence rules: *)
     | C0 n1 n2:
@@ -1263,71 +1224,6 @@ Section Sigma.
       + now rewrite measure2_traverse_unfolding.
       + simpl...
         nia.
-    - constructor 3; simpl.
-      + rewrite H; simpl.
-        reflexivity.
-      + rewrite measure2_NUM.
-        rewrite H.
-        reflexivity.
-      + simpl...
-        assert (measure3 n > 0) by apply measure3_pos.
-        nia.
-    - constructor 2; simpl.
-      + nia.
-      + rename t0 into t.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        assert (measure2 u > 0) by apply measure2_subst_pos.
-        nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + rewrite measure2_NUM.
-        rewrite H.
-        simpl; nia.
-      + simpl...
-        nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + rewrite Nat.mul_assoc.
-        do 2 rewrite measure2_NUM.
-        now rewrite Nat.add_comm, Nat.pow_add_r.
-      + simpl...
-        nia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - constructor 1; simpl.
-      assert (measure1 e > 0) by apply measure1_term_pos.
-      nia.
-    - remember (measure2 n) as m.
-      destruct m.
-      + constructor 3; simpl.
-        * reflexivity.
-        * rewrite <- Heqm; simpl.
-          reflexivity.
-        * simpl...
-          nia.
-      + constructor 2; simpl.
-        * reflexivity.
-        * rewrite <- Heqm; simpl.
-          ring_simplify.
-          assert (4 ^ m > 0); try nia.
-          clear Heqm.
-          induction m; simpl; nia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      nia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      nia.
-    - constructor 2; simpl.
-      + nia.
-      + rename t0 into t.
-        assert (measure2 e > 0) by apply measure2_term_pos.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        nia.
     (* From this point forward, congruences... *)
     - constructor 3; simpl.
       + do 2 rewrite measure1_NUM.
@@ -1542,6 +1438,8 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
+    (* Rules for axioms. *)
+    (* ... *)
   Admitted.
 
   Theorem normalization:
@@ -1585,17 +1483,22 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - repeat break.
-      + work.
-      + work.
-      + work.
-      + work.
-      + admit.
-      + work.
-      + work.
-    - admit.
-    - admit.
-    - admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
