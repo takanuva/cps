@@ -202,61 +202,18 @@ Section Sigma.
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
     | C25 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    (* TODO: congruence rules for numbers! *)
-    (* Eta laws... *)
-    | A6 s:
-      step (subst_app [inst s (index 0)] (subst_comp (subst_lift 1) s))
-           s
-    | A7:
-      step (subst_app [index 0] (subst_lift 1))
-           subst_ids
-    (* Definitions... *)
-    | A8 s:
-      step (subst_app [index 0] (subst_comp s (subst_lift 1)))
-           (subst_upn 1 s)
-    | A9 n:
-      interpretation n = 0 ->
-      step (subst_lift n)
-           subst_ids
-    | A10 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s)
-           s
-    | A11 s:
-      step (subst_app [] s)
-           s
-    | A12 x xs s:
-      step (subst_app [x] (subst_app xs s))
-           (subst_app (x :: xs) s)
-    | A13 xs ys s:
-      step (subst_app xs (subst_app ys s))
-           (subst_app (xs ++ ys) s)
-    | V01 x xs ys:
-      step ((x :: xs) ++ ys)
-           (x :: (xs ++ ys))
-    | V02 xs:
-      step ([] ++ xs)
-           xs
-    | V03 xs:
-      step (xs ++ [])
-           xs
-    (* Simplifications with identity... *)
-    | A14 s:
-      step (subst_comp subst_ids s)
-           s
-    | A15 s:
-      step (subst_comp s subst_ids)
-           s
-    | A16 e:
-      step (inst subst_ids e)
-           e
-    | A17 n:
-      step (subst_upn n subst_ids)
-           subst_ids
-    (* Composition is right-associative... *)
-    | A18 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u)).
+    | C26 n1 n2:
+      step n1 n2 -> step (succ n1) (succ n2)
+    | C27 v1 v2:
+      step v1 v2 -> step (length v1) (length v2)
+    | C28 n1 n2 m:
+      step n1 n2 -> step (SUB n1 m) (SUB n2 m)
+    | C29 n m1 m2:
+      step m1 m2 -> step (SUB n m1) (SUB n m2)
+    | C30 n1 n2 m:
+      step n1 n2 -> step (ADD n1 m) (ADD n2 m)
+    | C31 n m1 m2:
+      step m1 m2 -> step (ADD n m1) (ADD n m2).
 
   Create HintDb sigma.
 
@@ -364,13 +321,50 @@ Section Sigma.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
 
+  Lemma interpretation_consistent_vec:
+    forall v u,
+    @step VECTOR v u ->
+    interpretation (length v) = interpretation (length u).
+  Proof.
+    intros.
+    dependent induction H; simpl.
+    - clear IHstep.
+      reflexivity.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep.
+      congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep.
+      congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep.
+      congruence.
+  Qed.
+
   Lemma interpretation_consistent_num:
     forall n m,
     @step NUM n m ->
     interpretation n = interpretation m.
   Proof.
     intros.
-    dependent destruction H.
+    dependent induction H.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl; rewrite IHstep.
+      reflexivity.
+    - clear IHstep.
+      now apply interpretation_consistent_vec.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl; rewrite IHstep.
+      reflexivity.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl; rewrite IHstep.
+      reflexivity.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl; rewrite IHstep.
+      reflexivity.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl; rewrite IHstep.
+      reflexivity.
   Qed.
 
   Lemma interpretation_consistent_len:
@@ -381,9 +375,6 @@ Section Sigma.
     intros.
     dependent induction H.
     - simpl; auto.
-    - simpl; eauto.
-    - simpl; eauto.
-    - simpl; eauto.
     - simpl; eauto.
     - simpl; eauto.
     - simpl; eauto.
@@ -422,16 +413,13 @@ Section Sigma.
     forall n1 n2,
     joinable n1 n2 ->
     joinable (index n1) (index n2).
-  Proof.
+  Proof with eauto with sigma.
     intros n1 n2 (n3, ?, ?).
-    assert (n1 = n3 /\ n2 = n3) as (?, ?).
-    - split.
-      + clear H0.
-        induction H; subst; easy.
-      + clear H.
-        induction H0; subst; easy.
-    - subst.
-      apply joinable_refl.
+    exists (var n3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
   Qed.
 
   Lemma C1_join:
@@ -689,6 +677,50 @@ Section Sigma.
         induction H2...
   Qed.
 
+  Lemma C13_join:
+    forall n1 n2 m1 m2,
+    joinable n1 n2 ->
+    joinable m1 m2 ->
+    joinable (SUB n1 m1) (SUB n2 m2).
+  Proof with eauto with sigma.
+    intros n1 n2 m1 m2 (n3, ?, ?) (m3, ?, ?).
+    exists (SUB n3 m3).
+    - clear H0 H2.
+      apply rt_trans with (SUB n3 m1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (SUB n3 m2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
+  Lemma C14_join:
+    forall n1 n2 m1 m2,
+    joinable n1 n2 ->
+    joinable m1 m2 ->
+    joinable (ADD n1 m1) (ADD n2 m2).
+  Proof with eauto with sigma.
+    intros n1 n2 m1 m2 (n3, ?, ?) (m3, ?, ?).
+    exists (ADD n3 m3).
+    - clear H0 H2.
+      apply rt_trans with (ADD n3 m1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (ADD n3 m2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
   Hint Resolve joinable_step: sigma.
   Hint Resolve C0_join: sigma.
   Hint Resolve C1_join: sigma.
@@ -703,6 +735,8 @@ Section Sigma.
   Hint Resolve C10_join: sigma.
   Hint Resolve C11_join: sigma.
   Hint Resolve C12_join: sigma.
+  Hint Resolve C13_join: sigma.
+  Hint Resolve C14_join: sigma.
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
@@ -728,7 +762,7 @@ Section Sigma.
     (* SUBST *)
     | metas _ => 2
     | iota => 2
-    | slift n => max 2 (2 ^ interpretation n)
+    | slift n => max 2 (2 ^ measure1 n)
     | concatenate v s => sumup 0 measure1 v + measure1 s
     | compose s t => measure1 s * measure1 t
     | uplift n s => measure1 s
@@ -944,6 +978,13 @@ Section Sigma.
     | MAX n m => X26 + measure3 n + measure3 m *)
     end.
 
+  Lemma power_is_positive:
+    forall i n,
+    S i ^ n > 0.
+  Proof.
+    induction n; simpl; lia.
+  Qed.
+
   Lemma measure1_subst_pos:
     forall e: SUBST,
     measure1 e > 1.
@@ -952,10 +993,14 @@ Section Sigma.
     dependent induction e; simpl.
     - auto.
     - auto.
-    - remember (2 ^ interpretation e) as n.
+    - clear IHe.
+      rewrite measure1_NUM.
+      remember (2 ^ interpretation e) as n.
       destruct n.
-      + auto.
-      + destruct n; lia.
+      + exfalso.
+        assert (2 ^ interpretation e > 0) by apply power_is_positive.
+        lia.
+      + destruct n; try lia.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
@@ -1153,15 +1198,6 @@ Section Sigma.
     - eapply H1; now try reflexivity.
   Qed.
 
-  Lemma num_step_measure3:
-    forall n m,
-    @step NUM n m ->
-    measure3 n > measure3 m.
-  Proof.
-    intros.
-    dependent induction H.
-  Qed.
-
   Lemma sumup0_measure1_simpl:
     forall v,
     sumup 0 measure1 v = measure1 v.
@@ -1186,11 +1222,45 @@ Section Sigma.
     unfold_weight; nia.
   Qed.
 
-  Lemma power_is_positive:
-    forall i n,
-    S i ^ n > 0.
+  Lemma measure1_step_VECTOR_stable:
+    forall v u: VECTOR,
+    step v u ->
+    measure1 (length v) = measure1 (length u).
   Proof.
-    induction n; simpl; lia.
+    intros.
+    dependent induction H; simpl.
+    - lia.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep; congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep; congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      simpl in IHstep; congruence.
+  Qed.
+
+  Lemma measure1_step_NUM_stable:
+    forall n1 n2: NUM,
+    step n1 n2 ->
+    measure1 n1 = measure1 n2.
+  Proof.
+    intros.
+    dependent induction H.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      do 2 rewrite measure1_NUM in IHstep.
+      simpl; congruence.
+    - now apply measure1_step_VECTOR_stable.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      do 2 rewrite measure1_NUM in IHstep.
+      simpl; congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      do 2 rewrite measure1_NUM in IHstep.
+      simpl; congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      do 2 rewrite measure1_NUM in IHstep.
+      simpl; congruence.
+    - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
+      do 2 rewrite measure1_NUM in IHstep.
+      simpl; congruence.
   Qed.
 
   Lemma decreasing:
@@ -1222,12 +1292,16 @@ Section Sigma.
       + simpl...
         nia.
     (* From this point forward, congruences... *)
-    - constructor 3; simpl.
-      + do 2 rewrite measure1_NUM.
-        now rewrite interpretation_consistent_num with n1 n2.
-      + reflexivity.
-      + apply num_step_measure3 in H.
-        nia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl; auto.
+        lia.
     - dependent destruction IHstep.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
@@ -1240,21 +1314,32 @@ Section Sigma.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
       + constructor 3; simpl; nia.
-    - constructor 3; simpl.
-      + do 2 rewrite measure1_NUM.
-        now rewrite interpretation_consistent_num with i1 i2.
-      + do 3 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with i1 i2.
-      + simpl; ring_simplify.
-        apply num_step_measure3 in H.
-        nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + do 3 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with k1 k2.
-      + simpl; ring_simplify.
-        apply num_step_measure3 in H.
-        nia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl.
+        * rewrite H0; auto.
+        * rewrite H1; auto.
+        * ring_simplify.
+          lia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl.
+        * reflexivity.
+        * rewrite H1; auto.
+        * ring_simplify.
+          lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 x > 0) by apply measure1_term_pos.
@@ -1281,13 +1366,19 @@ Section Sigma.
           generalize (measure2 k) as n.
           induction n; simpl; nia.
       + constructor 3; simpl; nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + do 2 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with k1 k2.
-      + ring_simplify.
-        apply num_step_measure3 in H.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
         lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl.
+        * reflexivity.
+        * congruence.
+        * ring_simplify.
+          lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
@@ -1314,12 +1405,18 @@ Section Sigma.
         nia.
       + constructor 2; simpl; nia.
       + constructor 3; simpl; nia.
-    - constructor 3; simpl.
-      * rewrite interpretation_consistent_num with n1 n2; auto.
-      * do 2 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with n1 n2.
-      * apply num_step_measure3 in H.
-        nia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl.
+        * rewrite H0; auto.
+        * rewrite H1; auto.
+        * lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         do 2 rewrite sumup0_measure1_simpl.
@@ -1363,12 +1460,18 @@ Section Sigma.
         * now rewrite H0.
         * now rewrite H1.
         * nia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + do 2 rewrite measure2_NUM.
-        now rewrite interpretation_consistent_num with n1 n2.
-      + apply num_step_measure3 in H.
-        nia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + constructor 3; simpl.
+        * reflexivity.
+        * rewrite H1; auto.
+        * lia.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assumption.
@@ -1435,96 +1538,66 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
-    (* Rules for axioms. *)
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 1; simpl.
-      lia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 3; simpl.
-      + rewrite H; simpl.
-        reflexivity.
-      + rewrite measure2_NUM.
-        rewrite H.
-        reflexivity.
-      + simpl.
-        assert (measure3 n > 0) by apply measure3_pos.
-        unfold X10; lia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + rewrite measure2_NUM.
-        rewrite H; simpl.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
         lia.
-      + lia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + reflexivity.
-      + lia.
-    - constructor 3; simpl.
-      + rewrite sumup0_measure1_simpl.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
         lia.
-      + rewrite sumup1_measure2_simpl.
+      + do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        constructor 3; simpl; auto.
         lia.
-      + unfold X16; ring_simplify.
+    - admit.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
         lia.
-    - constructor 3; simpl.
-      + rewrite sumup0_measure1_simpl.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
         lia.
-      + rewrite sumup1_measure2_simpl.
+      + do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        constructor 3; simpl; auto.
         lia.
-      + lia.
-    - constructor 3; simpl.
-      + do 2 rewrite sumup0_measure1_simpl.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
         lia.
-      + do 2 rewrite sumup1_measure2_simpl.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
         lia.
-      + admit.
-    - constructor 3; simpl.
-      + rewrite sumup0_measure1_simpl.
-        reflexivity.
-      + rewrite sumup1_measure2_simpl.
-        reflexivity.
-      + lia.
-    - constructor 3; simpl.
-      + rewrite sumup0_measure1_simpl.
+      + do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        constructor 3; simpl; auto.
         lia.
-      + rewrite sumup1_measure2_simpl.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
         lia.
-      + lia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 1; simpl.
-      assert (measure1 e > 0) by apply measure1_term_pos.
-      lia.
-    - remember (interpretation n) as i.
-      destruct i.
-      + constructor 3; simpl.
-        * reflexivity.
-        * rewrite measure2_NUM.
-          rewrite <- Heqi; simpl.
-          reflexivity.
-        * simpl.
-          lia.
-      + constructor 2; simpl.
-        * reflexivity.
-        * rewrite measure2_NUM.
-          rewrite <- Heqi.
-          change (4 ^ S i) with (4 * 4 ^ i).
-          assert (4 ^ i > 0) by apply power_is_positive.
-          lia.
-    - constructor 2; simpl.
-      + lia.
-      + rename t0 into t.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        assert (measure2 u > 0) by apply measure2_subst_pos.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        constructor 3; simpl; auto.
+        lia.
+    - dependent destruction IHstep.
+      + exfalso.
+        apply measure1_step_NUM_stable in H.
+        lia.
+      + exfalso.
+        do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        lia.
+      + do 2 rewrite measure1_NUM in H0.
+        do 2 rewrite measure2_NUM in H1.
+        constructor 3; simpl; auto.
         lia.
   Admitted.
 
@@ -1647,7 +1720,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1656,25 +1728,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    (* ... *)
-    - just do it.
-    - just do it.
-    - just do it.
-      admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1710,8 +1763,7 @@ Section Sigma.
         exists w; eauto with sigma.
       + rename y0 into z, z into v, z0 into w.
         destruct locally_confluent with s x y z as (u, ?, ?); auto.
-        (* We have to fill the gap using induction twice! Check Newman's lemma
-           on some textbook if you want to understand why. *)
+        (* We have to fill the gap using induction twice! *)
         edestruct H0 with y u w as (t, ?, ?); auto with sigma.
         edestruct H0 with z t v as (r, ?, ?); auto with sigma.
         * eauto with sigma.
