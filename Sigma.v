@@ -213,7 +213,16 @@ Section Sigma.
     | C30 n1 n2 m:
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
     | C31 n m1 m2:
-      step m1 m2 -> step (ADD n m1) (ADD n m2).
+      step m1 m2 -> step (ADD n m1) (ADD n m2)
+    (* Simplification rules: *)
+    | A6 n:
+      interpretation n = 0 ->
+      step (subst_lift n) subst_ids
+    | A7 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s) s
+    | A8 n:
+      step (subst_upn n subst_ids) subst_ids.
 
   Create HintDb sigma.
 
@@ -1414,6 +1423,32 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    (* ------------------------------------------------------------------ *)
+    - constructor 3; simpl.
+      + rewrite H; simpl.
+        reflexivity.
+      + rewrite H; simpl.
+        reflexivity.
+      + assert (measure3 n > 0) by apply measure3_pos.
+        unfold X10.
+        lia.
+    - constructor 3; simpl.
+      + reflexivity.
+      + rewrite H; simpl.
+        lia.
+      + lia.
+    - destruct (le_gt_dec (interpretation n) 0).
+      + constructor 3; simpl.
+        * reflexivity.
+        * replace (interpretation n) with 0 by lia.
+          simpl; reflexivity.
+        * lia.
+      + constructor 2; simpl.
+        * reflexivity.
+        * remember (interpretation n) as m.
+          destruct m; try lia; simpl.
+          assert (4 ^ m > 0) by apply power_is_positive.
+          lia.
   Admitted.
 
   Theorem normalization:
@@ -1540,6 +1575,9 @@ Section Sigma.
     joinable y z.
   Proof.
     induction 3; intros.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
