@@ -1505,6 +1505,30 @@ Section Sigma.
 
   Local Notation one := (succ zero).
 
+  (* Check the laws for the sigma-calculus! *)
+
+  (* (Clos)       (a[s])[t] = a[s o t] *)
+  (* (VarShift1)  n[!] = 1+n *)
+  (* (VarShift2)  n[! o s] = (1+n)[s] *)
+  (* (FVarCons)   0[a, s] = a *)
+  (* (FVarLift1)  0[U(s)] = 0 *)
+  (* (FVarLift2)  0[U(s) o t] = 0[t] *)
+  (* (RVarCons)   (1+n)[a, s] = n[s] *)
+  (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
+  (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
+  (* (AssEnv)     (s o t) o u = s o (t o u) *)
+  (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
+  (* (ShiftCons)  ! o (a, s) = s *)
+  (* (ShiftLift1) ! o U(s) = s o ! *)
+  (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
+  (* (Lift1)      U(s) o U(t) = U(s o t) *)
+  (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
+  (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
+  (* (IdL)        id o s = s *)
+  (* (IdR)        s o id = s *)
+  (* (LiftId)     U(id) = id *)
+  (* (Id)         a[id] = a *)
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
