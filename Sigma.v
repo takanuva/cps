@@ -225,36 +225,45 @@ Section Sigma.
       step (subst_upn n subst_ids) subst_ids
     | A9 e:
       step (inst subst_ids e) e
+    | A10 n m:
+      step (subst_comp (subst_lift n) (subst_lift m))
+           (subst_lift (n + m))
+    | A11 n m s:
+      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
+           (subst_comp (subst_lift (n + m)) s)
+    | A12 n m s:
+      step (subst_upn n (subst_upn m s))
+           (subst_upn (n + m) s)
     (* Main rules for composition: *)
-    | A10 s:
+    | A13 s:
       step (subst_comp subst_ids s) s
-    | A11 s:
+    | A14 s:
       step (subst_comp s subst_ids) s
-    | A12 s t u:
+    | A15 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u))
     (* Instantiations may be closed: *)
-    | A13 e s t:
+    | A16 e s t:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
     (* We may join leftmost uplifts in a composition, in may ways: *)
-    | A14 n m s t:
+    | A17 n m s t:
       interpretation n = interpretation m ->
       step (subst_comp (subst_upn n s) (subst_upn m t))
            (subst_upn n (subst_comp s t))
-    | A15 n m s t u:
+    | A18 n m s t u:
       interpretation n = interpretation m ->
       step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
            (subst_comp (subst_upn n (subst_comp s t)) u)
     (* ---------- *)
-    | A16 n m s t:
+    (* | A19 n m s t:
       interpretation n > interpretation m ->
       step (subst_comp (subst_upn n s) (subst_upn m t))
            (subst_upn m (subst_comp (subst_upn (n - m) s) t))
-    | A17 n m s t:
+    | A20 n m s t:
       interpretation n < interpretation m ->
       step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn n (subst_comp s (subst_upn (m - n) t))).
+           (subst_upn n (subst_comp s (subst_upn (m - n) t))) *).
 
   Create HintDb sigma.
 
@@ -1484,6 +1493,9 @@ Section Sigma.
     - constructor 1; simpl.
       assert (measure1 e > 0) by apply measure1_term_pos.
       lia.
+    - admit.
+    - admit.
+    - admit.
     - constructor 1; simpl.
       assert (measure1 s > 1) by apply measure1_subst_pos.
       lia.
@@ -1504,22 +1516,20 @@ Section Sigma.
         assert (measure2 s > 0) by apply measure2_subst_pos.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         lia.
-    - admit.
-    - admit.
-    - constructor 2; simpl.
+    - rename t0 into t.
+      constructor 3; simpl.
       + reflexivity.
-      + rename t0 into t.
-        remember (interpretation n) as i.
-        remember (interpretation m) as j.
-        ring_simplify.
+      + rewrite H; ring_simplify.
         admit.
-    - constructor 2; simpl.
-      + reflexivity.
-      + rename t0 into t.
-        remember (interpretation n) as j.
-        remember (interpretation m) as i.
-        ring_simplify.
+      + ring_simplify.
+        lia.
+    - rename t0 into t.
+      constructor 3; simpl.
+      + lia.
+      + rewrite H; ring_simplify.
         admit.
+      + ring_simplify.
+        lia.
   Admitted.
 
   Ltac boundscheck :=
@@ -1626,6 +1636,11 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1650,6 +1665,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
