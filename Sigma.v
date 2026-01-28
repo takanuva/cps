@@ -236,7 +236,16 @@ Section Sigma.
     (* Instantiations may be closed: *)
     | A13 e s t:
       step (inst t (inst s e))
-           (inst (subst_comp s t) e).
+           (inst (subst_comp s t) e)
+    (* We may join leftmost uplifts in a composition, in may ways: *)
+    | A14 n m s t:
+      interpretation n = interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_upn m t))
+           (subst_upn n (subst_comp s t))
+    | A15 n m s t u:
+      interpretation n = interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
+           (subst_comp (subst_upn n (subst_comp s t)) u).
 
   Create HintDb sigma.
 
@@ -1486,6 +1495,8 @@ Section Sigma.
         assert (measure2 s > 0) by apply measure2_subst_pos.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         lia.
+    - admit.
+    - admit.
   Admitted.
 
   Ltac boundscheck :=
@@ -1588,7 +1599,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1615,7 +1625,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      admit.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
