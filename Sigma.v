@@ -1702,10 +1702,22 @@ Section Sigma.
   Admitted.
 
   (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
-  (* TODO *)
+  Example RVarLift2:
+    forall n s t,
+    joinable (inst (subst_comp (subst_upn 1 s) t) (index (1 + n)))
+             (inst (subst_comp s (subst_comp (subst_lift 1) t)) (index n)).
+  Proof.
+    admit.
+  Admitted.
 
   (* (AssEnv)     (s o t) o u = s o (t o u) *)
-  (* TODO *)
+  Example AssEnv:
+    forall s t u,
+    joinable (subst_comp (subst_comp s t) u)
+             (subst_comp s (subst_comp t u)).
+  Proof.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   (* TODO *)
@@ -1720,10 +1732,22 @@ Section Sigma.
   (* TODO *)
 
   (* (Lift1)      U(s) o U(t) = U(s o t) *)
-  (* TODO *)
+  Example Lift1:
+    forall s t,
+    joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
+             (subst_upn 1 (subst_comp s t)).
+  Proof.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
-  (* TODO *)
+  Example Lift2:
+    forall s t u,
+    joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
+             (subst_comp (subst_upn 1 (subst_comp s t)) u).
+  Proof.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
