@@ -1540,30 +1540,6 @@ Section Sigma.
 
   Local Notation one := (succ zero).
 
-  (* Check the laws for the sigma-calculus! *)
-
-  (* (Clos)       (a[s])[t] = a[s o t] *)
-  (* (VarShift1)  n[!] = 1+n *)
-  (* (VarShift2)  n[! o s] = (1+n)[s] *)
-  (* (FVarCons)   0[a, s] = a *)
-  (* (FVarLift1)  0[U(s)] = 0 *)
-  (* (FVarLift2)  0[U(s) o t] = 0[t] *)
-  (* (RVarCons)   (1+n)[a, s] = n[s] *)
-  (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
-  (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
-  (* (AssEnv)     (s o t) o u = s o (t o u) *)
-  (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
-  (* (ShiftCons)  ! o (a, s) = s *)
-  (* (ShiftLift1) ! o U(s) = s o ! *)
-  (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
-  (* (Lift1)      U(s) o U(t) = U(s o t) *)
-  (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
-  (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
-  (* (IdL)        id o s = s *)
-  (* (IdR)        s o id = s *)
-  (* (LiftId)     U(id) = id *)
-  (* (Id)         a[id] = a *)
-
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -1613,6 +1589,142 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+  Admitted.
+
+  (* (Clos)       (a[s])[t] = a[s o t] *)
+  Example Clos: 
+    forall a s t,
+    joinable (inst t (inst s a))
+             (inst (subst_comp s t) a).
+  Proof.
+    intros.
+  Admitted.
+
+  (* (VarShift1)  n[!] = 1+n *)
+  Example VarShift1:
+    forall n,
+    joinable (inst (subst_lift 1) (index n))
+             (index (1 + n)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (VarShift2)  n[! o s] = (1+n)[s] *)
+  Example VarShift2:
+    forall n s,
+    joinable (inst (subst_comp (subst_lift 1) s) (index n))
+             (inst s (index (1 + n))).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (FVarCons)   0[a, s] = a *)
+  Example FVarCons:
+    forall a s,
+    joinable (inst (subst_app [a] s) (index 0))
+             a.
+  Proof.
+    admit.
+  Admitted.
+
+  (* (FVarLift1)  0[U(s)] = 0 *)
+  Example FVarLift1:
+    forall s,
+    joinable (inst (subst_upn 1 s) (index 0))
+             (index 0).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (FVarLift2)  0[U(s) o t] = 0[t] *)
+  Example FVarLift2:
+    forall s t,
+    joinable (inst (subst_comp (subst_upn 1 s) t) (index 0))
+             (inst t (index 0)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (RVarCons)   (1+n)[a, s] = n[s] *)
+  Example RVarCons:
+    forall n a s,
+    joinable (inst (subst_app [a] s) (index (1 + n)))
+             (inst s (index n)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
+  Example RVarLift1:
+    forall n s,
+    joinable (inst (subst_upn 1 s) (index (1 + n)))
+             (inst (subst_comp s (subst_lift 1)) (index n)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
+  (* TODO *)
+
+  (* (AssEnv)     (s o t) o u = s o (t o u) *)
+  (* TODO *)
+
+  (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
+  (* TODO *)
+
+  (* (ShiftCons)  ! o (a, s) = s *)
+  (* TODO *)
+
+  (* (ShiftLift1) ! o U(s) = s o ! *)
+  (* TODO *)
+
+  (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
+  (* TODO *)
+
+  (* (Lift1)      U(s) o U(t) = U(s o t) *)
+  (* TODO *)
+
+  (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
+  (* TODO *)
+
+  (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
+  Example LiftEnv:
+    forall s a t,
+    joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
+             (subst_app [a] (subst_comp s t)).
+  Proof.
+    admit.
+  Admitted.
+
+  (* (IdL)        id o s = s *)
+  Example IdL:
+    forall s,
+    joinable (subst_comp subst_ids s) s.
+  Proof.
+    admit.
+  Admitted.
+
+  (* (IdR)        s o id = s *)
+  Example IdR:
+    forall s,
+    joinable (subst_comp s subst_ids) s.
+  Proof.
+    admit.
+  Admitted.
+
+  (* (LiftId)     U(id) = id *)
+  Example LiftId:
+    joinable (subst_upn 1 subst_ids) subst_ids.
+  Proof.
+    admit.
+  Admitted.
+
+  (* (Id)         a[id] = a *)
+  Example Id:
+    forall a,
+    joinable (inst subst_ids a) a.
+  Proof.
+    admit.
   Admitted.
 
   Hint Resolve clos_rt_rt1n: sigma.
