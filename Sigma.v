@@ -232,7 +232,11 @@ Section Sigma.
       step (subst_comp s subst_ids) s
     | A12 s t u:
       step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u)).
+           (subst_comp s (subst_comp t u))
+    (* Instantiations may be closed: *)
+    | A13 e s t:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e).
 
   Create HintDb sigma.
 
@@ -1475,6 +1479,13 @@ Section Sigma.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         assert (measure2 u > 0) by apply measure2_subst_pos.
         lia.
+    - constructor 2; simpl.
+      + lia.
+      + rename t0 into t.
+        assert (measure2 e > 0) by apply measure2_term_pos.
+        assert (measure2 s > 0) by apply measure2_subst_pos.
+        assert (measure2 t > 0) by apply measure2_subst_pos.
+        lia.
   Admitted.
 
   Ltac boundscheck :=
@@ -1577,6 +1588,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1602,6 +1614,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+      admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1610,8 +1624,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    intros.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
