@@ -1793,16 +1793,40 @@ Section Sigma.
   Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
-  (* TODO *)
+  Example MapEnv:
+    forall a s t,
+    joinable (subst_comp (subst_app [a] s) t)
+             (subst_app [inst t a] (subst_comp s t)).
+  Proof.
+    admit.
+  Admitted.
 
   (* (ShiftCons)  ! o (a, s) = s *)
-  (* TODO *)
+  Example ShiftCons:
+    forall a s,
+    joinable (subst_comp (subst_lift 1) (subst_app [a] s))
+             s.
+  Proof.
+    admit.
+  Admitted.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
-  (* TODO *)
+  Example ShiftLift1:
+    forall s,
+    joinable (subst_comp (subst_lift 1) (subst_upn 1 s))
+             (subst_comp s (subst_lift 1)).
+  Proof.
+    admit.
+  Admitted.
 
   (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
-  (* TODO *)
+  Example ShiftLift2:
+    forall s t,
+    joinable (subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t))
+             (subst_comp s (subst_comp (subst_lift 1) t)).
+  Proof.
+    admit.
+  Admitted.
 
   (* (Lift1)      U(s) o U(t) = U(s o t) *)
   Example Lift1:
