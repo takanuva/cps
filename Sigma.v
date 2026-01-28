@@ -245,7 +245,16 @@ Section Sigma.
     | A15 n m s t u:
       interpretation n = interpretation m ->
       step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
-           (subst_comp (subst_upn n (subst_comp s t)) u).
+           (subst_comp (subst_upn n (subst_comp s t)) u)
+    (* ---------- *)
+    | A16 n m s t:
+      interpretation n > interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_upn m t))
+           (subst_upn m (subst_comp (subst_upn (n - m) s) t))
+    | A17 n m s t:
+      interpretation n < interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_upn m t))
+           (subst_upn n (subst_comp s (subst_upn (m - n) t))).
 
   Create HintDb sigma.
 
@@ -1497,6 +1506,20 @@ Section Sigma.
         lia.
     - admit.
     - admit.
+    - constructor 2; simpl.
+      + reflexivity.
+      + rename t0 into t.
+        remember (interpretation n) as i.
+        remember (interpretation m) as j.
+        ring_simplify.
+        admit.
+    - constructor 2; simpl.
+      + reflexivity.
+      + rename t0 into t.
+        remember (interpretation n) as j.
+        remember (interpretation m) as i.
+        ring_simplify.
+        admit.
   Admitted.
 
   Ltac boundscheck :=
