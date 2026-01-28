@@ -753,16 +753,16 @@ Section Sigma.
     match expr with
     (* TERM *)
     | metat _ => 2
-    | index n => 2 ^ measure1 n
+    | index n => 2 ^ interpretation n
     | abstraction e => 2 + measure1 e
     | application e f => measure1 e + measure1 f
-    | dblift i k e => max 2 (2 ^ measure1 i) * measure1 e
+    | dblift i k e => max 2 (2 ^ interpretation i) * measure1 e
     | dbtraverse s k e => measure1 s * measure1 e
     | instantiation s e => measure1 s * measure1 e
     (* SUBST *)
     | metas _ => 2
     | iota => 2
-    | slift n => max 2 (2 ^ measure1 n)
+    | slift n => max 2 (2 ^ interpretation n)
     | concatenate v s => sumup 0 measure1 v + measure1 s
     | compose s t => measure1 s * measure1 t
     | uplift n s => measure1 s
@@ -773,25 +773,15 @@ Section Sigma.
     | cons e v => measure1 e + sumup 0 measure1 v
     | join v u => sumup 0 measure1 v + sumup 0 measure1 u
     (* NUMBER *)
-    | metan n => interpretation (metan n)
-    | zero => interpretation zero
-    | succ n => interpretation (succ n)
-    | length v => interpretation (length v)
-    | SUB n m => interpretation (SUB n m)
-    | ADD n m => interpretation (ADD n m)
+    | metan n => 1
+    | zero => 1
+    | succ n => 1 + measure1 n
+    | length v => 1 + measure1 v
+    | SUB n m => 1 + measure1 n + measure1 m
+    | ADD n m => 1 + measure1 n + measure1 m
     (* | MIN n m => interpretation (MIN n m)
     | MAX n m => interpretation (MAX n m) *)
     end.
-
-  Lemma measure1_NUM:
-    forall n: NUM,
-    measure1 n = interpretation n.
-  Proof.
-    intros.
-    dependent induction n; simpl; auto.
-  Qed.
-
-  (* ---------------------------------------------------------------------- *)
 
   Fixpoint measure2 {s: sort} (expr: s) {struct expr}: nat :=
     match expr with
@@ -800,16 +790,17 @@ Section Sigma.
     | index n => 1
     | abstraction e => 2 * measure2 e
     | application e f => 1 + measure2 e + measure2 f
-    | dblift i k e => measure2 e * (1 + 4 ^ measure2 k * max 1 (measure2 i))
-    | dbtraverse s k e => measure2 e * (1 + 4 ^ measure2 k * measure2 s)
+    | dblift i k e => measure2 e *
+                        (1 + 4 ^ interpretation k * max 1 (interpretation i))
+    | dbtraverse s k e => measure2 e * (1 + 4 ^ interpretation k * measure2 s)
     | instantiation s e => measure2 e * (1 + measure2 s)
     (* SUBST *)
     | metas _ => 1
     | iota => 1
-    | slift n => max 1 (measure2 n)
+    | slift n => max 1 (interpretation n)
     | concatenate v s => sumup 1 measure2 v + measure2 s
     | compose s t => measure2 s * (1 + measure2 t)
-    | uplift n s => 4 ^ measure2 n * measure2 s
+    | uplift n s => 4 ^ interpretation n * measure2 s
     | subst y => 2 + measure2 y
     (* VECTOR *)
     | metav _ => 0
@@ -826,16 +817,6 @@ Section Sigma.
     (* | MIN n m => interpretation (MIN n m)
     | MAX n m => interpretation (MAX n m) *)
     end.
-
-  Lemma measure2_NUM:
-    forall n: NUM,
-    measure2 n = interpretation n.
-  Proof.
-    intros.
-    dependent induction n; simpl; auto.
-  Qed.
-
-  (* ---------------------------------------------------------------------- *)
 
   (*
     In order to properly calculate the optimal values for the 3rd weight, we
@@ -994,7 +975,6 @@ Section Sigma.
     - auto.
     - auto.
     - clear IHe.
-      rewrite measure1_NUM.
       remember (2 ^ interpretation e) as n.
       destruct n.
       + exfalso.
@@ -1013,6 +993,14 @@ Section Sigma.
     - nia.
   Qed.
 
+  Lemma measure1_num_pos:
+    forall n: NUM,
+    measure1 n > 0.
+  Proof.
+    intros.
+    dependent induction n; simpl; lia.
+  Qed.
+
   Lemma measure1_term_pos:
     forall e: TERM,
     measure1 e > 0.
@@ -1020,20 +1008,16 @@ Section Sigma.
     intros.
     dependent induction e; simpl.
     - auto.
-    - clear IHe; generalize (measure1 e) as n.
-      induction n; simpl.
-      + auto.
-      + lia.
+    - clear IHe.
+      apply power_is_positive.
     - lia.
     - specialize (IHe1 _ eq_refl JMeq_refl).
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
     - clear IHe1 IHe2.
       specialize (IHe3 _ eq_refl JMeq_refl).
-      remember (2 ^ measure1 e1) as n.
-      destruct n; simpl; intros.
-      + lia.
-      + lia.
+      remember (2 ^ interpretation e1) as n.
+      destruct n; simpl; lia.
     - clear IHe1 IHe2.
       specialize (IHe3 _ eq_refl JMeq_refl).
       assert (measure1 e1 > 1) by apply measure1_subst_pos.
@@ -1053,9 +1037,7 @@ Section Sigma.
     - auto.
     - auto.
     - clear IHe.
-      destruct (measure2 e).
-      + auto.
-      + lia.
+      destruct (interpretation e); lia.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
@@ -1063,11 +1045,8 @@ Section Sigma.
       lia.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
-      assert (4 ^ measure2 e1 > 0).
-      + generalize (measure2 e1) as n.
-        induction n; simpl.
-        * auto.
-        * lia.
+      assert (4 ^ interpretation e1 > 0).
+      + apply power_is_positive.
       + lia.
     - nia.
   Qed.
@@ -1096,7 +1075,7 @@ Section Sigma.
     measure1 (lift i k e) = measure1 (traverse (subst_lift i) k e).
   Proof.
     intros; simpl.
-    now rewrite measure1_NUM.
+    lia.
   Qed.
 
   Lemma measure1_subst_unfolding:
