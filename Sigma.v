@@ -214,7 +214,7 @@ Section Sigma.
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
     | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
-    (* Simplification rules: *)
+    (* Simplification laws: *)
     | A6 n:
       interpretation n = 0 ->
       step (subst_lift n) subst_ids
@@ -222,7 +222,17 @@ Section Sigma.
       interpretation n = 0 ->
       step (subst_upn n s) s
     | A8 n:
-      step (subst_upn n subst_ids) subst_ids.
+      step (subst_upn n subst_ids) subst_ids
+    | A9 e:
+      step (inst subst_ids e) e
+    (* Main rules for composition: *)
+    | A10 s:
+      step (subst_comp subst_ids s) s
+    | A11 s:
+      step (subst_comp s subst_ids) s
+    | A12 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u)).
 
   Create HintDb sigma.
 
@@ -1449,6 +1459,22 @@ Section Sigma.
           destruct m; try lia; simpl.
           assert (4 ^ m > 0) by apply power_is_positive.
           lia.
+    - constructor 1; simpl.
+      assert (measure1 e > 0) by apply measure1_term_pos.
+      lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
+    - constructor 1; simpl.
+      assert (measure1 s > 1) by apply measure1_subst_pos.
+      lia.
+    - constructor 2; simpl.
+      + lia.
+      + rename t0 into t.
+        assert (measure2 s > 0) by apply measure2_subst_pos.
+        assert (measure2 t > 0) by apply measure2_subst_pos.
+        assert (measure2 u > 0) by apply measure2_subst_pos.
+        lia.
   Admitted.
 
   Theorem normalization:
@@ -1551,6 +1577,10 @@ Section Sigma.
     joinable y z.
   Proof.
     induction 3; intros.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1701,34 +1731,41 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
+
+  (* ---------------------------------------------------------------------- *)
 
   Hint Resolve clos_rt_rt1n: sigma.
   Hint Resolve clos_rt1n_rt: sigma.
+
+  Arguments clos_refl_sym_trans {A}.
+
+  Notation conv s :=
+    (clos_refl_sym_trans (@step s)).
 
   Corollary confluent:
     forall {s} x y,
@@ -1759,17 +1796,12 @@ Section Sigma.
         * exists r; eauto with sigma.
   Qed.
 
-  Arguments clos_refl_sym_trans {A}.
-
-  Notation conv s :=
-    (clos_refl_sym_trans (@step s)).
-
   Corollary church_rosser:
     forall {s} x y,
     conv s x y ->
     joinable x y.
   Proof.
-    (* Confluence implies the Church-Rosser property. *)
+    (* Confluence easily implies the Church-Rosser property. *)
     induction 1.
     - exists y; auto with sigma.
     - exists x; auto with sigma.
