@@ -1477,23 +1477,6 @@ Section Sigma.
         lia.
   Admitted.
 
-  Theorem normalization:
-    forall {s},
-    (* Recall that for steps, the RHS is smaller, thus transp. *)
-    well_founded (transp (t s) step).
-  Proof.
-    intros s x.
-    assert (well_founded (@LT s)).
-    - apply LT_is_well_founded.
-    - specialize (H x).
-      induction H.
-      clear H; rename H0 into H.
-      constructor; intros y ?.
-      apply H.
-      apply decreasing.
-      assumption.
-  Qed.
-
   Ltac boundscheck :=
     repeat match goal with
     | H: @step NUM ?n ?m |- _ => apply interpretation_consistent_num in H
@@ -1766,6 +1749,23 @@ Section Sigma.
 
   Notation conv s :=
     (clos_refl_sym_trans (@step s)).
+
+  Theorem normalization:
+    forall {s},
+    (* Recall that for steps, the RHS is smaller, thus transp. *)
+    well_founded (transp (t s) step).
+  Proof.
+    intros s x.
+    assert (well_founded (@LT s)).
+    - apply LT_is_well_founded.
+    - specialize (H x).
+      induction H.
+      clear H; rename H0 into H.
+      constructor; intros y ?.
+      apply H.
+      apply decreasing.
+      assumption.
+  Qed.
 
   Corollary confluent:
     forall {s} x y,
