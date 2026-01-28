@@ -256,14 +256,22 @@ Section Sigma.
       step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
            (subst_comp (subst_upn n (subst_comp s t)) u)
     (* ---------- *)
-    (* | A19 n m s t:
+    | A19 n m s t:
       interpretation n > interpretation m ->
       step (subst_comp (subst_upn n s) (subst_upn m t))
            (subst_upn m (subst_comp (subst_upn (n - m) s) t))
     | A20 n m s t:
       interpretation n < interpretation m ->
       step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn n (subst_comp s (subst_upn (m - n) t))) *).
+           (subst_upn n (subst_comp s (subst_upn (m - n) t)))
+    | A21 n m s t u:
+      interpretation n > interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
+           (subst_comp (subst_upn m (subst_comp (subst_upn (n - m) s) t)) u)
+    | A22 n m s t u:
+      interpretation n < interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
+           (subst_comp (subst_upn n (subst_comp s (subst_upn (m - n) t))) u).
 
   Create HintDb sigma.
 
@@ -1530,6 +1538,10 @@ Section Sigma.
         admit.
       + ring_simplify.
         lia.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Ltac boundscheck :=
@@ -1596,7 +1608,8 @@ Section Sigma.
     try solve [ join; try easy; repeat force; boundscheck ].
 
   Ltac wonder i j :=
-    destruct (le_gt_dec (interpretation i) (interpretation j)).
+    destruct (lt_eq_lt_dec (interpretation i) (interpretation j)) as
+      [ [ ? | ? ] | ? ].
 
   Tactic Notation "just" "do" "it" :=
     repeat break;
@@ -1636,19 +1649,17 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
+      + wonder m0 0; work.
+      + wonder m0 0; work.
+      + wonder m0 (SUB m n); work.
+      + wonder m0 (SUB m n); work.
     - just do it.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+      + wonder m0 0; work.
+      + wonder m0 0; work.
+      + wonder m0 (SUB n m); work.
+      + wonder m0 (SUB n m); work.
+      + wonder n m0; work.
+      + wonder n m0; work.
     - just do it.
     - just do it.
     - just do it.
@@ -1666,12 +1677,30 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
     - just do it.
-      + admit.
-      + admit.
-  Admitted.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + wonder m0 0; work.
+      + wonder m0 0; work.
+    - just do it.
+      + wonder m0 0; work.
+      + wonder m0 0; work.
+    - just do it.
+      + wonder (SUB n m) m0; work.
+    - just do it.
+      + wonder (SUB m n) m0; work.
+    - just do it.
+      + wonder (SUB n m) m0; work.
+    - just do it.
+      + wonder (SUB m n) m0; work.
+      + wonder n m0; work.
+      + wonder n m0; work.
+  Qed.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
