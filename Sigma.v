@@ -214,7 +214,7 @@ Section Sigma.
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
     | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
-    (* Simplification laws: *)
+    (* (* Simplification laws: *)
     | A6 n:
       interpretation n = 0 ->
       step (subst_lift n) subst_ids
@@ -245,7 +245,7 @@ Section Sigma.
     (* Instantiations may be closed: *)
     | A16 e s t:
       step (inst t (inst s e))
-           (inst (subst_comp s t) e).
+           (inst (subst_comp s t) e) *).
 
   Create HintDb sigma.
 
@@ -1446,58 +1446,6 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
-    (* ------------------------------------------------------------------ *)
-    - constructor 3; simpl.
-      + rewrite H; simpl.
-        reflexivity.
-      + rewrite H; simpl.
-        reflexivity.
-      + assert (measure3 n > 0) by apply measure3_pos.
-        unfold X10.
-        lia.
-    - constructor 3; simpl.
-      + reflexivity.
-      + rewrite H; simpl.
-        lia.
-      + lia.
-    - destruct (le_gt_dec (interpretation n) 0).
-      + constructor 3; simpl.
-        * reflexivity.
-        * replace (interpretation n) with 0 by lia.
-          simpl; reflexivity.
-        * lia.
-      + constructor 2; simpl.
-        * reflexivity.
-        * remember (interpretation n) as m.
-          destruct m; try lia; simpl.
-          assert (4 ^ m > 0) by apply power_is_positive.
-          lia.
-    - constructor 1; simpl.
-      assert (measure1 e > 0) by apply measure1_term_pos.
-      lia.
-    - admit.
-    - admit.
-    - admit.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - constructor 2; simpl.
-      + lia.
-      + rename t0 into t.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        assert (measure2 u > 0) by apply measure2_subst_pos.
-        lia.
-    - constructor 2; simpl.
-      + lia.
-      + rename t0 into t.
-        assert (measure2 e > 0) by apply measure2_term_pos.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        lia.
   Admitted.
 
   Ltac boundscheck :=
@@ -1601,11 +1549,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + eexists.
-        * repeat reduce.
-          reflexivity.
-        * repeat reduce.
-          admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1624,22 +1567,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + eexists.
-        * repeat reduce.
-          reflexivity.
-        * repeat reduce.
-          admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1648,8 +1575,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1729,8 +1656,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1800,31 +1727,31 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
