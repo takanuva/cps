@@ -271,15 +271,7 @@ Section Sigma.
            s
     | A16 s:
       step (subst_comp s subst_ids)
-           s
-    | A17 n m s t:
-      interpretation n = interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn n (subst_comp s t))
-    | A18 n m s t u:
-      interpretation n = interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
-           (subst_comp (subst_upn n (subst_comp s t)) u).
+           s.
 
   Create HintDb sigma.
 
@@ -850,12 +842,12 @@ Section Sigma.
     | cons e v => measure1 e + sumup 0 measure1 v
     | join v u => sumup 0 measure1 v + sumup 0 measure1 u
     (* NUMBER *)
-    | metan n => 1
-    | zero => 1
-    | succ n => 1 + measure1 n
-    | length v => 1 + measure1 v
-    | SUB n m => 1 + measure1 n + measure1 m
-    | ADD n m => 1 + measure1 n + measure1 m
+    | metan n => interpretation (metan n)
+    | zero => interpretation zero
+    | succ n => interpretation (succ n)
+    | length v => interpretation (length v)
+    | SUB n m => interpretation (SUB n m)
+    | ADD n m => interpretation (ADD n m)
     (* | MIN n m => 1 + measure1 n + measure1 m
     | MAX n m => 1 + measure1 n + measure1 m *)
     end.
@@ -1070,14 +1062,6 @@ Section Sigma.
     - nia.
   Qed.
 
-  Lemma measure1_num_pos:
-    forall n: NUM,
-    measure1 n > 0.
-  Proof.
-    intros.
-    dependent induction n; simpl; lia.
-  Qed.
-
   Lemma measure1_term_pos:
     forall e: TERM,
     measure1 e > 0.
@@ -1278,6 +1262,39 @@ Section Sigma.
     unfold_weight; nia.
   Qed.
 
+  Lemma measure1_NUM:
+    forall n: NUM,
+    measure1 n = interpretation n.
+  Proof.
+    intros.
+    dependent induction n; simpl; lia.
+  Qed.
+
+  Lemma measure2_NUM:
+    forall n: NUM,
+    measure2 n = interpretation n.
+  Proof.
+    intros.
+    dependent induction n; simpl; lia.
+  Qed.
+
+  Lemma interpretation_num_LT_measure3:
+    forall n1 n2,
+    interpretation n1 = interpretation n2 ->
+    LT n2 n1 ->
+    measure3 n2 < measure3 n1.
+  Proof.
+    intros.
+    destruct H0.
+    - exfalso.
+      do 2 rewrite measure1_NUM in H0.
+      lia.
+    - exfalso.
+      do 2 rewrite measure2_NUM in H1.
+      lia.
+    - assumption.
+  Qed.
+
   Lemma decreasing:
     forall s x y,
     @step s x y ->
@@ -1307,7 +1324,13 @@ Section Sigma.
       + simpl...
         nia.
     (* From this point forward, congruences... *)
-    - admit.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * congruence.
+        * reflexivity.
+        * lia.
+      + assumption.
     - dependent destruction IHstep.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
@@ -1320,8 +1343,22 @@ Section Sigma.
       + constructor 1; simpl; nia.
       + constructor 2; simpl; nia.
       + constructor 3; simpl; nia.
-    - admit.
-    - admit.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * now rewrite H.
+        * now rewrite H.
+        * ring_simplify.
+          lia.
+      + assumption.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * reflexivity.
+        * now rewrite H.
+        * ring_simplify.
+          lia.
+      + assumption.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 x > 0) by apply measure1_term_pos.
@@ -1348,7 +1385,14 @@ Section Sigma.
           assert (4 ^ interpretation k > 0) by apply power_is_positive.
           lia.
       + constructor 3; simpl; nia.
-    - admit.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * reflexivity.
+        * now rewrite H.
+        * ring_simplify.
+          lia.
+      + assumption.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assert (measure1 s > 1) by apply measure1_subst_pos.
@@ -1375,7 +1419,14 @@ Section Sigma.
         nia.
       + constructor 2; simpl; nia.
       + constructor 3; simpl; nia.
-    - admit.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * now rewrite H.
+        * now rewrite H.
+        * ring_simplify.
+          lia.
+      + assumption.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         do 2 rewrite sumup0_measure1_simpl.
@@ -1419,7 +1470,14 @@ Section Sigma.
         * now rewrite H0.
         * now rewrite H1.
         * nia.
-    - admit.
+    - apply interpretation_consistent_num in H.
+      apply interpretation_num_LT_measure3 in IHstep.
+      + constructor 3; simpl.
+        * reflexivity.
+        * now rewrite H.
+        * ring_simplify.
+          lia.
+      + assumption.
     - dependent destruction IHstep.
       + constructor 1; simpl.
         assumption.
@@ -1485,8 +1543,6 @@ Section Sigma.
         * do 3 rewrite sumup1_measure2_simpl.
           nia.
         * nia.
-    - admit.
-    - admit.
     - admit.
     - admit.
     - admit.
@@ -1619,12 +1675,23 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
       + admit.
       + admit.
+      + clear origX origY origZ IHX.
+        rename m0 into m, m into o, s0 into s, t0 into t.
+        remember (ADD n m) as i.
+        remember (SUB o n) as j.
+        assert (interpretation i = interpretation (n + m))
+          by boundscheck.
+        clear Heqi.
+        assert (interpretation j = interpretation (o - n))
+          by boundscheck.
+        clear Heqj.
     - just do it.
       + admit.
       + admit.
