@@ -245,33 +245,7 @@ Section Sigma.
     (* Instantiations may be closed: *)
     | A16 e s t:
       step (inst t (inst s e))
-           (inst (subst_comp s t) e)
-    (* We may join leftmost uplifts in a composition, in may ways: *)
-    | A17 n m s t:
-      interpretation n = interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn n (subst_comp s t))
-    | A18 n m s t u:
-      interpretation n = interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
-           (subst_comp (subst_upn n (subst_comp s t)) u)
-    (* ---------- *)
-    | A19 n m s t:
-      interpretation n > interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn m (subst_comp (subst_upn (n - m) s) t))
-    | A20 n m s t:
-      interpretation n < interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_upn m t))
-           (subst_upn n (subst_comp s (subst_upn (m - n) t)))
-    | A21 n m s t u:
-      interpretation n > interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
-           (subst_comp (subst_upn m (subst_comp (subst_upn (n - m) s) t)) u)
-    | A22 n m s t u:
-      interpretation n < interpretation m ->
-      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
-           (subst_comp (subst_upn n (subst_comp s (subst_upn (m - n) t))) u).
+           (inst (subst_comp s t) e).
 
   Create HintDb sigma.
 
@@ -837,8 +811,8 @@ Section Sigma.
     | length v => 1 + measure1 v
     | SUB n m => 1 + measure1 n + measure1 m
     | ADD n m => 1 + measure1 n + measure1 m
-    (* | MIN n m => interpretation (MIN n m)
-    | MAX n m => interpretation (MAX n m) *)
+    (* | MIN n m => 1 + measure1 n + measure1 m
+    | MAX n m => 1 + measure1 n + measure1 m *)
     end.
 
   Fixpoint measure2 {s: sort} (expr: s) {struct expr}: nat :=
@@ -1524,24 +1498,6 @@ Section Sigma.
         assert (measure2 s > 0) by apply measure2_subst_pos.
         assert (measure2 t > 0) by apply measure2_subst_pos.
         lia.
-    - rename t0 into t.
-      constructor 3; simpl.
-      + reflexivity.
-      + rewrite H; ring_simplify.
-        admit.
-      + ring_simplify.
-        lia.
-    - rename t0 into t.
-      constructor 3; simpl.
-      + lia.
-      + rewrite H; ring_simplify.
-        admit.
-      + ring_simplify.
-        lia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
   Admitted.
 
   Ltac boundscheck :=
@@ -1645,21 +1601,11 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + wonder m0 0; work.
-      + wonder m0 0; work.
-      + wonder m0 (SUB m n); work.
-      + wonder m0 (SUB m n); work.
-    - just do it.
-      + wonder m0 0; work.
-      + wonder m0 0; work.
-      + wonder m0 (SUB n m); work.
-      + wonder m0 (SUB n m); work.
-      + wonder n m0; work.
-      + wonder n m0; work.
+      + eexists.
+        * repeat reduce.
+          reflexivity.
+        * repeat reduce.
+          admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1685,22 +1631,16 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + wonder m0 0; work.
-      + wonder m0 0; work.
     - just do it.
-      + wonder m0 0; work.
-      + wonder m0 0; work.
     - just do it.
-      + wonder (SUB n m) m0; work.
     - just do it.
-      + wonder (SUB m n) m0; work.
     - just do it.
-      + wonder (SUB n m) m0; work.
-    - just do it.
-      + wonder (SUB m n) m0; work.
-      + wonder n m0; work.
-      + wonder n m0; work.
-  Qed.
+      + eexists.
+        * repeat reduce.
+          reflexivity.
+        * repeat reduce.
+          admit.
+  Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
@@ -1834,8 +1774,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1843,8 +1783,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
