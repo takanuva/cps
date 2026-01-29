@@ -236,7 +236,42 @@ Section Sigma.
     | Y02 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
-    .
+    (* Instantiation: *)
+    | A6 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    | A7 e:
+      step (inst subst_ids e)
+           e
+    | A8 n:
+      interpretation n = 0 ->
+      step (subst_lift n)
+           subst_ids
+    | A9 n m:
+      step (subst_comp (subst_lift n) (subst_lift m))
+           (subst_lift (ADD n m))
+    | A10 n m s:
+      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
+           (subst_comp (subst_lift (ADD n m)) s)
+    | A11 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s)
+           s
+    | A12 n m s:
+      step (subst_upn n (subst_upn m s))
+           (subst_upn (ADD n m) s)
+    | A13 n:
+      step (subst_upn n subst_ids)
+           subst_ids
+    | A14 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    | A15 s:
+      step (subst_comp subst_ids s)
+           s
+    | A16 s:
+      step (subst_comp s subst_ids)
+           s.
 
   Create HintDb sigma.
 
@@ -1534,6 +1569,32 @@ Section Sigma.
     joinable y z.
   Proof.
     induction 3; intros.
+    (* Structural... *)
+    - just do it.
+    - just do it.
+    (* Classical... *)
+    - just do it.
+    - just do it.
+    - just do it.
+    (* Congruence... *)
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + eexists.
+        * repeat reduce.
+          reflexivity.
+        * repeat reduce.
+          (* Sure. *)
+          admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1552,6 +1613,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    (* Arithmetic... *)
     - just do it.
     - just do it.
     - just do it.
@@ -1559,15 +1621,17 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    (* Vectors... *)
     - just do it.
     - just do it.
+    (* Axioms... *)
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+      + eexists.
+        * repeat reduce.
+          reflexivity.
+        * repeat reduce.
+          (* Sure. *)
+          admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1586,8 +1650,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1667,8 +1731,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1738,31 +1802,31 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
