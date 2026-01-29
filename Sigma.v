@@ -214,38 +214,29 @@ Section Sigma.
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
     | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
-    (* (* Simplification laws: *)
-    | A6 n:
-      interpretation n = 0 ->
-      step (subst_lift n) subst_ids
-    | A7 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s) s
-    | A8 n:
-      step (subst_upn n subst_ids) subst_ids
-    | A9 e:
-      step (inst subst_ids e) e
-    | A10 n m:
-      step (subst_comp (subst_lift n) (subst_lift m))
-           (subst_lift (n + m))
-    | A11 n m s:
-      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
-           (subst_comp (subst_lift (n + m)) s)
-    | A12 n m s:
-      step (subst_upn n (subst_upn m s))
-           (subst_upn (n + m) s)
-    (* Main rules for composition: *)
-    | A13 s:
-      step (subst_comp subst_ids s) s
-    | A14 s:
-      step (subst_comp s subst_ids) s
-    | A15 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    (* Instantiations may be closed: *)
-    | A16 e s t:
-      step (inst t (inst s e))
-           (inst (subst_comp s t) e) *).
+    (* ------------------------------------------------------------------ *)
+    | X01 n m:
+      step (ADD (succ n) m) (succ (ADD n m))
+    | X02 n m:
+      step (ADD n (succ m)) (succ (ADD n m))
+    | X03 n m:
+      step (SUB (succ n) (succ m)) (SUB n m)
+    | X04 n m:
+      interpretation n = interpretation m ->
+      step (SUB n m) 0
+    | X05:
+      step (length []) 0
+    | X06 x xs:
+      step (length (x :: xs)) (succ (length xs))
+    | X07 xs ys:
+      step (length (xs ++ ys)) (ADD (length xs) (length ys))
+    (* ------------------------------------------------------------------ *)
+    | Y01 x xs ys:
+      step ((x :: xs) ++ ys) (x :: (xs ++ ys))
+    | Y02 xs ys zs:
+      step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
+    (* ------------------------------------------------------------------ *)
+    .
 
   Create HintDb sigma.
 
@@ -371,6 +362,8 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl in IHstep.
       congruence.
+    - lia.
+    - lia.
   Qed.
 
   Lemma interpretation_consistent_num:
@@ -397,6 +390,13 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
   Qed.
 
   Lemma interpretation_consistent_len:
@@ -410,6 +410,8 @@ Section Sigma.
     - simpl; eauto.
     - simpl; eauto.
     - simpl; eauto.
+    - simpl; auto.
+    - simpl; lia.
   Qed.
 
   Hint Resolve interpretation_consistent_num: sigma.
@@ -1532,6 +1534,15 @@ Section Sigma.
     joinable y z.
   Proof.
     induction 3; intros.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
