@@ -271,7 +271,15 @@ Section Sigma.
            s
     | A16 s:
       step (subst_comp s subst_ids)
-           s.
+           s
+    | A17 n m s t:
+      interpretation n = interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_upn m t))
+           (subst_upn n (subst_comp s t))
+    | A18 n m s t u:
+      interpretation n = interpretation m ->
+      step (subst_comp (subst_upn n s) (subst_comp (subst_upn m t) u))
+           (subst_comp (subst_upn n (subst_comp s t)) u).
 
   Create HintDb sigma.
 
@@ -1483,6 +1491,28 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Admitted.
 
   Ltac boundscheck :=
@@ -1589,17 +1619,15 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + eexists.
-        * repeat reduce.
-          reflexivity.
-        * repeat reduce.
-          (* Sure. *)
-          admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
     - just do it.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1626,12 +1654,6 @@ Section Sigma.
     - just do it.
     (* Axioms... *)
     - just do it.
-      + eexists.
-        * repeat reduce.
-          reflexivity.
-        * repeat reduce.
-          (* Sure. *)
-          admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1642,6 +1664,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1776,8 +1804,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1785,8 +1813,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
