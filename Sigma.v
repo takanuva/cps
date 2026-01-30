@@ -1521,7 +1521,7 @@ Section Sigma.
     | |- @eq (t VECTOR) ?a ?b => f_equal
     | |- @eq (t NUM) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          apply TODO
+          reflexivity
     end.
 
   Ltac work :=
@@ -1595,7 +1595,15 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + enough (m = z).
+        * work.
+        * apply TODO.
+          congruence.
     - just do it.
+      + enough (n = z).
+        * work.
+        * apply TODO.
+          congruence.
     - just do it.
     - just do it.
     - just do it.
