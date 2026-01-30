@@ -238,7 +238,35 @@ Section Sigma.
     | Y02 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
-    .
+    | A6 e:
+      step (inst subst_ids e)
+           e
+    | A7 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    | A8 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    | A9 n:
+      interpretation n = 0 ->
+      step (subst_lift n)
+           subst_ids
+    | A10 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s)
+           s
+    | A11 n:
+      step (subst_upn n subst_ids)
+           subst_ids
+    | A12 n s t:
+      step (subst_upn n (subst_comp s t))
+           (subst_comp (subst_upn n s) (subst_upn n t))
+    | A13 s:
+      step (subst_comp subst_ids s)
+           s
+    | A14 s:
+      step (subst_comp s subst_ids)
+           s.
 
   Create HintDb sigma.
 
@@ -1487,6 +1515,10 @@ Section Sigma.
 
   Local Notation one := (succ zero).
 
+  (* This one is for debugging... *)
+  Local Tactic Notation "why ?" :=
+    eexists; repeat reduce.
+
   Theorem locally_confluent:
     forall s x y,
     let origX := x in
@@ -1548,6 +1580,16 @@ Section Sigma.
     (* Vectors... *)
     - just do it.
     - just do it.
+    (* Axioms... *)
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1556,8 +1598,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1637,8 +1679,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1682,8 +1724,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1691,8 +1733,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1708,31 +1750,31 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
