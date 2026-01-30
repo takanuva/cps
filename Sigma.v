@@ -215,27 +215,33 @@ Section Sigma.
     | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
     (* ------------------------------------------------------------------ *)
-    | X01 n m:
+    | N1 n m:
       step (ADD (succ n) m) (succ (ADD n m))
-    | X02 n m:
+    | N2 n m:
       step (ADD n (succ m)) (succ (ADD n m))
-    | X03 n m o:
+    | N3 n m o:
       step (ADD (ADD n m) o) (ADD n (ADD m o))
-    | X04 n m:
+    | N4 n m:
+      interpretation n = 0 ->
+      step (ADD n m) m
+    | N5 n m:
+      interpretation m = 0 ->
+      step (ADD n m) n
+    | N6 n m:
       step (SUB (succ n) (succ m)) (SUB n m)
-    | X05 n m:
+    | N7 n m:
       interpretation n = interpretation m ->
       step (SUB n m) 0
-    | X06:
+    | N8:
       step (length []) 0
-    | X07 x xs:
+    | N9 x xs:
       step (length (x :: xs)) (succ (length xs))
-    | X08 xs ys:
+    | N10 xs ys:
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
     (* ------------------------------------------------------------------ *)
-    | Y01 x xs ys:
+    | V1 x xs ys:
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
-    | Y02 xs ys zs:
+    | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
     | A6 e:
@@ -266,7 +272,13 @@ Section Sigma.
            s
     | A14 s:
       step (subst_comp s subst_ids)
-           s.
+           s
+    | A15 n i:
+      step (inst (subst_lift n) (index i))
+           (index (ADD n i))
+    | A16 n s i:
+      step (inst (subst_comp (subst_lift n) s) (index i))
+           (inst s (index (ADD n i))).
 
   Create HintDb sigma.
 
@@ -420,6 +432,8 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1499,7 +1513,7 @@ Section Sigma.
     | |- @eq (t VECTOR) ?a ?b => f_equal
     | |- @eq (t NUM) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          now apply TODO
+          apply TODO
     end.
 
   Ltac work :=
@@ -1577,6 +1591,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
     (* Vectors... *)
     - just do it.
     - just do it.
@@ -1590,7 +1606,9 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-  Admitted.
+    - just do it.
+    - just do it.
+  Qed.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
@@ -1607,8 +1625,8 @@ Section Sigma.
     joinable (inst (subst_lift 1) (index n))
              (index (1 + n)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift2)  n[! o s] = (1+n)[s] *)
   Example VarShift2:
@@ -1616,8 +1634,8 @@ Section Sigma.
     joinable (inst (subst_comp (subst_lift 1) s) (index n))
              (inst s (index (1 + n))).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (FVarCons)   0[a, s] = a *)
   Example FVarCons:
