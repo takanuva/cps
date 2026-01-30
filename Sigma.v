@@ -278,7 +278,15 @@ Section Sigma.
            (index (ADD n i))
     | A16 n s i:
       step (inst (subst_comp (subst_lift n) s) (index i))
-           (inst s (index (ADD n i))).
+           (inst s (index (ADD n i)))
+    | A17 n s i:
+      interpretation n > interpretation i ->
+      step (inst (subst_upn n s) (index i))
+           (index i)
+    | A18 n s t i:
+      interpretation n > interpretation i ->
+      step (inst (subst_comp (subst_upn n s) t) (index i))
+           (inst t (index i)).
 
   Create HintDb sigma.
 
@@ -1608,6 +1616,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
   Qed.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1652,8 +1662,8 @@ Section Sigma.
     joinable (inst (subst_upn 1 s) (index 0))
              (index 0).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (FVarLift2)  0[U(s) o t] = 0[t] *)
   Example FVarLift2:
@@ -1661,8 +1671,8 @@ Section Sigma.
     joinable (inst (subst_comp (subst_upn 1 s) t) (index 0))
              (inst t (index 0)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (RVarCons)   (1+n)[a, s] = n[s] *)
   Example RVarCons:
