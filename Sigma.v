@@ -219,16 +219,18 @@ Section Sigma.
       step (ADD (succ n) m) (succ (ADD n m))
     | X02 n m:
       step (ADD n (succ m)) (succ (ADD n m))
-    | X03 n m:
-      step (SUB (succ n) (succ m)) (SUB n m)
+    | X03 n m o:
+      step (ADD (ADD n m) o) (ADD n (ADD m o))
     | X04 n m:
+      step (SUB (succ n) (succ m)) (SUB n m)
+    | X05 n m:
       interpretation n = interpretation m ->
       step (SUB n m) 0
-    | X05:
+    | X06:
       step (length []) 0
-    | X06 x xs:
+    | X07 x xs:
       step (length (x :: xs)) (succ (length xs))
-    | X07 xs ys:
+    | X08 xs ys:
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
     (* ------------------------------------------------------------------ *)
     | Y01 x xs ys:
@@ -236,42 +238,7 @@ Section Sigma.
     | Y02 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
-    (* Instantiation: *)
-    | A6 s t e:
-      step (inst t (inst s e))
-           (inst (subst_comp s t) e)
-    | A7 e:
-      step (inst subst_ids e)
-           e
-    | A8 n:
-      interpretation n = 0 ->
-      step (subst_lift n)
-           subst_ids
-    | A9 n m:
-      step (subst_comp (subst_lift n) (subst_lift m))
-           (subst_lift (ADD n m))
-    | A10 n m s:
-      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
-           (subst_comp (subst_lift (ADD n m)) s)
-    | A11 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s)
-           s
-    | A12 n m s:
-      step (subst_upn n (subst_upn m s))
-           (subst_upn (ADD n m) s)
-    | A13 n:
-      step (subst_upn n subst_ids)
-           subst_ids
-    | A14 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    | A15 s:
-      step (subst_comp subst_ids s)
-           s
-    | A16 s:
-      step (subst_comp s subst_ids)
-           s.
+    .
 
   Create HintDb sigma.
 
@@ -425,6 +392,7 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -747,6 +715,32 @@ Section Sigma.
   Qed.
 
   Lemma C13_join:
+    forall n1 n2,
+    joinable n1 n2 ->
+    joinable (succ n1) (succ n2).
+  Proof with eauto with sigma.
+    intros n1 n2 (n3, ?, ?).
+    exists (succ n3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
+  Qed.
+
+  Lemma C14_join:
+    forall v1 v2,
+    joinable v1 v2 ->
+    joinable (length v1) (length v2).
+  Proof with eauto with sigma.
+    intros v1 v2 (v3, ?, ?).
+    exists (length v3).
+    - clear H0.
+      induction H...
+    - clear H.
+      induction H0...
+  Qed.
+
+  Lemma C15_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -768,7 +762,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C14_join:
+  Lemma C16_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -806,6 +800,8 @@ Section Sigma.
   Hint Resolve C12_join: sigma.
   Hint Resolve C13_join: sigma.
   Hint Resolve C14_join: sigma.
+  Hint Resolve C15_join: sigma.
+  Hint Resolve C16_join: sigma.
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
@@ -1522,26 +1518,11 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
-      + clear origX origY origZ IHX.
-        rename m0 into m, m into o, s0 into s, t0 into t.
-        remember (ADD n m) as i.
-        remember (SUB o n) as j.
-        assert (interpretation i = interpretation (n + m))
-          by boundscheck.
-        clear Heqi.
-        assert (interpretation j = interpretation (o - n))
-          by boundscheck.
-        clear Heqj.
     - just do it.
-      + admit.
-      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1563,27 +1544,10 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
     (* Vectors... *)
     - just do it.
     - just do it.
-    (* Axioms... *)
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-    - just do it.
-      + admit.
-      + admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1592,8 +1556,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1673,8 +1637,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1718,8 +1682,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1727,8 +1691,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1744,31 +1708,31 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
