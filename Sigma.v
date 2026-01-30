@@ -1832,6 +1832,24 @@ Section Sigma.
     just do it.
   Qed.
 
+  Example Lift0:
+    forall k e,
+    joinable (lift 0 k e) e.
+  Proof.
+    just do it.
+  Qed.
+
+  Example InstLiftComm:
+    forall x s i k j,
+    interpretation k <= interpretation j ->
+    joinable (lift i k (traverse s j x)) (traverse s (i + j) (lift i k x)).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
   (* ---------------------------------------------------------------------- *)
 
   Hint Resolve clos_rt_rt1n: sigma.
