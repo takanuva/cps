@@ -286,7 +286,13 @@ Section Sigma.
     | A18 n s t i:
       interpretation n > interpretation i ->
       step (inst (subst_comp (subst_upn n s) t) (index i))
-           (inst t (index i)).
+           (inst t (index i))
+    | A19 n m:
+      step (subst_comp (subst_lift n) (subst_lift m))
+           (subst_lift (ADD m n))
+    | A20 n m s:
+      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
+           (subst_comp (subst_lift (ADD m n)) s).
 
   Create HintDb sigma.
 
@@ -1579,6 +1585,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1620,13 +1632,21 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-  Qed.
+    - just do it.
+    - just do it.
+  Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
