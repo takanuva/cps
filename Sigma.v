@@ -1276,7 +1276,7 @@ Section Sigma.
     @step s x y ->
     @LT s y x.
   Proof.
-    induction 1; intros.
+    (* induction 1; intros.
     (* Structural... *)
     - constructor 2; simpl.
       + lia.
@@ -1413,7 +1413,7 @@ Section Sigma.
     - constructor 1; simpl.
       assert (measure1 s > 1) by apply measure1_subst_pos.
       lia.
-    - admit.
+    - admit. *)
   Admitted.
 
   Ltac boundscheck :=
@@ -1473,7 +1473,9 @@ Section Sigma.
     | |- @eq (t TERM) ?a ?b => f_equal
     | |- @eq (t SUBST) ?a ?b => f_equal
     | |- @eq (t VECTOR) ?a ?b => f_equal
-    | |- @eq (t NUM) ?a ?b => apply TODO
+    | |- @eq (t NUM) ?a ?b =>
+          idtac "forcing equality between" a "and" b;
+          now apply TODO
     end.
 
   Ltac work :=
