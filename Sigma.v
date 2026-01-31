@@ -13,6 +13,11 @@ Section Sigma.
     | NUM
     | VECTOR.
 
+  (* TODO:
+     - add drop;
+     - remove dblift;
+     - test pack and unpack for n-tuples. *)
+
   Inductive t: sort -> Set :=
     (* Term syntax: *)
     | metat (n: nat): t TERM
@@ -116,12 +121,6 @@ Section Sigma.
   Delimit Scope sigma_scope with sigma.
   Notation "x - y" := (SUB x y): sigma_scope.
   Notation "x + y" := (ADD x y): sigma_scope.
-
-  (* TODO: should we add drop...? *)
-
-  (* Notation subst_drop i :=
-    (subst_comp (subst_lift i))
-    (only parsing). *)
 
   Inductive compctx: Set :=
     | compctx_hole
