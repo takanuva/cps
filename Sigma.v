@@ -292,7 +292,52 @@ Section Sigma.
            (subst_lift (ADD m n))
     | A20 n m s:
       step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
-           (subst_comp (subst_lift (ADD m n)) s).
+           (subst_comp (subst_lift (ADD m n)) s)
+
+(*
+  i >= j ->
+    subst_comp (subst_lift i) (subst_upn j s) ~
+      subst_comp (subst_lift (i - j)) (subst_comp s (subst_lift j)).
+  Proof.
+    admit.
+  Admitted.
+
+  Lemma subst_ShiftLift1B:
+    forall i j s,
+    i <= j ->
+    subst_comp (subst_lift i) (subst_upn j s) ~
+      subst_comp (subst_upn (j - i) s) (subst_lift i).
+*)
+
+
+    (* -------------------------------------------------------- *)
+    (*   k <= j
+           thus k + i <= j + i
+
+         (subst_comp (subst_upn k (subst_lift i))
+              (subst_upn (i + j) s)) ->
+
+         (subst_comp (subst_upn j s)
+              (subst_upn k (subst_lift i)))
+
+  -----------------------------------------------------------
+
+        star SUBST (subst_upn n (subst_lift (m + n0))) ?w
+______________________________________(2/2)
+star SUBST
+  (subst_comp (subst_upn n (subst_lift n0))
+     (subst_upn n (subst_lift m))) ?w
+
+  -----------------------------------------------------------
+
+  (subst_comp (subst_upn n (subst_lift (m + n0)))
+     (subst_upn n s0)) ?w0
+______________________________________(2/2)
+star SUBST
+  (subst_comp (subst_upn n (subst_lift n0))
+     (subst_comp (subst_upn n (subst_lift m))
+        (subst_upn n s0))) ?w0 *)
+    .
 
   Create HintDb sigma.
 
@@ -1517,8 +1562,6 @@ Section Sigma.
     end;
     try skip.
 
-  Axiom TODO: forall n m, interpretation n = interpretation m -> n = m.
-
   Ltac force :=
     match goal with
     | |- @clos_refl_trans (t _) _ ?a ?b => replace b with a; try reflexivity
@@ -1609,13 +1652,11 @@ Section Sigma.
     - just do it.
       + enough (m = z).
         * work.
-        * apply TODO.
-          congruence.
+        * admit.
     - just do it.
       + enough (n = z).
         * work.
-        * apply TODO.
-          congruence.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1832,6 +1873,8 @@ Section Sigma.
     just do it.
   Qed.
 
+  (* ---------------------------------------------------------------------- *)
+
   Example Lift0:
     forall k e,
     joinable (lift 0 k e) e.
@@ -1840,9 +1883,105 @@ Section Sigma.
   Qed.
 
   Example InstLiftComm:
-    forall x s i k j,
+    forall e s i k j,
     interpretation k <= interpretation j ->
-    joinable (lift i k (traverse s j x)) (traverse s (i + j) (lift i k x)).
+    joinable (lift i k (traverse s j e)) (traverse s (i + j) (lift i k e)).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example LiftSubstComm:
+    forall e f i k j,
+    interpretation k <= interpretation j ->
+    joinable (lift i k (traverse (subst f) j e))
+             (traverse (subst f) (i + j) (lift i k e)).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example LiftPerm:
+    forall e i j k l,
+    interpretation k <= interpretation l ->
+    joinable (lift i k (lift j l e))
+             (lift j (i + l) (lift i k e)).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example LiftSimpl:
+    forall e i j k l,
+    interpretation k <= interpretation (l + j) ->
+    interpretation l <= interpretation k ->
+    joinable (lift i k (lift j l e))
+             (lift (i + j) l e).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example SubstSimpl:
+    forall e f p i k,
+    interpretation p <= interpretation (i + k) ->
+    interpretation k <= interpretation p ->
+    joinable (traverse (subst f) p (lift (1 + i) k e))
+             (lift i k e).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example SubstLiftPerm:
+    forall e f i p k,
+    joinable (lift i (p + k) (traverse (subst f) p e))
+             (traverse (subst (lift i k f)) p (lift i (1 + p + k) e)).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example SubstSubstPerm:
+    forall e f g (p k: NUM),
+    let subst y := traverse (subst y) in
+    joinable (subst f (p + k) (subst g p e))%sigma
+             (subst (subst f k g) p (subst f (1 + p + k) e))%sigma.
+  Proof.
+    simpl; intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  (* ---------------------------------------------------------------------- *)
+
+  Example Nameless:
+    forall n e,
+    let subst v := traverse (subst v) in
+    joinable (subst (subst (index 1) n (index 0)) 0 (lift (2 + n) 1 e))
+             (subst (index 1) n (lift (2 + n) 1 e)).
+  Proof.
+    simpl; intros.
+    admit.
+  Admitted.
+
+  Example InstVarShift:
+    forall s p k n,
+    joinable (traverse s (p + k) (index (p + n)))
+             (lift p 0 (traverse s k (index n))).
   Proof.
     intros.
     why?.
