@@ -10,7 +10,7 @@ Section Sigma.
   Variant sort: Set :=
     | TERM
     | SUBST
-    | NUM
+    | NUMBER
     | VECTOR.
 
   (* TODO:
@@ -18,47 +18,47 @@ Section Sigma.
      - remove dblift;
      - test pack and unpack for n-tuples. *)
 
-  Inductive t: sort -> Set :=
+  Inductive T: sort -> Set :=
     (* Term syntax: *)
-    | metat (n: nat): t TERM
-    | index (n: t NUM): t TERM
-    | abstraction (e: t TERM): t TERM
-    | application (e: t TERM) (f: t TERM): t TERM
-    | dblift (i: t NUM) (k: t NUM) (e: t TERM): t TERM
-    | dbtraverse (s: t SUBST) (k: t NUM) (e: t TERM): t TERM
-    | instantiation (s: t SUBST) (e: t TERM): t TERM
+    | metat (n: nat): T TERM
+    | index (n: T NUMBER): T TERM
+    | abstraction (e: T TERM): T TERM
+    | application (e: T TERM) (f: T TERM): T TERM
+    | dblift (i: T NUMBER) (k: T NUMBER) (e: T TERM): T TERM
+    | dbtraverse (s: T SUBST) (k: T NUMBER) (e: T TERM): T TERM
+    | instantiation (s: T SUBST) (e: T TERM): T TERM
     (* Substitution syntax: *)
-    | metas (n: nat): t SUBST
-    | iota: t SUBST
-    | slift (n: t NUM): t SUBST
-    | concatenate (v: t VECTOR) (s: t SUBST): t SUBST
-    | compose (s: t SUBST) (r: t SUBST): t SUBST
-    | uplift (n: t NUM) (s: t SUBST): t SUBST
-    | subst (e: t TERM): t SUBST
+    | metas (n: nat): T SUBST
+    | iota: T SUBST
+    | slift (n: T NUMBER): T SUBST
+    | concatenate (v: T VECTOR) (s: T SUBST): T SUBST
+    | compose (s: T SUBST) (r: T SUBST): T SUBST
+    | uplift (n: T NUMBER) (s: T SUBST): T SUBST
+    | subst (e: T TERM): T SUBST
     (* Vector syntax: *)
-    | metav (n: nat): t VECTOR
-    | nil: t VECTOR
-    | cons (e: t TERM) (es: t VECTOR): t VECTOR
-    | join (es: t VECTOR) (fs: t VECTOR): t VECTOR
+    | metav (n: nat): T VECTOR
+    | nil: T VECTOR
+    | cons (e: T TERM) (es: T VECTOR): T VECTOR
+    | join (es: T VECTOR) (fs: T VECTOR): T VECTOR
     (* Number syntax: *)
-    | metan (n: nat): t NUM
-    | zero: t NUM
-    | succ (n: t NUM): t NUM
-    | length (v: t VECTOR): t NUM
-    | SUB (n: t NUM) (m: t NUM): t NUM
-    | ADD (n: t NUM) (m: t NUM): t NUM
-    (* | MIN (n: t NUM) (m: t NUM): t NUM
-    | MAX (n: t NUM) (m: t NUM): t NUM *).
+    | metan (n: nat): T NUMBER
+    | zero: T NUMBER
+    | succ (n: T NUMBER): T NUMBER
+    | length (v: T VECTOR): T NUMBER
+    | SUB (n: T NUMBER) (m: T NUMBER): T NUMBER
+    | ADD (n: T NUMBER) (m: T NUMBER): T NUMBER
+    (* | MIN (n: T NUM) (m: T NUM): T NUM
+    | MAX (n: T NUM) (m: T NUM): T NUM *).
 
-  Coercion t: sort >-> Sortclass.
+  Coercion T: sort >-> Sortclass.
 
-  Fixpoint number (n: nat): NUM :=
+  Fixpoint number (n: nat): NUMBER :=
     match n with
     | 0 => zero
     | S m => succ (number m)
     end.
 
-  Coercion number: nat >-> t.
+  Coercion number: nat >-> T.
 
   Variable ORACLE_NUM: nat -> nat.
   Variable ORACLE_VEC: nat -> nat.
@@ -75,7 +75,7 @@ Section Sigma.
       interpretation_length v1 + interpretation_length v2
     end.
 
-  Fixpoint interpretation (x: NUM): nat :=
+  Fixpoint interpretation (x: NUMBER): nat :=
     match x with
     | metan n =>
       ORACLE_NUM n
@@ -117,12 +117,12 @@ Section Sigma.
   Notation subst_comp := compose.
 
   Declare Scope sigma_scope.
-  Bind Scope sigma_scope with t.
+  Bind Scope sigma_scope with T.
   Delimit Scope sigma_scope with sigma.
   Notation "x - y" := (SUB x y): sigma_scope.
   Notation "x + y" := (ADD x y): sigma_scope.
 
-  Inductive compctx: Set :=
+  (* Inductive compctx: Set :=
     | compctx_hole
     | compctx_left (s: SUBST) (h: compctx).
 
@@ -132,9 +132,9 @@ Section Sigma.
     | compctx_left s h => subst_comp s (fill h r)
     end.
 
-  Local Coercion fill: compctx >-> Funclass.
+  Local Coercion fill: compctx >-> Funclass. *)
 
-  Inductive step: forall {s: sort}, relation (t s) :=
+  Inductive step: forall {s: sort}, relation (T s) :=
     (* Structural rules: *)
     | A1 e f s:
       step (inst s (app e f))
@@ -468,7 +468,7 @@ star SUBST
 
   Lemma interpretation_consistent_num:
     forall n m,
-    @step NUM n m ->
+    @step NUMBER n m ->
     interpretation n = interpretation m.
   Proof.
     intros.
@@ -520,7 +520,7 @@ star SUBST
   Hint Resolve interpretation_consistent_num: sigma.
   Hint Resolve interpretation_consistent_len: sigma.
 
-  Definition joinable {s} (y: t s) (z: t s): Prop :=
+  Definition joinable {s} (y: T s) (z: T s): Prop :=
     exists2 w,
     @star s y w & @star s z w.
 
@@ -1349,7 +1349,7 @@ star SUBST
   Qed.
 
   Lemma measure3_num_pos:
-    forall n: NUM,
+    forall n: NUMBER,
     measure3 n > 1.
   Proof.
     intros.
@@ -1514,7 +1514,7 @@ star SUBST
 
   Ltac boundscheck :=
     repeat match goal with
-    | H: @step NUM ?n ?m |- _ => apply interpretation_consistent_num in H
+    | H: @step NUMBER ?n ?m |- _ => apply interpretation_consistent_num in H
     | H: @step VECTOR ?xs ?ys |- _ => apply interpretation_consistent_len in H
     end;
     subst;
@@ -1563,11 +1563,11 @@ star SUBST
 
   Ltac force :=
     match goal with
-    | |- @clos_refl_trans (t _) _ ?a ?b => replace b with a; try reflexivity
-    | |- @eq (t TERM) ?a ?b => f_equal
-    | |- @eq (t SUBST) ?a ?b => f_equal
-    | |- @eq (t VECTOR) ?a ?b => f_equal
-    | |- @eq (t NUM) ?a ?b =>
+    | |- @clos_refl_trans (T _) _ ?a ?b => replace b with a; try reflexivity
+    | |- @eq (T TERM) ?a ?b => f_equal
+    | |- @eq (T SUBST) ?a ?b => f_equal
+    | |- @eq (T VECTOR) ?a ?b => f_equal
+    | |- @eq (T NUMBER) ?a ?b =>
           idtac "forcing equality between" a "and" b;
           reflexivity
     end.
@@ -1954,7 +1954,7 @@ star SUBST
   Admitted.
 
   Example SubstSubstPerm:
-    forall e f g (p k: NUM),
+    forall e f g p k,
     let subst y := traverse (subst y) in
     joinable (subst f (p + k) (subst g p e))%sigma
              (subst (subst f k g) p (subst f (1 + p + k) e))%sigma.
@@ -1967,7 +1967,7 @@ star SUBST
 
   (* ---------------------------------------------------------------------- *)
 
-  Example Nameless:
+  Goal
     forall n e,
     let subst v := traverse (subst v) in
     joinable (subst (subst (index 1) n (index 0)) 0 (lift (2 + n) 1 e))
@@ -2010,9 +2010,9 @@ star SUBST
     (clos_refl_sym_trans (@step s)).
 
   Theorem normalization:
-    forall {s},
+    forall s: sort,
     (* Recall that for steps, the RHS is smaller, thus transp. *)
-    well_founded (transp (t s) step).
+    well_founded (transp (T s) step).
   Proof.
     intros s x.
     assert (well_founded (@LT s)).
@@ -2039,7 +2039,7 @@ star SUBST
     apply clos_rt_rt1n in H.
     generalize dependent z.
     generalize dependent y.
-    induction (normalization x); intros.
+    induction (normalization s x); intros.
     destruct H1.
     - exists z; auto with sigma.
     - apply clos_rt_rt1n in H2.
