@@ -1978,6 +1978,17 @@ star SUBST
     admit.
   Admitted.
 
+  Goal
+    forall s p k n,
+    joinable (traverse s k (index (p + n)))
+             (lift p 0 (inst s (index n))).
+  Proof.
+    intros.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
   Example InstVarShift:
     forall s p k n,
     joinable (traverse s (p + k) (index (p + n)))
