@@ -1613,52 +1613,36 @@ star SUBST
     - just do it.
     - just do it.
     (* Congruence... *)
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Arithmetic... *)
     - just do it.
     - just do it.
@@ -1722,7 +1706,7 @@ star SUBST
     - just do it.
       + admit.
     - just do it.
-      + admit.
+      + why?.
       + admit.
     - just do it.
       + admit.
