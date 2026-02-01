@@ -229,13 +229,16 @@ Section Sigma.
     | N6 n m:
       step (SUB (succ n) (succ m)) (SUB n m)
     | N7 n m:
+      interpretation m = 0 ->
+      step (SUB n m) n
+    | N8 n m:
       interpretation n = interpretation m ->
       step (SUB n m) 0
-    | N8:
+    | N9:
       step (length []) 0
-    | N9 x xs:
+    | N10 x xs:
       step (length (x :: xs)) (succ (length xs))
-    | N10 xs ys:
+    | N11 xs ys:
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
     (* ------------------------------------------------------------------ *)
     | V1 x xs ys:
@@ -498,6 +501,7 @@ star SUBST
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1644,12 +1648,7 @@ star SUBST
       + why?.
         * admit.
         * admit.
-      + why?.
-        * admit.
-        * (* Missing a - 0 rule! *)
-          admit.
     - just do it.
-      + admit.
       + admit.
       + admit.
       + admit.
@@ -1690,6 +1689,13 @@ star SUBST
         * admit.
     - just do it.
     - just do it.
+      + enough (n = 0).
+        * work.
+        * admit.
+    - just do it.
+      + enough (z = 0).
+        * work.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1700,8 +1706,12 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1712,8 +1722,22 @@ star SUBST
       + why?.
         * admit.
         * admit.
-      + admit.
-      + admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1721,18 +1745,10 @@ star SUBST
       + admit.
       + admit.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-    - just do it.
-      + admit.
       + admit.
       + admit.
       + admit.
     - just do it.
-      + admit.
       + admit.
       + admit.
   Admitted.
