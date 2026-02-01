@@ -304,21 +304,14 @@ Section Sigma.
       interpretation j >= interpretation i ->
       step (subst_comp (subst_lift i) (subst_upn j s))
            (subst_comp (subst_upn (SUB j i) s) (subst_lift i))
-(*
-  i >= j ->
-    subst_comp (subst_lift i) (subst_upn j s) ~
-      subst_comp (subst_lift (i - j)) (subst_comp s (subst_lift j)).
-  Proof.
-    admit.
-  Admitted.
-
-  Lemma subst_ShiftLift1B:
-    forall i j s,
-    i <= j ->
-    subst_comp (subst_lift i) (subst_upn j s) ~
-      subst_comp (subst_upn (j - i) s) (subst_lift i).
-*)
-
+    | A23 i j s t:
+      interpretation i >= interpretation j ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
+           (subst_comp (subst_lift (SUB i j)) (subst_comp s (subst_comp (subst_lift j) t)))
+    | A24 i j s t:
+      interpretation j >= interpretation i ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
+           (subst_comp (subst_upn (SUB j i) s) (subst_comp (subst_lift i) t))
 
     (* -------------------------------------------------------- *)
     (*   k <= j
@@ -1631,24 +1624,17 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
+      + admit.
       + admit.
       + admit.
       + admit.
@@ -1656,12 +1642,10 @@ star SUBST
       + admit.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
       + admit.
       + admit.
     - just do it.
@@ -1706,50 +1690,41 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
       + admit.
       + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
       + admit.
       + admit.
       + admit.
+      + admit.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
       + admit.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
+    - just do it.
       + admit.
   Admitted.
 
