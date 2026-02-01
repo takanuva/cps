@@ -1678,38 +1678,78 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-      + admit.
-      + admit.
-    - just do it.
-      + admit.
     - just do it.
       + why?.
-      + admit.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
-      + admit.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
