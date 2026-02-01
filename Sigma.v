@@ -292,7 +292,15 @@ Section Sigma.
     | A20 n m s:
       step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
            (subst_comp (subst_lift (ADD m n)) s)
-
+    (* ------------------------------------------------------------------ *)
+    | A21 i j s:
+      interpretation i >= interpretation j ->
+      step (subst_comp (subst_lift i) (subst_upn j s))
+           (subst_comp (subst_lift (SUB i j)) (subst_comp s (subst_lift j)))
+    | A22 i j s:
+      interpretation j >= interpretation i ->
+      step (subst_comp (subst_lift i) (subst_upn j s))
+           (subst_comp (subst_upn (SUB j i) s) (subst_lift i))
 (*
   i >= j ->
     subst_comp (subst_lift i) (subst_upn j s) ~
@@ -1619,9 +1627,12 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1633,6 +1644,27 @@ star SUBST
       + why?.
         * admit.
         * admit.
+      + why?.
+        * admit.
+        * (* Missing a - 0 rule! *)
+          admit.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1668,6 +1700,8 @@ star SUBST
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1678,14 +1712,29 @@ star SUBST
       + why?.
         * admit.
         * admit.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
