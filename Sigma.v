@@ -35,6 +35,7 @@ Section Sigma.
     | compose (s: T SUBST) (r: T SUBST): T SUBST
     | uplift (n: T NUMBER) (s: T SUBST): T SUBST
     | subst (e: T TERM): T SUBST
+    | drop (n: T NUMBER) (s: T SUBST): T SUBST
     (* Vector syntax: *)
     | metav (n: nat): T VECTOR
     | nil: T VECTOR
@@ -115,6 +116,7 @@ Section Sigma.
   Notation subst_ids := iota.
   Notation subst_upn := uplift.
   Notation subst_comp := compose.
+  Notation subst_drop := drop.
 
   Declare Scope sigma_scope.
   Bind Scope sigma_scope with T.
@@ -938,6 +940,7 @@ star SUBST
     | compose s t => measure1 s * measure1 t
     | uplift n s => measure1 s
     | subst y => 2 + measure1 y
+    | drop n s => 2
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
@@ -974,6 +977,7 @@ star SUBST
     | compose s t => measure2 s * (1 + measure2 t)
     | uplift n s => M ^ measure2 n * measure2 s
     | subst y => 2 + measure2 y
+    | drop n s => 2
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
@@ -1090,6 +1094,7 @@ star SUBST
     | compose s t => X13 + measure3 s + measure3 t
     | uplift n s => X14 + measure3 n + measure3 s
     | subst y => X6 + measure3 y
+    | drop n s => 2
     (* VECTOR *)
     | metav _ => X15
     | nil => X16
@@ -1138,6 +1143,7 @@ star SUBST
       specialize (IHe2 _ eq_refl JMeq_refl).
       assumption.
     - nia.
+    - lia.
   Qed.
 
   Lemma measure1_term_pos:
@@ -1188,6 +1194,7 @@ star SUBST
       + apply power_is_positive.
       + lia.
     - nia.
+    - lia.
   Qed.
 
   Lemma measure2_term_pos:
