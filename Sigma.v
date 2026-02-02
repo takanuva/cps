@@ -273,6 +273,9 @@ Section Sigma.
     | A11 n:
       step (subst_upn n subst_ids)
            subst_ids
+    | AXX n m s:
+      step (subst_upn n (subst_upn m s))
+           (subst_upn (ADD m n) s)
     | A12 n s t:
       step (subst_upn n (subst_comp s t))
            (subst_comp (subst_upn n s) (subst_upn n t))
@@ -316,7 +319,14 @@ Section Sigma.
       step (subst_drop n (subst_drop m s))
            (subst_drop (ADD m n) s)
     (* ------------------------------------------------------------------ *)
-    .
+    | A25 n m i s:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_lift i)) (subst_upn m s))
+           (subst_upn n (subst_drop i (subst_upn (SUB m n) s)))
+    | A26 n m i s t:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_lift i)) (subst_comp (subst_upn m s) t))
+           (subst_comp (subst_upn n (subst_drop i (subst_upn (SUB m n) s))) t).
 
   Create HintDb sigma.
 
@@ -1676,24 +1686,28 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
       + why?.
         * admit.
         * admit.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+      + why?.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
