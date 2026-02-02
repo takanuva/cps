@@ -215,6 +215,11 @@ Section Sigma.
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
     | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
+    (* TODO: move me later, please... *)
+    | C32 n1 n2 s:
+      step n1 n2 -> step (drop n1 s) (drop n2 s)
+    | C33 n s1 s2:
+      step s1 s2 -> step (drop n s1) (drop n s2)
     (* ------------------------------------------------------------------ *)
     | N1 n m:
       step (ADD (succ n) m) (succ (ADD n m))
@@ -281,7 +286,7 @@ Section Sigma.
       step (inst (subst_lift n) (index i))
            (index (ADD n i))
     | A16 n s i:
-      step (inst (subst_comp (subst_lift n) s) (index i))
+      step (inst (subst_drop n s) (index i))
            (inst s (index (ADD n i)))
     | A17 n s i:
       interpretation n > interpretation i ->
@@ -291,12 +296,25 @@ Section Sigma.
       interpretation n > interpretation i ->
       step (inst (subst_comp (subst_upn n s) t) (index i))
            (inst t (index i))
-    | A19 n m:
-      step (subst_comp (subst_lift n) (subst_lift m))
+    | A19 n s:
+      step (subst_comp (subst_lift n) s)
+           (subst_drop n s)
+    | A20 n s t:
+      step (subst_comp (subst_drop n s) t)
+           (subst_drop n (subst_comp s t))
+    | A21 n:
+      step (subst_drop n subst_ids)
+           (subst_lift n)
+    | A22 n s:
+      interpretation n = 0 ->
+      step (subst_drop n s)
+           s
+    | A23 n m:
+      step (subst_drop n (subst_lift m))
            (subst_lift (ADD m n))
-    | A20 n m s:
-      step (subst_comp (subst_lift n) (subst_comp (subst_lift m) s))
-           (subst_comp (subst_lift (ADD m n)) s)
+    | A24 n m s:
+      step (subst_drop n (subst_drop m s))
+           (subst_drop (ADD m n) s)
     (* ------------------------------------------------------------------ *)
     (* | A21 i j s:
       interpretation i >= interpretation j ->
@@ -892,6 +910,29 @@ star SUBST
         induction H2...
   Qed.
 
+  (* TODO: move me... *)
+  Lemma C17_join:
+    forall n1 n2 s1 s2,
+    joinable n1 n2 ->
+    joinable s1 s2 ->
+    joinable (subst_drop n1 s1) (subst_drop n2 s2).
+  Proof with eauto with sigma.
+    intros n1 n2 s1 s2 (n3, ?, ?) (s3, ?, ?).
+    exists (subst_drop n3 s3).
+    - clear H0 H2.
+      apply rt_trans with (subst_drop n3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_drop n3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
   Hint Resolve joinable_step: sigma.
   Hint Resolve C0_join: sigma.
   Hint Resolve C1_join: sigma.
@@ -910,6 +951,7 @@ star SUBST
   Hint Resolve C14_join: sigma.
   Hint Resolve C15_join: sigma.
   Hint Resolve C16_join: sigma.
+  Hint Resolve C17_join: sigma.
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
@@ -1654,6 +1696,8 @@ star SUBST
     - admit.
     - admit.
     - admit.
+    - admit.
+    - admit.
     (* Arithmetic... *)
     - just do it.
     - just do it.
@@ -1683,6 +1727,10 @@ star SUBST
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
