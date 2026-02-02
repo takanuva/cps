@@ -316,51 +316,6 @@ Section Sigma.
       step (subst_drop n (subst_drop m s))
            (subst_drop (ADD m n) s)
     (* ------------------------------------------------------------------ *)
-    (* | A21 i j s:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_upn j s))
-           (subst_comp (subst_lift (SUB i j)) (subst_comp s (subst_lift j)))
-    | A22 i j s:
-      interpretation j >= interpretation i ->
-      step (subst_comp (subst_lift i) (subst_upn j s))
-           (subst_comp (subst_upn (SUB j i) s) (subst_lift i))
-    | A23 i j s t:
-      interpretation i >= interpretation j ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
-           (subst_comp (subst_lift (SUB i j)) (subst_comp s (subst_comp (subst_lift j) t)))
-    | A24 i j s t:
-      interpretation j >= interpretation i ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_upn j s) t))
-           (subst_comp (subst_upn (SUB j i) s) (subst_comp (subst_lift i) t)) *)
-    (* ------------------------------------------------------------------ *)
-
-    (* -------------------------------------------------------- *)
-    (*   k <= j
-           thus k + i <= j + i
-
-         (subst_comp (subst_upn k (subst_lift i))
-              (subst_upn (i + j) s)) ->
-
-         (subst_comp (subst_upn j s)
-              (subst_upn k (subst_lift i)))
-
-  -----------------------------------------------------------
-
-        star SUBST (subst_upn n (subst_lift (m + n0))) ?w
-______________________________________(2/2)
-star SUBST
-  (subst_comp (subst_upn n (subst_lift n0))
-     (subst_upn n (subst_lift m))) ?w
-
-  -----------------------------------------------------------
-
-  (subst_comp (subst_upn n (subst_lift (m + n0)))
-     (subst_upn n s0)) ?w0
-______________________________________(2/2)
-star SUBST
-  (subst_comp (subst_upn n (subst_lift n0))
-     (subst_comp (subst_upn n (subst_lift m))
-        (subst_upn n s0))) ?w0 *)
     .
 
   Create HintDb sigma.
@@ -2027,12 +1982,14 @@ star SUBST
              (subst (index 1) n (lift (2 + n) 1 e)).
   Proof.
     simpl; intros.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   Goal
-    forall s p k n,
-    joinable (traverse s k (index (p + n)))
+    forall s p n,
+    joinable (traverse s 0 (index (p + n)))
              (lift p 0 (inst s (index n))).
   Proof.
     intros.
