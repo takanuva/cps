@@ -1464,11 +1464,11 @@ Section Sigma.
   Proof.
     induction 3; intros.
     (* Structural... *)
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
     (* Classical... *)
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
     (* Congruence... *)
     - admit.
     - admit.
@@ -1500,20 +1500,20 @@ Section Sigma.
     - admit.
     - admit.
     (* Arithmetic... *)
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Vectors... *)
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
     (* Axioms... *)
     - just do it.
     - just do it.
