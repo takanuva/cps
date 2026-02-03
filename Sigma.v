@@ -241,7 +241,13 @@ Section Sigma.
            (subst_drop (ADD j i) s)
     | A15 i j:
       step (subst_drop i (subst_lift j))
-           (subst_lift (ADD j i)).
+           (subst_lift (ADD j i))
+    | A16 n:
+      step (subst_upn n subst_ids)
+           subst_ids
+    | A17 e:
+      step (inst subst_ids e)
+           e.
 
   Create HintDb sigma.
 
@@ -1537,6 +1543,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1712,16 +1720,16 @@ Section Sigma.
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
