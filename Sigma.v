@@ -210,9 +210,9 @@ Section Sigma.
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
-    (* | A5 s t e:
+    | A5 s t e:
       step (inst t (inst s e))
-           (inst (subst_comp s t) e) *)
+           (inst (subst_comp s t) e)
     | A6 s:
       step (subst_comp subst_ids s)
            s
@@ -234,30 +234,33 @@ Section Sigma.
     | A12 i n:
       step (inst (subst_lift i) (var n))
            (var (ADD i n))
-    | A13 i j:
+    | A13 i s n:
+      step (inst (subst_drop i s) (var n))
+           (inst s (var (ADD i n)))
+    | A14 i j:
       step (subst_comp (subst_lift i) (subst_lift j))
            (subst_lift (ADD j i))
-    | A14 i j s:
+    | A15 i j s:
       step (subst_drop i (subst_drop j s))
            (subst_drop (ADD j i) s)
-    | A15 i j:
+    | A16 i j:
       step (subst_drop i (subst_lift j))
            (subst_lift (ADD j i))
-    | A16 n:
+    | A17 n:
       step (subst_upn n subst_ids)
            subst_ids
-    | A17 e:
+    | A18 e:
       step (inst subst_ids e)
            e
-    | A18 i:
+    | A19 i:
       interpretation i = 0 ->
       step (subst_lift i)
            subst_ids
-    | A19 i s:
+    | A20 i s:
       interpretation i = 0 ->
       step (subst_drop i s)
            s
-    | A20 i s:
+    | A21 i s:
       interpretation i = 0 ->
       step (subst_upn i s)
            s.
@@ -1545,6 +1548,11 @@ Section Sigma.
     - admit.
     (* Axioms... *)
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1567,8 +1575,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1585,8 +1593,8 @@ Section Sigma.
     joinable (inst (subst_comp (subst_lift 1) s) (var n))
              (inst s (var (1 + n))).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (FVarCons)   0[a, s] = a *)
   Example FVarCons:
