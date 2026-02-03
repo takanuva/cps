@@ -40,6 +40,7 @@ Section Sigma.
     | nil: T VECTOR
     | cons (e: T TERM) (es: T VECTOR): T VECTOR
     | join (es: T VECTOR) (fs: T VECTOR): T VECTOR
+    | smap (s: T SUBST) (es: T VECTOR): T VECTOR
     (* Number syntax: *)
     | metan (n: nat): T NUMBER
     | zero: T NUMBER
@@ -73,6 +74,8 @@ Section Sigma.
       1 + interpretation_length v
     | join v1 v2 =>
       interpretation_length v1 + interpretation_length v2
+    | smap _ v =>
+      interpretation_length v
     end.
 
   Fixpoint interpretation (x: NUMBER): nat :=
@@ -158,17 +161,21 @@ Section Sigma.
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
     | C23 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    | C24 n1 n2:
+    | C24 s1 s2 v:
+      step s1 s2 -> step (smap s1 v) (smap s2 v)
+    | C25 s v1 v2:
+      step v1 v2 -> step (smap s v1) (smap s v2)
+    | C26 n1 n2:
       step n1 n2 -> step (succ n1) (succ n2)
-    | C25 v1 v2:
+    | C27 v1 v2:
       step v1 v2 -> step (length v1) (length v2)
-    | C26 n1 n2 m:
-      step n1 n2 -> step (SUB n1 m) (SUB n2 m)
-    | C27 n m1 m2:
-      step m1 m2 -> step (SUB n m1) (SUB n m2)
     | C28 n1 n2 m:
-      step n1 n2 -> step (ADD n1 m) (ADD n2 m)
+      step n1 n2 -> step (SUB n1 m) (SUB n2 m)
     | C29 n m1 m2:
+      step m1 m2 -> step (SUB n m1) (SUB n m2)
+    | C30 n1 n2 m:
+      step n1 n2 -> step (ADD n1 m) (ADD n2 m)
+    | C31 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
     (* ------------------------------------------------------------------ *)
     | N1 n m:
@@ -350,6 +357,14 @@ Section Sigma.
     simpl; auto.
   Qed.
 
+  Lemma interpretation_smap_length:
+    forall s xs,
+    interpretation (length (smap s xs)) =
+      interpretation (length xs).
+  Proof.
+    simpl; auto.
+  Qed.
+
   Create HintDb interpretation.
 
   Hint Rewrite interpretation_zero: interpretation.
@@ -360,6 +375,7 @@ Section Sigma.
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
+  Hint Rewrite interpretation_smap_length: interpretation.
 
   Lemma interpretation_consistent_vec:
     forall v u,
@@ -379,6 +395,8 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl in IHstep.
       congruence.
+    - lia.
+    - now apply IHstep.
     - lia.
     - lia.
   Qed.
@@ -432,6 +450,9 @@ Section Sigma.
     - simpl; eauto.
     - simpl; eauto.
     - simpl; auto.
+    - simpl in IHstep |- *.
+      now apply IHstep.
+    - simpl; lia.
     - simpl; lia.
   Qed.
 
@@ -724,6 +745,28 @@ Section Sigma.
   Qed.
 
   Lemma C13_join:
+    forall s1 s2 v1 v2,
+    joinable s1 s2 ->
+    joinable v1 v2 ->
+    joinable (smap s1 v1) (smap s2 v2).
+   Proof with eauto with sigma.
+    intros s1 s2 v1 v2 (s3, ?, ?) (v3, ?, ?).
+    exists (smap s3 v3).
+    - clear H0 H2.
+      apply rt_trans with (smap s3 v1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (smap s3 v2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
+  Lemma C14_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (succ n1) (succ n2).
@@ -736,7 +779,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C14_join:
+  Lemma C15_join:
     forall v1 v2,
     joinable v1 v2 ->
     joinable (length v1) (length v2).
@@ -749,7 +792,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C15_join:
+  Lemma C16_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -771,7 +814,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C16_join:
+  Lemma C17_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -811,6 +854,9 @@ Section Sigma.
   Hint Resolve C14_join: sigma.
   Hint Resolve C15_join: sigma.
   Hint Resolve C16_join: sigma.
+  Hint Resolve C17_join: sigma.
+
+  Axiom TODO: nat.
 
   Definition sumup (k: nat) (f: TERM -> nat) :=
     fix sumup (v: VECTOR) :=
@@ -819,6 +865,7 @@ Section Sigma.
       | nil => 0
       | cons e v => k + f e + sumup v
       | join v u => sumup v + sumup u
+      | smap s v => TODO
       end.
 
   (* ---------------------------------------------------------------------- *)
@@ -846,6 +893,7 @@ Section Sigma.
     | nil => 0
     | cons e v => measure1 e + sumup 0 measure1 v
     | join v u => sumup 0 measure1 v + sumup 0 measure1 u
+    | smap s v => TODO
     (* NUMBER *)
     | metan n => 0
     | zero => 0
@@ -879,6 +927,7 @@ Section Sigma.
     | nil => 0
     | cons e v => 1 + measure2 e + sumup 1 measure2 v
     | join v u => sumup 1 measure2 v + sumup 1 measure2 u
+    | smap s v => TODO
     (* NUMBER *)
     | metan n => 0
     | zero => 0
@@ -993,6 +1042,7 @@ Section Sigma.
     | nil => X16
     | cons e v => X17 + measure3 e + measure3 v
     | join v u => X18 + measure3 v * (1 + measure3 u)
+    | smap s v => TODO
     (* NUMBER *)
     | metan n => X19
     | zero => X20
@@ -1229,8 +1279,9 @@ Section Sigma.
     @measure3 s x > 0.
   Proof.
     induction x; simpl; try lia;
-    cbv; lia.
-  Qed.
+    cbv; try lia.
+    admit.
+  Admitted.
 
   Lemma measure3_vec_pos:
     forall v: VECTOR,
@@ -1244,7 +1295,8 @@ Section Sigma.
       lia.
     - specialize (IHv1 _ eq_refl JMeq_refl).
       lia.
-  Qed.
+    - admit.
+  Admitted.
 
   Lemma measure3_num_pos:
     forall n: NUMBER,
@@ -1508,6 +1560,8 @@ Section Sigma.
     - admit.
     - admit.
     (* Congruence... *)
+    - admit.
+    - admit.
     - admit.
     - admit.
     - admit.
