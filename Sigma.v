@@ -256,6 +256,10 @@ Section Sigma.
     | A19 i s:
       interpretation i = 0 ->
       step (subst_drop i s)
+           s
+    | A20 i s:
+      interpretation i = 0 ->
+      step (subst_upn i s)
            s.
 
   Create HintDb sigma.
@@ -1554,6 +1558,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1742,6 +1747,8 @@ Section Sigma.
 
   (* ---------------------------------------------------------------------- *)
 
+  Open Scope sigma.
+
   Example Lift0:
     forall k e,
     joinable (lift 0 k e) e.
@@ -1828,7 +1835,10 @@ Section Sigma.
     joinable (traverse s 0 (var (p + n)))
              (lift p 0 (inst s (var n))).
   Proof.
-    admit.
+    intros.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example InstVarShift:
@@ -1836,7 +1846,10 @@ Section Sigma.
     joinable (traverse s (p + k) (var (p + n)))
              (lift p 0 (traverse s k (var n))).
   Proof.
-    admit.
+    intros.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* ---------------------------------------------------------------------- *)
