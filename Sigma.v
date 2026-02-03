@@ -220,7 +220,16 @@ Section Sigma.
            s
     | A8 s t u:
       step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u)).
+           (subst_comp s (subst_comp t u))
+    | A9 i s:
+      step (subst_comp (subst_lift i) s)
+           (subst_drop i s)
+    | A10 i:
+      step (subst_drop i subst_ids)
+           (subst_lift i)
+    | A11 i s t:
+      step (subst_comp (subst_drop i s) t)
+           (subst_drop i (subst_comp s t)).
 
   Create HintDb sigma.
 
@@ -1506,6 +1515,9 @@ Section Sigma.
     - just do it.
     - just do it.
     (* Axioms... *)
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
