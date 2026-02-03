@@ -265,7 +265,11 @@ Section Sigma.
            s
     | A22 xs ys s:
       step (subst_app xs (subst_app ys s))
-           (subst_app (xs ++ ys) s).
+           (subst_app (xs ++ ys) s)
+    | A23 x xs s n:
+      interpretation n = 0 ->
+      step (inst (subst_app (x :: xs) s) (var n))
+           x.
 
   Create HintDb sigma.
 
@@ -1553,6 +1557,10 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1605,8 +1613,8 @@ Section Sigma.
     joinable (inst (subst_app [a] s) (var 0))
              a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (FVarLift1)  0[U(s)] = 0 *)
   Example FVarLift1:
