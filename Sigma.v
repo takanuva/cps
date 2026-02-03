@@ -208,7 +208,16 @@ Section Sigma.
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
-    (* ------------------------------------------------------------------ *).
+    (* ------------------------------------------------------------------ *)
+    | A5 s:
+      step (subst_comp subst_ids s)
+           s
+    | A6 s:
+      step (subst_comp s subst_ids)
+           s
+    | A7 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u)).
 
   Create HintDb sigma.
 
@@ -1494,6 +1503,9 @@ Section Sigma.
     - just do it.
     - just do it.
     (* Axioms... *)
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
