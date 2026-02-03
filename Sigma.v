@@ -96,9 +96,9 @@ Section Sigma.
 
   Infix "::" := cons (at level 60, right associativity).
   Infix "++" := join (right associativity, at level 60).
-  Notation " [ ] " := nil.
-  Notation " [ x ] " := (cons x nil).
-  Notation " [ x ; .. ; y ] " := (cons x .. (cons y nil) ..).
+  Notation "[ ]" := nil.
+  Notation "[ x ]" := (cons x nil).
+  Notation "[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).
 
   Declare Scope sigma_scope.
   Bind Scope sigma_scope with T.
@@ -1939,7 +1939,8 @@ Section Sigma.
     forall e f p i k,
     interpretation p <= interpretation (i + k) ->
     interpretation k <= interpretation p ->
-    joinable (traverse (subst f) p (lift (1 + i) k e))
+    let subst y := traverse (subst y) in
+    joinable (subst f p (lift (1 + i) k e))
              (lift i k e).
   Proof.
     intros; why?.
@@ -1949,8 +1950,9 @@ Section Sigma.
 
   Example SubstLiftPerm:
     forall e f i p k,
-    joinable (lift i (p + k) (traverse (subst f) p e))
-             (traverse (subst (lift i k f)) p (lift i (1 + p + k) e)).
+    let subst y := traverse (subst y) in
+    joinable (lift i (p + k) (subst f p e))
+             (subst (lift i k f) p (lift i (1 + p + k) e)).
   Proof.
     intros; why?.
     - admit.
