@@ -182,7 +182,7 @@ Section Sigma.
     | N2 n m:
       step (ADD n (succ m)) (succ (ADD n m))
     | N3 n m o:
-      step (ADD (ADD n m) o) (ADD n (ADD m o))
+      step (ADD n (ADD m o)) (ADD (ADD n m) o)
     | N4 n m:
       interpretation n = 0 ->
       step (ADD n m) m
