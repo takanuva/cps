@@ -221,6 +221,9 @@ Section Sigma.
     | V6 s t xs:
       step (smap t (smap s xs))
            (smap (subst_comp s t) xs)
+    | V7 xs:
+      step (smap subst_ids xs)
+           xs
     (* ------------------------------------------------------------------ *)
     | A3 e:
       step (subst e)
@@ -288,7 +291,10 @@ Section Sigma.
     | A23 x xs s n:
       interpretation n = 0 ->
       step (inst (subst_app (x :: xs) s) (var n))
-           x.
+           x
+    | A24 xs s t:
+      step (subst_comp (subst_app xs s) t)
+           (subst_app (smap t xs) (subst_comp s t)).
 
   Create HintDb sigma.
 
@@ -415,6 +421,7 @@ Section Sigma.
     - reflexivity.
     - reflexivity.
     - reflexivity.
+    - reflexivity.
   Qed.
 
   Lemma interpretation_consistent_num:
@@ -468,6 +475,7 @@ Section Sigma.
     - simpl; auto.
     - simpl in IHstep |- *.
       now apply IHstep.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1627,16 +1635,15 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
     (* Axioms... *)
-    - admit.
-    - admit.
+    - just do it.
+    - just do it.
     - just do it.
       + why?.
         * admit.
         * admit.
-      + why?.
-        * admit.
-        * admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1753,8 +1760,8 @@ Section Sigma.
     joinable (subst_comp (subst_app [a] s) t)
              (subst_app [inst t a] (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftCons)  ! o (a, s) = s *)
   Example ShiftCons:
