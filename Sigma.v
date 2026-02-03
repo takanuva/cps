@@ -232,7 +232,16 @@ Section Sigma.
            (subst_drop i (subst_comp s t))
     | A12 i n:
       step (inst (subst_lift i) (var n))
-           (var (ADD i n)).
+           (var (ADD i n))
+    | A13 i j:
+      step (subst_comp (subst_lift i) (subst_lift j))
+           (subst_lift (ADD j i))
+    | A14 i j s:
+      step (subst_drop i (subst_drop j s))
+           (subst_drop (ADD j i) s)
+    | A15 i j:
+      step (subst_drop i (subst_lift j))
+           (subst_lift (ADD j i)).
 
   Create HintDb sigma.
 
@@ -1518,6 +1527,9 @@ Section Sigma.
     - admit.
     - admit.
     (* Axioms... *)
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
