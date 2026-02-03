@@ -229,7 +229,10 @@ Section Sigma.
            (subst_lift i)
     | A11 i s t:
       step (subst_comp (subst_drop i s) t)
-           (subst_drop i (subst_comp s t)).
+           (subst_drop i (subst_comp s t))
+    | A12 i n:
+      step (inst (subst_lift i) (var n))
+           (var (ADD i n)).
 
   Create HintDb sigma.
 
@@ -1521,6 +1524,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1538,8 +1542,8 @@ Section Sigma.
     joinable (inst (subst_lift 1) (var n))
              (var (1 + n)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift2)  n[! o s] = (1+n)[s] *)
   Example VarShift2:
@@ -1610,8 +1614,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1681,16 +1685,16 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
