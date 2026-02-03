@@ -209,13 +209,16 @@ Section Sigma.
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
-    | A5 s:
+    (* | A5 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e) *)
+    | A6 s:
       step (subst_comp subst_ids s)
            s
-    | A6 s:
+    | A7 s:
       step (subst_comp s subst_ids)
            s
-    | A7 s t u:
+    | A8 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u)).
 
