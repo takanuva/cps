@@ -1464,7 +1464,7 @@ Section Sigma.
     | |- @eq (T VECTOR) ?a ?b => f_equal
     | |- @eq (T NUMBER) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          apply FORCE
+          reflexivity
     end.
 
   Ltac work :=
