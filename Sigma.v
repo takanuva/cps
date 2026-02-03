@@ -111,70 +111,70 @@ Section Sigma.
       step (inst s (abs e))
            (abs (traverse s 1 e))
     (* Classical rules: *)
-    | A4 y:
+    | A3 y:
       step (subst y)
            (subst_app [y] subst_ids)
-    | A5 s k e:
+    | A4 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
     (* Congruence rules: *)
-    | C0 n1 n2:
+    | C1 n1 n2:
       step n1 n2 -> step (var n1) (var n2)
-    | C1 e1 e2:
+    | C2 e1 e2:
       step e1 e2 -> step (abs e1) (abs e2)
-    | C2 e1 e2 f:
+    | C3 e1 e2 f:
       step e1 e2 -> step (app e1 f) (app e2 f)
-    | C3 e f1 f2:
+    | C4 e f1 f2:
       step f1 f2 -> step (app e f1) (app e f2)
-    | C10 s1 s2 k e:
+    | C5 s1 s2 k e:
       step s1 s2 -> step (traverse s1 k e) (traverse s2 k e)
-    | C11 s k1 k2 e:
+    | C6 s k1 k2 e:
       step k1 k2 -> step (traverse s k1 e) (traverse s k2 e)
-    | C12 s k e1 e2:
+    | C7 s k e1 e2:
       step e1 e2 -> step (traverse s k e1) (traverse s k e2)
-    | C13 s1 s2 e:
+    | C8 s1 s2 e:
       step s1 s2 -> step (inst s1 e) (inst s2 e)
-    | C14 s e1 e2:
+    | C9 s e1 e2:
       step e1 e2 -> step (inst s e1) (inst s e2)
-    | C15 n1 n2:
+    | C10 n1 n2:
       step n1 n2 -> step (subst_lift n1) (subst_lift n2)
-    | C16 v1 v2 s:
+    | C11 v1 v2 s:
       step v1 v2 -> step (subst_app v1 s) (subst_app v2 s)
-    | C17 v s1 s2:
+    | C12 v s1 s2:
       step s1 s2 -> step (subst_app v s1) (subst_app v s2)
-    | C18 s1 s2 r:
+    | C13 s1 s2 r:
       step s1 s2 -> step (subst_comp s1 r) (subst_comp s2 r)
-    | C19 s r1 r2:
+    | C14 s r1 r2:
       step r1 r2 -> step (subst_comp s r1) (subst_comp s r2)
-    | C20 n1 n2 s:
+    | C15 n1 n2 s:
       step n1 n2 -> step (subst_upn n1 s) (subst_upn n2 s)
-    | C21 n s1 s2:
+    | C16 n s1 s2:
       step s1 s2 -> step (subst_upn n s1) (subst_upn n s2)
-    | C7 y1 y2:
+    | C17 y1 y2:
       step y1 y2 -> step (subst y1) (subst y2)
-    | C32 n1 n2 s:
+    | C18 n1 n2 s:
       step n1 n2 -> step (subst_drop n1 s) (subst_drop n2 s)
-    | C33 n s1 s2:
+    | C19 n s1 s2:
       step s1 s2 -> step (subst_drop n s1) (subst_drop n s2)
-    | C22 e1 e2 x:
+    | C20 e1 e2 x:
       step e1 e2 -> step (e1 :: x) (e2 :: x)
-    | C23 e x1 x2:
+    | C21 e x1 x2:
       step x1 x2 -> step (e :: x1) (e :: x2)
-    | C24 x1 x2 y:
+    | C22 x1 x2 y:
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
-    | C25 x y1 y2:
+    | C23 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    | C26 n1 n2:
+    | C24 n1 n2:
       step n1 n2 -> step (succ n1) (succ n2)
-    | C27 v1 v2:
+    | C25 v1 v2:
       step v1 v2 -> step (length v1) (length v2)
-    | C28 n1 n2 m:
+    | C26 n1 n2 m:
       step n1 n2 -> step (SUB n1 m) (SUB n2 m)
-    | C29 n m1 m2:
+    | C27 n m1 m2:
       step m1 m2 -> step (SUB n m1) (SUB n m2)
-    | C30 n1 n2 m:
+    | C28 n1 n2 m:
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
-    | C31 n m1 m2:
+    | C29 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
     (* ------------------------------------------------------------------ *)
     | N1 n m:
@@ -208,8 +208,7 @@ Section Sigma.
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
-    (* ------------------------------------------------------------------ *)
-    .
+    (* ------------------------------------------------------------------ *).
 
   Create HintDb sigma.
 
