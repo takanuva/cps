@@ -1817,8 +1817,8 @@ Section Sigma.
   Goal
     forall n e,
     let subst v := traverse (subst v) in
-    joinable (subst (subst (var 1) n (var 0)) 0 (lift (2 + n) 1 e))
-             (subst (var 1) n (lift (2 + n) 1 e)).
+    joinable (subst (subst (var 1) n (var 0)) 0 (lift (2 + n) 1 e))%sigma
+             (subst (var 1) n (lift (2 + n) 1 e))%sigma.
   Proof.
     admit.
   Admitted.
