@@ -262,7 +262,10 @@ Section Sigma.
     | A21 i s:
       interpretation i = 0 ->
       step (subst_upn i s)
-           s.
+           s
+    | A22 xs ys s:
+      step (subst_app xs (subst_app ys s))
+           (subst_app (xs ++ ys) s).
 
   Create HintDb sigma.
 
@@ -1566,6 +1569,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1768,7 +1772,9 @@ Section Sigma.
     interpretation k <= interpretation j ->
     joinable (lift i k (traverse s j e)) (traverse s (i + j) (lift i k e)).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example LiftSubstComm:
@@ -1777,7 +1783,9 @@ Section Sigma.
     joinable (lift i k (traverse (subst f) j e))
              (traverse (subst f) (i + j) (lift i k e)).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example LiftPerm:
@@ -1786,7 +1794,9 @@ Section Sigma.
     joinable (lift i k (lift j l e))
              (lift j (i + l) (lift i k e)).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example LiftSimpl:
@@ -1796,7 +1806,9 @@ Section Sigma.
     joinable (lift i k (lift j l e))
              (lift (i + j) l e).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example SubstSimpl:
@@ -1806,7 +1818,9 @@ Section Sigma.
     joinable (traverse (subst f) p (lift (1 + i) k e))
              (lift i k e).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example SubstLiftPerm:
@@ -1814,7 +1828,9 @@ Section Sigma.
     joinable (lift i (p + k) (traverse (subst f) p e))
              (traverse (subst (lift i k f)) p (lift i (1 + p + k) e)).
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Example SubstSubstPerm:
@@ -1823,7 +1839,9 @@ Section Sigma.
     joinable (subst f (p + k) (subst g p e))%sigma
              (subst (subst f k g) p (subst f (1 + p + k) e))%sigma.
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* ---------------------------------------------------------------------- *)
@@ -1834,7 +1852,9 @@ Section Sigma.
     joinable (subst (subst (var 1) n (var 0)) 0 (lift (2 + n) 1 e))%sigma
              (subst (var 1) n (lift (2 + n) 1 e))%sigma.
   Proof.
-    admit.
+    intros; why?.
+    - admit.
+    - admit.
   Admitted.
 
   Goal
@@ -1842,8 +1862,7 @@ Section Sigma.
     joinable (traverse s 0 (var (p + n)))
              (lift p 0 (inst s (var n))).
   Proof.
-    intros.
-    why?.
+    intros; why?.
     - admit.
     - admit.
   Admitted.
@@ -1853,8 +1872,7 @@ Section Sigma.
     joinable (traverse s (p + k) (var (p + n)))
              (lift p 0 (traverse s k (var n))).
   Proof.
-    intros.
-    why?.
+    intros; why?.
     - admit.
     - admit.
   Admitted.
