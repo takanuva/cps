@@ -209,6 +209,18 @@ Section Sigma.
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
+    | V3 s:
+      step (smap s [])
+           []
+    | V4 s x xs:
+      step (smap s (x :: xs))
+           (inst s x :: smap s xs)
+    | V5 s xs ys:
+      step (smap s (xs ++ ys))
+           (smap s xs ++ smap s ys)
+    | V6 s t xs:
+      step (smap t (smap s xs))
+           (smap (subst_comp s t) xs)
     (* ------------------------------------------------------------------ *)
     | A3 e:
       step (subst e)
@@ -399,6 +411,10 @@ Section Sigma.
     - now apply IHstep.
     - lia.
     - lia.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
+    - reflexivity.
   Qed.
 
   Lemma interpretation_consistent_num:
@@ -452,6 +468,10 @@ Section Sigma.
     - simpl; auto.
     - simpl in IHstep |- *.
       now apply IHstep.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
   Qed.
@@ -1556,9 +1576,6 @@ Section Sigma.
     (* Structural... *)
     - admit.
     - admit.
-    (* Classical... *)
-    - admit.
-    - admit.
     (* Congruence... *)
     - admit.
     - admit.
@@ -1606,7 +1623,13 @@ Section Sigma.
     (* Vectors... *)
     - admit.
     - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Axioms... *)
+    - admit.
+    - admit.
     - just do it.
       + why?.
         * admit.
