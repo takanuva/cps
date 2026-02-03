@@ -48,6 +48,7 @@ Section Sigma.
     | SUB (n: T NUMBER) (m: T NUMBER): T NUMBER
     | ADD (n: T NUMBER) (m: T NUMBER): T NUMBER.
 
+  Notation lift i k := (traverse (subst_lift i) k).
   Notation subst := subst_slash.
   Coercion T: sort >-> Sortclass.
 
@@ -247,7 +248,15 @@ Section Sigma.
            subst_ids
     | A17 e:
       step (inst subst_ids e)
-           e.
+           e
+    | A18 i:
+      interpretation i = 0 ->
+      step (subst_lift i)
+           subst_ids
+    | A19 i s:
+      interpretation i = 0 ->
+      step (subst_drop i s)
+           s.
 
   Create HintDb sigma.
 
@@ -1079,8 +1088,6 @@ Section Sigma.
       lia.
   Qed.
 
-  Notation lift i k := (traverse (subst_lift i) k).
-
   Lemma measure1_lift_unfolding:
     forall i k e,
     measure1 (lift i k e) = measure1 (traverse (subst_lift i) k e).
@@ -1545,6 +1552,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1737,8 +1746,8 @@ Section Sigma.
     forall k e,
     joinable (lift 0 k e) e.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Example InstLiftComm:
     forall e s i k j,
