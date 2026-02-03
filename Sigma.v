@@ -307,7 +307,11 @@ Section Sigma.
     | A26 x xs s n:
       interpretation n > 0 ->
       step (inst (subst_app (x :: xs) s) (var n))
-           (inst (subst_app xs s) (var (SUB n 1))).
+           (inst (subst_app xs s) (var (SUB n 1)))
+    | A27 i x xs s:
+      interpretation i > 0 ->
+      step (subst_drop i (subst_app (x :: xs) s))
+           (subst_drop (SUB i 1) (subst_app xs s)).
 
   Create HintDb sigma.
 
@@ -1670,7 +1674,14 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1790,8 +1801,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
