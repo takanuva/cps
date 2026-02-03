@@ -209,19 +209,25 @@ Section Sigma.
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
-    | V3 s:
+    | V3 xs:
+      step (xs ++ [])
+           xs
+    | V4 xs:
+      step ([] ++ xs)
+           xs
+    | V5 s:
       step (smap s [])
            []
-    | V4 s x xs:
+    | V6 s x xs:
       step (smap s (x :: xs))
            (inst s x :: smap s xs)
-    | V5 s xs ys:
+    | V7 s xs ys:
       step (smap s (xs ++ ys))
            (smap s xs ++ smap s ys)
-    | V6 s t xs:
+    | V8 s t xs:
       step (smap t (smap s xs))
            (smap (subst_comp s t) xs)
-    | V7 xs:
+    | V9 xs:
       step (smap subst_ids xs)
            xs
     (* ------------------------------------------------------------------ *)
@@ -285,16 +291,23 @@ Section Sigma.
       interpretation i = 0 ->
       step (subst_upn i s)
            s
-    | A22 xs ys s:
+    | A22 s:
+      step (subst_app [] s)
+           s
+    | A23 xs ys s:
       step (subst_app xs (subst_app ys s))
            (subst_app (xs ++ ys) s)
-    | A23 x xs s n:
+    | A24 xs s t:
+      step (subst_comp (subst_app xs s) t)
+           (subst_app (smap t xs) (subst_comp s t))
+    | A25 x xs s n:
       interpretation n = 0 ->
       step (inst (subst_app (x :: xs) s) (var n))
            x
-    | A24 xs s t:
-      step (subst_comp (subst_app xs s) t)
-           (subst_app (smap t xs) (subst_comp s t)).
+    | A26 x xs s n:
+      interpretation n > 0 ->
+      step (inst (subst_app (x :: xs) s) (var n))
+           (inst (subst_app xs s) (var (SUB n 1))).
 
   Create HintDb sigma.
 
@@ -415,8 +428,10 @@ Section Sigma.
       congruence.
     - lia.
     - now apply IHstep.
+    - reflexivity.
     - lia.
     - lia.
+    - reflexivity.
     - reflexivity.
     - reflexivity.
     - reflexivity.
@@ -475,6 +490,8 @@ Section Sigma.
     - simpl; auto.
     - simpl in IHstep |- *.
       now apply IHstep.
+    - simpl; lia.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1636,6 +1653,8 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
+    - admit.
     (* Axioms... *)
     - just do it.
     - just do it.
@@ -1643,6 +1662,8 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1724,8 +1745,8 @@ Section Sigma.
     joinable (inst (subst_app [a] s) (var (1 + n)))
              (inst s (var n)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
   Example RVarLift1:
