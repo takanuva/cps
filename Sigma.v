@@ -111,13 +111,6 @@ Section Sigma.
     | A2 e s:
       step (inst s (abs e))
            (abs (traverse s 1 e))
-    (* Classical rules: *)
-    | A3 y:
-      step (subst y)
-           (subst_app [y] subst_ids)
-    | A4 s k e:
-      step (traverse s k e)
-           (inst (subst_upn k s) e)
     (* Congruence rules: *)
     | C1 n1 n2:
       step n1 n2 -> step (var n1) (var n2)
@@ -210,6 +203,12 @@ Section Sigma.
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
     (* ------------------------------------------------------------------ *)
+    | A3 e:
+      step (subst e)
+           (subst_app [e] subst_ids)
+    | A4 s k e:
+      step (traverse s k e)
+           (inst (subst_upn k s) e)
     | A5 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
