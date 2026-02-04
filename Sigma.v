@@ -211,14 +211,20 @@ Section Sigma.
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
     | V2 xs ys zs:
       step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
-    | V3 xs:
-      step (xs ++ [])
+    | V3 xs ys:
+      (* TODO: might prefer using [] instead. *)
+      interpretation (length ys) = 0 ->
+      step (xs ++ ys)
            xs
-    | V4 xs:
-      step ([] ++ xs)
+    | V4 xs ys:
+      (* TODO: might prefer using [] instead. *)
+      interpretation (length ys) = 0 ->
+      step (ys ++ xs)
            xs
-    | V5 s:
-      step (smap s [])
+    | V5 s ys:
+      (* TODO: might prefer using [] instead. *)
+      interpretation (length ys) = 0 ->
+      step (smap s ys)
            []
     | V6 s x xs:
       step (smap s (x :: xs))
@@ -293,8 +299,10 @@ Section Sigma.
       interpretation i = 0 ->
       step (subst_upn i s)
            s
-    | A22 s:
-      step (subst_app [] s)
+    | A22 xs s:
+      (* TODO: might prefer using [] instead. *)
+      interpretation (length xs) = 0 ->
+      step (subst_app xs s)
            s
     | A23 xs ys s:
       step (subst_app xs (subst_app ys s))
@@ -453,9 +461,12 @@ Section Sigma.
     - now apply IHstep.
     - reflexivity.
     - lia.
-    - lia.
-    - reflexivity.
-    - reflexivity.
+    - simpl in H.
+      lia.
+    - simpl in H.
+      lia.
+    - simpl in H.
+      assumption.
     - reflexivity.
     - reflexivity.
     - reflexivity.
@@ -516,9 +527,12 @@ Section Sigma.
       now apply IHstep.
     - simpl; lia.
     - simpl; lia.
-    - simpl; lia.
-    - simpl; lia.
-    - simpl; lia.
+    - simpl in H.
+      simpl; lia.
+    - simpl in H.
+      simpl; lia.
+    - simpl in H.
+      simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1591,7 +1605,7 @@ Section Sigma.
     | |- @eq (T VECTOR) ?a ?b => f_equal
     | |- @eq (T NUMBER) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          reflexivity
+          apply FORCE
     end.
 
   Ltac work :=
@@ -1695,92 +1709,24 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - (* Hmm... *)
-      repeat break.
-      + work.
-      + work.
-      + work.
-      + work.
-      + work.
-      + admit.
-      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
