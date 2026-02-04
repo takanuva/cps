@@ -204,6 +204,8 @@ Section Sigma.
       step (length (x :: xs)) (succ (length xs))
     | N11 xs ys:
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
+    | N12 s xs:
+      step (length (smap s xs)) (length xs)
     (* ------------------------------------------------------------------ *)
     | V1 x xs ys:
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
@@ -304,14 +306,31 @@ Section Sigma.
       interpretation n = 0 ->
       step (inst (subst_app (x :: xs) s) (var n))
            x
-    | A26 x xs s n:
+    | A26 n x xs s:
       interpretation n > 0 ->
       step (inst (subst_app (x :: xs) s) (var n))
            (inst (subst_app xs s) (var (SUB n 1)))
     | A27 i x xs s:
       interpretation i > 0 ->
       step (subst_drop i (subst_app (x :: xs) s))
-           (subst_drop (SUB i 1) (subst_app xs s)).
+           (subst_drop (SUB i 1) (subst_app xs s))
+    (* TODO: we gotta order these axioms at some point... *)
+    | A28 n xs ys s:
+      interpretation n >= interpretation (length xs) ->
+      step (inst (subst_app (xs ++ ys) s) (var n))
+           (inst (subst_app ys s) (var (SUB n (length xs))))
+    | A29 i xs ys s:
+      interpretation i >= interpretation (length xs) ->
+      step (subst_drop i (subst_app (xs ++ ys) s))
+           (subst_drop (SUB i (length xs)) (subst_app ys s))
+    | A30 n xs s:
+      interpretation n >= interpretation (length xs) ->
+      step (inst (subst_app xs s) (var n))
+           (inst s (var (SUB n (length xs))))
+    | A31 i xs s:
+      interpretation i >= interpretation (length xs) ->
+      step (subst_drop i (subst_app xs s))
+           (subst_drop (SUB i (length xs)) s).
 
   Create HintDb sigma.
 
@@ -467,6 +486,7 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1649,6 +1669,7 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
     (* Vectors... *)
     - admit.
     - admit.
@@ -1674,26 +1695,92 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + why?. (* Crap. *)
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
         * admit.
         * admit.
     - just do it.
     - just do it.
-      + why?. (* Crap. *)
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
         * admit.
         * admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
+    - (* Hmm... *)
+      repeat break.
+      + work.
+      + work.
+      + work.
+      + work.
+      + work.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
