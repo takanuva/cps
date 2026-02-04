@@ -534,7 +534,7 @@ Section Sigma.
     exists e2; auto with sigma.
   Qed.
 
-  Lemma C0_join:
+  Lemma C1_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (var n1) (var n2).
@@ -547,7 +547,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C1_join:
+  Lemma C2_join:
     forall e1 e2,
     joinable e1 e2 ->
     joinable (abs e1) (abs e2).
@@ -560,7 +560,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C2_join:
+  Lemma C3_join:
     forall e1 e2 f1 f2,
     joinable e1 e2 ->
     joinable f1 f2 ->
@@ -582,7 +582,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C3_join:
+  Lemma C4_join:
     forall s1 s2 k1 k2 e1 e2,
     joinable s1 s2 ->
     joinable k1 k2 ->
@@ -613,7 +613,7 @@ Section Sigma.
           induction H4...
   Qed.
 
-  Lemma C4_join:
+  Lemma C5_join:
     forall s1 s2 e1 e2,
     joinable s1 s2 ->
     joinable e1 e2 ->
@@ -635,7 +635,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C5_join:
+  Lemma C6_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (subst_lift n1) (subst_lift n2).
@@ -648,7 +648,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C6_join:
+  Lemma C7_join:
     forall v1 v2 s1 s2,
     joinable v1 v2 ->
     joinable s1 s2 ->
@@ -670,7 +670,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C7_join:
+  Lemma C8_join:
     forall s1 s2 r1 r2,
     joinable s1 s2 ->
     joinable r1 r2 ->
@@ -692,7 +692,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C8_join:
+  Lemma C9_join:
     forall n1 n2 s1 s2,
     joinable n1 n2 ->
     joinable s1 s2 ->
@@ -714,7 +714,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C9_join:
+  Lemma C10_join:
     forall y1 y2,
     joinable y1 y2 ->
     joinable (subst y1) (subst y2).
@@ -727,7 +727,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C10_join:
+  Lemma C11_join:
     forall n1 n2 s1 s2,
     joinable n1 n2 ->
     joinable s1 s2 ->
@@ -749,7 +749,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C11_join:
+  Lemma C12_join:
     forall e1 e2 x1 x2,
     joinable e1 e2 ->
     joinable x1 x2 ->
@@ -771,7 +771,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C12_join:
+  Lemma C13_join:
     forall x1 x2 y1 y2,
     joinable x1 x2 ->
     joinable y1 y2 ->
@@ -793,7 +793,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C13_join:
+  Lemma C14_join:
     forall s1 s2 v1 v2,
     joinable s1 s2 ->
     joinable v1 v2 ->
@@ -815,7 +815,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C14_join:
+  Lemma C15_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (succ n1) (succ n2).
@@ -828,7 +828,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C15_join:
+  Lemma C16_join:
     forall v1 v2,
     joinable v1 v2 ->
     joinable (length v1) (length v2).
@@ -841,7 +841,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C16_join:
+  Lemma C17_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -863,7 +863,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C17_join:
+  Lemma C18_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -886,7 +886,6 @@ Section Sigma.
   Qed.
 
   Hint Resolve joinable_step: sigma.
-  Hint Resolve C0_join: sigma.
   Hint Resolve C1_join: sigma.
   Hint Resolve C2_join: sigma.  
   Hint Resolve C3_join: sigma.
@@ -904,6 +903,7 @@ Section Sigma.
   Hint Resolve C15_join: sigma.
   Hint Resolve C16_join: sigma.
   Hint Resolve C17_join: sigma.
+  Hint Resolve C18_join: sigma.
 
   Axiom TODO: nat.
 
@@ -1663,7 +1663,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
+      + why?. (* Of course... *)
         * admit.
         * admit.
     - just do it.
@@ -1674,12 +1674,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
+      + why?. (* Crap. *)
         * admit.
         * admit.
     - just do it.
     - just do it.
-      + why?.
+      + why?. (* Crap. *)
         * admit.
         * admit.
     - just do it.
