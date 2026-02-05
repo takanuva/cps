@@ -344,17 +344,10 @@ Section Sigma.
       step (subst_upn n (subst_comp s t))
            (subst_comp (subst_upn n s) (subst_upn n t))
     (* ------------------------------------------------------------------ *)
-    | A33 n m s:
+    | A33 n m s: (* TODO: do we prefer m + n or n + m...? *)
       step (subst_upn n (subst_upn m s))
            (subst_upn (ADD m n) s)
-    | A34 n m s:
-      interpretation n > interpretation m ->
-      step (inst (subst_upn n s) (var m))
-           (var m)
-    | A35 n m s t:
-      interpretation n > interpretation m ->
-      step (inst (subst_comp (subst_upn n s) t) (var m))
-           (inst t (var m)).
+    .
 
 (* star SUBST
   (subst_comp (subst_upn n (subst_lift i))
@@ -1752,8 +1745,6 @@ star SUBST (subst_upn n (subst_drop i t)) ?w *)
       + admit.
       + admit.
     - just do it.
-    - just do it.
-    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1798,8 +1789,8 @@ star SUBST (subst_upn n (subst_drop i t)) ?w *)
     joinable (inst (subst_upn 1 s) (var 0))
              (var 0).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (FVarLift2)  0[U(s) o t] = 0[t] *)
   Example FVarLift2:
@@ -1807,8 +1798,8 @@ star SUBST (subst_upn n (subst_drop i t)) ?w *)
     joinable (inst (subst_comp (subst_upn 1 s) t) (var 0))
              (inst t (var 0)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (RVarCons)   (1+n)[a, s] = n[s] *)
   Example RVarCons:
