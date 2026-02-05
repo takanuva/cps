@@ -347,13 +347,24 @@ Section Sigma.
     | A33 n m s: (* TODO: do we prefer m + n or n + m...? *)
       step (subst_upn n (subst_upn m s))
            (subst_upn (ADD m n) s)
-    .
-
-(* star SUBST
-  (subst_comp (subst_upn n (subst_lift i))
-     (subst_upn n t)) ?w
-______________________________________(2/2)
-star SUBST (subst_upn n (subst_drop i t)) ?w *)
+    | A34 i n m s:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_lift i)) (subst_upn m s))
+           (subst_upn n (subst_drop i (subst_upn (SUB m n) s)))
+    | A35 i n m s t:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_lift i)) (subst_comp (subst_upn m s) t))
+           (subst_comp (subst_upn n (subst_drop i (subst_upn (SUB m n) s))) t)
+    | A36 i n m s t:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_drop i s)) (subst_upn m t))
+           (subst_upn n (subst_drop i (subst_comp s (subst_upn (SUB m n) t))))
+    | A37 i n m s t u:
+      interpretation m >= interpretation n ->
+      step (subst_comp (subst_upn n (subst_drop i s)) (subst_comp (subst_upn m t) u))
+           (subst_comp
+             (subst_upn n (subst_drop i (subst_comp s (subst_upn (SUB m n) t))))
+             u).
 
   Create HintDb sigma.
 
@@ -1740,10 +1751,13 @@ star SUBST (subst_upn n (subst_drop i t)) ?w *)
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
-      + admit.
-      + admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
   Admitted.
 
