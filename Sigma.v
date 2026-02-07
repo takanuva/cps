@@ -240,7 +240,45 @@ Section Sigma.
       step (smap subst_ids xs)
            xs
     (* ------------------------------------------------------------------ *)
-    .
+    | A3 e:
+      step (subst_slash e)
+           (subst_app [e] subst_ids)
+    | A4 i s:
+      step (subst_drop i s)
+           (subst_comp (subst_lift i) s)
+    | A5 s k e:
+      step (traverse s k e)
+           (inst (subst_upn k s) e)
+    | A6 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    | A7 e:
+      step (inst subst_ids e)
+           e
+    | A8 s:
+      step (subst_comp subst_ids s)
+           s
+    | A9 s:
+      step (subst_comp s subst_ids)
+           s
+    | A10 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    | A11 n s t:
+      step (subst_upn n (subst_comp s t))
+           (subst_comp (subst_upn n s) (subst_upn n t))
+    | A12 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s)
+           s
+    | A13 n:
+      step (subst_upn n subst_ids)
+           subst_ids
+    (* TODO: A14: join U(U(s)) together... *)
+    | A15 i:
+      interpretation i = 0 ->
+      step (subst_lift i)
+           subst_ids.
 
   Create HintDb sigma.
 
@@ -1608,6 +1646,18 @@ Section Sigma.
     - admit.
     - admit.
     (* Axioms... *)
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
