@@ -46,7 +46,7 @@ Section Sigma.
     | length (v: T VECTOR): T NUMBER
     | SUB (n: T NUMBER) (m: T NUMBER): T NUMBER
     | ADD (n: T NUMBER) (m: T NUMBER): T NUMBER
-    | MIN (n: T NUMBER) (m: T NUMBER): T NUMBER.
+    (* | MIN (n: T NUMBER) (m: T NUMBER): T NUMBER *).
 
   Notation lift i := (traverse (subst_lift i)) (only parsing).
   Notation subst y := (traverse (subst_slash y)) (only parsing).
@@ -91,8 +91,8 @@ Section Sigma.
       interpretation n - interpretation m
     | ADD n m =>
       interpretation n + interpretation m
-    | MIN n m =>
-      min (interpretation n) (interpretation m)
+    (* | MIN n m =>
+      min (interpretation n) (interpretation m) *)
     end.
 
   Infix "::" := cons (at level 60, right associativity).
@@ -300,12 +300,12 @@ Section Sigma.
     simpl; auto.
   Qed.
 
-  Lemma interpretation_min:
+  (* Lemma interpretation_min:
     forall a b,
     interpretation (MIN a b) = min (interpretation a) (interpretation b).
   Proof.
     simpl; auto.
-  Qed.
+  Qed. *)
 
   Lemma interpretation_cons_length:
     forall y ys,
@@ -343,7 +343,7 @@ Section Sigma.
   Hint Rewrite interpretation_number: interpretation.
   Hint Rewrite interpretation_add: interpretation.
   Hint Rewrite interpretation_sub: interpretation.
-  Hint Rewrite interpretation_min: interpretation.
+  (* Hint Rewrite interpretation_min: interpretation. *)
   Hint Rewrite interpretation_cons_length: interpretation.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
@@ -894,7 +894,7 @@ Section Sigma.
     | length v => measure1 v
     | SUB n m => measure1 n + measure1 m
     | ADD n m => measure1 n + measure1 m
-    | MIN n m => TODO
+    (* | MIN n m => TODO *)
     end.
 
   Fixpoint measure2 {s: sort} (expr: s) {struct expr}: nat :=
@@ -929,7 +929,7 @@ Section Sigma.
     | length v => measure2 v
     | SUB n m => measure2 n + measure2 m
     | ADD n m => measure2 n + measure2 m
-    | MIN n m => TODO
+    (* | MIN n m => TODO *)
     end.
 
   (*
@@ -1045,7 +1045,7 @@ Section Sigma.
     | length v => measure3 v
     | SUB n m => X23 + measure3 n + measure3 m
     | ADD n m => X24 + measure3 n * (1 + measure3 m)
-    | MIN n m => TODO
+    (* | MIN n m => TODO *)
     end.
 
   Lemma power_is_positive:
@@ -1311,8 +1311,7 @@ Section Sigma.
       lia.
     - specialize (IHn1 _ eq_refl JMeq_refl).
       lia.
-    - admit.
-  Admitted.
+  Qed.
 
   Lemma decreasing:
     forall s x y,
