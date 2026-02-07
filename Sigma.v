@@ -278,7 +278,10 @@ Section Sigma.
     | A15 i:
       interpretation i = 0 ->
       step (subst_lift i)
-           subst_ids.
+           subst_ids
+    | A16 xs s t:
+      step (subst_comp (subst_app xs s) t)
+           (subst_app (smap t xs) (subst_comp s t)).
 
   Create HintDb sigma.
 
@@ -1655,6 +1658,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1666,8 +1671,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1747,8 +1752,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1756,8 +1761,8 @@ Section Sigma.
     joinable (subst_comp (subst_app [a] s) t)
              (subst_app [inst t a] (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftCons)  ! o (a, s) = s *)
   Example ShiftCons:
@@ -1792,8 +1797,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1801,8 +1806,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1818,31 +1823,31 @@ Section Sigma.
     forall s,
     joinable (subst_comp subst_ids s) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdR)        s o id = s *)
   Example IdR:
     forall s,
     joinable (subst_comp s subst_ids) s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftId)     U(id) = id *)
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
     forall a,
     joinable (inst subst_ids a) a.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* ---------------------------------------------------------------------- *)
 
@@ -1852,8 +1857,8 @@ Section Sigma.
     forall k e,
     joinable (lift 0 k e) e.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Example InstLiftComm:
     forall e s i k j,
