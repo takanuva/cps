@@ -1504,7 +1504,7 @@ Section Sigma.
     | |- @eq (T VECTOR) ?a ?b => f_equal
     | |- @eq (T NUMBER) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          apply FORCE
+          reflexivity
     end.
 
   Ltac work :=
@@ -1873,16 +1873,6 @@ Section Sigma.
     forall n e,
     joinable (subst (subst (var 1) n (var 0)) 0 (lift (2 + n) 1 e))%sigma
              (subst (var 1) n (lift (2 + n) 1 e))%sigma.
-  Proof.
-    intros; why?.
-    - admit.
-    - admit.
-  Admitted.
-
-  Goal
-    forall s p n,
-    joinable (traverse s 0 (var (p + n)))
-             (lift p 0 (inst s (var n))).
   Proof.
     intros; why?.
     - admit.
