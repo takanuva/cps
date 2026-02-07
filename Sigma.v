@@ -14,8 +14,6 @@ Section Sigma.
     | VECTOR.
 
   (* TODO:
-     - add drop;
-     - remove dblift;
      - test pack and unpack for n-tuples. *)
 
   Inductive T: sort -> Set :=
@@ -49,8 +47,8 @@ Section Sigma.
     | SUB (n: T NUMBER) (m: T NUMBER): T NUMBER
     | ADD (n: T NUMBER) (m: T NUMBER): T NUMBER.
 
-  Notation lift i k := (traverse (subst_lift i) k).
-  Notation subst := subst_slash.
+  Notation lift i := (traverse (subst_lift i)) (only parsing).
+  Notation subst y := (traverse (subst_slash y)) (only parsing).
   Coercion T: sort >-> Sortclass.
 
   Fixpoint number (n: nat): NUMBER :=
@@ -148,7 +146,7 @@ Section Sigma.
     | C16 n s1 s2:
       step s1 s2 -> step (subst_upn n s1) (subst_upn n s2)
     | C17 y1 y2:
-      step y1 y2 -> step (subst y1) (subst y2)
+      step y1 y2 -> step (subst_slash y1) (subst_slash y2)
     | C18 n1 n2 s:
       step n1 n2 -> step (subst_drop n1 s) (subst_drop n2 s)
     | C19 n s1 s2:
@@ -652,10 +650,10 @@ Section Sigma.
   Lemma C10_join:
     forall y1 y2,
     joinable y1 y2 ->
-    joinable (subst y1) (subst y2).
+    joinable (subst_slash y1) (subst_slash y2).
   Proof with eauto with sigma.
     intros y1 y2 (y3, ?, ?).
-    exists (subst y3).
+    exists (subst_slash y3).
     - clear H0.
       induction H...
     - clear H.
@@ -870,7 +868,7 @@ Section Sigma.
     | subst_app v s => sumup 0 measure1 v + measure1 s
     | subst_comp s t => measure1 s * measure1 t
     | subst_upn n s => measure1 s
-    | subst y => 2 + measure1 y
+    | subst_slash y => 2 + measure1 y
     | subst_drop n s => 2
     (* VECTOR *)
     | metav _ => 0
@@ -904,7 +902,7 @@ Section Sigma.
     | subst_app v s => sumup 1 measure2 v + measure2 s
     | subst_comp s t => measure2 s * (1 + measure2 t)
     | subst_upn n s => M ^ measure2 n * measure2 s
-    | subst y => 2 + measure2 y
+    | subst_slash y => 2 + measure2 y
     | subst_drop n s => 2
     (* VECTOR *)
     | metav _ => 0
@@ -1019,7 +1017,7 @@ Section Sigma.
     | subst_app v s => X12 + measure3 v + measure3 s
     | subst_comp s t => X13 + measure3 s + measure3 t
     | subst_upn n s => X14 + measure3 n + measure3 s
-    | subst y => X6 + measure3 y
+    | subst_slash y => X6 + measure3 y
     | subst_drop n s => 2
     (* VECTOR *)
     | metav _ => X15
@@ -1143,9 +1141,9 @@ Section Sigma.
     lia.
   Qed.
 
-  Lemma measure1_subst_unfolding:
+  Lemma measure1_slash_unfolding:
     forall y,
-    measure1 (subst y) = measure1 (subst_app [y] subst_ids).
+    measure1 (subst_slash y) = measure1 (subst_app [y] subst_ids).
   Proof.
     intros; simpl.
     lia.
@@ -1167,9 +1165,9 @@ Section Sigma.
     reflexivity.
   Qed.
 
-  Lemma measure2_subst_unfolding:
+  Lemma measure2_slash_unfolding:
     forall y,
-    measure2 (subst y) = measure2 (subst_app [y] subst_ids).
+    measure2 (subst_slash y) = measure2 (subst_app [y] subst_ids).
   Proof.
     intros; simpl.
     lia.
@@ -1806,8 +1804,8 @@ Section Sigma.
   Example LiftSubstComm:
     forall e f i k j,
     interpretation k <= interpretation j ->
-    joinable (lift i k (traverse (subst f) j e))
-             (traverse (subst f) (i + j) (lift i k e)).
+    joinable (lift i k (subst f j e))
+             (subst f (i + j) (lift i k e)).
   Proof.
     intros; why?.
     - admit.
@@ -1841,7 +1839,6 @@ Section Sigma.
     forall e f p i k,
     interpretation p <= interpretation (i + k) ->
     interpretation k <= interpretation p ->
-    let subst y := traverse (subst y) in
     joinable (subst f p (lift (1 + i) k e))
              (lift i k e).
   Proof.
@@ -1852,7 +1849,6 @@ Section Sigma.
 
   Example SubstLiftPerm:
     forall e f i p k,
-    let subst y := traverse (subst y) in
     joinable (lift i (p + k) (subst f p e))
              (subst (lift i k f) p (lift i (1 + p + k) e)).
   Proof.
@@ -1863,7 +1859,6 @@ Section Sigma.
 
   Example SubstSubstPerm:
     forall e f g p k,
-    let subst y := traverse (subst y) in
     joinable (subst f (p + k) (subst g p e))%sigma
              (subst (subst f k g) p (subst f (1 + p + k) e))%sigma.
   Proof.
@@ -1876,7 +1871,6 @@ Section Sigma.
 
   Goal
     forall n e,
-    let subst v := traverse (subst v) in
     joinable (subst (subst (var 1) n (var 0)) 0 (lift (2 + n) 1 e))%sigma
              (subst (var 1) n (lift (2 + n) 1 e))%sigma.
   Proof.
