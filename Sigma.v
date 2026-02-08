@@ -296,7 +296,15 @@ Section Sigma.
            (subst_drop i s)
     | A19 i s t:
       step (subst_comp (subst_drop i s) t)
-           (subst_drop i (subst_comp s t)).
+           (subst_drop i (subst_comp s t))
+    | A20 xs s:
+      interpretation (length xs) = 0 ->
+      step (subst_app xs s)
+           s
+    | A21 i x xs s:
+      interpretation i >= 1 ->
+      step (subst_drop i (subst_app (x :: xs) s))
+           (subst_drop (SUB i 1) (subst_app xs s)).
 
   Create HintDb sigma.
 
@@ -1683,6 +1691,8 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
