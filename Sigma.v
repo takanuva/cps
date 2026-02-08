@@ -268,49 +268,61 @@ Section Sigma.
       interpretation (length xs) = 0 ->
       step (subst_app xs s)
            s
-    | A10 s t e:
+    | A10 xs ys s:
+      step (subst_app xs (subst_app ys s))
+           (subst_app (xs ++ ys) s)
+    | A11 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
-    | A11 e:
+    | A12 e:
       step (inst subst_ids e)
            e
-    | A12 s:
+    | A13 s:
       step (subst_comp subst_ids s)
            s
-    | A13 s:
+    | A14 s:
       step (subst_comp s subst_ids)
            s
-    | A14 s t u:
+    | A15 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u))
-    | A15 i:
+    | A16 i:
       step (subst_drop i subst_ids)
            (subst_lift i)
-    | A16 i s t:
+    | A17 i s t:
       step (subst_comp (subst_drop i s) t)
            (subst_drop i (subst_comp s t))
-    | A17 n:
+    | A18 n:
       step (subst_upn n subst_ids)
            subst_ids
-    | A18 n s t:
+    | A19 n s t:
       step (subst_upn n (subst_comp s t))
            (subst_comp (subst_upn n s) (subst_upn n t))
     (* ------------------------------------------------------------------ *)
-    | A19 xs s t:
+    | A20 xs s t:
       step (subst_comp (subst_app xs s) t)
            (subst_app (smap t xs) (subst_comp s t))
-    | A20 i n s:
+    | A21 i n s:
       interpretation i >= interpretation n ->
       step (subst_drop i (subst_upn n s))
            (subst_drop (SUB i n) (subst_comp s (subst_lift n)))
-    | A21 i n s t:
+    | A22 i n s t:
       interpretation i >= interpretation n ->
       step (subst_drop i (subst_comp (subst_upn n s) t))
            (subst_drop (SUB i n) (subst_comp s (subst_drop n t)))
-    | A22 i x xs s:
+    | A23 i x xs s:
       interpretation i >= 1 ->
       step (subst_drop i (subst_app (x :: xs) s))
-           (subst_drop (SUB i 1) (subst_app xs s)).
+           (subst_drop (SUB i 1) (subst_app xs s))
+    (* TODO: A24: skip lhs of app... *)
+    (* TODO: A25: skip whole vector... *)
+    | A26 n s x xs t:
+      interpretation n >= 1 ->
+      step (subst_comp (subst_upn n s) (subst_app (x :: xs) t))
+           (subst_app [x] (subst_comp (subst_upn (SUB n 1) s) (subst_app xs t)))
+    (* TODO: A27: pass lhs of app... *)
+    (* TODO: A28: pass whole vector... *)
+    .
 
   Create HintDb sigma.
 
@@ -1696,6 +1708,7 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
       + why?.
         * admit.
         * admit.
@@ -1703,6 +1716,11 @@ Section Sigma.
         * admit.
         * admit.
       + why?.
+        * admit.
+        * admit.
+      + (* Nasty case! *)
+        rename n0 into m, s0 into s, t0 into t.
+        why?.
         * admit.
         * admit.
     - just do it.
@@ -1714,6 +1732,7 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
     - just do it.
   Admitted.
 
@@ -1867,8 +1886,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
              (subst_app [a] (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdL)        id o s = s *)
   Example IdL:
