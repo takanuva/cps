@@ -290,7 +290,10 @@ Section Sigma.
            subst_ids
     | A17 n s t:
       step (subst_upn n (subst_comp s t))
-           (subst_comp (subst_upn n s) (subst_upn n t)).
+           (subst_comp (subst_upn n s) (subst_upn n t))
+    | A18 xs s t:
+      step (subst_comp (subst_app xs s) t)
+           (subst_app (smap t xs) (subst_comp s t)).
 
   Create HintDb sigma.
 
@@ -1681,6 +1684,10 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1779,8 +1786,8 @@ Section Sigma.
     joinable (subst_comp (subst_app [a] s) t)
              (subst_app [inst t a] (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftCons)  ! o (a, s) = s *)
   Example ShiftCons:
