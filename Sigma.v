@@ -304,7 +304,23 @@ Section Sigma.
     | A21 i x xs s:
       interpretation i >= 1 ->
       step (subst_drop i (subst_app (x :: xs) s))
-           (subst_drop (SUB i 1) (subst_app xs s)).
+           (subst_drop (SUB i 1) (subst_app xs s))
+    | A22 i n s:
+      interpretation i >= interpretation n ->
+      step (subst_drop i (subst_upn n s))
+           (subst_drop (SUB i n) (subst_comp s (subst_lift n)))
+    | A23 i n s t:
+      interpretation i >= interpretation n ->
+      step (subst_drop i (subst_comp (subst_upn n s) t))
+           (subst_drop (SUB i n) (subst_comp s (subst_drop n t)))
+    | A24 i n s:
+      interpretation n >= interpretation i ->
+      step (subst_drop i (subst_upn n s))
+           (subst_comp (subst_upn (SUB n i) s) (subst_lift i))
+    | A25 i n s t:
+      interpretation n >= interpretation i ->
+      step (subst_drop i (subst_comp (subst_upn n s) t))
+           (subst_comp (subst_upn (SUB n i) s) (subst_drop i t)).
 
   Create HintDb sigma.
 
@@ -1583,7 +1599,7 @@ Section Sigma.
     | |- @eq (T VECTOR) ?a ?b => f_equal
     | |- @eq (T NUMBER) ?a ?b =>
           idtac "forcing equality between" a "and" b;
-          reflexivity
+          apply FORCE
     end.
 
   Ltac work :=
@@ -1699,6 +1715,16 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
   Admitted.
