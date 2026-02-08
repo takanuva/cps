@@ -246,81 +246,33 @@ Section Sigma.
     | A3 e:
       step (subst_slash e)
            (subst_app [e] subst_ids)
-    | A4 s k e:
-      step (traverse s k e)
-           (inst (subst_upn k s) e)
-    | A5 s t e:
-      step (inst t (inst s e))
-           (inst (subst_comp s t) e)
-    | A6 e:
-      step (inst subst_ids e)
-           e
-    | A7 s:
-      step (subst_comp subst_ids s)
-           s
-    | A8 s:
-      step (subst_comp s subst_ids)
-           s
-    | A9 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    | A10 n s t:
-      step (subst_upn n (subst_comp s t))
-           (subst_comp (subst_upn n s) (subst_upn n t))
-    | A11 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s)
-           s
-    | A12 n:
-      step (subst_upn n subst_ids)
-           subst_ids
-    (* TODO: join U(U(s)) together... *)
-    | A14 i:
-      interpretation i = 0 ->
-      step (subst_lift i)
-           subst_ids
-    (* TODO: join lifts together... *)
-    | A15 i s:
-      interpretation i = 0 ->
-      step (subst_drop i s)
-           s
-    | A16 i:
-      step (subst_drop i subst_ids)
-           (subst_lift i)
-    (* -------------------------------------- *)
-    | A17 xs s t:
-      step (subst_comp (subst_app xs s) t)
-           (subst_app (smap t xs) (subst_comp s t))
-    | A18 i s:
+    | A4 i s:
       step (subst_comp (subst_lift i) s)
            (subst_drop i s)
-    | A19 i s t:
-      step (subst_comp (subst_drop i s) t)
-           (subst_drop i (subst_comp s t))
-    | A20 xs s:
-      interpretation (length xs) = 0 ->
-      step (subst_app xs s)
+    | A5 s k e:
+      step (traverse s k e)
+           (inst (subst_upn k s) e)
+    | A6 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    | A7 e:
+      step (inst subst_ids e)
+           e
+    | A8 s:
+      step (subst_comp subst_ids s)
            s
-    | A21 i x xs s:
-      interpretation i >= 1 ->
-      step (subst_drop i (subst_app (x :: xs) s))
-           (subst_drop (SUB i 1) (subst_app xs s))
-    | A22 i n s:
-      interpretation i >= interpretation n ->
-      step (subst_drop i (subst_upn n s))
-           (subst_drop (SUB i n) (subst_comp s (subst_lift n)))
-    | A23 i n s t:
-      interpretation i >= interpretation n ->
-      step (subst_drop i (subst_comp (subst_upn n s) t))
-           (subst_drop (SUB i n) (subst_comp s (subst_drop n t)))
-    | A24 i n s:
-      interpretation n >= interpretation i ->
-      step (subst_drop i (subst_upn n s))
-           (subst_comp (subst_upn (SUB n i) s) (subst_lift i))
-    | A25 i n s t:
-      interpretation n >= interpretation i ->
-      step (subst_drop i (subst_comp (subst_upn n s) t))
-           (subst_comp (subst_upn (SUB n i) s) (subst_drop i t)).
+    | A9 s:
+      step (subst_comp s subst_ids)
+           s
+    | A10 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    | A11 i:
+      step (subst_drop i subst_ids)
+           (subst_lift i)
+    | A12 i s t:
+      step (subst_comp (subst_drop i s) t)
+           (subst_drop i (subst_comp s t)).
 
   Create HintDb sigma.
 
@@ -1694,37 +1646,14 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + admit.
+      + admit.
+    - just do it.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
     - just do it.
   Admitted.
@@ -1735,8 +1664,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1816,8 +1745,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1825,8 +1754,8 @@ Section Sigma.
     joinable (subst_comp (subst_app [a] s) t)
              (subst_app [inst t a] (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (ShiftCons)  ! o (a, s) = s *)
   Example ShiftCons:
@@ -1834,8 +1763,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
@@ -1861,8 +1790,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1870,8 +1799,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1902,8 +1831,8 @@ Section Sigma.
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (Id)         a[id] = a *)
   Example Id:
@@ -1921,8 +1850,8 @@ Section Sigma.
     forall k e,
     joinable (lift 0 k e) e.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   Example InstLiftComm:
     forall e s i k j,
