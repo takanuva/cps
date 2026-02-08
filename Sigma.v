@@ -1932,13 +1932,23 @@ Section Sigma.
   Qed.
 
   Example InstLiftComm:
-    forall e s i k j,
+    forall e s i j,
+    let k := zero in
     interpretation k <= interpretation j ->
     joinable (lift i k (traverse s j e)) (traverse s (i + j) (lift i k e)).
   Proof.
-    intros; why?.
-    - admit.
-    - admit.
+    intros; eexists.
+    + reduce.
+      reduce.
+      reduce.
+      reduce.
+      reflexivity.
+    + reduce.
+      reduce.
+      reduce.
+      reduce.
+      reduce.
+      admit.
   Admitted.
 
   Example LiftSubstComm:
