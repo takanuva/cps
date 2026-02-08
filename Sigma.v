@@ -252,27 +252,42 @@ Section Sigma.
     | A5 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    | A6 s t e:
+    | A6 i:
+      interpretation i = 0 ->
+      step (subst_lift i)
+           subst_ids
+    | A7 i s:
+      interpretation i = 0 ->
+      step (subst_drop i s)
+           s
+    | A8 n s:
+      interpretation n = 0 ->
+      step (subst_upn n s)
+           s
+    | A9 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
-    | A7 e:
+    | A10 e:
       step (inst subst_ids e)
            e
-    | A8 s:
+    | A11 s:
       step (subst_comp subst_ids s)
            s
-    | A9 s:
+    | A12 s:
       step (subst_comp s subst_ids)
            s
-    | A10 s t u:
+    | A13 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u))
-    | A11 i:
+    | A14 i:
       step (subst_drop i subst_ids)
            (subst_lift i)
-    | A12 i s t:
+    | A15 i s t:
       step (subst_comp (subst_drop i s) t)
-           (subst_drop i (subst_comp s t)).
+           (subst_drop i (subst_comp s t))
+    | A16 n:
+      step (subst_upn n subst_ids)
+           subst_ids.
 
   Create HintDb sigma.
 
@@ -1646,11 +1661,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
-      + admit.
+    - just do it.
+    - just do it.
     - just do it.
       + admit.
-      + admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1664,8 +1680,8 @@ Section Sigma.
     joinable (inst t (inst s a))
              (inst (subst_comp s t) a).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift1)  n[!] = 1+n *)
   Example VarShift1:
@@ -1745,8 +1761,8 @@ Section Sigma.
     joinable (subst_comp (subst_comp s t) u)
              (subst_comp s (subst_comp t u)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (MapEnv)     (a, s) o t = (a[t], s o t) *)
   Example MapEnv:
@@ -1831,8 +1847,8 @@ Section Sigma.
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Id)         a[id] = a *)
   Example Id:
