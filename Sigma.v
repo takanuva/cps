@@ -293,7 +293,15 @@ Section Sigma.
            (subst_comp (subst_upn n s) (subst_upn n t))
     | A18 xs s t:
       step (subst_comp (subst_app xs s) t)
-           (subst_app (smap t xs) (subst_comp s t)).
+           (subst_app (smap t xs) (subst_comp s t))
+    | A19 i n s:
+      interpretation i >= interpretation n ->
+      step (subst_drop i (subst_upn n s))
+           (subst_drop (SUB i n) (subst_comp s (subst_lift n)))
+    | A20 i n s t:
+      interpretation i >= interpretation n ->
+      step (subst_drop i (subst_comp (subst_upn n s) t))
+           (subst_drop (SUB i n) (subst_comp s (subst_drop n t))).
 
   Create HintDb sigma.
 
@@ -1688,6 +1696,14 @@ Section Sigma.
         * admit.
         * admit.
     - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1804,8 +1820,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_upn 1 s))
              (subst_comp s (subst_lift 1)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
   Example ShiftLift2:
@@ -1813,8 +1829,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t))
              (subst_comp s (subst_comp (subst_lift 1) t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift1)      U(s) o U(t) = U(s o t) *)
   Example Lift1:
