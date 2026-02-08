@@ -287,7 +287,10 @@ Section Sigma.
            (subst_drop i (subst_comp s t))
     | A16 n:
       step (subst_upn n subst_ids)
-           subst_ids.
+           subst_ids
+    | A17 n s t:
+      step (subst_upn n (subst_comp s t))
+           (subst_comp (subst_upn n s) (subst_upn n t)).
 
   Create HintDb sigma.
 
@@ -1664,7 +1667,6 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1672,6 +1674,13 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1806,8 +1815,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1815,8 +1824,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1866,8 +1875,8 @@ Section Sigma.
     forall k e,
     joinable (lift 0 k e) e.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Example InstLiftComm:
     forall e s i k j,
