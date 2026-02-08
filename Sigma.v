@@ -279,9 +279,22 @@ Section Sigma.
       interpretation i = 0 ->
       step (subst_lift i)
            subst_ids
+    (* -------------------------------------- *)
     | A16 xs s t:
       step (subst_comp (subst_app xs s) t)
-           (subst_app (smap t xs) (subst_comp s t)).
+           (subst_app (smap t xs) (subst_comp s t))
+    | A17 i x xs s:
+      interpretation i >= 1 ->
+      step (subst_comp (subst_lift i) (subst_app (x :: xs) s))
+           (subst_comp (subst_lift (SUB i 1)) (subst_app xs s))
+    | A18 i xs ys s:
+      interpretation i >= interpretation (length xs) ->
+      step (subst_comp (subst_lift i) (subst_app (xs ++ ys) s))
+           (subst_comp (subst_lift (SUB i (length xs))) (subst_app ys s))
+    | A19 i xs s:
+      interpretation i >= interpretation (length xs) ->
+      step (subst_comp (subst_lift i) (subst_app xs s))
+           (subst_comp (subst_lift (SUB i (length xs))) s).
 
   Create HintDb sigma.
 
@@ -1658,11 +1671,32 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
       + admit.
     - just do it.
+      + admit.
+      + admit.
+      + admit.
     - just do it.
-    - just do it.
-    - just do it.
+      + admit.
+      + admit.
+      + admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1770,8 +1804,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
