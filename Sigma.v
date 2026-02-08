@@ -207,6 +207,9 @@ Section Sigma.
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
     | N12 s xs:
       step (length (smap s xs)) (length xs)
+    | N13 n m o:
+      step (SUB (SUB n m) o)
+           (SUB n (ADD m o))
     (* ------------------------------------------------------------------ *)
     | V1 x xs ys:
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
@@ -461,6 +464,7 @@ Section Sigma.
     - specialize (IHstep _ _ eq_refl JMeq_refl JMeq_refl).
       simpl; rewrite IHstep.
       reflexivity.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
@@ -1651,6 +1655,7 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
     (* Vectors... *)
     - admit.
     - admit.
@@ -1688,14 +1693,8 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + admit.
     - just do it.
-      + admit.
-      + admit.
-      + admit.
     - just do it.
-      + admit.
-      + admit.
       + admit.
   Admitted.
 
