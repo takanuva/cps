@@ -332,7 +332,13 @@ Section Sigma.
            (subst_drop i (subst_upn (ADD i n) s))
     | ZZZ n s i t:
       step (subst_comp (subst_upn n s) (subst_drop i t))
-           (subst_drop i (subst_comp (subst_upn (ADD i n) s) t)).
+           (subst_drop i (subst_comp (subst_upn (ADD i n) s) t))
+    | A29 i j:
+      step (subst_drop i (subst_lift j))
+           (subst_lift (ADD j i))
+    | A30 i j s:
+      step (subst_drop i (subst_drop j s))
+           (subst_drop (ADD j i) s).
 
   Create HintDb sigma.
 
@@ -1738,16 +1744,11 @@ Section Sigma.
         * admit.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
       + why?.
         * admit.
         * admit.
@@ -1759,20 +1760,6 @@ Section Sigma.
         * admit.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-      + rename n0 into m, s0 into t.
-        why?.
-        * admit.
-        * admit.
-      + rename n0 into m, s0 into t, t0 into u.
-        why?.
-        * admit.
-        * admit.
-      + rename s0 into t.
-        why?.
-        * admit.
-        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1925,8 +1912,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
              (subst_app [a] (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (IdL)        id o s = s *)
   Example IdL:
