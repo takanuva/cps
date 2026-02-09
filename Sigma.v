@@ -316,13 +316,23 @@ Section Sigma.
            (subst_drop (SUB i 1) (subst_app xs s))
     (* TODO: A24: skip lhs of app... *)
     (* TODO: A25: skip whole vector... *)
+    (*
     | A26 n s x xs t:
       interpretation n >= 1 ->
       step (subst_comp (subst_upn n s) (subst_app (x :: xs) t))
            (subst_app [x] (subst_comp (subst_upn (SUB n 1) s) (subst_app xs t)))
+    *)
     (* TODO: A27: pass lhs of app... *)
     (* TODO: A28: pass whole vector... *)
-    .
+    | XXX n m s:
+      step (subst_upn n (subst_upn m s))
+           (subst_upn (ADD n m) s)
+    | YYY n s i:
+      step (subst_comp (subst_upn n s) (subst_lift i))
+           (subst_drop i (subst_upn (ADD i n) s))
+    | ZZZ n s i t:
+      step (subst_comp (subst_upn n s) (subst_drop i t))
+           (subst_drop i (subst_comp (subst_upn (ADD i n) s) t)).
 
   Create HintDb sigma.
 
@@ -1718,8 +1728,11 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
-      + (* Nasty case! *)
-        rename n0 into m, s0 into s, t0 into t.
+      + rename n0 into m, s0 into s.
+        why?.
+        * admit.
+        * admit.
+      + rename n0 into m, s0 into s, t0 into t.
         why?.
         * admit.
         * admit.
@@ -1728,12 +1741,38 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
       + why?.
         * admit.
         * admit.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+      + rename n0 into m, s0 into t.
+        why?.
+        * admit.
+        * admit.
+      + rename n0 into m, s0 into t, t0 into u.
+        why?.
+        * admit.
+        * admit.
+      + rename s0 into t.
+        why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
