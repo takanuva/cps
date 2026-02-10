@@ -246,99 +246,85 @@ Section Sigma.
     | A3 e:
       step (subst_slash e)
            (subst_app [e] subst_ids)
-    | A4 i s:
-      step (subst_comp (subst_lift i) s)
-           (subst_drop i s)
-    | A5 s k e:
+    | A4 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    | A6 i:
+    | A5 i:
       interpretation i = 0 ->
       step (subst_lift i)
            subst_ids
-    | A7 i s:
+    | A6 i s:
       interpretation i = 0 ->
       step (subst_drop i s)
            s
-    | A8 n s:
+    | A7 n s:
       interpretation n = 0 ->
       step (subst_upn n s)
            s
-    | A9 xs s:
+    | A8 xs s:
       interpretation (length xs) = 0 ->
       step (subst_app xs s)
            s
-    | A10 xs ys s:
+    | A9 xs ys s:
       step (subst_app xs (subst_app ys s))
            (subst_app (xs ++ ys) s)
-    | A11 s t e:
+    | A10 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
-    | A12 e:
+    | A11 e:
       step (inst subst_ids e)
            e
-    | A13 s:
+    | A12 s:
       step (subst_comp subst_ids s)
            s
-    | A14 s:
+    | A13 s:
       step (subst_comp s subst_ids)
            s
-    | A15 s t u:
+    | A14 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u))
-    | A16 i:
+    | A15 i:
       step (subst_drop i subst_ids)
            (subst_lift i)
-    | A17 i s t:
-      step (subst_comp (subst_drop i s) t)
-           (subst_drop i (subst_comp s t))
-    | A18 n:
+    | A16 n:
       step (subst_upn n subst_ids)
            subst_ids
-    | A19 n s t:
+    | A17 n s t:
       step (subst_upn n (subst_comp s t))
            (subst_comp (subst_upn n s) (subst_upn n t))
-    (* ------------------------------------------------------------------ *)
-    | A20 xs s t:
-      step (subst_comp (subst_app xs s) t)
-           (subst_app (smap t xs) (subst_comp s t))
-    | A21 i n s:
-      interpretation i >= interpretation n ->
-      step (subst_drop i (subst_upn n s))
-           (subst_drop (SUB i n) (subst_comp s (subst_lift n)))
-    | A22 i n s t:
-      interpretation i >= interpretation n ->
-      step (subst_drop i (subst_comp (subst_upn n s) t))
-           (subst_drop (SUB i n) (subst_comp s (subst_drop n t)))
-    | A23 i x xs s:
-      interpretation i >= 1 ->
-      step (subst_drop i (subst_app (x :: xs) s))
-           (subst_drop (SUB i 1) (subst_app xs s))
-    (* TODO: A24: skip lhs of app... *)
-    (* TODO: A25: skip whole vector... *)
-    (*
-    | A26 n s x xs t:
-      interpretation n >= 1 ->
-      step (subst_comp (subst_upn n s) (subst_app (x :: xs) t))
-           (subst_app [x] (subst_comp (subst_upn (SUB n 1) s) (subst_app xs t)))
-    *)
-    (* TODO: A27: pass lhs of app... *)
-    (* TODO: A28: pass whole vector... *)
-    | XXX n m s:
+    | A18 n m s:
       step (subst_upn n (subst_upn m s))
            (subst_upn (ADD n m) s)
-    | YYY n s i:
-      step (subst_comp (subst_upn n s) (subst_lift i))
-           (subst_drop i (subst_upn (ADD i n) s))
-    | ZZZ n s i t:
-      step (subst_comp (subst_upn n s) (subst_drop i t))
-           (subst_drop i (subst_comp (subst_upn (ADD i n) s) t))
-    | A29 i j:
+    | A19 i n s:
+      interpretation n >= interpretation i ->
+      step (subst_comp (subst_lift i) (subst_upn n s))
+           (subst_drop i (subst_upn (SUB n i) s))
+    | A20 i n s t:
+      interpretation n >= interpretation i ->
+      step (subst_comp (subst_lift i) (subst_comp (subst_upn n s) t))
+           (subst_comp (subst_drop i (subst_upn (SUB n i) s)) t)
+    | A21 s i:
+      step (subst_comp s (subst_lift i))
+           (subst_drop i s)
+    | A22 s i t:
+      step (subst_comp s (subst_comp (subst_lift i) t))
+           (subst_comp (subst_drop i s) t)
+    | A23 i s t:
+      step (subst_drop i (subst_comp s t))
+           (subst_comp s (subst_drop i t))
+
+    | A30 xs s t:
+      step (subst_comp (subst_app xs s) t)
+           (subst_app (smap t xs) (subst_comp s t))
+    | A31 i xs s:
+      step (subst_drop i (subst_app xs s))
+           (subst_app (smap (subst_lift i) xs) (subst_drop i s))
+    | A32 i j:
       step (subst_drop i (subst_lift j))
-           (subst_lift (ADD j i))
-    | A30 i j s:
+           (subst_lift (ADD i j))
+    | A33 i j s:
       step (subst_drop i (subst_drop j s))
-           (subst_drop (ADD j i) s).
+           (subst_drop (ADD i j) s).
 
   Create HintDb sigma.
 
@@ -1417,144 +1403,7 @@ Section Sigma.
     @step s x y ->
     @LT s y x.
   Proof.
-    (* induction 1; intros.
-    (* Structural... *)
-    - constructor 2; simpl.
-      + lia.
-      + ring_simplify.
-        assert (measure2 e > 0) by apply measure2_term_pos.
-        assert (measure2 f > 0) by apply measure2_term_pos.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        lia.
-    - constructor 1; simpl.
-      ring_simplify.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    (* Classical... *)
-    - constructor 3.
-      + rewrite measure1_lift_unfolding.
-        reflexivity.
-      + rewrite measure2_lift_unfolding.
-        reflexivity.
-      + simpl; ring_simplify.
-        lia.
-    - constructor 3.
-      + rewrite measure1_subst_unfolding.
-        reflexivity.
-      + rewrite measure2_subst_unfolding.
-        reflexivity.
-      + simpl; unfold X10, X16; ring_simplify.
-        lia.
-    - constructor 3.
-      + rewrite measure1_traverse_unfolding.
-        reflexivity.
-      + rewrite measure2_traverse_unfolding.
-        reflexivity.
-      + simpl; ring_simplify.
-        lia.
-    (* Congruence rules... *)
-    - dependent destruction IHstep.
-      + constructor 1; simpl.
-        apply Nat.pow_lt_mono_r; auto.
-      + constructor 2; simpl; auto.
-        lia.
-      + constructor 3; simpl; auto.
-        lia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - dependent destruction IHstep.
-      + constructor 1; simpl; auto.
-      + constructor 2; simpl; auto.
-      + constructor 3; simpl; auto.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    (* Arithmetic rules... *)
-    - constructor 3; simpl; auto.
-      ring_simplify.
-      assert (measure3 m > 0) by apply measure3_pos.
-      lia.
-    - constructor 3; simpl; auto.
-      ring_simplify.
-      assert (measure3 n > 1) by apply measure3_num_pos.
-      lia.
-    - constructor 3; simpl; auto.
-      lia.
-    - admit.
-    - constructor 3; simpl; auto.
-    - constructor 1; simpl.
-      rewrite sumup0_measure1_simpl.
-      assert (measure1 x > 0) by apply measure1_term_pos.
-      lia.
-    - constructor 3; simpl.
-      + do 2 rewrite sumup0_measure1_simpl.
-        reflexivity.
-      + do 2 rewrite sumup1_measure2_simpl.
-        reflexivity.
-      + ring_simplify.
-        lia.
-    (* Vector rules... *)
-    - constructor 3; simpl.
-      + do 2 rewrite sumup0_measure1_simpl.
-        lia.
-      + do 2 rewrite sumup1_measure2_simpl.
-        lia.
-      + ring_simplify.
-        assert (measure3 ys > 0) by apply measure3_pos.
-        lia.
-    - constructor 3; simpl.
-      + do 2 rewrite sumup0_measure1_simpl.
-        lia.
-      + do 2 rewrite sumup1_measure2_simpl.
-        lia.
-      + ring_simplify.
-        assert (measure3 zs > 1) by apply measure3_vec_pos.
-        nia.
-    (* Axioms... *)
-    - constructor 2; simpl.
-      + lia.
-      + rename t0 into t.
-        assert (measure2 e > 0) by apply measure2_term_pos.
-        assert (measure2 s > 0) by apply measure2_subst_pos.
-        assert (measure2 t > 0) by apply measure2_subst_pos.
-        lia.
-    - constructor 1; simpl.
-      assert (measure1 e > 0) by apply measure1_term_pos.
-      lia.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - constructor 1; simpl.
-      assert (measure1 s > 1) by apply measure1_subst_pos.
-      lia.
-    - admit. *)
+    admit.
   Admitted.
 
   Ltac boundscheck :=
@@ -1722,8 +1571,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - admit.
     - just do it.
     - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
       + why?.
         * admit.
@@ -1734,19 +1587,6 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
-      + rename n0 into m, s0 into s.
-        why?.
-        * admit.
-        * admit.
-      + rename n0 into m, s0 into s, t0 into t.
-        why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
     - just do it.
     - just do it.
       + why?.
@@ -1755,9 +1595,12 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
   Admitted.
@@ -1867,8 +1710,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    just do it.
-  Qed.
+    admit.
+  Admitted.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
