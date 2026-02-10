@@ -295,6 +295,7 @@ Section Sigma.
     | A18 n m s:
       step (subst_upn n (subst_upn m s))
            (subst_upn (ADD n m) s)
+    (* ------------------------------------------------------------------ *)
     | A19 i n s:
       interpretation n >= interpretation i ->
       step (subst_comp (subst_lift i) (subst_upn n s))
@@ -325,6 +326,14 @@ Section Sigma.
     | A33 i j s:
       step (subst_drop i (subst_drop j s))
            (subst_drop (ADD i j) s)
+    | A34 i n s t:
+      interpretation n >= interpretation i ->
+      step (subst_comp (subst_drop i s) (subst_upn n t))
+           (subst_comp s (subst_drop i (subst_upn (SUB n i) t)))
+    | A35 i n s t u:
+      interpretation n >= interpretation i ->
+      step (subst_comp (subst_drop i s) (subst_comp (subst_upn n t) u))
+           (subst_comp s (subst_comp (subst_drop i (subst_upn (SUB n i) t)) u))
     (* ------------------------------------------------------------------ *)
     | A40 n i:
       step (inst (subst_lift i) (var n))
@@ -332,7 +341,14 @@ Section Sigma.
     | A41 n i s:
       step (inst (subst_comp (subst_lift i) s) (var n))
            (inst s (var (ADD i n)))
-    .
+    | A42 n i s:
+      interpretation n > interpretation i ->
+      step (inst (subst_upn n s) (var i))
+           (var i)
+    | A43 n i s t:
+      interpretation n > interpretation i ->
+      step (inst (subst_comp (subst_upn n s) t) (var i))
+           (inst t (var i)).
 
   Create HintDb sigma.
 
@@ -1579,27 +1595,45 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - admit.
     - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
       + admit.
       + admit.
-      + admit.
-      + admit.
-      + admit.
-    - just do it.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
     - just do it.
       + why?.
@@ -1608,14 +1642,6 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
-    - just do it.
-      + why?.
-        * admit.
-        * admit.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
     - just do it.
     - just do it.
       + why?.
