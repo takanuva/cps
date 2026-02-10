@@ -312,7 +312,7 @@ Section Sigma.
     | A23 i s t:
       step (subst_drop i (subst_comp s t))
            (subst_comp s (subst_drop i t))
-
+    (* ------------------------------------------------------------------ *)
     | A30 xs s t:
       step (subst_comp (subst_app xs s) t)
            (subst_app (smap t xs) (subst_comp s t))
@@ -324,7 +324,15 @@ Section Sigma.
            (subst_lift (ADD i j))
     | A33 i j s:
       step (subst_drop i (subst_drop j s))
-           (subst_drop (ADD i j) s).
+           (subst_drop (ADD i j) s)
+    (* ------------------------------------------------------------------ *)
+    | A40 n i:
+      step (inst (subst_lift i) (var n))
+           (var (ADD i n))
+    | A41 n i s:
+      step (inst (subst_comp (subst_lift i) s) (var n))
+           (inst s (var (ADD i n)))
+    .
 
   Create HintDb sigma.
 
@@ -1571,7 +1579,12 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - admit.
+    - just do it.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
+      + admit.
     - just do it.
     - just do it.
       + why?.
@@ -1603,6 +1616,14 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
+      + why?.
+        * admit.
+        * admit.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
