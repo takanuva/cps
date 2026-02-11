@@ -311,7 +311,6 @@ Section Sigma.
       interpretation i >= 1 ->
       step (subst_comp (subst_drop i s) (subst_app (x :: xs) t))
            (subst_comp (subst_drop (SUB i 1) s) (subst_app xs t))
-
     | A27 s i:
       step (subst_comp s (subst_lift i))
            (subst_drop i s)
@@ -327,7 +326,6 @@ Section Sigma.
     | A31 i j:
       step (subst_drop i (subst_lift j))
            (subst_lift (ADD i j))
-
     | A32 i j s:
       step (subst_drop i (subst_drop j s))
            (subst_drop (ADD i j) s).
@@ -1590,8 +1588,6 @@ Section Sigma.
     - just do it.
     - just do it.
   Admitted.
-
-
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
