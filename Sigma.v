@@ -1598,7 +1598,9 @@ Section Sigma.
     joinable (inst (subst_lift 1) (var n))
              (var (1 + n)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (VarShift2)  n[! o s] = (1+n)[s] *)
@@ -1607,7 +1609,9 @@ Section Sigma.
     joinable (inst (subst_comp (subst_lift 1) s) (var n))
              (inst s (var (1 + n))).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (FVarCons)   0[a, s] = a *)
@@ -1616,7 +1620,9 @@ Section Sigma.
     joinable (inst (subst_app [a] s) (var 0))
              a.
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (FVarLift1)  0[U(s)] = 0 *)
@@ -1625,7 +1631,9 @@ Section Sigma.
     joinable (inst (subst_upn 1 s) (var 0))
              (var 0).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (FVarLift2)  0[U(s) o t] = 0[t] *)
@@ -1634,7 +1642,9 @@ Section Sigma.
     joinable (inst (subst_comp (subst_upn 1 s) t) (var 0))
              (inst t (var 0)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (RVarCons)   (1+n)[a, s] = n[s] *)
@@ -1643,7 +1653,9 @@ Section Sigma.
     joinable (inst (subst_app [a] s) (var (1 + n)))
              (inst s (var n)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
@@ -1652,7 +1664,9 @@ Section Sigma.
     joinable (inst (subst_upn 1 s) (var (1 + n)))
              (inst (subst_comp s (subst_lift 1)) (var n)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
@@ -1661,7 +1675,9 @@ Section Sigma.
     joinable (inst (subst_comp (subst_upn 1 s) t) (var (1 + n)))
              (inst (subst_comp s (subst_comp (subst_lift 1) t)) (var n)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (AssEnv)     (s o t) o u = s o (t o u) *)
@@ -1679,8 +1695,10 @@ Section Sigma.
     joinable (subst_comp (subst_app [a] s) t)
              (subst_app [inst t a] (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (ShiftCons)  ! o (a, s) = s *)
   Example ShiftCons:
@@ -1688,8 +1706,10 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
@@ -1733,7 +1753,9 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
              (subst_app [a] (subst_comp s t)).
   Proof.
-    admit.
+    why?.
+    - admit.
+    - admit.
   Admitted.
 
   (* (IdL)        id o s = s *)
