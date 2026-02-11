@@ -311,27 +311,26 @@ Section Sigma.
       interpretation i >= 1 ->
       step (subst_comp (subst_drop i s) (subst_app (x :: xs) t))
            (subst_comp (subst_drop (SUB i 1) s) (subst_app xs t))
-    | A25 s i:
+
+    | A27 s i:
       step (subst_comp s (subst_lift i))
            (subst_drop i s)
-    | A26 s i t:
+    | A28 s i t:
       step (subst_comp s (subst_comp (subst_lift i) t))
            (subst_comp (subst_drop i s) t)
-    | A27 i xs s:
+    | A29 i xs s:
       step (subst_drop i (subst_app xs s))
            (subst_app (smap (subst_lift i) xs) (subst_drop i s))
-    | A28 i j:
-      step (subst_drop i (subst_lift j))
-           (subst_lift (ADD i j))
-    | A29 i j s:
-      step (subst_drop i (subst_drop j s))
-           (subst_drop (ADD i j) s)
-    | A30 s i t:
+    | A30 i s t:
       step (subst_drop i (subst_comp s t))
            (subst_comp s (subst_drop i t))
-    | A31 s i t u:
-      step (subst_comp (subst_drop i (subst_comp s t)) u)
-           (subst_comp s (subst_comp (subst_drop i t) u)).
+    | A31 i j:
+      step (subst_drop i (subst_lift j))
+           (subst_lift (ADD i j))
+
+    | A32 i j s:
+      step (subst_drop i (subst_drop j s))
+           (subst_drop (ADD i j) s).
 
   Create HintDb sigma.
 
@@ -1590,8 +1589,9 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
   Admitted.
+
+
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
   Example Clos: 
