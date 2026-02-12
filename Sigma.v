@@ -246,97 +246,96 @@ Section Sigma.
     | A3 e:
       step (subst_slash e)
            (subst_app [e] subst_ids)
-    (* drop i s = lift i o s ? *)
-    | A5 s k e:
+    | A4 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    | A6 i:
+    | A5 i:
       interpretation i = 0 ->
       step (subst_lift i)
            subst_ids
-    | A7 i s:
+    | A6 i s:
       interpretation i = 0 ->
       step (subst_drop i s)
            s
-    | A8 n s:
+    | A7 n s:
       interpretation n = 0 ->
       step (subst_upn n s)
            s
-    | A9 xs s:
+    | A8 xs s:
       interpretation (length xs) = 0 ->
       step (subst_app xs s)
            s
-    | A10 xs ys s:
+    | A9 xs ys s:
       step (subst_app xs (subst_app ys s))
            (subst_app (xs ++ ys) s)
-    | A11 s t e:
+    | A10 s t e:
       step (inst t (inst s e))
            (inst (subst_comp s t) e)
-    | A12 e:
+    | A11 e:
       step (inst subst_ids e)
            e
-    | A13 s:
+    | A12 s:
       step (subst_comp subst_ids s)
            s
-    | A14 s:
+    | A13 s:
       step (subst_comp s subst_ids)
            s
-    | A15 s t u:
+    | A14 s t u:
       step (subst_comp (subst_comp s t) u)
            (subst_comp s (subst_comp t u))
-    | A16 i:
+    | A15 i:
       step (subst_drop i subst_ids)
            (subst_lift i)
-    | A17 n:
+    | A16 n:
       step (subst_upn n subst_ids)
            subst_ids
-    | A18 n s t:
+    | A17 n s t:
       step (subst_upn n (subst_comp s t))
            (subst_comp (subst_upn n s) (subst_upn n t))
-    | A19 s i:
+    | A18 s i:
       step (subst_comp s (subst_lift i))
            (subst_drop i s)
-    | A20 i s t:
+    | A19 i s t:
       step (subst_comp (subst_drop i s) t)
            (subst_comp s (subst_comp (subst_lift i) t))
-    | A21 i s t:
+    | A20 i s t:
       step (subst_drop i (subst_comp s t))
            (subst_comp s (subst_drop i t))
-    | A22 xs s t:
+    | A21 xs s t:
       step (subst_comp (subst_app xs s) t)
            (subst_app (smap t xs) (subst_comp s t))
-    | A23 i j:
+    | A22 i j:
       step (subst_drop i (subst_lift j))
            (subst_lift (ADD i j))
-    | A24 i j s:
+    | A23 i j s:
       step (subst_drop i (subst_drop j s))
            (subst_drop (ADD i j) s)
-    | A25 i xs s:
+    | A24 i xs s:
       step (subst_drop i (subst_app xs s))
            (subst_app (smap (subst_lift i) xs) (subst_drop i s))
-    | A26 i j s:
+    | A25 i j s:
       step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
            (subst_comp (subst_lift (ADD i j)) s)
     (* ---------------------------- *)
-    | A27 i x xs s:
+    | A26 i x xs s:
       interpretation i >= 1 ->
       step (subst_comp (subst_lift i) (subst_app (x :: xs) s))
            (subst_comp (subst_lift (SUB i 1)) (subst_app xs s))
-    | A28 n x xs s t:
+    | A27 n x xs s t:
       interpretation n >= 1 ->
       step (subst_comp (subst_upn n s) (subst_app (x :: xs) t))
            (subst_app [x]
              (subst_comp (subst_upn (SUB n 1) s) (subst_app xs t)))
-    | A29 i n s:
+    | A28 i n s:
       interpretation i >= interpretation n ->
       step (subst_comp (subst_lift i) (subst_upn n s))
            (subst_comp (subst_lift (SUB i n)) (subst_drop n s))
-    | A30 i n s t:
+    | A29 i n s t:
       interpretation i >= interpretation n ->
       step (subst_comp (subst_lift i) (subst_comp (subst_upn n s) t))
            (subst_comp (subst_lift (SUB i n))
              (subst_comp s (subst_comp (subst_lift n) t)))
-    | A31 i j n s:
+    | A30 i j n s:
       interpretation i >= interpretation n ->
       step (subst_comp (subst_lift i) (subst_drop j (subst_upn n s)))
            (subst_comp (subst_lift (i - n)) (subst_drop (j + n) s)).
