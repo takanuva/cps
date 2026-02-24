@@ -225,48 +225,21 @@ Section Sigma.
     | N13 n s:
       step (length (take n s)) n
     (* ------------------------------------------------------------------ *)
-    | V1 x xs ys:
-      step ((x :: xs) ++ ys) (x :: (xs ++ ys))
-    | V2 xs ys zs:
-      step ((xs ++ ys) ++ zs) (xs ++ (ys ++ zs))
-    | V3 xs ys:
-      (* TODO: might prefer using [] instead. *)
-      interpretation (length ys) = 0 ->
-      step (xs ++ ys)
-           xs
-    | V4 xs ys:
-      (* TODO: might prefer using [] instead. *)
-      interpretation (length xs) = 0 ->
-      step (xs ++ ys)
-           ys
-    | V5 s xs:
-      (* TODO: might prefer using [] instead. *)
-      interpretation (length xs) = 0 ->
-      step (smap s xs)
-           []
-    | V6 s x xs:
+    | V1 s x xs:
       step (smap s (x :: xs))
            (inst s x :: smap s xs)
-    | V7 s xs ys:
+    | V2 s xs ys:
       step (smap s (xs ++ ys))
            (smap s xs ++ smap s ys)
-    | V8 s t xs:
+    | V3 s t xs:
       step (smap t (smap s xs))
            (smap (subst_comp s t) xs)
-    | V9 xs:
+    | V4 xs:
       step (smap subst_ids xs)
            xs
-    | V10 n s:
-      interpretation n = 0 ->
-      step (take n s)
-           []
-    | V11 n s t:
+    | V5 n s t:
       step (smap t (take n s))
            (take n (subst_comp s t))
-    | V12 n x s:
-      interpretation n >= 1 ->
-      step (take n (subst_cons x s))
-           (x :: take (SUB n 1) s)
     (* ------------------------------------------------------------------ *)
     | A3 e:
       step (subst_slash e)
@@ -324,31 +297,6 @@ Section Sigma.
     | A20 i j s:
       step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
            (subst_comp (subst_lift (ADD j i)) s)
-    | A21 n m:
-      interpretation n = interpretation m ->
-      step (subst_app (take n subst_ids) (subst_lift m))
-           subst_ids
-    | A22 n m s:
-      interpretation n = interpretation m ->
-      step (subst_app (take n s) (subst_comp (subst_lift m) s))
-           s
-    | A23 n m x s:
-      interpretation n = interpretation (ADD m 1) ->
-      step (subst_app (take n (subst_cons x s)) (subst_comp (subst_lift m) s))
-           (subst_cons x s)
-    | A24 i n m:
-      interpretation (ADD n i) = interpretation m ->
-      step (subst_app (take n (subst_lift i)) (subst_lift m))
-           (subst_lift i)
-    | A25 i n m s:
-      interpretation (ADD n i) = interpretation m ->
-      step (subst_app (take n (subst_comp (subst_lift i) s)) (subst_comp (subst_lift m) s))
-           (subst_comp (subst_lift i) s)
-    (* ... *)
-    | A40 i x s:
-      interpretation i >= 1 ->
-      step (subst_comp (subst_lift i) (subst_cons x s))
-           (subst_comp (subst_lift (SUB i 1)) s)
     .
 
   Create HintDb sigma.
@@ -480,19 +428,11 @@ Section Sigma.
     - now apply IHstep.
     - admit.
     - reflexivity.
-    - lia.
-    - lia.
-    - simpl in H.
-      lia.
-    - simpl in H.
-      lia.
-    - simpl in H.
-      assumption.
     - reflexivity.
     - reflexivity.
     - reflexivity.
     - reflexivity.
-    - assumption.
+    - reflexivity.
   Admitted.
 
   Lemma interpretation_consistent_num:
@@ -553,18 +493,9 @@ Section Sigma.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
-    - simpl in H.
-      simpl; lia.
-    - simpl in H.
-      simpl; lia.
-    - simpl in H.
-      simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
-    - simpl; lia.
-    - simpl.
-      assumption.
   Admitted.
 
   Hint Resolve interpretation_consistent_num: sigma.
@@ -1655,29 +1586,22 @@ Section Sigma.
     - admit.
     - admit.
     (* Arithmetic... *)
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     (* Vectors... *)
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
-    - admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
@@ -1692,25 +1616,19 @@ Section Sigma.
         * admit.
         * admit.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
     - just do it.
   Admitted.
 
@@ -1835,8 +1753,10 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
@@ -1888,8 +1808,10 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
              (subst_app [a] (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (IdL)        id o s = s *)
   Example IdL:
@@ -1911,8 +1833,10 @@ Section Sigma.
   Example LiftId:
     joinable (subst_upn 1 subst_ids) subst_ids.
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (Id)         a[id] = a *)
   Example Id:
@@ -1929,10 +1853,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift i) (subst_lift j))
              (subst_lift (ADD i j)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Example JoinShift:
     forall n m s,
