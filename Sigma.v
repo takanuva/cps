@@ -297,6 +297,15 @@ Section Sigma.
     | A20 i j s:
       step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
            (subst_comp (subst_lift (ADD j i)) s)
+    (* --- *)
+    | A21 i x s:
+      interpretation i >= 1 ->
+      step (subst_comp (subst_lift i) (subst_cons x s))
+           (subst_comp (subst_lift (SUB i 1)) s)
+    | A22 i xs s:
+      interpretation i >= interpretation (length xs) ->
+      step (subst_comp (subst_lift i) (subst_app xs s))
+           (subst_comp (subst_lift (SUB i (length xs))) s)
     .
 
   Create HintDb sigma.
@@ -1586,25 +1595,25 @@ Section Sigma.
     - admit.
     - admit.
     (* Arithmetic... *)
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Vectors... *)
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Axioms... *)
     - just do it.
     - just do it.
@@ -1619,6 +1628,8 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
