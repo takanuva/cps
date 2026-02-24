@@ -1776,10 +1776,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_app [a] s))
              s.
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftLift1) ! o U(s) = s o ! *)
   Example ShiftLift1:
@@ -1787,10 +1785,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_upn 1 s))
              (subst_comp s (subst_lift 1)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
   Example ShiftLift2:
@@ -1798,10 +1794,8 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t))
              (subst_comp s (subst_comp (subst_lift 1) t)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift1)      U(s) o U(t) = U(s o t) *)
   Example Lift1:
@@ -1809,10 +1803,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1820,10 +1812,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1831,10 +1821,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_app [a] t))
              (subst_app [a] (subst_comp s t)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (IdL)        id o s = s *)
   Example IdL:
