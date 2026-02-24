@@ -29,9 +29,11 @@ Section Sigma.
     | subst_ids: T SUBST
     | subst_lift (n: T NUMBER): T SUBST
     | subst_app (v: T VECTOR) (s: T SUBST): T SUBST
+    | subst_cons (e: T TERM) (s: T SUBST): T SUBST
     | subst_comp (s: T SUBST) (r: T SUBST): T SUBST
     | subst_upn (n: T NUMBER) (s: T SUBST): T SUBST
     | subst_slash (e: T TERM): T SUBST
+    | subst_raise (n: T NUMBER) (s: T SUBST): T SUBST
     | subst_drop (n: T NUMBER) (s: T SUBST): T SUBST
     (* Vector syntax: *)
     | metav (n: nat): T VECTOR
@@ -39,6 +41,7 @@ Section Sigma.
     | cons (e: T TERM) (es: T VECTOR): T VECTOR
     | join (es: T VECTOR) (fs: T VECTOR): T VECTOR
     | smap (s: T SUBST) (es: T VECTOR): T VECTOR
+    | take (n: T NUMBER) (s: T SUBST): T VECTOR
     (* Number syntax: *)
     | metan (n: nat): T NUMBER
     | zero: T NUMBER
@@ -75,9 +78,11 @@ Section Sigma.
       interpretation_length v1 + interpretation_length v2
     | smap _ v =>
       interpretation_length v
-    end.
+    | take n _ =>
+      interpretation n
+    end
 
-  Fixpoint interpretation (x: NUMBER): nat :=
+  with interpretation (x: NUMBER): nat :=
     match x with
     | metan n =>
       ORACLE_NUM n
@@ -91,8 +96,6 @@ Section Sigma.
       interpretation n - interpretation m
     | ADD n m =>
       interpretation n + interpretation m
-    (* | MIN n m =>
-      min (interpretation n) (interpretation m) *)
     end.
 
   Infix "::" := cons (at level 60, right associativity).
@@ -140,43 +143,55 @@ Section Sigma.
       step v1 v2 -> step (subst_app v1 s) (subst_app v2 s)
     | C12 v s1 s2:
       step s1 s2 -> step (subst_app v s1) (subst_app v s2)
-    | C13 s1 s2 r:
+    | C13 e1 e2 s:
+      step e1 e2 -> step (subst_cons e1 s) (subst_cons e2 s)
+    | C14 e s1 s2:
+      step s1 s2 -> step (subst_cons e s1) (subst_cons e s2)
+    | C15 s1 s2 r:
       step s1 s2 -> step (subst_comp s1 r) (subst_comp s2 r)
-    | C14 s r1 r2:
+    | C16 s r1 r2:
       step r1 r2 -> step (subst_comp s r1) (subst_comp s r2)
-    | C15 n1 n2 s:
+    | C17 n1 n2 s:
       step n1 n2 -> step (subst_upn n1 s) (subst_upn n2 s)
-    | C16 n s1 s2:
+    | C18 n s1 s2:
       step s1 s2 -> step (subst_upn n s1) (subst_upn n s2)
-    | C17 y1 y2:
+    | C19 y1 y2:
       step y1 y2 -> step (subst_slash y1) (subst_slash y2)
-    | C18 n1 n2 s:
+    | C20 n1 n2 s:
+      step n1 n2 -> step (subst_raise n1 s) (subst_raise n2 s)
+    | C21 n s1 s2:
+      step s1 s2 -> step (subst_raise n s1) (subst_raise n s2)
+    | C22 n1 n2 s:
       step n1 n2 -> step (subst_drop n1 s) (subst_drop n2 s)
-    | C19 n s1 s2:
+    | C23 n s1 s2:
       step s1 s2 -> step (subst_drop n s1) (subst_drop n s2)
-    | C20 e1 e2 x:
+    | C24 e1 e2 x:
       step e1 e2 -> step (e1 :: x) (e2 :: x)
-    | C21 e x1 x2:
+    | C25 e x1 x2:
       step x1 x2 -> step (e :: x1) (e :: x2)
-    | C22 x1 x2 y:
+    | C26 x1 x2 y:
       step x1 x2 -> step (x1 ++ y) (x2 ++ y)
-    | C23 x y1 y2:
+    | C27 x y1 y2:
       step y1 y2 -> step (x ++ y1) (x ++ y2)
-    | C24 s1 s2 v:
+    | C28 s1 s2 v:
       step s1 s2 -> step (smap s1 v) (smap s2 v)
-    | C25 s v1 v2:
+    | C29 s v1 v2:
       step v1 v2 -> step (smap s v1) (smap s v2)
-    | C26 n1 n2:
+    | C30 n1 n2 s:
+      step n1 n2 -> step (take n1 s) (take n2 s)
+    | C31 n s1 s2:
+      step s1 s2 -> step (take n s1) (take n s2)
+    | C32 n1 n2:
       step n1 n2 -> step (succ n1) (succ n2)
-    | C27 v1 v2:
+    | C33 v1 v2:
       step v1 v2 -> step (length v1) (length v2)
-    | C28 n1 n2 m:
+    | C34 n1 n2 m:
       step n1 n2 -> step (SUB n1 m) (SUB n2 m)
-    | C29 n m1 m2:
+    | C35 n m1 m2:
       step m1 m2 -> step (SUB n m1) (SUB n m2)
-    | C30 n1 n2 m:
+    | C36 n1 n2 m:
       step n1 n2 -> step (ADD n1 m) (ADD n2 m)
-    | C31 n m1 m2:
+    | C37 n m1 m2:
       step m1 m2 -> step (ADD n m1) (ADD n m2)
     (* ------------------------------------------------------------------ *)
     | N1 n m:
@@ -207,9 +222,8 @@ Section Sigma.
       step (length (xs ++ ys)) (ADD (length xs) (length ys))
     | N12 s xs:
       step (length (smap s xs)) (length xs)
-    | N13 n m o:
-      step (SUB (SUB n m) o)
-           (SUB n (ADD m o))
+    | N13 n s:
+      step (length (take n s)) n
     (* ------------------------------------------------------------------ *)
     | V1 x xs ys:
       step ((x :: xs) ++ ys) (x :: (xs ++ ys))
@@ -222,13 +236,13 @@ Section Sigma.
            xs
     | V4 xs ys:
       (* TODO: might prefer using [] instead. *)
-      interpretation (length ys) = 0 ->
-      step (ys ++ xs)
-           xs
-    | V5 s ys:
+      interpretation (length xs) = 0 ->
+      step (xs ++ ys)
+           ys
+    | V5 s xs:
       (* TODO: might prefer using [] instead. *)
-      interpretation (length ys) = 0 ->
-      step (smap s ys)
+      interpretation (length xs) = 0 ->
+      step (smap s xs)
            []
     | V6 s x xs:
       step (smap s (x :: xs))
@@ -242,103 +256,100 @@ Section Sigma.
     | V9 xs:
       step (smap subst_ids xs)
            xs
+    | V10 n s:
+      interpretation n = 0 ->
+      step (take n s)
+           []
+    | V11 n s t:
+      step (smap t (take n s))
+           (take n (subst_comp s t))
+    | V12 n x s:
+      interpretation n >= 1 ->
+      step (take n (subst_cons x s))
+           (x :: take (SUB n 1) s)
     (* ------------------------------------------------------------------ *)
     | A3 e:
       step (subst_slash e)
            (subst_app [e] subst_ids)
-    | A4 s k e:
+    | A4 i s:
+      step (subst_drop i s)
+           (subst_comp (subst_lift i) s)
+    | A5 i s:
+      step (subst_raise i s)
+           (subst_comp s (subst_lift i))
+    | A6 n s:
+      step (subst_upn n s)
+           (subst_app (take n subst_ids) (subst_comp s (subst_lift n)))
+    | A7 s k e:
       step (traverse s k e)
            (inst (subst_upn k s) e)
-    | A5 i:
+    | A8 s t e:
+      step (inst t (inst s e))
+           (inst (subst_comp s t) e)
+    | A9 e:
+      step (inst subst_ids e)
+           e
+    | A10 s:
+      step (subst_comp subst_ids s)
+           s
+    | A11 s:
+      step (subst_comp s subst_ids)
+           s
+    | A12 s t u:
+      step (subst_comp (subst_comp s t) u)
+           (subst_comp s (subst_comp t u))
+    | A13 i:
       interpretation i = 0 ->
       step (subst_lift i)
            subst_ids
-    | A6 i s:
-      interpretation i = 0 ->
-      step (subst_drop i s)
-           s
-    | A7 n s:
-      interpretation n = 0 ->
-      step (subst_upn n s)
-           s
-    | A8 xs s:
+    | A14 xs s:
       interpretation (length xs) = 0 ->
       step (subst_app xs s)
            s
-    | A9 xs ys s:
-      step (subst_app xs (subst_app ys s))
-           (subst_app (xs ++ ys) s)
-    | A10 s t e:
-      step (inst t (inst s e))
-           (inst (subst_comp s t) e)
-    | A11 e:
-      step (inst subst_ids e)
-           e
-    | A12 s:
-      step (subst_comp subst_ids s)
-           s
-    | A13 s:
-      step (subst_comp s subst_ids)
-           s
-    | A14 s t u:
-      step (subst_comp (subst_comp s t) u)
-           (subst_comp s (subst_comp t u))
-    | A15 i:
-      step (subst_drop i subst_ids)
-           (subst_lift i)
-    | A16 n:
-      step (subst_upn n subst_ids)
-           subst_ids
-    | A17 n s t:
-      step (subst_upn n (subst_comp s t))
-           (subst_comp (subst_upn n s) (subst_upn n t))
-    | A18 s i:
-      step (subst_comp s (subst_lift i))
-           (subst_drop i s)
-    | A19 i s t:
-      step (subst_comp (subst_drop i s) t)
-           (subst_comp s (subst_comp (subst_lift i) t))
-    | A20 i s t:
-      step (subst_drop i (subst_comp s t))
-           (subst_comp s (subst_drop i t))
-    | A21 xs s t:
+    | A15 x xs s:
+      step (subst_app (x :: xs) s)
+           (subst_cons x (subst_app xs s))
+    | A16 xs ys s:
+      step (subst_app (xs ++ ys) s)
+           (subst_app xs (subst_app ys s))
+    | A17 xs s t:
       step (subst_comp (subst_app xs s) t)
            (subst_app (smap t xs) (subst_comp s t))
-    | A22 i j:
-      step (subst_drop i (subst_lift j))
-           (subst_lift (ADD i j))
-    | A23 i j s:
-      step (subst_drop i (subst_drop j s))
-           (subst_drop (ADD i j) s)
-    | A24 i xs s:
-      step (subst_drop i (subst_app xs s))
-           (subst_app (smap (subst_lift i) xs) (subst_drop i s))
-    | A25 i j s:
+    | A18 x s t:
+      step (subst_comp (subst_cons x s) t)
+           (subst_cons (inst t x) (subst_comp s t))
+    | A19 i j:
+      step (subst_comp (subst_lift i) (subst_lift j))
+           (subst_lift (ADD j i))
+    | A20 i j s:
       step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
-           (subst_comp (subst_lift (ADD i j)) s)
-    (* ---------------------------- *)
-    | A26 i x xs s:
+           (subst_comp (subst_lift (ADD j i)) s)
+    | A21 n m:
+      interpretation n = interpretation m ->
+      step (subst_app (take n subst_ids) (subst_lift m))
+           subst_ids
+    | A22 n m s:
+      interpretation n = interpretation m ->
+      step (subst_app (take n s) (subst_comp (subst_lift m) s))
+           s
+    | A23 n m x s:
+      interpretation n = interpretation (ADD m 1) ->
+      step (subst_app (take n (subst_cons x s)) (subst_comp (subst_lift m) s))
+           (subst_cons x s)
+    | A24 i n m:
+      interpretation (ADD n i) = interpretation m ->
+      step (subst_app (take n (subst_lift i)) (subst_lift m))
+           (subst_lift i)
+    | A25 i n m s:
+      interpretation (ADD n i) = interpretation m ->
+      step (subst_app (take n (subst_comp (subst_lift i) s)) (subst_comp (subst_lift m) s))
+           (subst_comp (subst_lift i) s)
+    (* ... *)
+    | A40 i x s:
       interpretation i >= 1 ->
-      step (subst_comp (subst_lift i) (subst_app (x :: xs) s))
-           (subst_comp (subst_lift (SUB i 1)) (subst_app xs s))
-    | A27 n x xs s t:
-      interpretation n >= 1 ->
-      step (subst_comp (subst_upn n s) (subst_app (x :: xs) t))
-           (subst_app [x]
-             (subst_comp (subst_upn (SUB n 1) s) (subst_app xs t)))
-    | A28 i n s:
-      interpretation i >= interpretation n ->
-      step (subst_comp (subst_lift i) (subst_upn n s))
-           (subst_comp (subst_lift (SUB i n)) (subst_drop n s))
-    | A29 i n s t:
-      interpretation i >= interpretation n ->
-      step (subst_comp (subst_lift i) (subst_comp (subst_upn n s) t))
-           (subst_comp (subst_lift (SUB i n))
-             (subst_comp s (subst_comp (subst_lift n) t)))
-    | A30 i j n s:
-      interpretation i >= interpretation n ->
-      step (subst_comp (subst_lift i) (subst_drop j (subst_upn n s)))
-           (subst_comp (subst_lift (i - n)) (subst_drop (j + n) s)).
+      step (subst_comp (subst_lift i) (subst_cons x s))
+           (subst_comp (subst_lift (SUB i 1)) s)
+    .
 
   Create HintDb sigma.
 
@@ -398,13 +409,6 @@ Section Sigma.
     simpl; auto.
   Qed.
 
-  (* Lemma interpretation_min:
-    forall a b,
-    interpretation (MIN a b) = min (interpretation a) (interpretation b).
-  Proof.
-    simpl; auto.
-  Qed. *)
-
   Lemma interpretation_cons_length:
     forall y ys,
     interpretation (length (y :: ys)) = interpretation (1 + length ys).
@@ -428,10 +432,16 @@ Section Sigma.
 
   Lemma interpretation_smap_length:
     forall s xs,
-    interpretation (length (smap s xs)) =
-      interpretation (length xs).
+    interpretation (length (smap s xs)) = interpretation (length xs).
   Proof.
     simpl; auto.
+  Qed.
+
+  Lemma interpretation_take_length:
+    forall n s,
+    interpretation (length (take n s)) = interpretation n.
+  Proof.
+     simpl; auto.
   Qed.
 
   Create HintDb interpretation.
@@ -446,6 +456,7 @@ Section Sigma.
   Hint Rewrite interpretation_nil_length: interpretation.
   Hint Rewrite interpretation_app_length: interpretation.
   Hint Rewrite interpretation_smap_length: interpretation.
+  Hint Rewrite interpretation_take_length: interpretation.
 
   Lemma interpretation_consistent_vec:
     forall v u,
@@ -467,7 +478,9 @@ Section Sigma.
       congruence.
     - lia.
     - now apply IHstep.
+    - admit.
     - reflexivity.
+    - lia.
     - lia.
     - simpl in H.
       lia.
@@ -479,7 +492,8 @@ Section Sigma.
     - reflexivity.
     - reflexivity.
     - reflexivity.
-  Qed.
+    - assumption.
+  Admitted.
 
   Lemma interpretation_consistent_num:
     forall n m,
@@ -534,6 +548,9 @@ Section Sigma.
     - simpl; auto.
     - simpl in IHstep |- *.
       now apply IHstep.
+    - simpl.
+      admit.
+    - simpl; lia.
     - simpl; lia.
     - simpl; lia.
     - simpl in H.
@@ -546,7 +563,9 @@ Section Sigma.
     - simpl; lia.
     - simpl; lia.
     - simpl; lia.
-  Qed.
+    - simpl.
+      assumption.
+  Admitted.
 
   Hint Resolve interpretation_consistent_num: sigma.
   Hint Resolve interpretation_consistent_len: sigma.
@@ -714,6 +733,28 @@ Section Sigma.
   Qed.
 
   Lemma C8_join:
+    forall e1 e2 s1 s2,
+    joinable e1 e2 ->
+    joinable s1 s2 ->
+    joinable (subst_cons e1 s1) (subst_cons e2 s2).
+  Proof with eauto with sigma.
+    intros e1 e2 s1 s2 (e3, ?, ?) (s3, ?, ?).
+    exists (subst_cons e3 s3).
+    - clear H0 H2.
+      apply rt_trans with (subst_cons e3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_cons e3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
+  Lemma C9_join:
     forall s1 s2 r1 r2,
     joinable s1 s2 ->
     joinable r1 r2 ->
@@ -735,7 +776,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C9_join:
+  Lemma C10_join:
     forall n1 n2 s1 s2,
     joinable n1 n2 ->
     joinable s1 s2 ->
@@ -757,7 +798,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C10_join:
+  Lemma C11_join:
     forall y1 y2,
     joinable y1 y2 ->
     joinable (subst_slash y1) (subst_slash y2).
@@ -770,7 +811,29 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C11_join:
+  Lemma C12_join:
+    forall n1 n2 s1 s2,
+    joinable n1 n2 ->
+    joinable s1 s2 ->
+    joinable (subst_raise n1 s1) (subst_raise n2 s2).
+  Proof with eauto with sigma.
+    intros n1 n2 s1 s2 (n3, ?, ?) (s3, ?, ?).
+    exists (subst_raise n3 s3).
+    - clear H0 H2.
+      apply rt_trans with (subst_raise n3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (subst_raise n3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
+  Lemma C13_join:
     forall n1 n2 s1 s2,
     joinable n1 n2 ->
     joinable s1 s2 ->
@@ -792,7 +855,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C12_join:
+  Lemma C14_join:
     forall e1 e2 x1 x2,
     joinable e1 e2 ->
     joinable x1 x2 ->
@@ -814,7 +877,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C13_join:
+  Lemma C15_join:
     forall x1 x2 y1 y2,
     joinable x1 x2 ->
     joinable y1 y2 ->
@@ -836,7 +899,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C14_join:
+  Lemma C16_join:
     forall s1 s2 v1 v2,
     joinable s1 s2 ->
     joinable v1 v2 ->
@@ -858,7 +921,29 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C15_join:
+  Lemma C17_join:
+    forall n1 n2 s1 s2,
+    joinable n1 n2 ->
+    joinable s1 s2 ->
+    joinable (take n1 s1) (take n2 s2).
+   Proof with eauto with sigma.
+    intros n1 n2 s1 s2 (n3, ?, ?) (s3, ?, ?).
+    exists (take n3 s3).
+    - clear H0 H2.
+      apply rt_trans with (take n3 s1).
+      + clear H1.
+        induction H...
+      + clear H.
+        induction H1...
+    - clear H H1.
+      apply rt_trans with (take n3 s2).
+      + clear H2.
+        induction H0...
+      + clear H0.
+        induction H2...
+  Qed.
+
+  Lemma C18_join:
     forall n1 n2,
     joinable n1 n2 ->
     joinable (succ n1) (succ n2).
@@ -871,7 +956,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C16_join:
+  Lemma C19_join:
     forall v1 v2,
     joinable v1 v2 ->
     joinable (length v1) (length v2).
@@ -884,7 +969,7 @@ Section Sigma.
       induction H0...
   Qed.
 
-  Lemma C17_join:
+  Lemma C20_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -906,7 +991,7 @@ Section Sigma.
         induction H2...
   Qed.
 
-  Lemma C18_join:
+  Lemma C21_join:
     forall n1 n2 m1 m2,
     joinable n1 n2 ->
     joinable m1 m2 ->
@@ -930,7 +1015,7 @@ Section Sigma.
 
   Hint Resolve joinable_step: sigma.
   Hint Resolve C1_join: sigma.
-  Hint Resolve C2_join: sigma.  
+  Hint Resolve C2_join: sigma.
   Hint Resolve C3_join: sigma.
   Hint Resolve C4_join: sigma.
   Hint Resolve C5_join: sigma.
@@ -947,6 +1032,9 @@ Section Sigma.
   Hint Resolve C16_join: sigma.
   Hint Resolve C17_join: sigma.
   Hint Resolve C18_join: sigma.
+  Hint Resolve C19_join: sigma.
+  Hint Resolve C20_join: sigma.
+  Hint Resolve C21_join: sigma.
 
   Axiom TODO: nat.
 
@@ -958,6 +1046,7 @@ Section Sigma.
       | cons e v => k + f e + sumup v
       | join v u => sumup v + sumup u
       | smap s v => TODO
+      | take n s => TODO
       end.
 
   (* ---------------------------------------------------------------------- *)
@@ -976,16 +1065,19 @@ Section Sigma.
     | subst_ids => 2
     | subst_lift n => max 2 (2 ^ measure1 n)
     | subst_app v s => sumup 0 measure1 v + measure1 s
+    | subst_cons e s => TODO
     | subst_comp s t => measure1 s * measure1 t
     | subst_upn n s => measure1 s
     | subst_slash y => 2 + measure1 y
-    | subst_drop n s => 2
+    | subst_raise n s => TODO
+    | subst_drop n s => TODO
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
     | cons e v => measure1 e + sumup 0 measure1 v
     | join v u => sumup 0 measure1 v + sumup 0 measure1 u
     | smap s v => TODO
+    | take n s => TODO
     (* NUMBER *)
     | metan n => 0
     | zero => 0
@@ -1011,16 +1103,19 @@ Section Sigma.
     | subst_ids => 1
     | subst_lift n => max 1 (measure2 n)
     | subst_app v s => sumup 1 measure2 v + measure2 s
+    | subst_cons e s => TODO
     | subst_comp s t => measure2 s * (1 + measure2 t)
     | subst_upn n s => M ^ measure2 n * measure2 s
     | subst_slash y => 2 + measure2 y
-    | subst_drop n s => 2
+    | subst_raise n s => TODO
+    | subst_drop n s => TODO
     (* VECTOR *)
     | metav _ => 0
     | nil => 0
     | cons e v => 1 + measure2 e + sumup 1 measure2 v
     | join v u => sumup 1 measure2 v + sumup 1 measure2 u
     | smap s v => TODO
+    | take n s => TODO
     (* NUMBER *)
     | metan n => 0
     | zero => 0
@@ -1127,16 +1222,19 @@ Section Sigma.
     | subst_ids => X10
     | subst_lift n => X11 + measure3 n
     | subst_app v s => X12 + measure3 v + measure3 s
+    | subst_cons e s => TODO
     | subst_comp s t => X13 + measure3 s + measure3 t
     | subst_upn n s => X14 + measure3 n + measure3 s
     | subst_slash y => X6 + measure3 y
-    | subst_drop n s => 2
+    | subst_raise n s => TODO
+    | subst_drop n s => TODO
     (* VECTOR *)
     | metav _ => X15
     | nil => X16
     | cons e v => X17 + measure3 e + measure3 v
     | join v u => X18 + measure3 v * (1 + measure3 u)
     | smap s v => TODO
+    | take n s => TODO
     (* NUMBER *)
     | metan n => X19
     | zero => X20
@@ -1172,6 +1270,7 @@ Section Sigma.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
+    - admit.
     - specialize (IHe1 _ eq_refl JMeq_refl).
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
@@ -1179,8 +1278,9 @@ Section Sigma.
       specialize (IHe2 _ eq_refl JMeq_refl).
       assumption.
     - nia.
-    - lia.
-  Qed.
+    - admit.
+    - admit.
+  Admitted.
 
   Lemma measure1_term_pos:
     forall e: TERM,
@@ -1218,6 +1318,7 @@ Section Sigma.
     - clear IHe1.
       specialize (IHe2 _ eq_refl JMeq_refl).
       lia.
+    - admit.
     - specialize (IHe1 _ eq_refl JMeq_refl).
       lia.
     - clear IHe1.
@@ -1226,8 +1327,9 @@ Section Sigma.
       + apply power_is_positive.
       + lia.
     - nia.
-    - lia.
-  Qed.
+    - admit.
+    - admit.
+  Admitted.
 
   Lemma measure2_term_pos:
     forall e: TERM,
@@ -1546,6 +1648,12 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
     (* Arithmetic... *)
     - admit.
     - admit.
@@ -1570,6 +1678,9 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - just do it.
+    - just do it.
+    - just do it.
     (* Axioms... *)
     - just do it.
     - just do it.
@@ -1577,18 +1688,9 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - just do it.
-    - admit.
-    - just do it.
-    - just do it.
-    - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
     - just do it.
     - just do it.
@@ -1598,6 +1700,17 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+      + why?.
+        * admit.
+        * admit.
     - just do it.
   Admitted.
 
@@ -1731,8 +1844,10 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_upn 1 s))
              (subst_comp s (subst_lift 1)).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (ShiftLift2) ! o U(s) o t = s o ! o t *)
   Example ShiftLift2:
@@ -1740,8 +1855,10 @@ Section Sigma.
     joinable (subst_comp (subst_lift 1) (subst_comp (subst_upn 1 s) t))
              (subst_comp s (subst_comp (subst_lift 1) t)).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (Lift1)      U(s) o U(t) = U(s o t) *)
   Example Lift1:
@@ -1749,8 +1866,10 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_upn 1 t))
              (subst_upn 1 (subst_comp s t)).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (Lift2)      U(s) o U(t) o u = U(s o t) o u *)
   Example Lift2:
@@ -1758,8 +1877,10 @@ Section Sigma.
     joinable (subst_comp (subst_upn 1 s) (subst_comp (subst_upn 1 t) u))
              (subst_comp (subst_upn 1 (subst_comp s t)) u).
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   (* (LiftEnv)    U(s) o (a, t) = (a, s o t) *)
   Example LiftEnv:
@@ -1803,14 +1924,60 @@ Section Sigma.
 
   (* ---------------------------------------------------------------------- *)
 
+  Example JoinLift:
+    forall i j,
+    joinable (subst_comp (subst_lift i) (subst_lift j))
+             (subst_lift (ADD i j)).
+  Proof.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example JoinShift:
+    forall n m s,
+    joinable (subst_upn n (subst_upn m s))
+             (subst_upn (ADD n m) s).
+  Proof.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example ShiftCollapseLeft:
+    forall n m s t,
+    interpretation n >= interpretation m ->
+    joinable (subst_comp (subst_upn n s) (subst_upn m t))
+             (subst_upn m (subst_comp (subst_upn (SUB n m) s) t)).
+  Proof.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  Example ShiftCollapseRight:
+    forall n m s t,
+    interpretation m >= interpretation n ->
+    joinable (subst_comp (subst_upn n s) (subst_upn m t))
+             (subst_upn n (subst_comp s (subst_upn (SUB m n) t))).
+  Proof.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
+
+  (* ---------------------------------------------------------------------- *)
+
   Open Scope sigma.
 
   Example Lift0:
     forall k e,
     joinable (lift 0 k e) e.
   Proof.
-    just do it.
-  Qed.
+    why?.
+    - admit.
+    - admit.
+  Admitted.
 
   Example InstLiftComm:
     forall e s i k j,
