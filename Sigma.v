@@ -240,6 +240,14 @@ Section Sigma.
     | V5 n s t:
       step (smap t (take n s))
            (take n (subst_comp s t))
+    | V6 n x s:
+      interpretation n >= 1 ->
+      step (take n (subst_cons x s))
+           (x :: take (SUB n 1) s)
+    | V7 n xs s:
+      interpretation n >= interpretation (length xs) ->
+      step (take n (subst_app xs s))
+           (xs ++ take (SUB n (length xs)) s)
     (* ------------------------------------------------------------------ *)
     | A3 e:
       step (subst_slash e)
@@ -285,24 +293,28 @@ Section Sigma.
     | A16 xs ys s:
       step (subst_app (xs ++ ys) s)
            (subst_app xs (subst_app ys s))
-    | A17 xs s t:
+    | A17 xs s:
+      interpretation (length xs) = 0 ->
+      step (subst_app xs s)
+           s
+    | A18 xs s t:
       step (subst_comp (subst_app xs s) t)
            (subst_app (smap t xs) (subst_comp s t))
-    | A18 x s t:
+    | A19 x s t:
       step (subst_comp (subst_cons x s) t)
            (subst_cons (inst t x) (subst_comp s t))
-    | A19 i j:
+    | A20 i j:
       step (subst_comp (subst_lift i) (subst_lift j))
            (subst_lift (ADD j i))
-    | A20 i j s:
+    | A21 i j s:
       step (subst_comp (subst_lift i) (subst_comp (subst_lift j) s))
            (subst_comp (subst_lift (ADD j i)) s)
     (* --- *)
-    | A21 i x s:
+    | A22 i x s:
       interpretation i >= 1 ->
       step (subst_comp (subst_lift i) (subst_cons x s))
            (subst_comp (subst_lift (SUB i 1)) s)
-    | A22 i xs s:
+    | A23 i xs s:
       interpretation i >= interpretation (length xs) ->
       step (subst_comp (subst_lift i) (subst_app xs s))
            (subst_comp (subst_lift (SUB i (length xs))) s)
@@ -1614,6 +1626,8 @@ Section Sigma.
     - admit.
     - admit.
     - admit.
+    - admit.
+    - admit.
     (* Axioms... *)
     - just do it.
     - just do it.
@@ -1621,13 +1635,11 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
-      + why?.
-        * admit.
-        * admit.
     - just do it.
       + why?.
         * admit.
         * admit.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
