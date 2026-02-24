@@ -1999,23 +1999,23 @@ Section Sigma.
     - admit.
   Admitted.
 
-  (* Axiom take: NUMBER -> SUBST -> VECTOR.
-
   Definition right_cycle (i k: NUMBER) e: TERM :=
-    traverse (subst_app (take i (subst_lift 1) ++ [var 0]) (subst_lift (succ i))) k e.
+    traverse (subst_app (take i (subst_lift 1) ++ [var 0])
+      (subst_lift (succ i))) k e.
 
   Definition left_cycle (i k: NUMBER) e: TERM :=
     subst (var i) k (lift 1 (1 + i + k) e).
 
-  Goal
+  Example CycleIdentity:
     forall i k e,
     joinable (right_cycle i k (left_cycle i k e))
              (left_cycle i k (right_cycle i k e)).
   Proof.
+    intros.
     unfold left_cycle.
     unfold right_cycle.
-    intros.
-    why?. *)
+    admit.
+  Admitted.
 
   (* ---------------------------------------------------------------------- *)
 
