@@ -318,7 +318,12 @@ Section Sigma.
       interpretation i >= interpretation (length xs) ->
       step (subst_comp (subst_lift i) (subst_app xs s))
            (subst_comp (subst_lift (SUB i (length xs))) s)
-    .
+    | A24 i n s:
+      step (subst_app (take n (subst_lift i)) s)
+           (subst_comp (subst_lift i) (subst_app (take (ADD i n) subst_ids) s))
+    | A25 i n s t:
+      step (subst_app (take n (subst_comp (subst_lift i) t)) s)
+           (subst_comp (subst_lift i) (subst_app (take (ADD i n) t) s)).
 
   Create HintDb sigma.
 
@@ -1639,6 +1644,8 @@ Section Sigma.
       + why?.
         * admit.
         * admit.
+    - just do it.
+    - just do it.
     - just do it.
     - just do it.
     - just do it.
