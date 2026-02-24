@@ -1883,10 +1883,8 @@ Section Sigma.
     joinable (subst_comp (subst_upn n s) (subst_upn m t))
              (subst_upn m (subst_comp (subst_upn (SUB n m) s) t)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Example ShiftCollapseRight:
     forall n m s t,
