@@ -318,10 +318,25 @@ Section Sigma.
       interpretation i >= interpretation (length xs) ->
       step (subst_comp (subst_lift i) (subst_app xs s))
            (subst_comp (subst_lift (SUB i (length xs))) s)
-    | A24 i n s:
+    | A24 i n:
+      step (inst (subst_lift i) (var n))
+           (var (ADD i n))
+    | A25 i n s:
+      step (inst (subst_comp (subst_lift i) s) (var n))
+           (inst s (var (ADD i n)))
+    | A26 n x s:
+      interpretation n >= 1 ->
+      step (inst (subst_cons x s) (var n))
+           (inst s (var (SUB n 1)))
+    | A27 n xs s:
+      interpretation n >= interpretation (length xs) ->
+      step (inst (subst_app xs s) (var n))
+           (inst s (var (SUB n (length xs))))
+    (* --- *)
+    | A28 i n s:
       step (subst_app (take n (subst_lift i)) s)
            (subst_comp (subst_lift i) (subst_app (take (ADD i n) subst_ids) s))
-    | A25 i n s t:
+    | A29 i n s t:
       step (subst_app (take n (subst_comp (subst_lift i) t)) s)
            (subst_comp (subst_lift i) (subst_app (take (ADD i n) t) s)).
 
@@ -1660,6 +1675,10 @@ Section Sigma.
     - just do it.
     - just do it.
     - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
+    - just do it.
   Admitted.
 
   (* (Clos)       (a[s])[t] = a[s o t] *)
@@ -1677,10 +1696,8 @@ Section Sigma.
     joinable (inst (subst_lift 1) (var n))
              (var (1 + n)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (VarShift2)  n[! o s] = (1+n)[s] *)
   Example VarShift2:
@@ -1688,10 +1705,8 @@ Section Sigma.
     joinable (inst (subst_comp (subst_lift 1) s) (var n))
              (inst s (var (1 + n))).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (FVarCons)   0[a, s] = a *)
   Example FVarCons:
@@ -1732,10 +1747,8 @@ Section Sigma.
     joinable (inst (subst_app [a] s) (var (1 + n)))
              (inst s (var n)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (RVarLift1)  (1+n)[U(s)] = n[s o !] *)
   Example RVarLift1:
@@ -1743,10 +1756,8 @@ Section Sigma.
     joinable (inst (subst_upn 1 s) (var (1 + n)))
              (inst (subst_comp s (subst_lift 1)) (var n)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (RVarLift2)  (1+n)[U(s) o t] = n[s o ! o t] *)
   Example RVarLift2:
@@ -1754,10 +1765,8 @@ Section Sigma.
     joinable (inst (subst_comp (subst_upn 1 s) t) (var (1 + n)))
              (inst (subst_comp s (subst_comp (subst_lift 1) t)) (var n)).
   Proof.
-    why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   (* (AssEnv)     (s o t) o u = s o (t o u) *)
   Example AssEnv:
@@ -2010,10 +2019,8 @@ Section Sigma.
     joinable (traverse s (p + k) (var (p + n)))
              (lift p 0 (traverse s k (var n))).
   Proof.
-    intros; why?.
-    - admit.
-    - admit.
-  Admitted.
+    just do it.
+  Qed.
 
   Definition right_cycle (i k: NUMBER) e: TERM :=
     traverse (subst_app (take i (subst_lift 1) ++ [var 0])
