@@ -324,6 +324,8 @@ Local Canonical Structure DsetCategory.
 
 Section DPresheaf.
 
+  (* TODO: make C polymorphic, turn this into an actual presheaf... *)
+
   Variable C: Category.
 
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
@@ -332,57 +334,80 @@ Section DPresheaf.
 
     Variable G: DPresheaf.
 
-    Record elements: Type := elements_mk {
-      elements_obj: C;
-      elements_set: G elements_obj
+    Record elem: Type := elem_mk {
+      elem_obj: C;
+      elem_set: G elem_obj
     }.
 
-    Inductive elements_hom: relation elements :=
-      | elements_hom_mk:
-        forall X: C,
-        forall Y: C,
+    Inductive elem_hom {X: C} {Y: C} (r: G X) (s: G Y): Type :=
+      | elem_hom_mk:
         forall f: C Y X,
-        forall r: G X,
-        forall s: G Y,
         s = fmap G f r ->
-        elements_hom (elements_mk X r) (elements_mk Y s).
+        elem_hom r s.
 
-    (* TODO: we surely want a different notion of equality! *)
+    Definition elem_hom_inner {X Y r s} (h: elem_hom r s): C Y X :=
+      match h with
+      | elem_hom_mk _ _ f _ => f
+      end.
 
-    Definition ElemenetsHomSetoid e f: Setoid := {|
-      carrier := elements_hom e f;
-      equiv := eq
+    Local Coercion elem_hom_inner: elem_hom >-> carrier.
+
+    Program Definition ElemHomSetoid e f: Setoid := {|
+      carrier := elem_hom (elem_set e) (elem_set f);
+      (* Use the Dset morphism definition of equality for the inner map. *)
+      equiv := equiv
     |}.
 
-    Local Canonical Structure ElemenetsHomSetoid.
+    Next Obligation.
+      split; repeat intro.
+      - reflexivity.
+      - now symmetry.
+      - now transitivity (elem_hom_inner y).
+    Qed.
+
+    Local Canonical Structure ElemHomSetoid.
 
     Program Definition ElementsCategory: Category := {|
-      obj := elements;
-      hom e f := elements_hom e f
+      obj := elem;
+      hom e f := elem_hom (elem_set e) (elem_set f);
+      id x := elem_hom_mk (elem_set x) (elem_set x) id _;
+      post x y z f g := elem_hom_mk (elem_set x) (elem_set z)
+                          (post (c := opposite C) f g) _
     |}.
 
     Next Obligation.
-      apply elements_hom_mk with id.
       rewrite (fmap_id _ _ G); simpl.
       reflexivity.
-    Defined.
+    Qed.
 
     Next Obligation.
-      dependent destruction H.
-      dependent destruction H0.
-      rename f0 into g.
-      apply elements_hom_mk with (post (c := opposite C) f g).
+      destruct x as (x, r).
+      destruct y as (y, s).
+      destruct z as (z, t).
+      dependent destruction f.
+      dependent destruction g.
+      rename f0 into g; simpl in *.
+      change (post g f) with (post (c := opposite C) f g).
       rewrite (fmap_comp _ _ G); simpl.
       subst; reflexivity.
-    Defined.
+    Qed.
 
     Next Obligation.
-      destruct f; simpl.
-      subst; compute.
-      admit.
-    Admitted.
+      repeat intro; simpl.
+      now rewrite H, H0.
+    Qed.
 
-    Admit Obligations.
+    Next Obligation.
+      now rewrite post_id_right.
+    Qed.
+
+    Next Obligation.
+      now rewrite post_id_left.
+    Qed.
+
+    Next Obligation.
+      now rewrite post_assoc.
+    Qed.
 
   End Elements.
 
