@@ -144,14 +144,15 @@ Qed.
    we will not be using in favor of setoids, of course). As morphisms, we define
    the desired notion of equivalence for functions as extensional equality (so
    that we would not need to take that as an axiom, since it's not derivable in
-   Coq's type theory anyway). First we define a canonical setoid for functions,
-   and then proceed to build the canonical category for sets. *)
+   Coq's type theory anyway). First we define a canonical setoid for dependent
+   functions, as a generalization, and then we proceed to build the canonical
+   category for sets. *)
 
-Polymorphic Definition funext_eq T U: relation (T -> U) :=
+Polymorphic Definition funext_eq T U: relation (forall t: T, U t) :=
   fun f g => forall x, f x = g x.
 
 Global Polymorphic Program Definition FunctionSetoid T U: Setoid := {|
-  carrier := T -> U;
+  carrier := forall t: T, U t;
   equiv := funext_eq T U
 |}.
 
