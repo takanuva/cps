@@ -180,10 +180,10 @@ Proof.
   reflexivity.
 Qed.
 
-(* A D-set is a pair (C, R) such that:
+(* A D-set is a pair (G, R) such that:
    - G is a type that represents a context (the carrier type);
-   - R is a relation between D and C that specifies that an element x of D
-     realizes the context g in C;
+   - R is a relation between D and G that specifies that an element x of D
+     realizes the context g in G;
    - R is respectful of D's inner structure, so x R g <-> y R g when x == y;
    - R is surjective, such that for every g in G, there is at least one x in D
      such that x R g. *)
@@ -322,6 +322,75 @@ Local Canonical Structure DsetCategory.
 
 (* -------------------------------------------------------------------------- *)
 
+Section DsetModel.
+
+  Program Definition DsetModel: CwF := {|
+    cwf_cat := Dset;
+    cwf_empty := {|
+      terminal := Delta ();
+      terminal_hom (X: Dset) := {|
+        Dmap_fun (g: X) := ();
+      |}
+    |};
+    cwf_ty G := G -> Dset;
+    cwf_tsub G D (s: Dmap' D G) (A: G -> Dset) (d: D) :=
+      A (s d);
+    cwf_el G (A: G -> Dset) := Dmap G A;
+    cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
+      Dmap_fun d := e (s d)
+    |}
+  |}.
+
+  Next Obligation of DsetModel.
+    exists I; intros.
+    trivial.
+  Qed.
+
+  Next Obligation of DsetModel.
+    repeat intro; simpl.
+    remember (f x) as u.
+    now destruct u.
+  Qed.
+
+  Next Obligation of DsetModel.
+    destruct e as (e, (x, ?H)); simpl in *.
+    destruct s as (s, (y, ?H)); simpl in *.
+    exists (B x y); intros.
+    rename y0 into z.
+    (* TODO: may we merge this with the postcomposition definition for DMap? *)
+    apply Dset_respectful with (x (y z)).
+    - apply Deq_B.
+    - apply H, H0.
+      assumption.
+  Qed.
+
+  Next Obligation of DsetModel.
+    compute.
+    admit.
+  Admitted.
+
+  Next Obligation of DsetModel.
+    compute.
+    admit.
+  Admitted.
+
+  Next Obligation of DsetModel.
+    compute; intros.
+    now rewrite H, H0.
+  Qed.
+
+  Next Obligation of DsetModel.
+    compute; intros.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DsetModel.
+    compute; intros.
+    reflexivity.
+  Qed.
+
+End DsetModel.
+
 Section DPresheaf.
 
   (* TODO: make C polymorphic, turn this into an actual presheaf... *)
@@ -411,64 +480,5 @@ Section DPresheaf.
     Qed.
 
   End Elements.
-
-  (* We build a model using the functor category [C^op, Dset] as the category of
-     contexts and morphisms. Types... *)
-
-  (* Temprary definitions for the Dset model (not used); TODO: remove it! *)
-
-  Definition Env: Type := Dset.
-  Definition Sub: Env -> Env -> Setoid := Dmap'.
-  Definition Ty (G: Env): Setoid := G -> Dset.
-  Definition El (G: Env) (A: Ty G): Setoid := Dmap G A.
-
-  Program Definition ext (G: Env) (A: Ty G): Env := {|
-    Dset_carrier := { g: G & A g };
-    Dset_realization (x: D) p :=
-      let (g, a) := p in
-      G (x K) g /\ A g (x F) a
-  |}.
-
-  Next Obligation.
-    split.
-    - apply Dset_respectful with (d2 K).
-      + now rewrite H.
-      + assumption.
-    - apply Dset_respectful with (d2 F).
-      + now rewrite H.
-      + assumption.
-  Qed.
-
-  Next Obligation.
-    rename y into x, X into y.
-    destruct Dset_surjective with G x as (a, ?H).
-    destruct Dset_surjective with (A x) y as (b, ?H).
-    exists (P a b); split.
-    - apply Dset_respectful with a.
-      + rewrite Deq_P.
-        rewrite Deq_K.
-        reflexivity.
-      + assumption.
-    - apply Dset_respectful with b.
-      + rewrite Deq_P.
-        rewrite Deq_F.
-        reflexivity.
-      + assumption.
-  Qed.
-
-  (* Program Definition DPresheafModel: CwF := {|
-    cwf_cat := DPresheaf;
-    cwf_empty := {|
-      terminal := {|
-        mapping (X: C) := Delta ();
-        fmap (X: C) (Y: C) (f: C Y X) := Dmap'_id (Delta ())
-      |};
-      terminal_hom (F: DPresheaf) := {|
-        transformation (X: C) := {|
-          Dmap_fun (A: F X) := tt
-        |}
-      |}
-    |}
-  |}. *)
 
 End DPresheaf.
