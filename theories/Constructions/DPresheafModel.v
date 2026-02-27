@@ -36,7 +36,7 @@ Local Definition F: D :=
   S K.
 
 Local Definition P: D :=
-  (* Shockingly, (fun x y f => f x y) becomes this. *)
+  (* Perhaps shockingly, (fun x y f => f x y) becomes this. *)
   C (B B (B C (B (C I) I))) I.
 
 Inductive Dstep: relation D :=
@@ -330,31 +330,34 @@ Section DPresheaf.
 
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
 
+  (* TODO: move these definitions to the [Category.v] file. *)
+
   Section Elements.
 
     Variable G: DPresheaf.
 
+    (* The category of elements of G, a presheaf over C, has, as objects, pairs
+       of an object X of C and an element r of the set G(X). Then, for every
+       morphism f in C from Y to X, and for every element r of G(X), it has a
+       morphism from (X, r) to (Y, G(f)(r)); i.e., the morphisms are technically
+       pairs of an inner morphism in C^op and a proof about the relation between
+       the respective sets (in the second projection). *)
+
     Record elem: Type := elem_mk {
-      elem_obj: C;
+      elem_obj: opposite C;
       elem_set: G elem_obj
     }.
 
-    Inductive elem_hom {X: C} {Y: C} (r: G X) (s: G Y): Type :=
-      | elem_hom_mk:
-        forall f: C Y X,
-        s = fmap G f r ->
-        elem_hom r s.
+    Record elem_hom (x: elem) (y: elem): Type := elem_hom_mk {
+      elem_hom_morphism: opposite C (elem_obj x) (elem_obj y);
+      elem_hom_coherence: elem_set y = fmap G elem_hom_morphism (elem_set x)
+    }.
 
-    Definition elem_hom_inner {X Y r s} (h: elem_hom r s): C Y X :=
-      match h with
-      | elem_hom_mk _ _ f _ => f
-      end.
-
-    Local Coercion elem_hom_inner: elem_hom >-> carrier.
+    Local Coercion elem_hom_morphism: elem_hom >-> carrier.
 
     Program Definition ElemHomSetoid e f: Setoid := {|
-      carrier := elem_hom (elem_set e) (elem_set f);
-      (* Use the Dset morphism definition of equality for the inner map. *)
+      carrier := elem_hom e f;
+      (* We use the Dset morphism definition of equality for the inner map. *)
       equiv := equiv
     |}.
 
@@ -362,17 +365,16 @@ Section DPresheaf.
       split; repeat intro.
       - reflexivity.
       - now symmetry.
-      - now transitivity (elem_hom_inner y).
+      - now transitivity (elem_hom_morphism e f y).
     Qed.
 
     Local Canonical Structure ElemHomSetoid.
 
     Program Definition ElementsCategory: Category := {|
       obj := elem;
-      hom e f := elem_hom (elem_set e) (elem_set f);
-      id x := elem_hom_mk (elem_set x) (elem_set x) id _;
-      post x y z f g := elem_hom_mk (elem_set x) (elem_set z)
-                          (post (c := opposite C) f g) _
+      hom e f := elem_hom e f;
+      id x := elem_hom_mk x x id _;
+      post x y z f g := elem_hom_mk x z (post f g) _
     |}.
 
     Next Obligation.
@@ -384,9 +386,8 @@ Section DPresheaf.
       destruct x as (x, r).
       destruct y as (y, s).
       destruct z as (z, t).
-      dependent destruction f.
-      dependent destruction g.
-      rename f0 into g; simpl in *.
+      destruct f as (f, ?H); simpl in *.
+      destruct g as (g, ?H); simpl in *.
       change (post g f) with (post (c := opposite C) f g).
       rewrite (fmap_comp _ _ G); simpl.
       subst; reflexivity.
