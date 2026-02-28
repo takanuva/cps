@@ -340,6 +340,9 @@ Section DsetModel.
       Dmap_fun d := e (s d)
     |};
     (* TODO: make a general definition for Dset pairs! *)
+    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
+      Dmap_fun d := existT _ (s d) (e d)
+    |};
     cwf_ext G (A: G -> Dset) := {|
       Dset_carrier := { g: G & A g };
       Dset_realization (x: D) p :=
@@ -408,8 +411,26 @@ Section DsetModel.
   Qed.
 
   Next Obligation of DsetModel.
-    admit.
-  Admitted.
+    destruct (Dmap_preserve _ _ s) as (x, ?).
+    destruct (Dmap_preserve _ _ e) as (y, ?).
+    (* Careful inspection: this combinator is enough! *)
+    exists (C (P x y)); intros z ? ?; split.
+    - specialize (H _ _ H1).
+      unfold const in H.
+      apply Dset_respectful with (x z).
+      + rewrite Deq_C.
+        rewrite Deq_P.
+        rewrite Deq_K.
+        reflexivity.
+      + assumption.
+    - specialize (H0 _ _ H1).
+      apply Dset_respectful with (y z).
+      + rewrite Deq_C.
+        rewrite Deq_P.
+        rewrite Deq_F.
+        reflexivity.
+      + assumption.
+  Qed.
 
   Next Obligation of DsetModel.
     exists (C I K); intros.
