@@ -338,6 +338,12 @@ Section DsetModel.
     cwf_el G (A: G -> Dset) := Dmap G A;
     cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
       Dmap_fun d := e (s d)
+    |};
+    (* TODO: make a general definition for Dset pairs! *)
+    cwf_ext G (A: G -> Dset) := {|
+      Dset_carrier := { g: G & A g };
+      Dset_realization (x: D) p :=
+        let (g, e) := p in G (x K) g /\ A g (x F) e
     |}
   |}.
 
@@ -365,27 +371,56 @@ Section DsetModel.
   Qed.
 
   Next Obligation of DsetModel.
-    compute.
+    split.
+    - apply Dset_respectful with (d2 K).
+      + now rewrite H.
+      + assumption.
+    - apply Dset_respectful with (d2 F).
+      + now rewrite H.
+      + assumption.
+  Qed.
+
+  Next Obligation of DsetModel.
+    rename y into g, X into e.
+    destruct Dset_surjective with G g as (x, ?H).
+    destruct Dset_surjective with (A g) e as (y, ?H).
+    exists (P x y); split.
+    - apply Dset_respectful with x.
+      + rewrite Deq_P.
+        rewrite Deq_K.
+        reflexivity.
+      + assumption.
+    - apply Dset_respectful with y.
+      + rewrite Deq_P.
+        rewrite Deq_F.
+        reflexivity.
+      + assumption.
+  Qed.
+
+  Next Obligation of DsetModel.
     admit.
   Admitted.
 
   Next Obligation of DsetModel.
-    compute.
     admit.
   Admitted.
 
   Next Obligation of DsetModel.
-    compute; intros.
+    admit.
+  Admitted.
+
+  Next Obligation of DsetModel.
+    repeat intro.
     now rewrite H, H0.
   Qed.
 
   Next Obligation of DsetModel.
-    compute; intros.
+    repeat intro.
     reflexivity.
   Qed.
 
   Next Obligation of DsetModel.
-    compute; intros.
+    repeat intro.
     reflexivity.
   Qed.
 
