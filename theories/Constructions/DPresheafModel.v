@@ -344,6 +344,16 @@ Section DsetModel.
       Dset_carrier := { g: G & A g };
       Dset_realization (x: D) p :=
         let (g, e) := p in G (x K) g /\ A g (x F) e
+    |};
+    (* TODO: define snoc... *)
+    (* First projection. *)
+    cwf_proj G (A: G -> Dset) := {|
+      Dmap_fun p := let (g, e) := p in g
+    |};
+    (* Second projection. *)
+    cwf_zero G (A: G -> Dset) := {|
+      (* The program mode will make the conversion for us! *)
+      Dmap_fun p := let (g, e) := p in _ e
     |}
   |}.
 
@@ -402,12 +412,27 @@ Section DsetModel.
   Admitted.
 
   Next Obligation of DsetModel.
-    admit.
-  Admitted.
+    exists (C I K); intros.
+    destruct d as (g, e).
+    unfold const.
+    apply Dset_respectful with (y K).
+    - rewrite Deq_C.
+      rewrite Deq_I.
+      reflexivity.
+    - destruct H.
+      assumption.
+  Qed.
 
   Next Obligation of DsetModel.
-    admit.
-  Admitted.
+    exists (C I F); intros.
+    destruct d as (g, e); simpl.
+    apply Dset_respectful with (y F).
+    - rewrite Deq_C.
+      rewrite Deq_I.
+      reflexivity.
+    - destruct H.
+      assumption.
+  Qed.
 
   Next Obligation of DsetModel.
     repeat intro.
