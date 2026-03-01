@@ -32,8 +32,8 @@ Polymorphic Record Dset: Type := {
     CL -> Dset_carrier -> Prop;
   Dset_respectful:
     forall x1 x2,
-    CLeq x1 x2 ->
-    forall y, (* Note that CLeq is symmetric! *)
+    Combinators.conv x1 x2 ->
+    forall y, (* Note that conv is symmetric! *)
     Dset_realization x2 y -> Dset_realization x1 y;
   Dset_surjective:
     forall y: Dset_carrier,
@@ -108,7 +108,7 @@ Polymorphic Program Definition Dmap'_id (X: Dset): Dmap' X X := {|
 Obligation 1 of Dmap'_id.
   exists I; intros.
   apply Dset_respectful with y.
-  - apply CLeq_I.
+  - apply conv_I.
   - assumption.
 Qed.
 
@@ -127,7 +127,7 @@ Obligation 1 of Dmap'_post.
   exists (B x y); intros; simpl.
   rename y0 into z.
   apply Dset_respectful with (x (y z)).
-  - apply CLeq_B.
+  - apply conv_B.
   - now apply H0, H.
 Qed.
 
@@ -220,7 +220,7 @@ Section DsetModel.
     rename y0 into z.
     (* TODO: may we merge this with the postcomposition definition for DMap? *)
     apply Dset_respectful with (x (y z)).
-    - apply CLeq_B.
+    - apply conv_B.
     - apply H, H0.
       assumption.
   Qed.
@@ -241,13 +241,13 @@ Section DsetModel.
     destruct Dset_surjective with (A g) e as (y, ?H).
     exists (P x y); split.
     - apply Dset_respectful with x.
-      + rewrite CLeq_P.
-        rewrite CLeq_K.
+      + rewrite conv_P.
+        rewrite conv_K.
         reflexivity.
       + assumption.
     - apply Dset_respectful with y.
-      + rewrite CLeq_P.
-        rewrite CLeq_F.
+      + rewrite conv_P.
+        rewrite conv_F.
         reflexivity.
       + assumption.
   Qed.
@@ -260,16 +260,16 @@ Section DsetModel.
     - specialize (H _ _ H1).
       unfold const in H.
       apply Dset_respectful with (x z).
-      + rewrite CLeq_C.
-        rewrite CLeq_P.
-        rewrite CLeq_K.
+      + rewrite conv_C.
+        rewrite conv_P.
+        rewrite conv_K.
         reflexivity.
       + assumption.
     - specialize (H0 _ _ H1).
       apply Dset_respectful with (y z).
-      + rewrite CLeq_C.
-        rewrite CLeq_P.
-        rewrite CLeq_F.
+      + rewrite conv_C.
+        rewrite conv_P.
+        rewrite conv_F.
         reflexivity.
       + assumption.
   Qed.
@@ -279,8 +279,8 @@ Section DsetModel.
     destruct d as (g, e).
     unfold const.
     apply Dset_respectful with (y K).
-    - rewrite CLeq_C.
-      rewrite CLeq_I.
+    - rewrite conv_C.
+      rewrite conv_I.
       reflexivity.
     - destruct H.
       assumption.
@@ -290,8 +290,8 @@ Section DsetModel.
     exists (C I F); intros.
     destruct d as (g, e); simpl.
     apply Dset_respectful with (y F).
-    - rewrite CLeq_C.
-      rewrite CLeq_I.
+    - rewrite conv_C.
+      rewrite conv_I.
       reflexivity.
     - destruct H.
       assumption.

@@ -30,46 +30,47 @@ Definition F: CL :=
 Definition P: CL :=
   C (B B (B C (B (C I) I))) I.
 
-Inductive CLstep: relation CL :=
-  | CLstep_K:
+Inductive step: relation CL :=
+  | step_K:
     forall x y,
-    CLstep (K x y) x
-  | CLstep_S:
+    step (K x y) x
+  | step_S:
     forall x y z,
-    CLstep (S x y z) (x z (y z))
-  | CLstep_app_left:
+    step (S x y z) (x z (y z))
+  | step_app_left:
     forall x1 x2 y,
-    CLstep x1 x2 ->
-    CLstep (app x1 y) (app x2 y)
-  | CLstep_app_right:
+    step x1 x2 ->
+    step (app x1 y) (app x2 y)
+  | step_app_right:
     forall x y1 y2,
-    CLstep y1 y2 ->
-    CLstep (app x y1) (app x y2).
+    step y1 y2 ->
+    step (app x y1) (app x y2).
 
-Definition CLeq: relation CL :=
-  rst(CLstep).
+Definition conv: relation CL :=
+  rst(step).
 
-Definition CLeq_K:
+Definition conv_K:
   forall x y,
-  CLeq (K x y) x.
+  conv (K x y) x.
 Proof.
   intros.
   apply clos_rt_clos_rst.
   apply rt_step.
-  apply CLstep_K.
+  apply step_K.
 Qed.
 
-Definition CLeq_S:
+Definition conv_S:
   forall x y z,
-  CLeq (S x y z) (x z (y z)).
+  conv (S x y z) (x z (y z)).
 Proof.
   intros.
   apply clos_rt_clos_rst.
   apply rt_step.
-  apply CLstep_S.
+  apply step_S.
 Qed.
 
-Instance CLeq_equiv: Equivalence CLeq.
+Instance conv_equiv:
+  Equivalence conv.
 Proof.
   split; repeat intro.
   - apply rst_refl.
@@ -77,96 +78,96 @@ Proof.
   - now apply rst_trans with y.
 Qed.
 
-Instance CLeq_app_proper:
-  Proper (CLeq ==> CLeq ==> CLeq) app.
+Instance conv_app_proper:
+  Proper (conv ==> conv ==> conv) app.
 Proof.
   repeat intro.
   transitivity (y x0).
   - clear H0 y0.
     induction H.
     + apply rst_step.
-      now apply CLstep_app_left.
+      now apply step_app_left.
     + reflexivity.
     + now symmetry.
     + now transitivity (y x0).
   - clear H x.
     induction H0.
     + apply rst_step.
-      now apply CLstep_app_right.
+      now apply step_app_right.
     + reflexivity.
     + now symmetry.
     + now transitivity (y y0).
 Qed.
 
-Definition CLeq_I:
+Definition conv_I:
   forall x,
-  CLeq (I x) x.
+  conv (I x) x.
 Proof.
   intros.
   unfold I.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
+  rewrite conv_S.
+  rewrite conv_K.
   reflexivity.
 Qed.
 
-Definition CLeq_B:
+Definition conv_B:
   forall x y z,
-  CLeq (B x y z) (x (y z)).
+  conv (B x y z) (x (y z)).
 Proof.
   intros.
   unfold B.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
+  rewrite conv_S.
+  rewrite conv_K.
+  rewrite conv_S.
+  rewrite conv_K.
   reflexivity.
 Qed.
 
-Definition CLeq_C:
+Definition conv_C:
   forall x y z,
-  CLeq (C x y z) (x z y).
+  conv (C x y z) (x z y).
 Proof.
   intros.
   unfold C.
-  rewrite CLeq_S.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
-  rewrite CLeq_K.
+  rewrite conv_S.
+  rewrite conv_S.
+  rewrite conv_K.
+  rewrite conv_S.
+  rewrite conv_K.
+  rewrite conv_S.
+  rewrite conv_K.
+  rewrite conv_S.
+  rewrite conv_K.
+  rewrite conv_K.
   reflexivity.
 Qed.
 
-Definition CLeq_F:
+Definition conv_F:
   forall x y,
-  CLeq (F x y) y.
+  conv (F x y) y.
 Proof.
   intros.
   unfold F.
-  rewrite CLeq_S.
-  rewrite CLeq_K.
+  rewrite conv_S.
+  rewrite conv_K.
   reflexivity.
 Qed.
 
-Definition CLeq_P:
+Definition conv_P:
   forall x y f,
-  CLeq (P x y f) (f x y).
+  conv (P x y f) (f x y).
 Proof.
   intros.
   unfold P.
-  rewrite CLeq_C.
-  rewrite CLeq_B.
-  rewrite CLeq_B.
-  rewrite CLeq_B.
-  rewrite CLeq_C.
-  rewrite CLeq_B.
-  rewrite CLeq_C.
-  rewrite CLeq_I.
-  rewrite CLeq_I.
-  rewrite CLeq_I.
+  rewrite conv_C.
+  rewrite conv_B.
+  rewrite conv_B.
+  rewrite conv_B.
+  rewrite conv_C.
+  rewrite conv_B.
+  rewrite conv_C.
+  rewrite conv_I.
+  rewrite conv_I.
+  rewrite conv_I.
   reflexivity.
 Qed.
