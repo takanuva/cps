@@ -48,6 +48,7 @@ theories/Pi/Graph.v
 theories/Pi/Calculus.v
 theories/Pi/Control.v
 theories/Pi/Interpretation.v
+theories/Combinators.v
 theories/Constructions/Calculus.v
 theories/Constructions/Conversion.v
 theories/Constructions/Cumulativity.v
