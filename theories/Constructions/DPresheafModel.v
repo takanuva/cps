@@ -484,86 +484,90 @@ Section DPresheaf.
 
   Local Definition DPresheaf: Type := Functor (opposite C) Dset.
 
-  (* TODO: move these definitions to the [Category.v] file. *)
-
-  Section Elements.
-
-    Variable G: DPresheaf.
-
-    (* The category of elements of G, a presheaf over C, has, as objects, pairs
-       of an object X of C and an element r of the set G(X). Then, for every
-       morphism f in C from Y to X, and for every element r of G(X), it has a
-       morphism from (X, r) to (Y, G(f)(r)); i.e., the morphisms are technically
-       pairs of an inner morphism in C^op and a proof about the relation between
-       the respective sets (in the second projection). *)
-
-    Record elem: Type := elem_mk {
-      elem_obj: opposite C;
-      elem_set: G elem_obj
-    }.
-
-    Record elem_hom (x: elem) (y: elem): Type := elem_hom_mk {
-      elem_hom_morphism: opposite C (elem_obj x) (elem_obj y);
-      elem_hom_coherence: elem_set y = fmap G elem_hom_morphism (elem_set x)
-    }.
-
-    Local Coercion elem_hom_morphism: elem_hom >-> carrier.
-
-    Program Definition ElemHomSetoid e f: Setoid := {|
-      carrier := elem_hom e f;
-      (* We use the Dset morphism definition of equality for the inner map. *)
-      equiv := equiv
-    |}.
-
-    Next Obligation.
-      split; repeat intro.
-      - reflexivity.
-      - now symmetry.
-      - now transitivity (elem_hom_morphism e f y).
-    Qed.
-
-    Local Canonical Structure ElemHomSetoid.
-
-    Program Definition ElementsCategory: Category := {|
-      obj := elem;
-      hom e f := elem_hom e f;
-      id x := elem_hom_mk x x id _;
-      post x y z f g := elem_hom_mk x z (post f g) _
-    |}.
-
-    Next Obligation.
-      rewrite (fmap_id _ _ G); simpl.
-      reflexivity.
-    Qed.
-
-    Next Obligation.
-      destruct x as (x, r).
-      destruct y as (y, s).
-      destruct z as (z, t).
-      destruct f as (f, ?H); simpl in *.
-      destruct g as (g, ?H); simpl in *.
-      change (post g f) with (post (c := opposite C) f g).
-      rewrite (fmap_comp _ _ G); simpl.
-      subst; reflexivity.
-    Qed.
-
-    Next Obligation.
-      repeat intro; simpl.
-      now rewrite H, H0.
-    Qed.
-
-    Next Obligation.
-      now rewrite post_id_right.
-    Qed.
-
-    Next Obligation.
-      now rewrite post_id_left.
-    Qed.
-
-    Next Obligation.
-      now rewrite post_assoc.
-    Qed.
-
-  End Elements.
-
 End DPresheaf.
+
+(* TODO: move these definitions to the [Category.v] file. *)
+
+Section Elements.
+
+  Variable C: Category.
+
+  (* TODO: use any kind of presheaf! *)
+
+  Variable G: DPresheaf C.
+
+  (* The category of elements of G, a presheaf over C, has, as objects, pairs
+     of an object X of C and an element r of the set G(X). Then, for every
+     morphism f in C from Y to X, and for every element r of G(X), it has a
+     morphism from (X, r) to (Y, G(f)(r)); i.e., the morphisms are technically
+     pairs of an inner morphism in C^op and a proof about the relation between
+     the respective sets (in the second projection). *)
+
+  Record elem: Type := elem_mk {
+    elem_obj: opposite C;
+    elem_set: G elem_obj
+  }.
+
+  Record elem_hom (x: elem) (y: elem): Type := elem_hom_mk {
+    elem_hom_morphism: opposite C (elem_obj x) (elem_obj y);
+    elem_hom_coherence: elem_set y = fmap G elem_hom_morphism (elem_set x)
+  }.
+
+  Local Coercion elem_hom_morphism: elem_hom >-> carrier.
+
+  Program Definition ElemHomSetoid e f: Setoid := {|
+    carrier := elem_hom e f;
+    (* We use the Dset morphism definition of equality for the inner map. *)
+    equiv := equiv
+  |}.
+
+  Next Obligation.
+    split; repeat intro.
+    - reflexivity.
+    - now symmetry.
+    - now transitivity (elem_hom_morphism e f y).
+  Qed.
+
+  Local Canonical Structure ElemHomSetoid.
+
+  Program Definition ElementsCategory: Category := {|
+    obj := elem;
+    hom e f := elem_hom e f;
+    id x := elem_hom_mk x x id _;
+    post x y z f g := elem_hom_mk x z (post f g) _
+  |}.
+
+  Next Obligation.
+    rewrite (fmap_id _ _ G); simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation.
+    destruct x as (x, r).
+    destruct y as (y, s).
+    destruct z as (z, t).
+    destruct f as (f, ?H); simpl in *.
+    destruct g as (g, ?H); simpl in *.
+    change (post g f) with (post (c := opposite C) f g).
+    rewrite (fmap_comp _ _ G); simpl.
+    subst; reflexivity.
+  Qed.
+
+  Next Obligation.
+    repeat intro; simpl.
+    now rewrite H, H0.
+  Qed.
+
+  Next Obligation.
+    now rewrite post_id_right.
+  Qed.
+
+  Next Obligation.
+    now rewrite post_id_left.
+  Qed.
+
+  Next Obligation.
+    now rewrite post_assoc.
+  Qed.
+
+End Elements.
