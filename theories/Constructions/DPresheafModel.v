@@ -16,69 +16,68 @@ Require Import Local.Constructions.Inversion.
 
 Set Primitive Projections.
 
-Inductive D: Set :=
-  | K: D
-  | S: D
-  | app: D -> D -> D.
+Inductive CL: Set :=
+  | K: CL
+  | S: CL
+  | app: CL -> CL -> CL.
 
-Local Coercion app: D >-> Funclass.
+Local Coercion app: CL >-> Funclass.
 
-Local Definition I: D :=
+Local Definition I: CL :=
   S K K.
 
-Local Definition B: D :=
+Local Definition B: CL :=
   S (K S) K.
 
-Local Definition C: D :=
+Local Definition C: CL :=
   S (S (K (S (K S) K)) S) (K K).
 
-Local Definition F: D :=
+Local Definition F: CL :=
   S K.
 
-Local Definition P: D :=
-  (* Perhaps shockingly, (fun x y f => f x y) becomes this. *)
+Local Definition P: CL :=
   C (B B (B C (B (C I) I))) I.
 
-Inductive Dstep: relation D :=
-  | Dstep_K:
+Inductive CLstep: relation CL :=
+  | CLstep_K:
     forall x y,
-    Dstep (K x y) x
-  | Dstep_S:
+    CLstep (K x y) x
+  | CLstep_S:
     forall x y z,
-    Dstep (S x y z) (x z (y z))
-  | Dstep_app_left:
+    CLstep (S x y z) (x z (y z))
+  | CLstep_app_left:
     forall x1 x2 y,
-    Dstep x1 x2 ->
-    Dstep (x1 y) (x2 y)
-  | Dstep_app_right:
-    forall (x: D) y1 y2,
-    Dstep y1 y2 ->
-    Dstep (x y1) (x y2).
+    CLstep x1 x2 ->
+    CLstep (app x1 y) (app x2 y)
+  | CLstep_app_right:
+    forall x y1 y2,
+    CLstep y1 y2 ->
+    CLstep (app x y1) (app x y2).
 
-Definition Deq: relation D :=
-  rst(Dstep).
+Definition CLeq: relation CL :=
+  rst(CLstep).
 
-Definition Deq_K:
+Definition CLeq_K:
   forall x y,
-  Deq (K x y) x.
+  CLeq (K x y) x.
 Proof.
   intros.
   apply clos_rt_clos_rst.
   apply rt_step.
-  apply Dstep_K.
+  apply CLstep_K.
 Qed.
 
-Definition Deq_S:
+Definition CLeq_S:
   forall x y z,
-  Deq (S x y z) (x z (y z)).
+  CLeq (S x y z) (x z (y z)).
 Proof.
   intros.
   apply clos_rt_clos_rst.
   apply rt_step.
-  apply Dstep_S.
+  apply CLstep_S.
 Qed.
 
-Local Instance Deq_equiv: Equivalence Deq.
+Local Instance CLeq_equiv: Equivalence CLeq.
 Proof.
   split; repeat intro.
   - apply rst_refl.
@@ -86,103 +85,104 @@ Proof.
   - now apply rst_trans with y.
 Qed.
 
-Local Instance Deq_app_proper:
-  Proper (Deq ==> Deq ==> Deq) app.
+Local Instance CLeq_app_proper:
+  Proper (CLeq ==> CLeq ==> CLeq) app.
 Proof.
   repeat intro.
   transitivity (y x0).
   - clear H0 y0.
     induction H.
     + apply rst_step.
-      now apply Dstep_app_left.
+      now apply CLstep_app_left.
     + reflexivity.
     + now symmetry.
     + now transitivity (y x0).
   - clear H x.
     induction H0.
     + apply rst_step.
-      now apply Dstep_app_right.
+      now apply CLstep_app_right.
     + reflexivity.
     + now symmetry.
     + now transitivity (y y0).
 Qed.
 
-Definition Deq_I:
+Definition CLeq_I:
   forall x,
-  Deq (I x) x.
+  CLeq (I x) x.
 Proof.
   intros.
   unfold I.
-  rewrite Deq_S.
-  rewrite Deq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
   reflexivity.
 Qed.
 
-Definition Deq_B:
+Definition CLeq_B:
   forall x y z,
-  Deq (B x y z) (x (y z)).
+  CLeq (B x y z) (x (y z)).
 Proof.
   intros.
   unfold B.
-  rewrite Deq_S.
-  rewrite Deq_K.
-  rewrite Deq_S.
-  rewrite Deq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
   reflexivity.
 Qed.
 
-Definition Deq_C:
+Definition CLeq_C:
   forall x y z,
-  Deq (C x y z) (x z y).
+  CLeq (C x y z) (x z y).
 Proof.
   intros.
   unfold C.
-  rewrite Deq_S.
-  rewrite Deq_S.
-  rewrite Deq_K.
-  rewrite Deq_S.
-  rewrite Deq_K.
-  rewrite Deq_S.
-  rewrite Deq_K.
-  rewrite Deq_S.
-  rewrite Deq_K.
-  rewrite Deq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
+  rewrite CLeq_K.
   reflexivity.
 Qed.
 
-Definition Deq_F:
+Definition CLeq_F:
   forall x y,
-  Deq (F x y) y.
+  CLeq (F x y) y.
 Proof.
   intros.
   unfold F.
-  rewrite Deq_S.
-  rewrite Deq_K.
+  rewrite CLeq_S.
+  rewrite CLeq_K.
   reflexivity.
 Qed.
 
-Definition Deq_P:
+Definition CLeq_P:
   forall x y f,
-  Deq (P x y f) (f x y).
+  CLeq (P x y f) (f x y).
 Proof.
   intros.
   unfold P.
-  rewrite Deq_C.
-  rewrite Deq_B.
-  rewrite Deq_B.
-  rewrite Deq_B.
-  rewrite Deq_C.
-  rewrite Deq_B.
-  rewrite Deq_C.
-  rewrite Deq_I.
-  rewrite Deq_I.
-  rewrite Deq_I.
+  rewrite CLeq_C.
+  rewrite CLeq_B.
+  rewrite CLeq_B.
+  rewrite CLeq_B.
+  rewrite CLeq_C.
+  rewrite CLeq_B.
+  rewrite CLeq_C.
+  rewrite CLeq_I.
+  rewrite CLeq_I.
+  rewrite CLeq_I.
   reflexivity.
 Qed.
 
-(* A D-set is a pair (G, R) such that:
+(* Given some partial combinatory algebra D, which in here we specialize for the
+   plain SK combinatory logic, a D-set is a pair (G, R) such that:
    - G is a type that represents a context (the carrier type);
-   - R is a relation between D and G that specifies that an element x of D
+   - R is a relation between D and G that specifies whether an element x of D
      realizes the context g in G;
    - R is respectful of D's inner structure, so x R g <-> y R g when x == y;
    - R is surjective, such that for every g in G, there is at least one x in D
@@ -191,22 +191,25 @@ Qed.
 Polymorphic Record Dset: Type := {
   Dset_carrier :> Type;
   Dset_realization:
-    D -> Dset_carrier -> Prop;
+    CL -> Dset_carrier -> Prop;
   Dset_respectful:
-    forall d1 d2,
-    Deq d1 d2 ->
-    forall x, (* Note that Deq is symmetric! *)
-    Dset_realization d2 x -> Dset_realization d1 x;
+    forall x1 x2,
+    CLeq x1 x2 ->
+    forall y, (* Note that CLeq is symmetric! *)
+    Dset_realization x2 y -> Dset_realization x1 y;
   Dset_surjective:
     forall y: Dset_carrier,
-    exists x: D,
+    exists x: CL,
     Dset_realization x y
 }.
 
+(* We associate the Dset object to the realization relation for convenience. *)
+
 Local Coercion Dset_realization: Dset >-> Funclass.
 
-(* We define an operation to lift an arbitrary type into a Dset by taking the
-   full relation as it's relation; i.e., any element x realizes contexts. *)
+(* We define an operation to lift an arbitrary type into a D-set by taking the
+   full relation as it's realization (thus we don't care about the computational
+   content); i.e., any element x realizes contexts. *)
 
 Polymorphic Program Definition Delta (A: Type): Dset := {|
   Dset_carrier := A;
@@ -218,10 +221,11 @@ Next Obligation of Delta.
   exists I; trivial.
 Qed.
 
-(* A mapping between Dset D and D-indexed family of Dsets G is a function f
-   between their carrier types such that there is some combinator x where, for
-   any element d of D, and for any realizer y such y realizes d in D, then (x y)
-   realizes (f d) in G d. *)
+(* A mapping between D-set D and D-indexed family of D-sets G, called D-map, is
+   a function f between their carrier types such that there is some combinator x
+   where, for any element d of D, and for any realizer y such y realizes d in D,
+   then x y realizes f d in G d. We call those D-maps here; Streicher calls them
+   D-functions or realizable morphisms. *)
 
 Polymorphic Record Dmap (D: Dset) (G: D -> Dset): Type := {
   Dmap_fun: forall d: D, G d;
@@ -252,7 +256,7 @@ Qed.
 
 Global Canonical Structure DmapSetoid.
 
-(* We will often want maps from Dsets into simple Dsets rather than into Dset
+(* We will often want maps from D-sets into simple D-sets rather than into D-set
    families, so we add an abbreviation for these. *)
 
 Polymorphic Definition Dmap' (D: Dset) (G: Dset) := Dmap D (const G).
@@ -266,11 +270,11 @@ Polymorphic Program Definition Dmap'_id (X: Dset): Dmap' X X := {|
 Obligation 1 of Dmap'_id.
   exists I; intros.
   apply Dset_respectful with y.
-  - apply Deq_I.
+  - apply CLeq_I.
   - assumption.
 Qed.
 
-(* Of course, we may compose Dmaps using composition of their functions, which
+(* Of course, we may compose D-maps using composition of their functions, which
    respects the proper conditions. *)
 
 Polymorphic Program Definition Dmap'_post X Y Z (M: Dmap' X Y) (N: Dmap' Y Z):
@@ -285,11 +289,11 @@ Obligation 1 of Dmap'_post.
   exists (B x y); intros; simpl.
   rename y0 into z.
   apply Dset_respectful with (x (y z)).
-  - apply Deq_B.
+  - apply CLeq_B.
   - now apply H0, H.
 Qed.
 
-(* Dsets and Dmaps form a category. *)
+(* As required, D-sets and D-maps form a category. *)
 
 Polymorphic Program Definition DsetCategory: Category := {|
   obj := Dset;
@@ -345,7 +349,7 @@ Section DsetModel.
     |};
     cwf_ext G (A: G -> Dset) := {|
       Dset_carrier := { g: G & A g };
-      Dset_realization (x: D) p :=
+      Dset_realization (x: CL) p :=
         let (g, e) := p in G (x K) g /\ A g (x F) e
     |};
     (* TODO: define snoc... *)
@@ -378,17 +382,17 @@ Section DsetModel.
     rename y0 into z.
     (* TODO: may we merge this with the postcomposition definition for DMap? *)
     apply Dset_respectful with (x (y z)).
-    - apply Deq_B.
+    - apply CLeq_B.
     - apply H, H0.
       assumption.
   Qed.
 
   Next Obligation of DsetModel.
     split.
-    - apply Dset_respectful with (d2 K).
+    - apply Dset_respectful with (x2 K).
       + now rewrite H.
       + assumption.
-    - apply Dset_respectful with (d2 F).
+    - apply Dset_respectful with (x2 F).
       + now rewrite H.
       + assumption.
   Qed.
@@ -399,13 +403,13 @@ Section DsetModel.
     destruct Dset_surjective with (A g) e as (y, ?H).
     exists (P x y); split.
     - apply Dset_respectful with x.
-      + rewrite Deq_P.
-        rewrite Deq_K.
+      + rewrite CLeq_P.
+        rewrite CLeq_K.
         reflexivity.
       + assumption.
     - apply Dset_respectful with y.
-      + rewrite Deq_P.
-        rewrite Deq_F.
+      + rewrite CLeq_P.
+        rewrite CLeq_F.
         reflexivity.
       + assumption.
   Qed.
@@ -418,16 +422,16 @@ Section DsetModel.
     - specialize (H _ _ H1).
       unfold const in H.
       apply Dset_respectful with (x z).
-      + rewrite Deq_C.
-        rewrite Deq_P.
-        rewrite Deq_K.
+      + rewrite CLeq_C.
+        rewrite CLeq_P.
+        rewrite CLeq_K.
         reflexivity.
       + assumption.
     - specialize (H0 _ _ H1).
       apply Dset_respectful with (y z).
-      + rewrite Deq_C.
-        rewrite Deq_P.
-        rewrite Deq_F.
+      + rewrite CLeq_C.
+        rewrite CLeq_P.
+        rewrite CLeq_F.
         reflexivity.
       + assumption.
   Qed.
@@ -437,8 +441,8 @@ Section DsetModel.
     destruct d as (g, e).
     unfold const.
     apply Dset_respectful with (y K).
-    - rewrite Deq_C.
-      rewrite Deq_I.
+    - rewrite CLeq_C.
+      rewrite CLeq_I.
       reflexivity.
     - destruct H.
       assumption.
@@ -448,8 +452,8 @@ Section DsetModel.
     exists (C I F); intros.
     destruct d as (g, e); simpl.
     apply Dset_respectful with (y F).
-    - rewrite Deq_C.
-      rewrite Deq_I.
+    - rewrite CLeq_C.
+      rewrite CLeq_I.
       reflexivity.
     - destruct H.
       assumption.
