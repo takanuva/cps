@@ -320,7 +320,70 @@ Section DPresheaf.
 
   Variable C: Category.
 
-  Local Definition DPresheaf: Type := Functor (opposite C) Dset.
+  Local Definition Dpresheaf: Type := Functor (opposite C) Dset.
+
+  (* We'll define this as in the thesis for now; some definitions look like they
+     may be simplified later. *)
+
+  Program Definition DpresheafModel: CwF := {|
+    cwf_cat := Dpresheaf;
+    cwf_empty := {|
+      terminal := {|
+        mapping (X: opposite C) := terminal _ (cwf_empty DsetModel);
+        fmap (X: opposite C) (Y: opposite C) := {|
+          setoid_fun (f: opposite C X Y) := {|
+            Dmap_fun (Z: Delta ()) := Z
+          |}
+        |}
+      |};
+      terminal_hom (X: Dpresheaf) := {|
+        transformation (Y: opposite C) :=
+          terminal_hom Dset (cwf_empty DsetModel) (X Y)
+      |}
+    |};
+    cwf_ty (G: Dpresheaf) := _;
+    cwf_tsub (G: Dpresheaf) (D: Dpresheaf) (s: NaturalTransformation D G)
+      (A: _) := _;
+  |}.
+
+  Next Obligation of DpresheafModel.
+    exists I; intros.
+    assumption.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    intro; simpl.
+    rename X0 into Y.
+    remember (f Y x) as u.
+    now destruct u.
+  Qed.
+
+  Admit Obligations.
 
 End DPresheaf.
 
@@ -332,7 +395,7 @@ Section Elements.
 
   (* TODO: use any kind of presheaf! *)
 
-  Variable G: DPresheaf C.
+  Variable G: Dpresheaf C.
 
   (* The category of elements of G, a presheaf over C, has, as objects, pairs
      of an object X of C and an element r of the set G(X). Then, for every
@@ -355,7 +418,7 @@ Section Elements.
 
   Program Definition ElemHomSetoid e f: Setoid := {|
     carrier := elem_hom e f;
-    (* We use the Dset morphism definition of equality for the inner map. *)
+    (* We use the D-set morphism definition of equality for the inner map. *)
     equiv := equiv
   |}.
 
