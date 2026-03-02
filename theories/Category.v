@@ -307,6 +307,8 @@ Next Obligation of SetoidSetoid.
       assumption.
 Qed.
 
+Global Canonical Structure SetoidSetoid.
+
 (* As usual, we define functors from categories C and D as structure-preserving
    morphisms. So we keep to functions: one for converting objects from C to D,
    and one for converting morphisms from C to D, which respects the categorical
@@ -587,8 +589,8 @@ Polymorphic Structure CwF: Type := {
   cwf_zero {G A}:
     cwf_el (cwf_ext G A) (cwf_tsub cwf_proj A);
   (* ... *)
-  (* cwf_el_respectful {G}:
-    Proper (equiv ==> eq) (@cwf_el G); *)
+  cwf_el_respectful {G}:
+    Proper (equiv ==> equiv) (@cwf_el G);
   cwf_tsub_respectful {G D}:
     Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
   cwf_tsub_id {G}:

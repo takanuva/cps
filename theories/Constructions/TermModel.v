@@ -335,6 +335,16 @@ Next Obligation of TermModel.
   - now sigma.
 Qed.
 
+(* ... *)
+
+Next Obligation of TermModel.
+  repeat intro.
+  constructor.
+  admit.
+Admitted.
+
+(* ... *)
+
 Next Obligation of TermModel.
   repeat intro; simpl.
   destruct G as (g, ?H); simpl.
