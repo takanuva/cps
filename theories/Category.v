@@ -537,12 +537,6 @@ Polymorphic Structure CwF: Type := {
   (* ... *)
   cwf_tsub_respectful {G D}:
     Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
-  (* TODO: we need to check that esub is respectful, but that is a form of
-     heterogeneous equality; figure it out how to do that later, please? *)
-  (* TODO: should cwf_ext be respectful? Cause it doesn't make much sense that
-     there would be an isomorphism between the resulting contexts afterwards, as
-     morphisms are meant to be substitutions! *)
-  (* TODO: show that snoc, proj and zero need to be respectful. *)
   cwf_tsub_id {G}:
     forall A: cwf_ty G,
     cwf_tsub id A == A;
@@ -551,8 +545,14 @@ Polymorphic Structure CwF: Type := {
     forall r: cwf_sub E D,
     forall A: cwf_ty G,
     cwf_tsub (post r s) A == cwf_tsub r (cwf_tsub s A);
+  (* TODO: we need to check that esub is respectful, but that is a form of
+     heterogeneous equality; figure it out how to do that later, please? *)
   (* TODO: cwf_esub_id, same reason... *)
   (* TODO: cwf_esub_comp, same reason... *)
+  (* TODO: should cwf_ext be respectful? Cause it doesn't make much sense that
+     there would be an isomorphism between the resulting contexts afterwards, as
+     morphisms are meant to be substitutions! *)
+  (* TODO: show that snoc, proj and zero need to be respectful. *)
   (* TODO: law for p o (a, s) = s *)
   (* TODO: law for q[a, s] = a *)
   (* TODO: law for (a, s) o r = (a[r], s o r) *)
