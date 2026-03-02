@@ -255,6 +255,58 @@ Qed.
 
 Global Canonical Structure SetoidCategory.
 
+(* ... *)
+
+Polymorphic Section Isomorphism.
+
+  Variable C: Category.
+
+  Polymorphic Structure Isomorphism (X: C) (Y: C): Type := {
+    iso_to: C X Y;
+    iso_from: C Y X;
+    iso_to_from: post iso_to iso_from == id;
+    iso_from_to: post iso_from iso_to == id;
+  }.
+
+End Isomorphism.
+
+(* ... *)
+
+Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
+  carrier := Setoid;
+  (* We ignore the computational content of the isomorphism! *)
+  equiv S T := inhabited (Isomorphism Setoid S T)
+|}.
+
+Next Obligation of SetoidSetoid.
+  split; repeat intro.
+  - constructor.
+    apply Build_Isomorphism with id id.
+    + now rewrite post_id_left.
+    + now rewrite post_id_left.
+  - destruct H.
+    destruct X as (f, g, ?H, ?H).
+    constructor.
+    apply Build_Isomorphism with g f.
+    + assumption.
+    + assumption.
+  - destruct H, H0.
+    destruct X as (f1, g1, ?H, ?H).
+    destruct X0 as (f2, g2, ?H, ?H).
+    constructor.
+    apply Build_Isomorphism with (post f1 f2) (post g2 g1).
+    + rewrite <- post_assoc.
+      rewrite post_assoc with (f := f2).
+      rewrite H1.
+      rewrite post_id_left.
+      assumption.
+    + rewrite <- post_assoc.
+      rewrite post_assoc with (f := g1).
+      rewrite H0.
+      rewrite post_id_left.
+      assumption.
+Qed.
+
 (* As usual, we define functors from categories C and D as structure-preserving
    morphisms. So we keep to functions: one for converting objects from C to D,
    and one for converting morphisms from C to D, which respects the categorical
@@ -535,6 +587,8 @@ Polymorphic Structure CwF: Type := {
   cwf_zero {G A}:
     cwf_el (cwf_ext G A) (cwf_tsub cwf_proj A);
   (* ... *)
+  (* cwf_el_respectful {G}:
+    Proper (equiv ==> eq) (@cwf_el G); *)
   cwf_tsub_respectful {G D}:
     Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
   cwf_tsub_id {G}:
