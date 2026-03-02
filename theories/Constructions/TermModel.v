@@ -17,10 +17,9 @@ Require Import Local.Constructions.Inversion.
 Import ListNotations.
 
 (* We build here the term model (which is also the initial model) for our type
-   theory. It is a category with family such that contexts (i.e., environments),
-   substitutions, types and elements (i.e., terms) are well-typed syntactic
-   objects. To build this model, we will consider our canonical notion of
-   equality.
+   theory. It is a category with families such that contexts (environments),
+   substitutions, types and elements (terms) are well-typed syntactic objects.
+   To build this model, we will consider our canonical notion of equality.
 
    Let us be honest, I don't really care about proving that this model is indeed
    initial, so please bear with me. I'm very tired. :( *)
@@ -60,7 +59,7 @@ Program Definition WelltypedSubstSetoid g d: Setoid := {|
 
 Obligation 1 of WelltypedSubstSetoid.
   (* This is indeed true, but unfortunately the sigma library gives us an
-     incorrect notion of equality; gotta fix that. *)
+     incorrect notion of equality; gotta fix that. Eventually. *)
   admit.
 Admitted.
 
@@ -126,7 +125,8 @@ Global Canonical Structure TermCategory.
 (* We do have a terminal object in this category: the empty environment. Any
    morphism from G to [] is indeed unique, extensionally: it is necessarily the
    substitution (subst_lift (length G)). However, to get it typed with the plain
-   sigma-calculus operators, we define it as the composition of shifting.
+   sigma-calculus operators, we define it as the composition of shifting through
+   iteration.
 
    TODO: move the iterate function? Maybe? *)
 
@@ -251,13 +251,13 @@ Program Definition TermModel: CwF := {|
 
 (* The empty context is well-typed. *)
 
-Obligation 1 of TermModel.
+Next Obligation of TermModel.
   constructor.
 Qed.
 
 (* The terminal substitution is well-typed. *)
 
-Obligation 2 of TermModel.
+Next Obligation of TermModel.
   destruct x as (g, ?H); simpl.
   induction g; simpl.
   - do 2 constructor.
@@ -275,7 +275,7 @@ Admitted.
 
 (* The terminal substitution is unique. *)
 
-Obligation 3 of TermModel.
+Next Obligation of TermModel.
   destruct X as (g, ?H).
   destruct f as (s, ?H).
   compute in H0.
@@ -285,7 +285,7 @@ Qed.
 
 (* Instantiation of well-typed substitution and type is well-typed too. *)
 
-Obligation 4 of TermModel.
+Next Obligation of TermModel.
   destruct s as (s, ?H); simpl.
   destruct t as (t, (u, ?H)); simpl.
   (* As sorts are stable under substitution... *)
@@ -295,7 +295,7 @@ Qed.
 
 (* Instantiation of well-typed substitution and term is well-typed too. *)
 
-Obligation 5 of TermModel.
+Next Obligation of TermModel.
   destruct s as (s, ?H); simpl.
   destruct t as (e, ?H); simpl.
   now apply typing_inst with (`G).
@@ -303,14 +303,14 @@ Qed.
 
 (* Environment extension with well-typed type is well-typed. *)
 
-Obligation 6 of TermModel.
+Next Obligation of TermModel.
   destruct A as (t, (s, ?H)); simpl.
   now apply valid_env_var with s.
 Qed.
 
 (* Consing a well-typed term and a well-typed substitution is well-typed. *)
 
-Obligation 7 of TermModel.
+Next Obligation of TermModel.
   destruct s as (s, ?H); simpl.
   destruct t as (t, (u, ?H)); simpl.
   destruct e as (e, ?H); simpl.
@@ -320,14 +320,14 @@ Qed.
 
 (* The shift substitution is well-typed. *)
 
-Obligation 8 of TermModel.
+Next Obligation of TermModel.
   destruct A as (t, (u, ?H)); simpl.
   now apply valid_subst_lift with u.
 Qed.
 
 (* The variable zero is well-typed, given a well-typed environment. *)
 
-Obligation 9 of TermModel.
+Next Obligation of TermModel.
   destruct A as (t, (u, ?H)); simpl.
   apply typing_var with t.
   - now apply valid_env_var with u.
@@ -335,4 +335,20 @@ Obligation 9 of TermModel.
   - now sigma.
 Qed.
 
-Admit Obligations.
+Next Obligation of TermModel.
+  repeat intro; simpl.
+  destruct G as (g, ?H); simpl.
+  destruct D as (d, ?H); simpl.
+  compute in *.
+  admit.
+Admitted.
+
+Next Obligation of TermModel.
+  compute.
+  admit.
+Admitted.
+
+Next Obligation of TermModel.
+  compute.
+  admit.
+Admitted.
