@@ -5,12 +5,15 @@
 Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 
 Inductive CL: Set :=
+  | bound (n: nat)
   | K: CL
   | S: CL
   | app: CL -> CL -> CL.
 
+Coercion bound: nat >-> CL.
 Coercion app: CL >-> Funclass.
 
 Definition I: CL :=
@@ -168,4 +171,44 @@ Proof.
   rewrite conv_I.
   rewrite conv_I.
   reflexivity.
+Qed.
+
+Fixpoint cl_traverse (f: nat -> nat -> CL) (k: nat) (e: CL): CL :=
+  match e with
+  | bound n =>
+    f k n
+  | S =>
+    S
+  | K =>
+    K
+  | app e1 e2 =>
+    app (cl_traverse f k e1) (cl_traverse f k e2)
+  end.
+
+Global Instance cl_dbVar: dbVar CL :=
+  bound.
+
+Global Instance cl_dbTraverse: dbTraverse CL CL :=
+  cl_traverse.
+
+Global Instance cl_dbVarLaws: dbVarLaws CL.
+Proof.
+  split; intros.
+  reflexivity.
+Qed.
+
+Global Instance cl_dbTraverseLaws: dbTraverseLaws CL CL.
+Proof.
+  split; intros.
+  - unfold traverse, cl_dbTraverse.
+    induction x; simpl; eauto.
+    congruence.
+  - apply (H k (bound n)).
+  - unfold traverse, cl_dbTraverse.
+    induction x; simpl; eauto.
+    + apply (H 0 n).
+    + congruence.
+  - unfold traverse, cl_dbTraverse.
+    induction x; simpl; eauto.
+    congruence.
 Qed.
