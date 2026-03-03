@@ -2,6 +2,8 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Arith.
+Require Import Program.
 Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
@@ -9,8 +11,8 @@ Require Import Local.Substitution.
 
 Inductive CL: Set :=
   | bound (n: nat)
-  | K: CL
   | S: CL
+  | K: CL
   | app: CL -> CL -> CL.
 
 Coercion bound: nat >-> CL.
@@ -32,12 +34,12 @@ Definition P: CL :=
   C (B B (B C (B (C I) I))) I.
 
 Inductive step: relation CL :=
-  | step_K:
-    forall x y,
-    step (K x y) x
   | step_S:
     forall x y z,
     step (S x y z) (x z (y z))
+  | step_K:
+    forall x y,
+    step (K x y) x
   | step_app_left:
     forall x1 x2 y,
     step x1 x2 ->
@@ -50,16 +52,6 @@ Inductive step: relation CL :=
 Definition conv: relation CL :=
   rst(step).
 
-Definition conv_K:
-  forall x y,
-  conv (K x y) x.
-Proof.
-  intros.
-  apply clos_rt_clos_rst.
-  apply rt_step.
-  apply step_K.
-Qed.
-
 Definition conv_S:
   forall x y z,
   conv (S x y z) (x z (y z)).
@@ -68,6 +60,16 @@ Proof.
   apply clos_rt_clos_rst.
   apply rt_step.
   apply step_S.
+Qed.
+
+Definition conv_K:
+  forall x y,
+  conv (K x y) x.
+Proof.
+  intros.
+  apply clos_rt_clos_rst.
+  apply rt_step.
+  apply step_K.
 Qed.
 
 Instance conv_equiv:
@@ -212,3 +214,81 @@ Proof.
     induction x; simpl; eauto.
     congruence.
 Qed.
+
+Inductive not_free: nat -> CL -> Prop :=
+  | not_free_bound:
+    forall n m,
+    n <> m -> not_free n m
+  | not_free_S:
+    forall n,
+    not_free n S
+  | not_free_K:
+    forall n,
+    not_free n K
+  | not_free_app:
+    forall n e f,
+    not_free n e ->
+    not_free n f ->
+    not_free n (e f).
+
+Definition free n e: Prop :=
+  ~not_free n e.
+
+(* TODO: check if this name is consistent with the remaining of the codebase,
+   cause I don't remember it now. *)
+
+Program Fixpoint free_not_free_dec n e: { free n e } + { not_free n e } :=
+  match e with
+  | bound m =>
+    if Nat.eq_dec n m then
+      left _
+    else
+      right _
+  | S =>
+    right _
+  | K =>
+    right _
+  | app f g =>
+    if free_not_free_dec n f then
+      left _
+    else
+      if free_not_free_dec n g then
+        left _
+      else
+        right _
+  end.
+
+Next Obligation of free_not_free_dec.
+  inversion 1; subst.
+  contradiction.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  now constructor.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  constructor.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  constructor.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  intro.
+  inversion H; subst.
+  now apply f0.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  intro.
+  inversion H; subst.
+  now apply f0.
+Qed.
+
+Next Obligation of free_not_free_dec.
+  now constructor.
+Qed.
+
+(* TODO: bracket abstraction, just for fun, then define P and F with it. *)
