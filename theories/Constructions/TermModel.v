@@ -241,7 +241,9 @@ Program Definition TermModel: CwF := {|
   |};
   cwf_ty := welltyped_type;
   cwf_tsub G D s t := inst (`s) (`t);
-  cwf_el := welltyped_term;
+  cwf_el G := {|
+    setoid_fun := welltyped_term G
+  |};
   cwf_esub G D A s t := inst (`s) (`t);
   cwf_ext G A := decl_var (`A) :: (`G);
   cwf_snoc G D s t e := subst_cons (`e) (`s);
@@ -293,6 +295,13 @@ Next Obligation of TermModel.
   now apply typing_inst with (`G).
 Qed.
 
+(* The family of terms is respectful of equalities. *)
+
+Next Obligation of TermModel.
+  repeat intro.
+  admit.
+Admitted.
+
 (* Instantiation of well-typed substitution and term is well-typed too. *)
 
 Next Obligation of TermModel.
@@ -334,14 +343,6 @@ Next Obligation of TermModel.
   - constructor.
   - now sigma.
 Qed.
-
-(* ... *)
-
-Next Obligation of TermModel.
-  repeat intro.
-  constructor.
-  admit.
-Admitted.
 
 (* ... *)
 

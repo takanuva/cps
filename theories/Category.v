@@ -573,7 +573,7 @@ Polymorphic Structure CwF: Type := {
   cwf_tsub {G D}:
     cwf_sub D G -> cwf_ty G -> cwf_ty D;
   (* ... *)
-  cwf_el G: cwf_ty G -> Setoid;
+  cwf_el G: cwf_ty G ~> Setoid;
   cwf_esub {G D A}:
     forall s: cwf_sub D G,
     cwf_el G A -> cwf_el D (cwf_tsub s A);
@@ -589,8 +589,6 @@ Polymorphic Structure CwF: Type := {
   cwf_zero {G A}:
     cwf_el (cwf_ext G A) (cwf_tsub cwf_proj A);
   (* ... *)
-  cwf_el_respectful {G}:
-    Proper (equiv ==> equiv) (@cwf_el G);
   cwf_tsub_respectful {G D}:
     Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
   cwf_tsub_id {G}:
@@ -623,6 +621,13 @@ Global Coercion cwf_cat: CwF >-> Category.
 (* Should be (cwf_snoc M id a), with proper coercions... *)
 
 Fail Check forall {M G A} (a: cwf_el M G A), cwf_snoc M id A a.
+
+Program Definition foo M G A (a: cwf_el M G A) :=
+  cwf_snoc M id A (_ a).
+
+Next Obligation.
+  admit.
+Admitted.
 
 (* Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),

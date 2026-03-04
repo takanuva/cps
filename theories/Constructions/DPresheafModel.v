@@ -177,7 +177,9 @@ Section DsetModel.
     cwf_ty G := G -> Dset;
     cwf_tsub G D (s: Dmap' D G) (A: G -> Dset) (d: D) :=
       A (s d);
-    cwf_el G (A: G -> Dset) := Dmap G A;
+    cwf_el G := {|
+      setoid_fun (A: G -> Dset) := Dmap G A;
+    |};
     cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
       Dmap_fun d := e (s d)
     |};
@@ -212,6 +214,12 @@ Section DsetModel.
     remember (f x) as u.
     now destruct u.
   Qed.
+
+  Next Obligation of DsetModel.
+    repeat intro.
+    unfold funext_eq in H.
+    admit.
+  Admitted.
 
   Next Obligation of DsetModel.
     destruct e as (e, (x, ?H)); simpl in *.
@@ -255,7 +263,7 @@ Section DsetModel.
   Next Obligation of DsetModel.
     destruct (Dmap_preserve _ _ s) as (x, ?).
     destruct (Dmap_preserve _ _ e) as (y, ?).
-    (* Careful inspection: this combinator is enough! *)
+    (* Careful inspection: this term is enough! *)
     exists (C (P x y)); intros z ? ?; split.
     - specialize (H _ _ H1).
       unfold const in H.
@@ -296,11 +304,6 @@ Section DsetModel.
     - destruct H.
       assumption.
   Qed.
-
-  Next Obligation of DsetModel.
-    repeat intro.
-    admit.
-  Admitted.
 
   Next Obligation of DsetModel.
     repeat intro.
