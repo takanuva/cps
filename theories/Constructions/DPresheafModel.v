@@ -192,7 +192,6 @@ Section DsetModel.
       Dset_realization (x: CL) p :=
         let (g, e) := p in G (x K) g /\ A g (x F) e
     |};
-    (* TODO: define snoc... *)
     (* First projection. *)
     cwf_proj G (A: G -> Dset) := {|
       Dmap_fun p := let (g, e) := p in g
@@ -330,8 +329,18 @@ Section DPresheaf.
 
   Local Definition Dpresheaf: Type := Functor (opposite C) Dset.
 
-  (* We'll define this as in the thesis for now; some definitions look like they
-     may be simplified later. *)
+  Structure TY (G: Dpresheaf) := {
+    TY_fun: forall X: C, cwf_ty DsetModel (G X);
+    TY_restriction X Y: forall f: opposite C X Y,
+                        True
+  }.
+
+  Local Definition TYSetoid (G: Dpresheaf) := {|
+    carrier := TY G;
+    equiv := eq
+  |}.
+
+  Local Canonical Structure TYSetoid.
 
   Program Definition DpresheafModel: CwF := {|
     cwf_cat := Dpresheaf;
@@ -349,10 +358,51 @@ Section DPresheaf.
           terminal_hom Dset (cwf_empty DsetModel) (X Y)
       |}
     |};
-    cwf_ty (G: Dpresheaf) := _;
+    (* TODO: this clearly should be a functor... *)
+    cwf_ty (G: Dpresheaf) := TY G;
     cwf_tsub (G: Dpresheaf) (D: Dpresheaf) (s: NaturalTransformation D G)
-      (A: _) := _;
+      (A: _) := {|
+      TY_fun (X: C) := cwf_tsub DsetModel (s X) (TY_fun _ A X);
+      TY_restriction (X: C) (Y: C) (f: opposite C X Y) := _
+    |};
+    (* ... *)
+    cwf_el (G: Dpresheaf) := {|
+      setoid_fun (A: _) :=
+        forall X: C, cwf_el DsetModel (G X) (TY_fun G A X);
+        (* TODO: there's a coherence condition here... *)
+    |};
+    cwf_esub (G: Dpresheaf) (D: Dpresheaf) (A: _)
+      (s: NaturalTransformation D G) e :=
+      (* TODO: is there a cast happening here...? *)
+      fun (X: C) => cwf_esub DsetModel (s X) (e X);
+    cwf_snoc G D (s: NaturalTransformation D G) (A: _) e := {|
+      transformation (X: C) := _
+    |};
+    cwf_ext G (A: _) := _;
+    cwf_proj G (A: _) := {|
+      transformation (X: C) := _
+    |};
+    cwf_zero G (A: _) := _
   |}.
+
+  (*
+    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
+      Dmap_fun d := existT _ (s d) (e d)
+    |};
+    cwf_ext G (A: G -> Dset) := {|
+      Dset_carrier := { g: G & A g };
+      Dset_realization (x: CL) p :=
+        let (g, e) := p in G (x K) g /\ A g (x F) e
+    |};
+    (* First projection. *)
+    cwf_proj G (A: G -> Dset) := {|
+      Dmap_fun p := let (g, e) := p in g
+    |};
+    (* Second projection. *)
+    cwf_zero G (A: G -> Dset) := {|
+      (* The program mode will make the conversion for us! *)
+      Dmap_fun p := let (g, e) := p in _ e
+    |} *)
 
   Next Obligation of DpresheafModel.
     exists I; intros.
