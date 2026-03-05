@@ -183,14 +183,14 @@ Section DsetModel.
     cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
       Dmap_fun d := e (s d)
     |};
-    (* TODO: make a general definition for Dset pairs! *)
-    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
-      Dmap_fun d := existT _ (s d) (e d)
-    |};
     cwf_ext G (A: G -> Dset) := {|
       Dset_carrier := { g: G & A g };
       Dset_realization (x: CL) p :=
         let (g, e) := p in G (x K) g /\ A g (x F) e
+    |};
+    (* TODO: make a general definition for Dset pairs! *)
+    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
+      Dmap_fun d := existT _ (s d) (e d)
     |};
     (* First projection. *)
     cwf_proj G (A: G -> Dset) := {|
@@ -332,7 +332,9 @@ Section DPresheaf.
   Structure TY (G: Dpresheaf) := {
     TY_fun: forall X: C, cwf_ty DsetModel (G X);
     TY_restriction X Y: forall f: opposite C X Y,
-                        True
+                        (* Hmmm... *)
+                        forall x: G X,
+                        TY_fun X x -> TY_fun Y (fmap G f x)
   }.
 
   Local Definition TYSetoid (G: Dpresheaf) := {|
@@ -346,7 +348,8 @@ Section DPresheaf.
     cwf_cat := Dpresheaf;
     cwf_empty := {|
       terminal := {|
-        mapping (X: opposite C) := terminal _ (cwf_empty DsetModel);
+        mapping (X: opposite C) :=
+          terminal _ (cwf_empty DsetModel);
         fmap (X: opposite C) (Y: opposite C) := {|
           setoid_fun (f: opposite C X Y) := {|
             Dmap_fun (Z: Delta ()) := Z
@@ -361,13 +364,13 @@ Section DPresheaf.
     (* TODO: this clearly should be a functor... *)
     cwf_ty (G: Dpresheaf) := TY G;
     cwf_tsub (G: Dpresheaf) (D: Dpresheaf) (s: NaturalTransformation D G)
-      (A: _) := {|
-      TY_fun (X: C) := cwf_tsub DsetModel (s X) (TY_fun _ A X);
+      (A: TY G) := {|
+      TY_fun (X: C) := cwf_tsub DsetModel (s X) (TY_fun G A X);
       TY_restriction (X: C) (Y: C) (f: opposite C X Y) := _
     |};
     (* ... *)
     cwf_el (G: Dpresheaf) := {|
-      setoid_fun (A: _) :=
+      setoid_fun (A: TY G) :=
         forall X: C, cwf_el DsetModel (G X) (TY_fun G A X);
         (* TODO: there's a coherence condition here... *)
     |};
@@ -375,10 +378,15 @@ Section DPresheaf.
       (s: NaturalTransformation D G) e :=
       (* TODO: is there a cast happening here...? *)
       fun (X: C) => cwf_esub DsetModel (s X) (e X);
+    cwf_ext G (A: TY G) := {|
+      mapping (X: C) := cwf_ext DsetModel (G X) (TY_fun G A X);
+      fmap (X: C) (Y: C) (f: opposite C X Y) := {|
+        Dmap_fun (p: { x: G X & TY_fun G A X x }) := _
+      |};
+    |};
     cwf_snoc G D (s: NaturalTransformation D G) (A: _) e := {|
       transformation (X: C) := _
     |};
-    cwf_ext G (A: _) := _;
     cwf_proj G (A: _) := {|
       transformation (X: C) := _
     |};
@@ -440,6 +448,25 @@ Section DPresheaf.
     remember (f Y x) as u.
     now destruct u.
   Qed.
+
+  Next Obligation of DpresheafModel.
+    admit.
+  Admitted.
+
+  Next Obligation of DpresheafModel.
+    destruct A as (Af, Ar); simpl in *.
+    rename p into x, X0 into D.
+    exists (fmap G f x).
+    now apply Ar.
+  Qed.
+
+  Next Obligation of DpresheafModel.
+    destruct A as (Af, Ar); simpl in *.
+    eexists; intros.
+    destruct d.
+    destruct H.
+    admit.
+  Admitted.
 
   Admit Obligations.
 
