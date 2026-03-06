@@ -339,7 +339,8 @@ Section DPresheaf.
                         cwf_el DsetModel (cwf_ext DsetModel (G X) (TY_fun X))
                           (cwf_tsub DsetModel (cwf_proj DsetModel)
                             (cwf_tsub DsetModel (fmap G f) (TY_fun Y)));
-    (* TODO: add the coherence laws... *)
+    (* TODO: problem with type indexing again, nice... *)
+    (* TY_law1 X: TY_restriction X X id == cwf_zero DsetModel *)
   }.
 
   Local Definition TYSetoid (G: Dpresheaf) := {|
