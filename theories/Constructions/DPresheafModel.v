@@ -331,14 +331,20 @@ Section DPresheaf.
 
   Structure TY (G: Dpresheaf) := {
     TY_fun: forall X: C, cwf_ty DsetModel (G X);
+    (* The notation on the paper had me confused for a while, but A_Y G_f p are
+       two instantiations, i.e., A_Y[G_f][p]; it took me a while to realize that
+       G_f would lead to a substitution! *)
     TY_restriction X Y: forall f: opposite C X Y,
                         (* Hmmm... *)
-                        forall x: G X,
-                        TY_fun X x -> TY_fun Y (fmap G f x)
+                        cwf_el DsetModel (cwf_ext DsetModel (G X) (TY_fun X))
+                          (cwf_tsub DsetModel (cwf_proj DsetModel)
+                            (cwf_tsub DsetModel (fmap G f) (TY_fun Y)));
+    (* TODO: add the coherence laws... *)
   }.
 
   Local Definition TYSetoid (G: Dpresheaf) := {|
     carrier := TY G;
+    (* TODO: obviously, fix equivalence... *)
     equiv := eq
   |}.
 
@@ -454,17 +460,15 @@ Section DPresheaf.
   Admitted.
 
   Next Obligation of DpresheafModel.
-    destruct A as (Af, Ar); simpl in *.
     rename p into x, X0 into D.
+    destruct A as (Af, Ar); simpl in *.
+    specialize (Ar X Y f).
+    destruct Ar as (g, _); simpl in *.
     exists (fmap G f x).
-    now apply Ar.
+    apply (g (existT _ x D)).
   Qed.
 
   Next Obligation of DpresheafModel.
-    destruct A as (Af, Ar); simpl in *.
-    eexists; intros.
-    destruct d.
-    destruct H.
     admit.
   Admitted.
 
