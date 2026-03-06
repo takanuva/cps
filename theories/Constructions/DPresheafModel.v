@@ -343,6 +343,12 @@ Section DPresheaf.
     (* TY_law1 X: TY_restriction X X id == cwf_zero DsetModel *)
   }.
 
+  (* Axiom G: Dpresheaf.
+  Axiom T: TY G.
+  Axiom X: C.
+  Check TY_restriction G T X X id.
+  Check @cwf_zero DsetModel (G X) (TY_fun G T X). *)
+
   Local Definition TYSetoid (G: Dpresheaf) := {|
     carrier := TY G;
     (* TODO: obviously, fix equivalence... *)
