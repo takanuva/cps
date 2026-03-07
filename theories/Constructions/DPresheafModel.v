@@ -331,29 +331,22 @@ Section DPresheaf.
 
   Structure TY (G: Dpresheaf) := {
     TY_fun: forall X: C, cwf_ty DsetModel (G X);
-    (* The notation on the paper had me confused for a while, but A_Y G_f p are
-       two instantiations, i.e., A_Y[G_f][p]; it took me a while to realize that
-       G_f would lead to a substitution! *)
     TY_restriction X Y: forall f: opposite C X Y,
-                        (* Hmmm... *)
-                        cwf_el DsetModel (cwf_ext DsetModel (G X) (TY_fun X))
-                          (cwf_tsub DsetModel (cwf_proj DsetModel)
-                            (cwf_tsub DsetModel (fmap G f) (TY_fun Y)));
-    (* TODO: problem with type indexing again, nice... *)
-    (* TY_law1 X: TY_restriction X X id == cwf_zero DsetModel *)
+                        cwf_el DsetModel (G X)
+                          (cwf_tsub DsetModel (fmap G f) (TY_fun Y))
   }.
 
-  (* Axiom G: Dpresheaf.
-  Axiom T: TY G.
-  Axiom X: C.
-  Check TY_restriction G T X X id.
-  Check @cwf_zero DsetModel (G X) (TY_fun G T X). *)
+  Axiom TY_EQ: forall G, relation (TY G).
 
-  Local Definition TYSetoid (G: Dpresheaf) := {|
+  Local Program Definition TYSetoid (G: Dpresheaf) := {|
     carrier := TY G;
     (* TODO: obviously, fix equivalence... *)
-    equiv := eq
+    equiv := TY_EQ G
   |}.
+
+  Next Obligation.
+    admit.
+  Admitted.
 
   Local Canonical Structure TYSetoid.
 
@@ -406,25 +399,6 @@ Section DPresheaf.
     cwf_zero G (A: _) := _
   |}.
 
-  (*
-    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
-      Dmap_fun d := existT _ (s d) (e d)
-    |};
-    cwf_ext G (A: G -> Dset) := {|
-      Dset_carrier := { g: G & A g };
-      Dset_realization (x: CL) p :=
-        let (g, e) := p in G (x K) g /\ A g (x F) e
-    |};
-    (* First projection. *)
-    cwf_proj G (A: G -> Dset) := {|
-      Dmap_fun p := let (g, e) := p in g
-    |};
-    (* Second projection. *)
-    cwf_zero G (A: G -> Dset) := {|
-      (* The program mode will make the conversion for us! *)
-      Dmap_fun p := let (g, e) := p in _ e
-    |} *)
-
   Next Obligation of DpresheafModel.
     exists I; intros.
     assumption.
@@ -463,6 +437,14 @@ Section DPresheaf.
   Qed.
 
   Next Obligation of DpresheafModel.
+    destruct s as (s, ?H); simpl in *.
+    destruct A as (Af, Ar); simpl in *.
+    compute in H.
+    admit.
+  Admitted.
+
+  Next Obligation of DpresheafModel.
+    repeat intro.
     admit.
   Admitted.
 
@@ -472,7 +454,7 @@ Section DPresheaf.
     specialize (Ar X Y f).
     destruct Ar as (g, _); simpl in *.
     exists (fmap G f x).
-    apply (g (existT _ x D)).
+    apply g.
   Qed.
 
   Next Obligation of DpresheafModel.
