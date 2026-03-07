@@ -367,18 +367,19 @@ Section DPresheaf.
           terminal_hom Dset (cwf_empty DsetModel) (X Y)
       |}
     |};
-    (* TODO: this clearly should be a functor... *)
     cwf_ty (G: Dpresheaf) := TY G;
     cwf_tsub (G: Dpresheaf) (D: Dpresheaf) (s: NaturalTransformation D G)
       (A: TY G) := {|
-      TY_fun (X: C) := cwf_tsub DsetModel (s X) (TY_fun G A X);
-      TY_restriction (X: C) (Y: C) (f: opposite C X Y) := _
+      TY_fun (X: C) :=
+        cwf_tsub DsetModel (s X) (TY_fun G A X);
+      TY_restriction (X: C) (Y: C) (f: opposite C X Y) :=
+        cwf_esub DsetModel (s X) (TY_restriction G A X Y f)
     |};
     (* ... *)
     cwf_el (G: Dpresheaf) := {|
       setoid_fun (A: TY G) :=
         forall X: C, cwf_el DsetModel (G X) (TY_fun G A X);
-        (* TODO: there's a coherence condition here... *)
+        (* TODO: there's a coherence condition here... I think! *)
     |};
     cwf_esub (G: Dpresheaf) (D: Dpresheaf) (A: _)
       (s: NaturalTransformation D G) e :=
@@ -440,6 +441,7 @@ Section DPresheaf.
     destruct s as (s, ?H); simpl in *.
     destruct A as (Af, Ar); simpl in *.
     compute in H.
+    (* Oh no... *)
     admit.
   Admitted.
 
