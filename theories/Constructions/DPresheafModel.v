@@ -373,7 +373,7 @@ Section DPresheaf.
       TY_fun (X: C) :=
         cwf_tsub DsetModel (s X) (TY_fun G A X);
       TY_restriction (X: C) (Y: C) (f: opposite C X Y) :=
-        cwf_esub DsetModel (s X) (TY_restriction G A X Y f)
+        _
     |};
     (* ... *)
     cwf_el (G: Dpresheaf) := {|
@@ -438,11 +438,22 @@ Section DPresheaf.
   Qed.
 
   Next Obligation of DpresheafModel.
+    set (e := cwf_esub DsetModel (s X) (TY_restriction G A X Y f)).
+    compute in e.
     destruct s as (s, ?H); simpl in *.
     destruct A as (Af, Ar); simpl in *.
     compute in H.
-    (* Oh no... *)
-    admit.
+    destruct e as (e, ?H).
+    assert (forall d: D X, Af Y (s Y (fmap D f d))) as g; intros.
+    - rewrite H.
+      apply e.
+    - exists g.
+      destruct H0 as (x, ?H).
+      exists x; intros.
+      specialize (H X Y f d).
+      specialize (H0 y d H1).
+      (* Why can't I rewrite here...? *)
+      admit.
   Admitted.
 
   Next Obligation of DpresheafModel.
