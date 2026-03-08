@@ -333,8 +333,68 @@ Section DPresheaf.
     TY_fun: forall X: C, cwf_ty DsetModel (G X);
     TY_restriction X Y: forall f: opposite C X Y,
                         cwf_el DsetModel (G X)
-                          (cwf_tsub DsetModel (fmap G f) (TY_fun Y))
+                          (cwf_tsub DsetModel (fmap G f) (TY_fun Y));
   }.
+
+  (* Axiom G: Dpresheaf.
+  Axiom T: TY G.
+  Axiom X: C.
+  Compute carrier (cwf_ty DsetModel (G X)).
+  Compute carrier
+    (cwf_el DsetModel (G X)
+       (cwf_tsub DsetModel (fmap G id) (TY_fun _ T X))). *)
+
+  Goal
+    forall G: Dpresheaf,
+    forall T: TY G,
+    forall X: C,
+    (Dmap (G X) (fun x => TY_fun _ T X (fmap G id x)): Setoid) ==
+    (Dmap (G X) (fun x => TY_fun _ T X x): Setoid).
+  Proof.
+    intros; simpl.
+    constructor.
+    eexists.
+    Unshelve.
+    3: {
+      simpl; econstructor.
+      Unshelve.
+      2: {
+        intro.
+        simpl in *.
+        destruct X0 as (f, ?H).
+        assert (forall d, TY_fun _ T X d) as g; intros.
+        - clear H.
+          specialize (f d).
+          rewrite (@fmap_id _ _ G) in f.
+          simpl in f.
+          assumption.
+        - apply Build_Dmap with g.
+          destruct H as (x, ?H).
+          exists x; intros.
+          specialize (H y d H0).
+          (* Hmm... *)
+          admit.
+      }
+      repeat intro; simpl.
+      compute.
+      simpl in H.
+      unfold Dmap_eq in H.
+      rewrite H.
+      reflexivity.
+    }
+    3: {
+      simpl; econstructor.
+      Unshelve.
+      2: {
+        intro.
+        simpl in *.
+        admit.
+      }
+      admit.
+    }
+    - admit.
+    - admit.
+  Admitted.
 
   Axiom TY_EQ: forall G, relation (TY G).
 
