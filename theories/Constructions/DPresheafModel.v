@@ -321,7 +321,7 @@ Section DsetModel.
 
 End DsetModel.
 
-Section DPresheaf.
+Section Dpresheaf.
 
   (* TODO: make C polymorphic, turn this into an actual presheaf... *)
 
@@ -336,13 +336,24 @@ Section DPresheaf.
                           (cwf_tsub DsetModel (fmap G f) (TY_fun Y));
   }.
 
-  (* Axiom G: Dpresheaf.
-  Axiom T: TY G.
-  Axiom X: C.
-  Compute carrier (cwf_ty DsetModel (G X)).
-  Compute carrier
-    (cwf_el DsetModel (G X)
-       (cwf_tsub DsetModel (fmap G id) (TY_fun _ T X))). *)
+  Program Definition foobar X f g (H: f == g) (x: Dmap X f): Dmap X g := {|
+    Dmap_fun d := _ (Dmap_fun _ _ x d)
+  |}.
+
+  Next Obligation.
+    compute in H.
+    rewrite <- H.
+    assumption.
+  Defined.
+
+  Next Obligation.
+    compute in H |- *.
+    destruct x as (m, (x, ?H)).
+    exists x; intros.
+    rewrite <- H.
+    apply H0.
+    assumption.
+  Defined.
 
   Goal
     forall G: Dpresheaf,
@@ -361,19 +372,13 @@ Section DPresheaf.
       2: {
         intro.
         simpl in *.
-        destruct X0 as (f, ?H).
-        assert (forall d, TY_fun _ T X d) as g; intros.
-        - clear H.
-          specialize (f d).
-          rewrite (@fmap_id _ _ G) in f.
-          simpl in f.
-          assumption.
-        - apply Build_Dmap with g.
-          destruct H as (x, ?H).
-          exists x; intros.
-          specialize (H y d H0).
-          (* Hmm... *)
-          admit.
+        assert (forall d, fmap G id (y := d) == id) by apply fmap_id.
+        apply foobar with (f := fun x => TY_fun _ T X (fmap G id x)).
+        - simpl; intro.
+          compute in H.
+          rewrite H.
+          reflexivity.
+        - assumption.
       }
       repeat intro; simpl.
       compute.
@@ -388,13 +393,31 @@ Section DPresheaf.
       2: {
         intro.
         simpl in *.
-        admit.
+        assert (forall d, fmap G id (y := d) == id) by apply fmap_id.
+        apply foobar with (f := fun x => TY_fun _ T X x).
+        - simpl; intro.
+          compute in H.
+          rewrite H.
+          reflexivity.
+        - assumption.
       }
-      admit.
+      compute.
+      repeat intro; simpl.
+      now rewrite H.
     }
-    - admit.
-    - admit.
-  Admitted.
+    - compute; intros.
+      destruct x as (f, ?H); simpl.
+      destruct G as (a, b, ?H, ?H, ?H).
+      compute in *.
+      destruct (H1 X x0).
+      reflexivity.
+    - compute; intros.
+      destruct x as (f, ?H); simpl.
+      destruct G as (a, b, ?H, ?H, ?H).
+      compute in *.
+      destruct (H1 X x0).
+      reflexivity.
+  Qed.
 
   Axiom TY_EQ: forall G, relation (TY G).
 
@@ -536,7 +559,7 @@ Section DPresheaf.
 
   Admit Obligations.
 
-End DPresheaf.
+End Dpresheaf.
 
 (* TODO: move these definitions to the [Category.v] file. *)
 
