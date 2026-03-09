@@ -348,18 +348,29 @@ Qed.
 
 Next Obligation of TermModel.
   repeat intro; simpl.
-  destruct G as (g, ?H); simpl.
-  destruct D as (d, ?H); simpl.
-  compute in *.
-  admit.
+  destruct G as (g, ?H); simpl in *.
+  destruct D as (d, ?H); simpl in *.
+  destruct x as (s1, ?H); simpl in *.
+  destruct y as (s2, ?H); simpl in *.
+  destruct x0 as (t, ?H); simpl in *.
+  destruct y0 as (u, ?H); simpl in *.
+  unfold welltyped_subst_eq in H; simpl in H.
+  unfold welltyped_type_eq in H0; simpl in H0.
+  compute.
+  apply conv_trans with (inst s2 t).
+  - enough (inst s2 t = inst s1 t).
+    + rewrite H7.
+      apply conv_refl.
+    + now rewrite H.
+  - admit.
 Admitted.
 
 Next Obligation of TermModel.
-  compute.
-  admit.
-Admitted.
+  compute; sigma.
+  apply conv_refl.
+Qed.
 
 Next Obligation of TermModel.
-  compute.
-  admit.
-Admitted.
+  compute; sigma.
+  apply conv_refl.
+Qed.
