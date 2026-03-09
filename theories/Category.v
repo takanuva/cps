@@ -618,25 +618,11 @@ Global Coercion cwf_cat: CwF >-> Category.
 
 (* -------------------------------------------------------------------------- *)
 
-(* Should be (cwf_snoc M id a), with proper coercions... *)
+(* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just the
+   subst/slash substitution built out of cons and identity. *)
 
-Fail Check forall {M G A} (a: cwf_el M G A), cwf_snoc M id A a.
-
-(* Given e: El(G, A), we take (e/) = (e, id) : G -> (G, A). This is just the
-   subst/slash substitution built out of cons and identity. Of course, there is
-   some bookkeeping given that id will be applied in e, thus it will be expected
-   to have type El(G, A[id]) instead... which is not necessarily the same type,
-   but it's necessarily isomorphic to it. *)
-
-Program Definition foo M G A (e: cwf_el M G A): M G (cwf_ext M G A) :=
-  cwf_snoc M id A _.
-
-Next Obligation.
-  pose proof setoid_fun_respectful.
-  specialize (H _ _ (cwf_el M G) _ _ (cwf_tsub_id M A)).
-  simpl in H.
-  admit.
-Admitted.
+Program Definition cwf_slash M {G} {A} (e: cwf_el M G A): M G (cwf_ext M G A) :=
+  cwf_snoc M id A (cwf_esub M id e).
 
 (* Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),
