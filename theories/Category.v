@@ -621,8 +621,25 @@ Global Coercion cwf_cat: CwF >-> Category.
 (* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just the
    subst/slash substitution built out of cons and identity. *)
 
-Program Definition cwf_slash M {G} {A} (e: cwf_el M G A): M G (cwf_ext M G A) :=
+Program Definition cwf_slash M {G} {A} e: cwf_sub M G (cwf_ext M G A) :=
   cwf_snoc M id A (cwf_esub M id e).
+
+(* Given a substitution s: D -> G, we want to lift it into another scope by
+   defining up s = (0, (proj; s)), which is a morphism (D, A[s]) -> (G, A).
+   TODO: there's some bookkeeping here! *)
+
+Program Definition cwf_up (M: CwF) {G} {D}
+  (s: cwf_sub M D G)
+  (A: cwf_ty M G): M (cwf_ext M D (cwf_tsub M s A)) (cwf_ext M G A) :=
+  cwf_snoc M (post (cwf_proj M) s) A _.
+
+Next Obligation of cwf_up.
+  compute.
+  pose proof (@cwf_zero M D (cwf_tsub M s A)).
+  (* What now? Zero could return different data for different types on some
+     models... we only know there's a non-constructive isomorphism so far... *)
+  admit.
+Admitted.
 
 (* Axiom cwf_subst:
   forall {M G A} (a: cwf_elem M G A),
