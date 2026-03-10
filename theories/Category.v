@@ -261,7 +261,7 @@ Polymorphic Section Isomorphism.
 
   Variable C: Category.
 
-  Polymorphic Structure Isomorphism (X: C) (Y: C): Type := {
+  Polymorphic Structure Isomorphism (X: C) (Y: C): Type := isomorphism_mk {
     iso_to: C X Y;
     iso_from: C Y X;
     iso_to_from: post iso_to iso_from == id;
@@ -270,31 +270,37 @@ Polymorphic Section Isomorphism.
 
 End Isomorphism.
 
+Arguments Isomorphism {C}.
+Arguments iso_to {C} {X} {Y}.
+Arguments iso_from {C} {X} {Y}.
+Arguments iso_to_from {C} {X} {Y}.
+Arguments iso_from_to {C} {X} {Y}.
+
 (* ... *)
 
 Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
   carrier := Setoid;
   (* We ignore the computational content of the isomorphism! *)
-  equiv S T := inhabited (Isomorphism Setoid S T)
+  equiv S T := inhabited (Isomorphism S T)
 |}.
 
 Next Obligation of SetoidSetoid.
   split; repeat intro.
   - constructor.
-    apply Build_Isomorphism with id id.
+    apply isomorphism_mk with id id.
     + now rewrite post_id_left.
     + now rewrite post_id_left.
   - destruct H.
     destruct X as (f, g, ?H, ?H).
     constructor.
-    apply Build_Isomorphism with g f.
+    apply isomorphism_mk with g f.
     + assumption.
     + assumption.
   - destruct H, H0.
     destruct X as (f1, g1, ?H, ?H).
     destruct X0 as (f2, g2, ?H, ?H).
     constructor.
-    apply Build_Isomorphism with (post f1 f2) (post g2 g1).
+    apply isomorphism_mk with (post f1 f2) (post g2 g1).
     + rewrite <- post_assoc.
       rewrite post_assoc with (f := f2).
       rewrite H1.
@@ -598,7 +604,7 @@ Polymorphic Structure CwF: Type := {
     forall s: cwf_sub D G,
     forall r: cwf_sub E D,
     forall A: cwf_ty G,
-    cwf_tsub (post r s) A == cwf_tsub r (cwf_tsub s A);
+    cwf_tsub r (cwf_tsub s A) == cwf_tsub (post r s) A;
   (* TODO: we need to check that esub is respectful, but that is a form of
      heterogeneous equality; figure it out how to do that later, please? *)
   (* TODO: cwf_esub_id, same reason... *)
@@ -634,7 +640,6 @@ Program Definition cwf_up (M: CwF) {G} {D}
   cwf_snoc M (post (cwf_proj M) s) A _.
 
 Next Obligation of cwf_up.
-  compute.
   pose proof (@cwf_zero M D (cwf_tsub M s A)).
   (* What now? Zero could return different data for different types on some
      models... we only know there's a non-constructive isomorphism so far... *)
