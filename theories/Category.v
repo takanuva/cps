@@ -62,7 +62,8 @@ Infix "~>" := SetoidMorphism (at level 90, right associativity).
    structure over (1) a type of objects, and (2) a family of setoids for sorting
    morphisms. This definition also uses a postcomposition operator instead of
    the more usual regular composition operator, though of course both are easily
-   equivalent (for every f and g, post f g = comp g f).
+   equivalent (for every f and g, post f g = comp g f). We recall that this will
+   form a setoid-enriched category, also called an E-category.
 
    For convenience, we identify the category with the type of objects and the
    family of morphisms. *)
@@ -314,7 +315,7 @@ Arguments iso_from_to {C} {X} {Y}.
 
 Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
   carrier := Setoid;
-  equiv S T := isomorphism S T
+  equiv := isomorphism
 |}.
 
 Global Canonical Structure SetoidSetoid.
