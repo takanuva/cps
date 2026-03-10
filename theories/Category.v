@@ -268,9 +268,43 @@ Polymorphic Section Isomorphism.
     iso_from_to: post iso_from iso_to == id;
   }.
 
+  Definition isomorphism (X: C) (Y: C): Prop :=
+    inhabited (Isomorphism X Y).
+
+  Global Instance IsomorphismEquiv: Equivalence isomorphism.
+  Proof.
+    split; repeat intro.
+    - constructor.
+      apply isomorphism_mk with id id.
+      + now rewrite post_id_left.
+      + now rewrite post_id_left.
+    - destruct H.
+      destruct X as (f, g, ?H, ?H).
+      constructor.
+      apply isomorphism_mk with g f.
+      + assumption.
+      + assumption.
+    - destruct H, H0.
+      destruct X as (f1, g1, ?H, ?H).
+      destruct X0 as (f2, g2, ?H, ?H).
+      constructor.
+      apply isomorphism_mk with (post f1 f2) (post g2 g1).
+      + rewrite <- post_assoc.
+        rewrite post_assoc with (f := f2).
+        rewrite H1.
+        rewrite post_id_left.
+        assumption.
+      + rewrite <- post_assoc.
+        rewrite post_assoc with (f := g1).
+        rewrite H0.
+        rewrite post_id_left.
+        assumption.
+  Qed.
+
 End Isomorphism.
 
 Arguments Isomorphism {C}.
+Arguments isomorphism {C}.
 Arguments iso_to {C} {X} {Y}.
 Arguments iso_from {C} {X} {Y}.
 Arguments iso_to_from {C} {X} {Y}.
@@ -280,38 +314,8 @@ Arguments iso_from_to {C} {X} {Y}.
 
 Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
   carrier := Setoid;
-  (* We ignore the computational content of the isomorphism! *)
-  equiv S T := inhabited (Isomorphism S T)
+  equiv S T := isomorphism S T
 |}.
-
-Next Obligation of SetoidSetoid.
-  split; repeat intro.
-  - constructor.
-    apply isomorphism_mk with id id.
-    + now rewrite post_id_left.
-    + now rewrite post_id_left.
-  - destruct H.
-    destruct X as (f, g, ?H, ?H).
-    constructor.
-    apply isomorphism_mk with g f.
-    + assumption.
-    + assumption.
-  - destruct H, H0.
-    destruct X as (f1, g1, ?H, ?H).
-    destruct X0 as (f2, g2, ?H, ?H).
-    constructor.
-    apply isomorphism_mk with (post f1 f2) (post g2 g1).
-    + rewrite <- post_assoc.
-      rewrite post_assoc with (f := f2).
-      rewrite H1.
-      rewrite post_id_left.
-      assumption.
-    + rewrite <- post_assoc.
-      rewrite post_assoc with (f := g1).
-      rewrite H0.
-      rewrite post_id_left.
-      assumption.
-Qed.
 
 Global Canonical Structure SetoidSetoid.
 
