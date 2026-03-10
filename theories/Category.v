@@ -326,9 +326,7 @@ Global Canonical Structure SetoidSetoid.
 
 Polymorphic Structure Functor (C: Category) (D: Category): Type := {
   mapping :> C -> D;
-  fmap {x y}: C x y -> D (mapping x) (mapping y);
-  fmap_respectful {x y}:
-    Proper (equiv ==> equiv) (@fmap x y);
+  fmap {x y}: C x y ~> D (mapping x) (mapping y);
   fmap_id {x}:
     @fmap x x (@id C x) == (@id D (mapping x));
   fmap_comp {x y z}:
@@ -337,10 +335,16 @@ Polymorphic Structure Functor (C: Category) (D: Category): Type := {
     fmap (post f g) == post (fmap f) (fmap g)
 }.
 
-Global Existing Instance fmap_respectful.
-
 Arguments mapping {C D} F: rename.
 Arguments fmap {C D} F {x y}: rename.
+
+Global Instance fmap_respectful C D (F: Functor C D):
+  forall x y, Proper (equiv ==> equiv) (@fmap C D F x y).
+Proof.
+  repeat intro; simpl.
+  destruct F as (m, f, ?H, ?H); simpl.
+  now apply f.
+Defined.
 
 (* ... *)
 
@@ -488,18 +492,22 @@ Polymorphic Section Yoneda.
 
   Variable C: Category.
 
-  (* TODO: should this be an example...? *)
+  (* TODO: should this be an example...? Will we be using this? *)
 
   Polymorphic Program Definition Yoneda: Functor C (Presheaf C) := {|
     mapping X := {|
       mapping Y := C Y X;
-      fmap Y Z f := {|
-        setoid_fun g := post (f: C Z Y) (g: C Y X)
+      fmap Y Z := {|
+        setoid_fun f := {|
+          setoid_fun g := post (f: C Z Y) (g: C Y X)
+        |}
       |}
     |};
-    fmap Y Z f := {|
-      transformation X := {|
-        setoid_fun g := post (g: C X Y) (f: C Y Z)
+    fmap Y Z := {|
+      setoid_fun f := {|
+        transformation X := {|
+          setoid_fun g := post (g: C X Y) (f: C Y Z)
+        |}
       |}
     |}
   |}.

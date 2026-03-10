@@ -407,15 +407,15 @@ Section Dpresheaf.
     }
     - compute; intros.
       destruct x as (f, ?H); simpl.
-      destruct G as (a, b, ?H, ?H, ?H).
+      destruct G as (a, b, ?H, ?H).
       compute in *.
-      destruct (H1 X x0).
+      destruct (H0 X x0).
       reflexivity.
     - compute; intros.
       destruct x as (f, ?H); simpl.
-      destruct G as (a, b, ?H, ?H, ?H).
+      destruct G as (a, b, ?H, ?H).
       compute in *.
-      destruct (H1 X x0).
+      destruct (H0 X x0).
       reflexivity.
   Qed.
 
@@ -470,9 +470,11 @@ Section Dpresheaf.
       fun (X: C) => cwf_esub DsetModel (s X) (e X);
     cwf_ext G (A: TY G) := {|
       mapping (X: C) := cwf_ext DsetModel (G X) (TY_fun G A X);
-      fmap (X: C) (Y: C) (f: opposite C X Y) := {|
-        Dmap_fun (p: { x: G X & TY_fun G A X x }) := _
-      |};
+      fmap (X: C) (Y: C) := {|
+        setoid_fun (f: opposite C X Y) := {|
+          Dmap_fun (p: { x: G X & TY_fun G A X x }) := _
+        |}
+      |}
     |};
     cwf_snoc G D (s: NaturalTransformation D G) (A: _) e := {|
       transformation (X: C) := _
@@ -510,11 +512,6 @@ Section Dpresheaf.
 
   Next Obligation of DpresheafModel.
     intro; simpl.
-    reflexivity.
-  Qed.
-
-  Next Obligation of DpresheafModel.
-    intro; simpl.
     rename X0 into Y.
     remember (f Y x) as u.
     now destruct u.
@@ -535,7 +532,7 @@ Section Dpresheaf.
       exists x; intros.
       specialize (H X Y f d).
       specialize (H0 y d H1).
-      (* Why can't I rewrite here...? *)
+      (* Why can't I rewrite here...? Types might be wrong... *)
       admit.
   Admitted.
 
