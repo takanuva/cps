@@ -52,9 +52,7 @@ Proof.
   - exact setoid_trans.
 Defined.
 
-Local Notation equiv := setoid_equiv.
-
-Notation "x == y" := (equiv x y)
+Notation "x == y" := (setoid_equiv x y)
   (at level 70, no associativity): type_scope.
 
 (* We define a notion of setoid morphisms (a structure-preserving function over
@@ -67,7 +65,7 @@ Notation "x == y" := (equiv x y)
 Polymorphic Structure SetoidMorphism (S: Setoid) (T: Setoid): Type := {
   setoid_fun: S -> T;
   setoid_fun_respectful:
-    Proper (equiv ==> equiv) setoid_fun
+    Proper (setoid_equiv ==> setoid_equiv) setoid_fun
 }.
 
 Global Coercion setoid_fun: SetoidMorphism >-> Funclass.
@@ -92,7 +90,7 @@ Polymorphic Structure Category: Type := {
   id {x}: hom x x;
   post {x y z}: hom x y -> hom y z -> hom x z;
   post_respectful {x y z}:
-    Proper (equiv ==> equiv ==> equiv) (@post x y z);
+    Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@post x y z);
   post_id_left {x y}:
     forall f: hom x y,
     post id f == f;
@@ -172,7 +170,7 @@ Polymorphic Definition funext_eq T U: relation (forall t: T, U t) :=
 
 Global Polymorphic Program Definition FunctionSetoid T U: Setoid := {|
   setoid_carrier := forall t: T, U t;
-  equiv := funext_eq T U
+  setoid_equiv := funext_eq T U
 |}.
 
 Next Obligation.
@@ -228,7 +226,7 @@ Global Canonical Structure SetCategory.
 
 Global Polymorphic Program Definition MorphismSetoid S T: Setoid := {|
   setoid_carrier := S ~> T;
-  equiv f g := forall x, f x == g x
+  setoid_equiv f g := forall x, f x == g x
 |}.
 
 Next Obligation.
@@ -347,7 +345,7 @@ Arguments iso_from_to {C} {X} {Y}.
 
 Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
   setoid_carrier := Setoid;
-  equiv := isomorphism
+  setoid_equiv := isomorphism
 |}.
 
 Next Obligation.
@@ -384,7 +382,7 @@ Arguments mapping {C D} F: rename.
 Arguments fmap {C D} F {x y}: rename.
 
 Global Instance fmap_respectful C D (F: Functor C D):
-  forall x y, Proper (equiv ==> equiv) (@fmap C D F x y).
+  forall x y, Proper (setoid_equiv ==> setoid_equiv) (@fmap C D F x y).
 Proof.
   repeat intro; simpl.
   destruct F as (m, f, ?H, ?H); simpl.
@@ -409,9 +407,8 @@ Polymorphic Section NaturalTransformation.
 
   Polymorphic Program Definition NaturalTransformationSetoid: Setoid := {|
     setoid_carrier := NaturalTransformation;
-    equiv A B :=
-      forall X: C,
-      transformation A X == transformation B X
+    setoid_equiv A B :=
+      forall X: C, transformation A X == transformation B X
   |}.
 
   Next Obligation.
@@ -658,7 +655,7 @@ Polymorphic Structure CwF: Type := {
     cwf_el (cwf_ext G A) (cwf_tsub cwf_proj A);
   (* ... *)
   cwf_tsub_respectful {G D}:
-    Proper (equiv ==> equiv ==> equiv) (@cwf_tsub G D);
+    Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@cwf_tsub G D);
   cwf_tsub_id {G}:
     forall A: cwf_ty G,
     cwf_tsub id A == A;
