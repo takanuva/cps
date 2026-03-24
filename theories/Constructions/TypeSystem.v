@@ -639,6 +639,7 @@ Proof.
         now sigma.
       * change (bound (S n)) with (var (S n)).
         rename f0 into f, t0 into u.
+        (* TODO: this fails in Coq 8.16! Why, tho? *)
         replace (inst (subst_cons e f) (lift (1 + S n) 0 u)) with
           (inst f (lift (S n) 0 u)) by now sigma.
         replace (inst (subst_cons e f) (var (S n))) with
