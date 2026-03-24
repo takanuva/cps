@@ -71,18 +71,39 @@ Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
 
 Global Coercion setoid_map: SetoidMap >-> Funclass.
 
-(* TODO: move stuff around and generalize this over f... *)
-
-Global Instance setoid_fun_proper:
-  forall S T f,
-  Proper (setoid_equiv ==> setoid_equiv) (@setoid_map S T f).
-Proof.
-  repeat intro.
-  now apply setoid_map_coherence.
-Qed.
-
 Global Notation "S ~> T" := (SetoidMap S T)
   (at level 99, T at level 200, right associativity).
+
+Global Program Definition setoid_map_setoid S T: Setoid := {|
+  setoid_carrier := S ~> T;
+  setoid_equiv f g := forall x, f x == g x
+|}.
+
+Next Obligation.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  now symmetry.
+Qed.
+
+Next Obligation.
+  rename x0 into w.
+  now transitivity (y w).
+Qed.
+
+Global Canonical Structure setoid_map_setoid.
+
+Global Instance setoid_fun_proper:
+  forall S T,
+  Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@setoid_map S T).
+Proof.
+  repeat intro.
+  rename x into f, y into g, x0 into x, y0 into y.
+  transitivity (g x).
+  - apply H.
+  - now apply setoid_map_coherence.
+Qed.
 
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
@@ -229,30 +250,8 @@ Qed.
 
 Global Canonical Structure SetCategory.
 
-(* We now do a similar thing and define a category of setoids and setoid
-   morphisms as previously defined. So first make a canonical definition to set
-   the desired notion of equality of morphisms (which is similar to functional
-   extensionality!), and then proceed to build the canonical category. *)
-
-Global Program Definition MorphismSetoid S T: Setoid := {|
-  setoid_carrier := S ~> T;
-  setoid_equiv f g := forall x, f x == g x
-|}.
-
-Next Obligation.
-  reflexivity.
-Qed.
-
-Next Obligation.
-  now symmetry.
-Qed.
-
-Next Obligation.
-  rename x0 into w.
-  now transitivity (y w).
-Qed.
-
-Global Canonical Structure MorphismSetoid.
+(* We now do a similar thing and define a category of setoids and setoid maps as
+   previously defined. *)
 
 Global Program Definition SetoidCategory: Category := {|
   obj := Setoid;
