@@ -72,7 +72,7 @@ Proof.
   apply step_K.
 Qed.
 
-Instance conv_equiv:
+Global Instance conv_equiv:
   Equivalence conv.
 Proof.
   split; repeat intro.
@@ -81,7 +81,7 @@ Proof.
   - now apply rst_trans with y.
 Qed.
 
-Instance conv_app_proper:
+Global Instance conv_app_proper:
   Proper (conv ==> conv ==> conv) app.
 Proof.
   repeat intro.
