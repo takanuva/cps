@@ -53,13 +53,19 @@ Definition welltyped_term_eq {g t}: relation (welltyped_term g t) :=
 (* We declare well-typed substitution as a setoid. *)
 
 Program Definition WelltypedSubstSetoid g d: Setoid := {|
-  carrier := @welltyped_subst g d;
-  equiv := @welltyped_subst_eq g d
+  setoid_carrier := @welltyped_subst g d;
+  setoid_equiv := @welltyped_subst_eq g d
 |}.
 
-Obligation 1 of WelltypedSubstSetoid.
-  (* This is indeed true, but unfortunately the sigma library gives us an
-     incorrect notion of equality; gotta fix that. Eventually. *)
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
   admit.
 Admitted.
 
@@ -203,29 +209,39 @@ Qed.
    build our category with families. *)
 
 Program Definition WelltypedTypeSetoid g: Setoid := {|
-  carrier := welltyped_type g;
-  equiv := welltyped_type_eq
+  setoid_carrier := welltyped_type g;
+  setoid_equiv := welltyped_type_eq
 |}.
 
-Obligation 1 of WelltypedTypeSetoid.
-  split; repeat intro.
-  - apply conv_refl.
-  - now apply conv_sym.
-  - now apply (conv_trans (`g) (`x) (`y) (`z)).
+Next Obligation.
+  apply conv_refl.
+Qed.
+
+Next Obligation.
+  now apply conv_sym.
+Qed.
+
+Next Obligation.
+  now apply (conv_trans (`g) (`x) (`y) (`z)).
 Qed.
 
 Global Canonical Structure WelltypedTypeSetoid.
 
 Program Definition WelltypedTermSetoid g t: Setoid := {|
-  carrier := welltyped_term g t;
-  equiv := welltyped_term_eq
+  setoid_carrier := welltyped_term g t;
+  setoid_equiv := welltyped_term_eq
 |}.
 
-Obligation 1 of WelltypedTermSetoid.
-  split; repeat intro.
-  - apply conv_refl.
-  - now apply conv_sym.
-  - now apply (conv_trans (`g) (`x) (`y) (`z)).
+Next Obligation.
+  apply conv_refl.
+Qed.
+
+Next Obligation.
+  now apply conv_sym.
+Qed.
+
+Next Obligation.
+  now apply (conv_trans (`g) (`x) (`y) (`z)).
 Qed.
 
 Global Canonical Structure WelltypedTermSetoid.

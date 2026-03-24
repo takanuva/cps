@@ -81,15 +81,23 @@ Definition Dmap_eq: forall {X Y}, relation (Dmap X Y) :=
 (* This, of course, forms a setoid. *)
 
 Polymorphic Program Definition DmapSetoid {X Y}: Setoid := {|
-  carrier := Dmap X Y;
-  equiv := Dmap_eq
+  setoid_carrier := Dmap X Y;
+  setoid_equiv := Dmap_eq
 |}.
 
-Obligation 1 of DmapSetoid.
-  split; repeat intro.
-  - reflexivity.
-  - now rewrite H.
-  - now rewrite H, H0.
+Next Obligation.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H, H0.
 Qed.
 
 Global Canonical Structure DmapSetoid.
@@ -422,10 +430,18 @@ Section Dpresheaf.
   Axiom TY_EQ: forall G, relation (TY G).
 
   Local Program Definition TYSetoid (G: Dpresheaf) := {|
-    carrier := TY G;
+    setoid_carrier := TY G;
     (* TODO: obviously, fix equivalence... *)
-    equiv := TY_EQ G
+    setoid_equiv := TY_EQ G
   |}.
+
+  Next Obligation.
+    admit.
+  Admitted.
+
+  Next Obligation.
+    admit.
+  Admitted.
 
   Next Obligation.
     admit.
@@ -585,19 +601,24 @@ Section Elements.
     elem_hom_coherence: elem_set y = fmap G elem_hom_morphism (elem_set x)
   }.
 
-  Local Coercion elem_hom_morphism: elem_hom >-> carrier.
+  Local Coercion elem_hom_morphism: elem_hom >-> setoid_carrier.
 
   Program Definition ElemHomSetoid e f: Setoid := {|
-    carrier := elem_hom e f;
+    setoid_carrier := elem_hom e f;
     (* We use the D-set morphism definition of equality for the inner map. *)
-    equiv := equiv
+    setoid_equiv := setoid_equiv
   |}.
 
   Next Obligation.
-    split; repeat intro.
-    - reflexivity.
-    - now symmetry.
-    - now transitivity (elem_hom_morphism e f y).
+    reflexivity.
+  Qed.
+
+  Next Obligation.
+    now symmetry.
+  Qed.
+
+  Next Obligation.
+    now transitivity (elem_hom_morphism e f y).
   Qed.
 
   Local Canonical Structure ElemHomSetoid.

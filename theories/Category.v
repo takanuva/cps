@@ -22,21 +22,39 @@ Set Primitive Projections.
    packed relation is indeed an equivalence relation over the carrier type. *)
 
 Polymorphic Structure Setoid: Type := {
-  carrier :> Type;
-  equiv: relation carrier;
-  setoid_equiv: Equivalence equiv
+  setoid_carrier :> Type;
+  setoid_equiv: setoid_carrier -> setoid_carrier -> Prop;
+  setoid_refl:
+    forall x,
+    setoid_equiv x x;
+  setoid_sym:
+    forall x y,
+    setoid_equiv x y -> setoid_equiv y x;
+  setoid_trans:
+    forall x y z,
+    setoid_equiv x y -> setoid_equiv y z -> setoid_equiv x z
 }.
 
 Add Printing Let Setoid.
 
-Arguments equiv {s}.
+Arguments setoid_equiv {s}.
+Arguments setoid_refl {s}.
+Arguments setoid_sym {s}.
+Arguments setoid_trans {s}.
 
-Global Existing Instance setoid_equiv.
+Global Instance setoid_equiv_equivalence:
+  forall S,
+  RelationClasses.Equivalence (@setoid_equiv S).
+Proof.
+  split.
+  - exact setoid_refl.
+  - exact setoid_sym.
+  - exact setoid_trans.
+Defined.
+
+Local Notation equiv := setoid_equiv.
 
 Notation "x == y" := (equiv x y)
-  (at level 70, no associativity): type_scope.
-
-Notation "x =/= y" := (complement equiv x y)
   (at level 70, no associativity): type_scope.
 
 (* We define a notion of setoid morphisms (a structure-preserving function over
@@ -153,15 +171,23 @@ Polymorphic Definition funext_eq T U: relation (forall t: T, U t) :=
   fun f g => forall x, f x = g x.
 
 Global Polymorphic Program Definition FunctionSetoid T U: Setoid := {|
-  carrier := forall t: T, U t;
+  setoid_carrier := forall t: T, U t;
   equiv := funext_eq T U
 |}.
 
-Obligation 1 of FunctionSetoid.
-  split; repeat intro.
-  - reflexivity.
-  - now rewrite H.
-  - now rewrite H, H0.
+Next Obligation.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  now rewrite H, H0.
 Qed.
 
 Global Canonical Structure FunctionSetoid.
@@ -201,15 +227,21 @@ Global Canonical Structure SetCategory.
    extensionality!), and then proceed to build the canonical category. *)
 
 Global Polymorphic Program Definition MorphismSetoid S T: Setoid := {|
-  carrier := S ~> T;
+  setoid_carrier := S ~> T;
   equiv f g := forall x, f x == g x
 |}.
 
-Obligation 1 of MorphismSetoid.
-  split; repeat intro.
-  - reflexivity.
-  - now rewrite H.
-  - now rewrite H, H0.
+Next Obligation.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  now symmetry.
+Qed.
+
+Next Obligation.
+  rename x0 into w.
+  now transitivity (y w).
 Qed.
 
 Global Canonical Structure MorphismSetoid.
@@ -314,9 +346,21 @@ Arguments iso_from_to {C} {X} {Y}.
 (* ... *)
 
 Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
-  carrier := Setoid;
+  setoid_carrier := Setoid;
   equiv := isomorphism
 |}.
+
+Next Obligation.
+  reflexivity.
+Qed.
+
+Next Obligation.
+  now symmetry.
+Qed.
+
+Next Obligation.
+  now transitivity y.
+Qed.
 
 Global Canonical Structure SetoidSetoid.
 
@@ -364,17 +408,22 @@ Polymorphic Section NaturalTransformation.
   }.
 
   Polymorphic Program Definition NaturalTransformationSetoid: Setoid := {|
-    carrier := NaturalTransformation;
+    setoid_carrier := NaturalTransformation;
     equiv A B :=
       forall X: C,
       transformation A X == transformation B X
   |}.
 
-  Obligation 1 of NaturalTransformationSetoid.
-    split; repeat intro.
-    - reflexivity.
-    - now symmetry.
-    - now transitivity (transformation y X).
+  Next Obligation.
+    reflexivity.
+  Qed.
+
+  Next Obligation.
+    now symmetry.
+  Qed.
+
+  Next Obligation.
+    now transitivity (transformation y X).
   Qed.
 
   (* TODO: fix this warning! *)
