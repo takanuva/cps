@@ -140,18 +140,43 @@ Definition partial_inclusion (S: Setoid): PartialSetoid := {|
 
 Global Canonical Structure partial_inclusion.
 
-(* TODO: how to make the following work?
+(* TODO: how to make the following work...? :(
 
 Global Coercion partial_inclusion: Setoid >-> PartialSetoid. *)
 
-Fail Check fun (S T: Setoid) => (S ~> T): PartialSetoid.
+Fail Check fun S T => (S ~> T): PartialSetoid.
 
-Structure SelfRelated (P: PartialSetoid): Type := {
+Structure Subtype (P: PartialSetoid): Type := {
   wit: partial_carrier P;
   prf: partial_equiv wit wit
 }.
 
-Global Coercion SelfRelated: PartialSetoid >-> Sortclass.
+Arguments wit {P}.
+Arguments prf {P}.
+
+Global Coercion Subtype: PartialSetoid >-> Sortclass.
+
+Definition subtype_equiv {P: PartialSetoid} (x: P) (y: P): Prop :=
+  partial_equiv (wit x) (wit y).
+
+Program Definition self_related_setoid (P: PartialSetoid): Setoid := {|
+  setoid_carrier := Subtype P;
+  setoid_equiv := subtype_equiv
+|}.
+
+Next Obligation.
+  apply prf.
+Qed.
+
+Next Obligation.
+  now apply partial_sym.
+Qed.
+
+Next Obligation.
+  now apply partial_trans with (wit y).
+Qed.
+
+Global Canonical Structure self_related_setoid.
 
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
