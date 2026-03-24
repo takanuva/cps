@@ -186,7 +186,7 @@ Section DsetModel.
     cwf_tsub G D (s: Dmap' D G) (A: G -> Dset) (d: D) :=
       A (s d);
     cwf_el G := {|
-      setoid_fun (A: G -> Dset) := Dmap G A;
+      setoid_map (A: G -> Dset) := Dmap G A;
     |};
     cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
       Dmap_fun d := e (s d)
@@ -456,7 +456,7 @@ Section Dpresheaf.
         mapping (X: opposite C) :=
           terminal _ (cwf_empty DsetModel);
         fmap (X: opposite C) (Y: opposite C) := {|
-          setoid_fun (f: opposite C X Y) := {|
+          setoid_map (f: opposite C X Y) := {|
             Dmap_fun (Z: Delta ()) := Z
           |}
         |}
@@ -476,7 +476,7 @@ Section Dpresheaf.
     |};
     (* ... *)
     cwf_el (G: Dpresheaf) := {|
-      setoid_fun (A: TY G) :=
+      setoid_map (A: TY G) :=
         forall X: C, cwf_el DsetModel (G X) (TY_fun G A X);
         (* TODO: there's a coherence condition here... I think! *)
     |};
@@ -487,7 +487,7 @@ Section Dpresheaf.
     cwf_ext G (A: TY G) := {|
       mapping (X: C) := cwf_ext DsetModel (G X) (TY_fun G A X);
       fmap (X: C) (Y: C) := {|
-        setoid_fun (f: opposite C X Y) := {|
+        setoid_map (f: opposite C X Y) := {|
           Dmap_fun (p: { x: G X & TY_fun G A X x }) := _
         |}
       |}

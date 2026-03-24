@@ -258,7 +258,7 @@ Program Definition TermModel: CwF := {|
   cwf_ty := welltyped_type;
   cwf_tsub G D s t := inst (`s) (`t);
   cwf_el G := {|
-    setoid_fun := welltyped_term G
+    setoid_map := welltyped_term G
   |};
   cwf_esub G D A s t := inst (`s) (`t);
   cwf_ext G A := decl_var (`A) :: (`G);

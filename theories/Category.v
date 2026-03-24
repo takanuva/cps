@@ -56,24 +56,33 @@ Defined.
 Notation "x == y" := (setoid_equiv x y)
   (at level 70, no associativity): type_scope.
 
-(* We define a notion of setoid morphisms (a structure-preserving function over
-   two setoids) as a type-theoretic function over the two carrier sets, along
+(* We define a notion of setoid maps (a structure-preserving function over two
+   total setoids) as a type-theoretic function over the two carrier sets, along
    with a proof that this is a proper morphism, preserving the structure. I.e.,
    for setoids S and T, if x: S and y: S such that x == y, a morphism f: S ~> T
    will guarantee that f x == f y. Notice the coercion for the packed function,
    which is given for convenience. *)
 
-Structure SetoidMorphism (S: Setoid) (T: Setoid): Type := {
-  setoid_fun: S -> T;
-  setoid_fun_respectful:
-    Proper (setoid_equiv ==> setoid_equiv) setoid_fun
+Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
+  setoid_map: S -> T;
+  setoid_map_coherence:
+    forall x y, x == y -> setoid_map x == setoid_map y
 }.
 
-Global Coercion setoid_fun: SetoidMorphism >-> Funclass.
+Global Coercion setoid_map: SetoidMap >-> Funclass.
 
-Global Existing Instance setoid_fun_respectful.
+(* TODO: move stuff around and generalize this over f... *)
 
-Infix "~>" := SetoidMorphism (at level 90, right associativity).
+Global Instance setoid_fun_proper:
+  forall S T f,
+  Proper (setoid_equiv ==> setoid_equiv) (@setoid_map S T f).
+Proof.
+  repeat intro.
+  now apply setoid_map_coherence.
+Qed.
+
+Global Notation "S ~> T" := (SetoidMap S T)
+  (at level 99, T at level 200, right associativity).
 
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
@@ -250,36 +259,31 @@ Global Program Definition SetoidCategory: Category := {|
   hom T U := T ~> U;
   (* TODO: can we coerce those from regular functions...? *)
   id T := {|
-    setoid_fun x := x
+    setoid_map x := x
   |};
   post T U V f g := {|
-    setoid_fun x := g (f x)
+    setoid_map x := g (f x)
   |}
 |}.
 
-Obligation 1 of SetoidCategory.
-  firstorder.
-Qed.
-
-Obligation 2 of SetoidCategory.
-  repeat intro.
+Next Obligation.
   now rewrite H.
 Qed.
 
-Obligation 3 of SetoidCategory.
+Next Obligation.
   repeat intro; simpl.
   now rewrite H, H0.
 Qed.
 
-Obligation 4 of SetoidCategory.
+Next Obligation.
   reflexivity.
 Qed.
 
-Obligation 5 of SetoidCategory.
+Next Obligation.
   reflexivity.
 Qed.
 
-Obligation 6 of SetoidCategory.
+Next Obligation.
   reflexivity.
 Qed.
 
@@ -546,15 +550,15 @@ Section Yoneda.
     mapping X := {|
       mapping Y := C Y X;
       fmap Y Z := {|
-        setoid_fun f := {|
-          setoid_fun g := post (f: C Z Y) (g: C Y X)
+        setoid_map f := {|
+          setoid_map g := post (f: C Z Y) (g: C Y X)
         |}
       |}
     |};
     fmap Y Z := {|
-      setoid_fun f := {|
+      setoid_map f := {|
         transformation X := {|
-          setoid_fun g := post (g: C X Y) (f: C Y Z)
+          setoid_map g := post (g: C X Y) (f: C Y Z)
         |}
       |}
     |}
