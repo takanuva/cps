@@ -131,6 +131,17 @@ Proof.
   - exact partial_trans.
 Defined.
 
+Definition partial_inclusion (S: Setoid): PartialSetoid := {|
+  partial_carrier := setoid_carrier S;
+  partial_equiv := setoid_equiv;
+  partial_sym := setoid_sym;
+  partial_trans := setoid_trans
+|}.
+
+Global Canonical Structure partial_inclusion.
+
+Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
+
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
    morphisms. This definition also uses a postcomposition operator instead of
