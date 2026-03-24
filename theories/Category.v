@@ -105,6 +105,32 @@ Proof.
   - now apply setoid_map_coherence.
 Qed.
 
+(* ... *)
+
+Structure PartialSetoid: Type := {
+  partial_carrier: Type;
+  partial_equiv: partial_carrier -> partial_carrier -> Prop;
+  partial_sym:
+    forall x y,
+    partial_equiv x y -> partial_equiv y x;
+  partial_trans:
+    forall x y z,
+    partial_equiv x y -> partial_equiv y z -> partial_equiv x z
+}.
+
+Arguments partial_equiv {p}.
+Arguments partial_sym {p}.
+Arguments partial_trans {p}.
+
+Global Instance partial_equiv_per:
+  forall S,
+  RelationClasses.PER (@partial_equiv S).
+Proof.
+  split.
+  - exact partial_sym.
+  - exact partial_trans.
+Defined.
+
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
    morphisms. This definition also uses a postcomposition operator instead of
