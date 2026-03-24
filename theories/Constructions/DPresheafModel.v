@@ -576,7 +576,7 @@ End Dpresheaf.
 
 (* TODO: move these definitions to the [Category.v] file. *)
 
-Section Elements.
+(* Section Elements.
 
   Variable C: Category.
 
@@ -663,4 +663,4 @@ Section Elements.
     now rewrite post_assoc.
   Qed.
 
-End Elements.
+End Elements. *)
