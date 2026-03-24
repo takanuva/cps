@@ -7,6 +7,7 @@ Require Import Program.
 Require Import Relations.
 Require Import Morphisms.
 
+Set Universe Polymorphism.
 Set Primitive Projections.
 
 (* In general, category theory is agnostic in respect to the foundation used to
@@ -21,7 +22,7 @@ Set Primitive Projections.
    with the setoid itself), and setoid_equiv as an instance proving that the
    packed relation is indeed an equivalence relation over the carrier type. *)
 
-Polymorphic Structure Setoid: Type := {
+Structure Setoid: Type := {
   setoid_carrier :> Type;
   setoid_equiv: setoid_carrier -> setoid_carrier -> Prop;
   setoid_refl:
@@ -62,7 +63,7 @@ Notation "x == y" := (setoid_equiv x y)
    will guarantee that f x == f y. Notice the coercion for the packed function,
    which is given for convenience. *)
 
-Polymorphic Structure SetoidMorphism (S: Setoid) (T: Setoid): Type := {
+Structure SetoidMorphism (S: Setoid) (T: Setoid): Type := {
   setoid_fun: S -> T;
   setoid_fun_respectful:
     Proper (setoid_equiv ==> setoid_equiv) setoid_fun
@@ -84,7 +85,7 @@ Infix "~>" := SetoidMorphism (at level 90, right associativity).
    For convenience, we identify the category with the type of objects and the
    family of morphisms. *)
 
-Polymorphic Structure Category: Type := {
+Structure Category: Type := {
   obj :> Type;
   hom: obj -> obj -> Setoid;
   id {x}: hom x x;
@@ -132,7 +133,7 @@ SubClass SmallCategory: Type := Category@{Set Set}.
    from X to Y in C if and only if it is a morphism from Y to X in C^op. All the
    laws in the structure are derivable. *)
 
-Polymorphic Program Definition opposite (C: Category): Category := {|
+Program Definition opposite (C: Category): Category := {|
   obj := C;
   hom X Y := C Y X;
   id x := id;
@@ -165,10 +166,10 @@ Qed.
    functions, as a generalization, and then we proceed to build the canonical
    category for sets. *)
 
-Polymorphic Definition funext_eq T U: relation (forall t: T, U t) :=
+Definition funext_eq T U: relation (forall t: T, U t) :=
   fun f g => forall x, f x = g x.
 
-Global Polymorphic Program Definition FunctionSetoid T U: Setoid := {|
+Global Program Definition FunctionSetoid T U: Setoid := {|
   setoid_carrier := forall t: T, U t;
   setoid_equiv := funext_eq T U
 |}.
@@ -224,7 +225,7 @@ Global Canonical Structure SetCategory.
    the desired notion of equality of morphisms (which is similar to functional
    extensionality!), and then proceed to build the canonical category. *)
 
-Global Polymorphic Program Definition MorphismSetoid S T: Setoid := {|
+Global Program Definition MorphismSetoid S T: Setoid := {|
   setoid_carrier := S ~> T;
   setoid_equiv f g := forall x, f x == g x
 |}.
@@ -288,11 +289,11 @@ Global Canonical Structure SetoidCategory.
 
 (* ... *)
 
-Polymorphic Section Isomorphism.
+Section Isomorphism.
 
   Variable C: Category.
 
-  Polymorphic Structure Isomorphism (X: C) (Y: C): Type := isomorphism_mk {
+  Structure Isomorphism (X: C) (Y: C): Type := isomorphism_mk {
     iso_to: C X Y;
     iso_from: C Y X;
     iso_to_from: post iso_to iso_from == id;
@@ -343,7 +344,7 @@ Arguments iso_from_to {C} {X} {Y}.
 
 (* ... *)
 
-Global Polymorphic Program Definition SetoidSetoid: Setoid := {|
+Global Program Definition SetoidSetoid: Setoid := {|
   setoid_carrier := Setoid;
   setoid_equiv := isomorphism
 |}.
@@ -367,7 +368,7 @@ Global Canonical Structure SetoidSetoid.
    and one for converting morphisms from C to D, which respects the categorical
    structure. *)
 
-Polymorphic Structure Functor (C: Category) (D: Category): Type := {
+Structure Functor (C: Category) (D: Category): Type := {
   mapping :> C -> D;
   fmap {x y}: C x y ~> D (mapping x) (mapping y);
   fmap_id {x}:
@@ -391,7 +392,7 @@ Defined.
 
 (* ... *)
 
-Polymorphic Section NaturalTransformation.
+Section NaturalTransformation.
 
   Variable C: Category.
   Variable D: Category.
@@ -399,13 +400,13 @@ Polymorphic Section NaturalTransformation.
   Variable F: Functor C D.
   Variable G: Functor C D.
 
-  Polymorphic Structure NaturalTransformation: Type := {
+  Structure NaturalTransformation: Type := {
     transformation: forall X: C, D (F X) (G X);
     naturality X Y f:
       post (fmap F f) (transformation Y) == post (transformation X) (fmap G f)
   }.
 
-  Polymorphic Program Definition NaturalTransformationSetoid: Setoid := {|
+  Program Definition NaturalTransformationSetoid: Setoid := {|
     setoid_carrier := NaturalTransformation;
     setoid_equiv A B :=
       forall X: C, transformation A X == transformation B X
@@ -438,12 +439,12 @@ Global Coercion transformation: NaturalTransformation >-> Funclass.
 
 (* ... *)
 
-Polymorphic Section FunctorCategory.
+Section FunctorCategory.
 
   Variable C: Category.
   Variable D: Category.
 
-  Global Polymorphic Program Definition FunctorCategory: Category := {|
+  Global Program Definition FunctorCategory: Category := {|
     obj := Functor C D;
     hom F G := NaturalTransformation F G;
     id F :=
@@ -495,7 +496,7 @@ End FunctorCategory.
    the category of sets instead, of course, so what we define is technically a
    "setoid-valued presheaf in C". *)
 
-Polymorphic Definition Presheaf (C: Category): Type :=
+Definition Presheaf (C: Category): Type :=
   Functor (opposite C) Setoid.
 
 (* For convenience, we also treat presheafs as if defined by restricting maps;
@@ -503,7 +504,7 @@ Polymorphic Definition Presheaf (C: Category): Type :=
    a restriction operation: for every morphism C Y X, the presheaf will map from
    G X into G Y, thus restricting the basic elements used within the set. *)
 
-Polymorphic Section Restriction.
+Section Restriction.
 
   Variable C: Category.
   Variable X: C.
@@ -512,14 +513,14 @@ Polymorphic Section Restriction.
   (* TODO: should we generalize to any category D instead of Setoid? *)
   Variable G: Presheaf C.
 
-  Polymorphic Definition restrict: G X ~> G Y :=
+  Definition restrict: G X ~> G Y :=
     fmap G F.
 
 End Restriction.
 
 Arguments restrict {C X Y} F {G}.
 
-Polymorphic Lemma restrict_id:
+Lemma restrict_id:
   forall C: Category,
   forall G: Presheaf C,
   forall X: C,
@@ -535,13 +536,13 @@ Qed.
 
 (* ... *)
 
-Polymorphic Section Yoneda.
+Section Yoneda.
 
   Variable C: Category.
 
   (* TODO: should this be an example...? Will we be using this? *)
 
-  Polymorphic Program Definition Yoneda: Functor C (Presheaf C) := {|
+  Program Definition Yoneda: Functor C (Presheaf C) := {|
     mapping X := {|
       mapping Y := C Y X;
       fmap Y Z := {|
@@ -603,7 +604,7 @@ End Yoneda.
 
 (* ... *)
 
-Polymorphic Structure Terminal (C: Category): Type := {
+Structure Terminal (C: Category): Type := {
   terminal: C;
   terminal_hom X: C X terminal;
   terminal_unique:
@@ -627,7 +628,7 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
-Polymorphic Structure CwF: Type := {
+Structure CwF: Type := {
   (* TODO: can we enforce that it is small? Check later! *)
   cwf_cat: Category;
   cwf_env := obj cwf_cat;
