@@ -78,50 +78,57 @@ Program Definition TermCategory: Category := {|
   obj := welltyped_env;
   hom := welltyped_subst;
   id X := subst_ids;
-  post X Y Z f g := subst_comp g f
+  post X Y Z := map f g => subst_comp g f
 |}.
 
 (* Identity substitution is well-typed. *)
 
-Obligation 1 of TermCategory.
+Next Obligation of TermCategory.
   destruct X as (g, ?H); simpl.
   now constructor.
 Qed.
 
 (* Composition of well-typed substitutions is well-typed. *)
 
-Obligation 2 of TermCategory.
+Next Obligation of TermCategory.
   destruct f as (s, ?H).
   destruct g as (t, ?H).
   simpl.
   now apply valid_subst_comp with (`Y).
 Qed.
 
-(* Composition is respectful of morphism equality. *)
+(* Composition is respectful of morphism equality (on the left). *)
 
-Obligation 3 of TermCategory.
+Next Obligation of TermCategory.
   repeat intro; simpl.
   (* Oh boy, no way this is correct... but this needs fixing in sigma! *)
   now apply subst_comp_proper.
 Qed.
 
+(* Composition is respectful of morphism equality (on the right). *)
+
+Next Obligation of TermCategory.
+  repeat intro; simpl.
+  now apply subst_comp_proper.
+Qed.
+
 (* Identity is neutral on the right. *)
 
-Obligation 4 of TermCategory.
+Next Obligation of TermCategory.
   repeat intro; simpl.
   now sigma.
 Qed.
 
 (* Identity is neutral on the left. *)
 
-Obligation 5 of TermCategory.
+Next Obligation of TermCategory.
   repeat intro; simpl.
   now sigma.
 Qed.
 
 (* Identity is associative. *)
 
-Obligation 6 of TermCategory.
+Next Obligation of TermCategory.
   repeat intro; simpl.
   now sigma.
 Qed.

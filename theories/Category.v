@@ -7,8 +7,8 @@ Require Import Program.
 Require Import Relations.
 Require Import Morphisms.
 
-Set Universe Polymorphism.
 Set Primitive Projections.
+Set Universe Polymorphism.
 
 (* In general, category theory is agnostic in respect to the foundation used to
    build it. As we are working within Coq's type theory, and our use case needs
@@ -69,13 +69,21 @@ Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
     forall x y, x == y -> setoid_map x == setoid_map y
 }.
 
-Global Coercion setoid_map: SetoidMap >-> Funclass.
+(* For some reason, rewriting fails when using the projection directly as a
+   coercion, so we first eta-expand it into a function type and then treat that
+   into the coercion (even though both are intensionally equal!). *)
 
-Global Notation "S ~> T" := (SetoidMap S T)
-  (at level 99, T at level 200, right associativity).
+Definition setoid_map' {S} {T} (f: SetoidMap S T): S -> T :=
+  setoid_map S T f.
+
+Global Coercion setoid_map': SetoidMap >-> Funclass.
+
+Global Notation "'map' p .. q => e" :=
+  {| setoid_map p := (.. {| setoid_map q := e |} ..) |}
+  (at level 200, p binder, q binder, e at level 200).
 
 Global Program Definition setoid_map_setoid S T: Setoid := {|
-  setoid_carrier := S ~> T;
+  setoid_carrier := SetoidMap S T;
   setoid_equiv f g := forall x, f x == g x
 |}.
 
@@ -93,6 +101,9 @@ Next Obligation.
 Qed.
 
 Global Canonical Structure setoid_map_setoid.
+
+Global Notation "S ~> T" := (setoid_map_setoid S T)
+  (at level 99, T at level 200, right associativity).
 
 Global Instance setoid_fun_proper:
   forall S T,
@@ -192,9 +203,7 @@ Structure Category: Type := {
   obj :> Type;
   hom: obj -> obj -> Setoid;
   id {x}: hom x x;
-  post {x y z}: hom x y -> hom y z -> hom x z;
-  post_respectful {x y z}:
-    Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@post x y z);
+  post {x y z}: hom x y ~> hom y z ~> hom x z;
   post_id_left {x y}:
     forall f: hom x y,
     post id f == f;
@@ -210,13 +219,10 @@ Structure Category: Type := {
 
 Add Printing Let Category.
 
-Global Existing Instance post_respectful.
-
 Global Coercion hom: Category >-> Funclass.
 
 Arguments id {c x}.
 Arguments post {c x y z}.
-Arguments post_respectful {c x y z}.
 Arguments post_id_left {c x y}.
 Arguments post_id_right {c x y}.
 Arguments post_assoc {c x y z w}.
@@ -224,11 +230,9 @@ Arguments post_assoc {c x y z w}.
 (* We use universe polymorphism in order to more easily tackle size issues. But
    for convenience, we also define a notion of small category, which is just a
    category where both the type of objects and the (carrier type of the) setoid
-   are small (thus live in Set).
+   are small (thus live in Set). *)
 
-   TODO: can we force this definition to live in Type 0...? *)
-
-SubClass SmallCategory: Type := Category@{Set Set}.
+SubClass SmallCategory: Type@{Set+1} := Category@{Set Set}.
 
 (* We define the opposite category construction, which takes a category C and
    build a new category C^op (here opposite C) by taking as the type of objects
@@ -238,25 +242,29 @@ SubClass SmallCategory: Type := Category@{Set Set}.
 
 Program Definition opposite (C: Category): Category := {|
   obj := C;
+  (* TODO: can we change this to flip C? Gotta add some machinery then! *)
   hom X Y := C Y X;
-  id x := id;
-  post x y z f g := post g f
+  id X := id;
+  post X Y Z := map f g => post g f
 |}.
 
-Obligation 1 of opposite.
-  repeat intro.
-  now apply post_respectful.
+Next Obligation of opposite.
+  now rewrite H.
 Qed.
 
-Obligation 2 of opposite.
+Next Obligation of opposite.
+  now rewrite H.
+Qed.
+
+Next Obligation of opposite.
   apply post_id_right.
 Qed.
 
-Obligation 3 of opposite.
+Next Obligation of opposite.
   apply post_id_left.
 Qed.
 
-Obligation 4 of opposite.
+Next Obligation of opposite.
   symmetry.
   apply post_assoc.
 Qed.
@@ -298,25 +306,31 @@ Global Program Example SetCategory: Category := {|
   obj := Set;
   hom T U := T -> U;
   id T x := x;
-  post T U V f g x := g (f x)
+  (* TODO: can we generalize this notation to have like [map f g x => ...]? *)
+  post T U V := map f g => fun x => g (f x)
 |}.
 
-Obligation 1 of SetCategory.
+Next Obligation of SetCategory.
   repeat intro.
-  now rewrite H, H0.
+  now rewrite H.
 Qed.
 
-Obligation 2 of SetCategory.
+Next Obligation of SetCategory.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation of SetCategory.
   repeat intro.
   reflexivity.
 Qed.
 
-Obligation 3 of SetCategory.
+Next Obligation of SetCategory.
   repeat intro.
   reflexivity.
 Qed.
 
-Obligation 4 of SetCategory.
+Next Obligation of SetCategory.
   repeat intro.
   reflexivity.
 Qed.
@@ -329,22 +343,16 @@ Global Canonical Structure SetCategory.
 Global Program Definition SetoidCategory: Category := {|
   obj := Setoid;
   hom T U := T ~> U;
-  (* TODO: can we coerce those from regular functions...? *)
-  id T := {|
-    setoid_map x := x
-  |};
-  post T U V f g := {|
-    setoid_map x := g (f x)
-  |}
+  id T := map x => x;
+  post T U V := map f g x => g (f x)
 |}.
 
-Next Obligation.
+Next Obligation of SetoidCategory.
   now rewrite H.
 Qed.
 
-Next Obligation.
-  repeat intro; simpl.
-  now rewrite H, H0.
+Next Obligation of SetoidCategory.
+  now rewrite H.
 Qed.
 
 Next Obligation.
@@ -458,14 +466,6 @@ Structure Functor (C: Category) (D: Category): Type := {
 Arguments mapping {C D} F: rename.
 Arguments fmap {C D} F {x y}: rename.
 
-Global Instance fmap_respectful C D (F: Functor C D):
-  forall x y, Proper (setoid_equiv ==> setoid_equiv) (@fmap C D F x y).
-Proof.
-  repeat intro; simpl.
-  destruct F as (m, f, ?H, ?H); simpl.
-  now apply f.
-Defined.
-
 (* ... *)
 
 Section NaturalTransformation.
@@ -526,17 +526,17 @@ Section FunctorCategory.
     id F :=
       (* TODO: can we use just id here...? *)
       {| transformation X := @id D (F X) |};
-    post F G H A B :=
+    post F G H := map A B =>
       {| transformation X := post (transformation A X) (transformation B X) |}
   |}.
 
-  Obligation 1 of FunctorCategory.
+  Next Obligation of FunctorCategory.
     rewrite post_id_right.
     rewrite post_id_left.
     reflexivity.
   Qed.
 
-  Obligation 2 of FunctorCategory.
+  Next Obligation of FunctorCategory.
     rewrite post_assoc.
     rewrite naturality.
     rewrite <- post_assoc.
@@ -545,21 +545,24 @@ Section FunctorCategory.
     reflexivity.
   Qed.
 
-  Obligation 3 of FunctorCategory.
-    repeat intro; simpl.
-    now rewrite H, H0.
+  Next Obligation of FunctorCategory.
+    now rewrite H0.
   Qed.
 
-  Obligation 4 of FunctorCategory.
-    now rewrite post_id_left.
+  Next Obligation of FunctorCategory.
+    now rewrite H0.
   Qed.
 
-  Obligation 5 of FunctorCategory.
-    now rewrite post_id_right.
+  Next Obligation of FunctorCategory.
+    apply post_id_left.
   Qed.
 
-  Obligation 6 of FunctorCategory.
-    now rewrite post_assoc.
+  Next Obligation of FunctorCategory.
+    apply post_id_right.
+  Qed.
+
+  Next Obligation of FunctorCategory.
+    apply post_assoc.
   Qed.
 
   Global Canonical Structure FunctorCategory.

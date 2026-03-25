@@ -123,7 +123,7 @@ Qed.
 (* Of course, we may compose D-maps using composition of their functions, which
    respects the proper conditions. *)
 
-Polymorphic Program Definition Dmap'_post X Y Z (M: Dmap' X Y) (N: Dmap' Y Z):
+Polymorphic Program Definition Dmap'_post {X Y Z} (M: Dmap' X Y) (N: Dmap' Y Z):
   Dmap' X Z :=
 {|
   Dmap_fun x := N (M x)
@@ -145,25 +145,30 @@ Polymorphic Program Definition DsetCategory: Category := {|
   obj := Dset;
   hom := Dmap';
   id := Dmap'_id;
-  post := Dmap'_post
+  post X Y Z := map f g => Dmap'_post f g
 |}.
 
-Obligation 1 of DsetCategory.
+Next Obligation of DsetCategory.
   repeat intro; simpl.
-  now rewrite H, H0.
+  now rewrite H.
 Qed.
 
-Obligation 2 of DsetCategory.
+Next Obligation of DsetCategory.
+  repeat intro; simpl.
+  now rewrite H.
+Qed.
+
+Next Obligation of DsetCategory.
   repeat intro; simpl.
   reflexivity.
 Qed.
 
-Obligation 3 of DsetCategory.
+Next Obligation of DsetCategory.
   repeat intro; simpl.
   reflexivity.
 Qed.
 
-Obligation 4 of DsetCategory.
+Next Obligation of DsetCategory.
   repeat intro; simpl.
   reflexivity.
 Qed.
@@ -383,7 +388,7 @@ Section Dpresheaf.
         assert (forall d, fmap G id (y := d) == id) by apply fmap_id.
         apply foobar with (f := fun x => TY_fun _ T X (fmap G id x)).
         - simpl; intro.
-          compute in H.
+          simpl in H.
           rewrite H.
           reflexivity.
         - assumption.
@@ -404,7 +409,7 @@ Section Dpresheaf.
         assert (forall d, fmap G id (y := d) == id) by apply fmap_id.
         apply foobar with (f := fun x => TY_fun _ T X x).
         - simpl; intro.
-          compute in H.
+          simpl in H.
           rewrite H.
           reflexivity.
         - assumption.
@@ -534,15 +539,19 @@ Section Dpresheaf.
   Qed.
 
   Next Obligation of DpresheafModel.
+    (* TODO: review me... *)
     set (e := cwf_esub DsetModel (s X) (TY_restriction G A X Y f)).
-    compute in e.
     destruct s as (s, ?H); simpl in *.
     destruct A as (Af, Ar); simpl in *.
-    compute in H.
     destruct e as (e, ?H).
     assert (forall d: D X, Af Y (s Y (fmap D f d))) as g; intros.
-    - rewrite H.
-      apply e.
+    - unfold Dmap_eq in H.
+      unfold Dmap'_post in H.
+      simpl in H.
+      clear H0.
+      specialize (e d).
+      rewrite <- H in e.
+      assumption.
     - exists g.
       destruct H0 as (x, ?H).
       exists x; intros.
