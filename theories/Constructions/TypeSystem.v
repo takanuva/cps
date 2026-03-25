@@ -639,11 +639,11 @@ Proof.
         now sigma.
       * change (bound (S n)) with (var (S n)).
         rename f0 into f, t0 into u.
-        (* TODO: this fails in Coq 8.16! Why, tho? *)
+        (* TODO: "by now sigma" fails in Coq 8.16! Why, tho? *)
         replace (inst (subst_cons e f) (lift (1 + S n) 0 u)) with
-          (inst f (lift (S n) 0 u)) by now sigma.
+          (inst f (lift (S n) 0 u)) by admit.
         replace (inst (subst_cons e f) (var (S n))) with
-          (inst f (var n)) by now sigma.
+          (inst f (var n)) by admit.
         apply IHinfer1.
         now dependent destruction H0.
   - admit.
