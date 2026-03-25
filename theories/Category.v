@@ -447,6 +447,61 @@ Qed.
 
 Global Canonical Structure SetoidSetoid.
 
+(* ... *)
+
+Structure PartialPath (P: PartialSetoid) (Q: PartialSetoid): Type := {
+  partial_path:
+    partial_carrier P = partial_carrier Q;
+  partial_cast (p: partial_carrier P) :=
+    match partial_path in (_ = T) return T with
+    | eq_refl => p
+    end: partial_carrier Q;
+  partial_reclassify:
+    forall x y,
+    partial_equiv x y <-> partial_equiv (partial_cast x) (partial_cast y)
+}.
+
+Arguments partial_path {P} {Q}.
+Arguments partial_cast {P} {Q}.
+Arguments partial_reclassify {P} {Q}.
+
+Program Definition subtype_cast {P} {Q} (H: PartialPath P Q) (p: P): Q :=
+  {| wit := partial_cast H (wit p) |}.
+
+Next Obligation.
+  destruct p as (w, ?H); simpl in *.
+  destruct H as (?H, ?H, ?H); simpl in *.
+  destruct P as (P, ?H, ?H, ?H); simpl in *.
+  destruct Q as (Q, ?H, ?H, ?H); simpl in *.
+  subst; apply H2.
+  assumption.
+Qed.
+
+Goal
+  Equivalence PartialPath.
+Proof.
+  split; repeat intro.
+  - exists eq_refl.
+    firstorder.
+  - destruct H as (?H, ?H, ?H).
+    destruct x as (S, ?H, ?H, ?H); simpl in *.
+    destruct y as (T, ?H, ?H, ?H); simpl in *.
+    exists (symmetry H); subst; simpl.
+    split; intros.
+    + now apply H1.
+    + now apply H1.
+  - destruct H as (?H, ?H, ?H).
+    destruct H0 as (?H, ?H, ?H).
+    destruct x as (S, ?H, ?H, ?H); simpl in *.
+    destruct y as (T, ?H, ?H, ?H); simpl in *.
+    destruct z as (U, ?H, ?H, ?H); simpl in *.
+    exists (transitivity H H0); subst; simpl.
+    subst H1 H3; simpl in *.
+    split; intros.
+    + now apply H4, H2.
+    + now apply H2, H4.
+Qed.
+
 (* As usual, we define functors from categories C and D as structure-preserving
    morphisms. So we keep to functions: one for converting objects from C to D,
    and one for converting morphisms from C to D, which respects the categorical
