@@ -69,9 +69,9 @@ Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
     forall x y, x == y -> setoid_map x == setoid_map y
 }.
 
-(* For some reason, rewriting fails when using the projection directly as a
-   coercion, so we first eta-expand it into a function type and then treat that
-   into the coercion (even though both are intensionally equal!). *)
+(* For some reason, rewriting fails when using the primitive projection directly
+   as a coercion, so we first eta-expand it into a function type and then treat
+   that into the coercion (even though both are intensionally equal!). *)
 
 Definition setoid_map' {S} {T} (f: SetoidMap S T): S -> T :=
   setoid_map S T f.
@@ -80,7 +80,7 @@ Global Coercion setoid_map': SetoidMap >-> Funclass.
 
 Global Notation "'map' p .. q => e" :=
   {| setoid_map p := (.. {| setoid_map q := e |} ..) |}
-  (at level 200, p binder, q binder, e at level 200).
+  (at level 200, p binder, q binder, e at level 200, only parsing).
 
 Global Program Definition setoid_map_setoid S T: Setoid := {|
   setoid_carrier := SetoidMap S T;
@@ -190,9 +190,16 @@ Global Canonical Structure self_related_setoid.
    For convenience, we identify the category with the type of objects and the
    family of morphisms. *)
 
+SubClass Morphism := Setoid.
+
+Definition HomSetoid (f: Morphism): Setoid :=
+  (f :> Setoid).
+
+Global Coercion HomSetoid: Morphism >-> Setoid.
+
 Structure Category: Type := {
   obj :> Type;
-  hom: obj -> obj -> Setoid;
+  hom: obj -> obj -> Morphism;
   id {x}: hom x x;
   post {x y z}: hom x y ~> hom y z ~> hom x z;
   post_id_left {x y}:
@@ -207,8 +214,6 @@ Structure Category: Type := {
     forall h: hom z w,
     post f (post g h) == post (post f g) h
 }.
-
-Add Printing Let Category.
 
 Global Coercion hom: Category >-> Funclass.
 
