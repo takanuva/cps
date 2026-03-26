@@ -119,7 +119,7 @@ Qed.
 (* ... *)
 
 Structure PartialSetoid: Type := {
-  partial_carrier: Type;
+  partial_carrier :> Type;
   partial_equiv: partial_carrier -> partial_carrier -> Prop;
   partial_sym:
     forall x y,
@@ -151,28 +151,19 @@ Definition partial_inclusion (S: Setoid): PartialSetoid := {|
 
 Global Canonical Structure partial_inclusion.
 
-(* TODO: how to make the following work...? :(
-
-Global Coercion partial_inclusion: Setoid >-> PartialSetoid. *)
-
-Fail Check fun S T => (S ~> T): PartialSetoid.
+Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
 
 Structure Subtype (P: PartialSetoid): Type := {
-  wit: partial_carrier P;
+  wit: P;
   prf: partial_equiv wit wit
 }.
 
 Arguments wit {P}.
 Arguments prf {P}.
 
-Global Coercion Subtype: PartialSetoid >-> Sortclass.
-
-Definition subtype_equiv {P: PartialSetoid} (x: P) (y: P): Prop :=
-  partial_equiv (wit x) (wit y).
-
 Program Definition self_related_setoid (P: PartialSetoid): Setoid := {|
   setoid_carrier := Subtype P;
-  setoid_equiv := subtype_equiv
+  setoid_equiv x y := partial_equiv (wit x) (wit y)
 |}.
 
 Next Obligation.
@@ -452,10 +443,10 @@ Global Canonical Structure SetoidSetoid.
 Structure PartialPath (P: PartialSetoid) (Q: PartialSetoid): Type := {
   partial_path:
     partial_carrier P = partial_carrier Q;
-  partial_cast (p: partial_carrier P) :=
+  partial_cast (p: P) :=
     match partial_path in (_ = T) return T with
     | eq_refl => p
-    end: partial_carrier Q;
+    end: Q;
   partial_reclassify:
     forall x y,
     partial_equiv x y <-> partial_equiv (partial_cast x) (partial_cast y)
@@ -465,7 +456,7 @@ Arguments partial_path {P} {Q}.
 Arguments partial_cast {P} {Q}.
 Arguments partial_reclassify {P} {Q}.
 
-Program Definition subtype_cast {P} {Q} (H: PartialPath P Q) (p: P): Q :=
+Program Definition subtype_cast {P} {Q} H (p: Subtype P): Subtype Q :=
   {| wit := partial_cast H (wit p) |}.
 
 Next Obligation.
