@@ -117,7 +117,7 @@ Qed.
 (* ... *)
 
 Structure PartialSetoid: Type := {
-  partial_carrier :> Type;
+  partial_carrier: Type;
   partial_equiv: partial_carrier -> partial_carrier -> Prop;
   partial_sym:
     forall x y,
@@ -154,7 +154,7 @@ Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
 (* ... *)
 
 Structure Domain (P: PartialSetoid): Type := relate {
-  wit: P;
+  wit: partial_carrier P;
   self_relation: partial_equiv wit wit
 }.
 
@@ -453,10 +453,10 @@ Arguments iso_from_to {C} {X} {Y}. *)
 Structure partial_path (P: PartialSetoid) (Q: PartialSetoid): Prop := {
   partial_path_eq:
     partial_carrier P = partial_carrier Q;
-  partial_transp (p: P) :=
+  partial_transp (p: partial_carrier P) :=
     match partial_path_eq in (_ = T) return T with
     | eq_refl => p
-    end :> Q;
+    end :> partial_carrier Q;
   partial_reclassify:
     forall x y,
     partial_equiv x y <-> partial_equiv (partial_transp x) (partial_transp y)
@@ -792,6 +792,8 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
+Coercion Domain: PartialSetoid >-> Sortclass.
+
 Structure CwF: Type := {
   (* TODO: can we enforce that it is small? Check later! *)
   cwf_cat: Category;
@@ -799,7 +801,7 @@ Structure CwF: Type := {
   cwf_sub := hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
   (* ... *)
-  cwf_ty: cwf_env -> Setoid;
+  cwf_ty: cwf_env -> PartialSetoid;
   cwf_tsub {G D}:
     cwf_sub D G -> cwf_ty G -> cwf_ty D;
   (* ... *)
@@ -851,21 +853,21 @@ Global Coercion cwf_cat: CwF >-> Category.
 (* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just the
    subst/slash substitution built out of cons and identity. *)
 
-Program Definition cwf_slash M {G} {A} e: cwf_sub M G (cwf_ext M G A) :=
+Definition cwf_slash M {G} {A} e: cwf_sub M G (cwf_ext M G A) :=
   cwf_snoc M id A (cwf_esub M id e).
 
 (* Given a substitution s: D -> G, we want to lift it into another scope by
    defining up s = (0, (proj; s)), which is a morphism (D, A[s]) -> (G, A).
    TODO: there's some bookkeeping here! *)
 
-Program Definition cwf_up (M: CwF) {G} {D}
+(* TODO: move me... *)
+Arguments setoid_map_coherence {S} {T} {s} {x} {y}.
+
+Definition cwf_el_cast {M G A B} (H: A == B) (e: cwf_el M G A): cwf_el M G B :=
+  domain_cast (setoid_map_coherence H) e.
+
+Definition cwf_up (M: CwF) {G} {D}
   (s: cwf_sub M D G)
   (A: cwf_ty M G): M (cwf_ext M D (cwf_tsub M s A)) (cwf_ext M G A) :=
-  cwf_snoc M (post (cwf_proj M) s) A _.
-
-Next Obligation of cwf_up.
-  pose proof (@cwf_zero M D (cwf_tsub M s A)).
-  (* What now? Zero could return different data for different types on some
-     models... we only know there's a non-constructive isomorphism so far... *)
-  admit.
-Admitted.
+  cwf_snoc M (post (cwf_proj M) s) A (cwf_el_cast (cwf_tsub_comp M _ _ _)
+    (cwf_zero M)).
