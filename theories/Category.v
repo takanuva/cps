@@ -54,7 +54,9 @@ Defined.
 Notation "x == y" := (setoid_equiv x y)
   (at level 70, no associativity): type_scope.
 
-(* We define a notion of setoid maps (a structure-preserving function over two
+(* TODO: review comment block...
+
+   We define a notion of setoid maps (a structure-preserving function over two
    total setoids) as a type-theoretic function over the two carrier sets, along
    with a proof that this is a proper morphism, preserving the structure. I.e.,
    for setoids S and T, if x: S and y: S such that x == y, a morphism f: S ~> T
@@ -67,9 +69,7 @@ Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
     forall x y, x == y -> setoid_map x == setoid_map y
 }.
 
-(* For some reason, rewriting fails when using the primitive projection directly
-   as a coercion, so we first eta-expand it into a function type and then treat
-   that into the coercion (even though both are intensionally equal!). *)
+(* ... *)
 
 Definition setoid_map' {S} {T} (f: SetoidMap S T): S -> T :=
   setoid_map S T f.
@@ -85,22 +85,22 @@ Global Program Definition setoid_map_setoid S T: Setoid := {|
   setoid_equiv f g := forall x, f x == g x
 |}.
 
-Next Obligation.
+Next Obligation of setoid_map_setoid.
   reflexivity.
 Qed.
 
-Next Obligation.
+Next Obligation of setoid_map_setoid.
   now symmetry.
 Qed.
 
-Next Obligation.
+Next Obligation of setoid_map_setoid.
   rename x0 into w.
   now transitivity (y w).
 Qed.
 
 Global Canonical Structure setoid_map_setoid.
 
-Global Notation "S ~> T" := (setoid_map_setoid (S :> Setoid) (T :> Setoid))
+Global Notation "S ~> T" := (setoid_map_setoid S T)
   (at level 99, T at level 200, right associativity).
 
 Global Instance setoid_fun_proper:
@@ -109,7 +109,7 @@ Global Instance setoid_fun_proper:
 Proof.
   repeat intro.
   rename x into f, y into g, x0 into x, y0 into y.
-  transitivity (g x).
+  transitivity (setoid_map S T g x).
   - apply H.
   - now apply setoid_map_coherence.
 Qed.
@@ -350,49 +350,48 @@ Qed.
 
 Global Canonical Structure set_category.
 
-(* We now do a similar thing and define a category of setoids and setoid maps as
-   previously defined. *)
+(* ... *)
 
-Global Program Definition setoid_category: Category := {|
-  obj := Setoid;
-  hom T U := (T ~> U) :> Setoid;
+Global Program Definition partial_category: Category := {|
+  obj := PartialSetoid;
+  hom P Q := (Domain P ~> Domain Q) :> Setoid;
   (* TODO: c'mon, these are too ugly! We gotta improve the notation and add some
      nice coercions in here... *)
   id T := {| wit := map x => x |};
   post T U V := map f g => {| wit := map x => wit g (wit f x) |}
 |}.
 
-Next Obligation of setoid_category.
+Next Obligation of partial_category.
   reflexivity.
 Qed.
 
-Next Obligation of setoid_category.
+Next Obligation of partial_category.
   now rewrite H.
 Qed.
 
-Next Obligation of setoid_category.
+Next Obligation of partial_category.
   reflexivity.
 Qed.
 
-Next Obligation of setoid_category.
+Next Obligation of partial_category.
   now rewrite H.
 Qed.
 
-Next Obligation.
+Next Obligation of partial_category.
   reflexivity.
 Qed.
 
-Next Obligation.
+Next Obligation of partial_category.
   reflexivity.
 Qed.
 
-Next Obligation.
+Next Obligation of partial_category.
   reflexivity.
 Qed.
 
 (* TODO: fix this warning! *)
 
-Global Canonical Structure setoid_category.
+Global Canonical Structure partial_category.
 
 (* ... *)
 
@@ -482,21 +481,38 @@ Qed.
 (* ... *)
 
 Global Program Definition partial_setoid: Setoid := {|
-  setoid_carrier := Setoid;
+  setoid_carrier := PartialSetoid;
   setoid_equiv := partial_path
 |}.
 
 Next Obligation.
-  admit.
-Admitted.
+  rename x into P.
+  exists eq_refl; split; intros.
+  - assumption.
+  - assumption.
+Qed.
 
 Next Obligation.
-  admit.
-Admitted.
+  destruct H as (?H, ?H, ?H); simpl in *.
+  destruct x as (P, PR, ?H, ?H); simpl in *.
+  destruct y as (Q, QR, ?H, ?H); simpl in *.
+  exists (symmetry H); simpl in *; intros.
+  subst; simpl; split; intro.
+  - now apply H1.
+  - now apply H1.
+Qed.
 
 Next Obligation.
-  admit.
-Admitted.
+  destruct H as (?H, ?H, ?H); simpl in *.
+  destruct H0 as (?H, ?H, ?H); simpl in *.
+  destruct x as (P, PQ, ?H, ?H); simpl in *.
+  destruct y as (Q, QR, ?H, ?H); simpl in *.
+  destruct z as (R, RR, ?H, ?H); simpl in *.
+  exists (transitivity H H0); simpl in *; intros.
+  subst; simpl; split; intro.
+  - now apply H4, H2.
+  - now apply H2, H4.
+Qed.
 
 Global Canonical Structure partial_setoid.
 
@@ -636,15 +652,16 @@ Section FunctorCategory.
 
 End FunctorCategory.
 
-(* There are some distinct but equivalent definitions for presheafs; we take,
+(* TODO: review comment block.
+
+   There are some distinct but equivalent definitions for presheafs; we take,
    perhaps, the most common one (or close enough to it): that a presheaf on C is
    a functor from C^op to the category of setoids. The usual definition goes to
    the category of sets instead, of course, so what we define is technically a
    "setoid-valued presheaf in C". *)
 
 Definition Presheaf (C: Category): Type :=
-  (* TODO: move to partial setoids! *)
-  Functor (opposite C) Setoid.
+  Functor (opposite C) PartialSetoid.
 
 (* For convenience, we also treat presheafs as if defined by restricting maps;
    a presheaf G in C will have, for every object X of C, a setoid G X, and also
@@ -660,7 +677,7 @@ Section Restriction.
   (* TODO: should we generalize to any category D instead of Setoid? *)
   Variable G: Presheaf C.
 
-  Definition restrict: G X ~> G Y :=
+  Definition restrict: (G X: Morphism) ~> (G Y: Morphism) :=
     wit (fmap G F).
 
 End Restriction.
@@ -671,7 +688,7 @@ Lemma restrict_id:
   forall C: Category,
   forall G: Presheaf C,
   forall X: C,
-  forall S: G X,
+  forall S: (G X: Morphism),
   restrict id S == S.
 Proof.
   intros; unfold restrict.
@@ -786,7 +803,7 @@ Structure CwF: Type := {
   cwf_tsub {G D}:
     cwf_sub D G -> cwf_ty G -> cwf_ty D;
   (* ... *)
-  cwf_el G: cwf_ty G ~> Setoid;
+  cwf_el G: cwf_ty G ~> PartialSetoid;
   cwf_esub {G D A}:
     forall s: cwf_sub D G,
     cwf_el G A -> cwf_el D (cwf_tsub s A);
