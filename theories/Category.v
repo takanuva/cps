@@ -36,8 +36,6 @@ Structure Setoid: Type := {
     setoid_equiv x y -> setoid_equiv y z -> setoid_equiv x z
 }.
 
-Add Printing Let Setoid.
-
 Arguments setoid_equiv {s}.
 Arguments setoid_refl {s}.
 Arguments setoid_sym {s}.
@@ -102,7 +100,7 @@ Qed.
 
 Global Canonical Structure setoid_map_setoid.
 
-Global Notation "S ~> T" := (setoid_map_setoid S T)
+Global Notation "S ~> T" := (setoid_map_setoid (S :> Setoid) (T :> Setoid))
   (at level 99, T at level 200, right associativity).
 
 Global Instance setoid_fun_proper:
@@ -153,21 +151,25 @@ Global Canonical Structure partial_inclusion.
 
 Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
 
-Structure Subtype (P: PartialSetoid): Type := {
+(* ... *)
+
+Structure Domain (P: PartialSetoid): Type := relate {
   wit: P;
-  prf: partial_equiv wit wit
+  self_relation: partial_equiv wit wit
 }.
 
 Arguments wit {P}.
-Arguments prf {P}.
 
-Program Definition self_related_setoid (P: PartialSetoid): Setoid := {|
-  setoid_carrier := Subtype P;
-  setoid_equiv x y := partial_equiv (wit x) (wit y)
+Definition domain_equiv {P: PartialSetoid} (x: Domain P) (y: Domain P): Prop :=
+  partial_equiv (wit x) (wit y).
+
+Program Definition domain_setoid (P: PartialSetoid): Setoid := {|
+  setoid_carrier := Domain P;
+  setoid_equiv := @domain_equiv P
 |}.
 
 Next Obligation.
-  apply prf.
+  apply self_relation.
 Qed.
 
 Next Obligation.
@@ -178,7 +180,7 @@ Next Obligation.
   now apply partial_trans with (wit y).
 Qed.
 
-Global Canonical Structure self_related_setoid.
+Global Canonical Structure domain_setoid.
 
 (* We take an almost standard definition for categories, by giving the desired
    structure over (1) a type of objects, and (2) a family of setoids for sorting
@@ -190,10 +192,10 @@ Global Canonical Structure self_related_setoid.
    For convenience, we identify the category with the type of objects and the
    family of morphisms. *)
 
-SubClass Morphism := Setoid.
+Definition Morphism := PartialSetoid.
 
 Definition HomSetoid (f: Morphism): Setoid :=
-  (f :> Setoid).
+  domain_setoid (f :> PartialSetoid).
 
 Global Coercion HomSetoid: Morphism >-> Setoid.
 
@@ -276,7 +278,7 @@ Qed.
 Definition funext_eq T U: relation (forall t: T, U t) :=
   fun f g => forall x, f x = g x.
 
-Global Program Definition FunctionSetoid T U: Setoid := {|
+Global Program Definition function_setoid T U: Setoid := {|
   setoid_carrier := forall t: T, U t;
   setoid_equiv := funext_eq T U
 |}.
@@ -296,58 +298,83 @@ Next Obligation.
   now rewrite H, H0.
 Qed.
 
-Global Canonical Structure FunctionSetoid.
+Global Canonical Structure function_setoid.
 
-Global Program Example SetCategory: Category := {|
+Global Program Example set_category: Category := {|
   obj := Set;
-  hom T U := T -> U;
-  id T x := x;
-  (* TODO: can we generalize this notation to have like [map f g x => ...]? *)
-  post T U V := map f g => fun x => g (f x)
+  hom T U := (T -> U) :> Setoid;
+  id T := {| wit x := x |};
+  (* TODO: I would very much like to generalize this notation and add implicits
+     casts to the domain... I'd like to write something like:
+
+      [morphism f g x => g (f x)]
+
+     Can we figure it out a way to do that once we have some time? *)
+  post T U V := map f g => {| wit x := wit g (wit f x) |}
 |}.
 
-Next Obligation of SetCategory.
+Next Obligation of set_category.
   repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation of set_category.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation of set_category.
+  repeat intro; simpl.
   now rewrite H.
 Qed.
 
-Next Obligation of SetCategory.
-  repeat intro.
+Next Obligation of set_category.
+  repeat intro; simpl.
   now rewrite H.
 Qed.
 
-Next Obligation of SetCategory.
-  repeat intro.
+Next Obligation of set_category.
+  repeat intro; simpl.
   reflexivity.
 Qed.
 
-Next Obligation of SetCategory.
-  repeat intro.
+Next Obligation of set_category.
+  repeat intro; simpl.
   reflexivity.
 Qed.
 
-Next Obligation of SetCategory.
-  repeat intro.
+Next Obligation of set_category.
+  repeat intro; simpl.
   reflexivity.
 Qed.
 
-Global Canonical Structure SetCategory.
+Global Canonical Structure set_category.
 
 (* We now do a similar thing and define a category of setoids and setoid maps as
    previously defined. *)
 
-Global Program Definition SetoidCategory: Category := {|
+Global Program Definition setoid_category: Category := {|
   obj := Setoid;
-  hom T U := T ~> U;
-  id T := map x => x;
-  post T U V := map f g x => g (f x)
+  hom T U := (T ~> U) :> Setoid;
+  (* TODO: c'mon, these are too ugly! We gotta improve the notation and add some
+     nice coercions in here... *)
+  id T := {| wit := map x => x |};
+  post T U V := map f g => {| wit := map x => wit g (wit f x) |}
 |}.
 
-Next Obligation of SetoidCategory.
+Next Obligation of setoid_category.
+  reflexivity.
+Qed.
+
+Next Obligation of setoid_category.
   now rewrite H.
 Qed.
 
-Next Obligation of SetoidCategory.
+Next Obligation of setoid_category.
+  reflexivity.
+Qed.
+
+Next Obligation of setoid_category.
   now rewrite H.
 Qed.
 
@@ -365,11 +392,11 @@ Qed.
 
 (* TODO: fix this warning! *)
 
-Global Canonical Structure SetoidCategory.
+Global Canonical Structure setoid_category.
 
 (* ... *)
 
-Section Isomorphism.
+(* Section Isomorphism.
 
   Variable C: Category.
 
@@ -420,49 +447,28 @@ Arguments isomorphism {C}.
 Arguments iso_to {C} {X} {Y}.
 Arguments iso_from {C} {X} {Y}.
 Arguments iso_to_from {C} {X} {Y}.
-Arguments iso_from_to {C} {X} {Y}.
+Arguments iso_from_to {C} {X} {Y}. *)
 
 (* ... *)
 
-Global Program Definition SetoidSetoid: Setoid := {|
-  setoid_carrier := Setoid;
-  setoid_equiv := isomorphism
-|}.
-
-Next Obligation.
-  reflexivity.
-Qed.
-
-Next Obligation.
-  now symmetry.
-Qed.
-
-Next Obligation.
-  now transitivity y.
-Qed.
-
-Global Canonical Structure SetoidSetoid.
-
-(* ... *)
-
-Structure PartialPath (P: PartialSetoid) (Q: PartialSetoid): Type := {
-  partial_path:
+Structure partial_path (P: PartialSetoid) (Q: PartialSetoid): Prop := {
+  partial_path_eq:
     partial_carrier P = partial_carrier Q;
-  partial_cast (p: P) :=
-    match partial_path in (_ = T) return T with
+  partial_transp (p: P) :=
+    match partial_path_eq in (_ = T) return T with
     | eq_refl => p
-    end: Q;
+    end :> Q;
   partial_reclassify:
     forall x y,
-    partial_equiv x y <-> partial_equiv (partial_cast x) (partial_cast y)
+    partial_equiv x y <-> partial_equiv (partial_transp x) (partial_transp y)
 }.
 
-Arguments partial_path {P} {Q}.
-Arguments partial_cast {P} {Q}.
+Arguments partial_path_eq {P} {Q}.
+Arguments partial_transp {P} {Q}.
 Arguments partial_reclassify {P} {Q}.
 
-Program Definition subtype_cast {P} {Q} H (p: Subtype P): Subtype Q :=
-  {| wit := partial_cast H (wit p) |}.
+Program Definition domain_cast {P} {Q} H (p: Domain P): Domain Q :=
+  {| wit := partial_transp H (wit p) |}.
 
 Next Obligation.
   destruct p as (w, ?H); simpl in *.
@@ -473,30 +479,26 @@ Next Obligation.
   assumption.
 Qed.
 
-Goal
-  Equivalence PartialPath.
-Proof.
-  split; repeat intro.
-  - exists eq_refl.
-    firstorder.
-  - destruct H as (?H, ?H, ?H).
-    destruct x as (S, ?H, ?H, ?H); simpl in *.
-    destruct y as (T, ?H, ?H, ?H); simpl in *.
-    exists (symmetry H); subst; simpl.
-    split; intros.
-    + now apply H1.
-    + now apply H1.
-  - destruct H as (?H, ?H, ?H).
-    destruct H0 as (?H, ?H, ?H).
-    destruct x as (S, ?H, ?H, ?H); simpl in *.
-    destruct y as (T, ?H, ?H, ?H); simpl in *.
-    destruct z as (U, ?H, ?H, ?H); simpl in *.
-    exists (transitivity H H0); subst; simpl.
-    subst H1 H3; simpl in *.
-    split; intros.
-    + now apply H4, H2.
-    + now apply H2, H4.
-Qed.
+(* ... *)
+
+Global Program Definition partial_setoid: Setoid := {|
+  setoid_carrier := Setoid;
+  setoid_equiv := partial_path
+|}.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Next Obligation.
+  admit.
+Admitted.
+
+Global Canonical Structure partial_setoid.
 
 (* As usual, we define functors from categories C and D as structure-preserving
    morphisms. So we keep to functions: one for converting objects from C to D,
@@ -533,32 +535,32 @@ Section NaturalTransformation.
       post (fmap F f) (transformation Y) == post (transformation X) (fmap G f)
   }.
 
-  Program Definition NaturalTransformationSetoid: Setoid := {|
+  Program Definition transformation_setoid: Setoid := {|
     setoid_carrier := NaturalTransformation;
     setoid_equiv A B :=
       forall X: C, transformation A X == transformation B X
   |}.
 
-  Next Obligation.
+  Next Obligation of transformation_setoid.
     reflexivity.
   Qed.
 
-  Next Obligation.
+  Next Obligation of transformation_setoid.
     now symmetry.
   Qed.
 
-  Next Obligation.
+  Next Obligation of transformation_setoid.
     now transitivity (transformation y X).
   Qed.
 
   (* TODO: fix this warning! *)
 
-  Global Canonical Structure NaturalTransformationSetoid.
+  Global Canonical Structure transformation_setoid.
 
 End NaturalTransformation.
 
 Arguments NaturalTransformation {C} {D}.
-Arguments NaturalTransformationSetoid {C} {D}.
+Arguments transformation_setoid {C} {D}.
 Arguments transformation {C} {D} {F} {G}.
 Arguments naturality {C} {D} {F} {G}.
 
@@ -571,23 +573,33 @@ Section FunctorCategory.
   Variable C: Category.
   Variable D: Category.
 
-  Global Program Definition FunctorCategory: Category := {|
+  Global Program Definition functor_category: Category := {|
     obj := Functor C D;
-    hom F G := NaturalTransformation F G;
+    hom F G := NaturalTransformation F G :> Setoid;
     id F :=
-      (* TODO: can we use just id here...? *)
-      {| transformation X := @id D (F X) |};
+      (* TODO: can we use just id here...? Sigh... *)
+      {| wit :=
+        {| transformation X := @id D (F X) |}
+      |};
     post F G H := map A B =>
-      {| transformation X := post (transformation A X) (transformation B X) |}
+      {| wit :=
+        {| transformation X :=
+          post (wit A X) (wit B X)
+        |}
+      |}
   |}.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
     rewrite post_id_right.
     rewrite post_id_left.
     reflexivity.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
+    reflexivity.
+  Qed.
+
+  Next Obligation of functor_category.
     rewrite post_assoc.
     rewrite naturality.
     rewrite <- post_assoc.
@@ -596,27 +608,31 @@ Section FunctorCategory.
     reflexivity.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
+    reflexivity.
+  Qed.
+
+  Next Obligation of functor_category.
     now rewrite H0.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
     now rewrite H0.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
     apply post_id_left.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
     apply post_id_right.
   Qed.
 
-  Next Obligation of FunctorCategory.
+  Next Obligation of functor_category.
     apply post_assoc.
   Qed.
 
-  Global Canonical Structure FunctorCategory.
+  Global Canonical Structure functor_category.
 
 End FunctorCategory.
 
@@ -627,6 +643,7 @@ End FunctorCategory.
    "setoid-valued presheaf in C". *)
 
 Definition Presheaf (C: Category): Type :=
+  (* TODO: move to partial setoids! *)
   Functor (opposite C) Setoid.
 
 (* For convenience, we also treat presheafs as if defined by restricting maps;
@@ -644,7 +661,7 @@ Section Restriction.
   Variable G: Presheaf C.
 
   Definition restrict: G X ~> G Y :=
-    fmap G F.
+    wit (fmap G F).
 
 End Restriction.
 
@@ -666,7 +683,7 @@ Qed.
 
 (* ... *)
 
-Section Yoneda.
+(* Section Yoneda.
 
   Variable C: Category.
 
@@ -730,7 +747,7 @@ Section Yoneda.
     now rewrite post_assoc.
   Qed.
 
-End Yoneda.
+End Yoneda. *)
 
 (* ... *)
 
