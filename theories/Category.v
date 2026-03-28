@@ -195,16 +195,9 @@ Global Canonical Structure domain_setoid.
    For convenience, we identify the category with the type of objects and the
    family of morphisms. *)
 
-Definition Morphism := PartialSetoid.
-
-Definition HomSetoid (f: Morphism): Setoid :=
-  domain_setoid (f :> PartialSetoid).
-
-Global Coercion HomSetoid: Morphism >-> Setoid.
-
 Structure Category: Type := {
   obj :> Type;
-  hom: obj -> obj -> Morphism;
+  hom: obj -> obj -> Setoid;
   id {x}: hom x x;
   post {x y z}: hom x y ~> hom y z ~> hom x z;
   post_id_left {x y}:
@@ -305,26 +298,10 @@ Global Canonical Structure function_setoid.
 
 Global Program Example set_category: Category := {|
   obj := Set;
-  hom T U := (T -> U) :> Setoid;
-  id T := {| wit x := x |};
-  (* TODO: I would very much like to generalize this notation and add implicits
-     casts to the domain... I'd like to write something like:
-
-      [morphism f g x => g (f x)]
-
-     Can we figure it out a way to do that once we have some time? *)
-  post T U V := map f g => {| wit x := wit g (wit f x) |}
+  hom T U := T -> U;
+  id T := fun x => x;
+  post T U V := map f g => fun x => g (f x)
 |}.
-
-Next Obligation of set_category.
-  repeat intro.
-  reflexivity.
-Qed.
-
-Next Obligation of set_category.
-  repeat intro.
-  reflexivity.
-Qed.
 
 Next Obligation of set_category.
   repeat intro; simpl.
@@ -357,23 +334,13 @@ Global Canonical Structure set_category.
 
 Global Program Definition partial_category: Category := {|
   obj := PartialSetoid;
-  hom P Q := (Domain P ~> Domain Q) :> Setoid;
-  (* TODO: c'mon, these are too ugly! We gotta improve the notation and add some
-     nice coercions in here... *)
-  id T := {| wit := map x => x |};
-  post T U V := map f g => {| wit := map x => wit g (wit f x) |}
+  hom P Q := Domain P ~> Domain Q;
+  id T := map x => x;
+  post T U V := map f g x => g (f x)
 |}.
 
 Next Obligation of partial_category.
-  reflexivity.
-Qed.
-
-Next Obligation of partial_category.
   now rewrite H.
-Qed.
-
-Next Obligation of partial_category.
-  reflexivity.
 Qed.
 
 Next Obligation of partial_category.
@@ -596,15 +563,10 @@ Section FunctorCategory.
     obj := Functor C D;
     hom F G := NaturalTransformation F G :> Setoid;
     id F :=
-      (* TODO: can we use just id here...? Sigh... *)
-      {| wit :=
-        {| transformation X := @id D (F X) |}
-      |};
+      {| transformation X := @id D (F X) |};
     post F G H := map A B =>
-      {| wit :=
-        {| transformation X :=
-          post (wit A X) (wit B X)
-        |}
+      {| transformation X :=
+        post (A X) (B X)
       |}
   |}.
 
@@ -615,19 +577,11 @@ Section FunctorCategory.
   Qed.
 
   Next Obligation of functor_category.
-    reflexivity.
-  Qed.
-
-  Next Obligation of functor_category.
     rewrite post_assoc.
     rewrite naturality.
     rewrite <- post_assoc.
     rewrite naturality.
     rewrite post_assoc.
-    reflexivity.
-  Qed.
-
-  Next Obligation of functor_category.
     reflexivity.
   Qed.
 
@@ -680,8 +634,8 @@ Section Restriction.
   (* TODO: should we generalize to any category D instead of Setoid? *)
   Variable G: Presheaf C.
 
-  Definition restrict: (G X: Morphism) ~> (G Y: Morphism) :=
-    wit (fmap G F).
+  Definition restrict: Domain (G X) ~> Domain (G Y) :=
+    fmap G F.
 
 End Restriction.
 
@@ -691,7 +645,7 @@ Lemma restrict_id:
   forall C: Category,
   forall G: Presheaf C,
   forall X: C,
-  forall S: (G X: Morphism),
+  forall S: Domain (G X),
   restrict id S == S.
 Proof.
   intros; unfold restrict.
@@ -795,7 +749,7 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
-(* TODO: temporary... *)
+(* TODO: temporary...! *)
 Coercion Domain: PartialSetoid >-> Sortclass.
 
 Coercion domain_cast: partial_path >-> Funclass.
