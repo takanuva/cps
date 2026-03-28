@@ -54,6 +54,16 @@ Defined.
 Notation "x == y" := (setoid_equiv x y)
   (at level 70, no associativity): type_scope.
 
+(* TODO: will we use this? *)
+
+Ltac setoidify :=
+  repeat progress match goal with
+  | H: ?R ?x ?y |- _ =>
+    change R with (@setoid_equiv _) in H
+  | |- context C [?R ?x ?y] =>
+    change (R x y) with (@setoid_equiv _ x y)
+  end.
+
 (* TODO: review comment block...
 
    We define a notion of setoid maps (a structure-preserving function over two
