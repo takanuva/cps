@@ -106,13 +106,11 @@ Global Notation "S ~> T" := (setoid_map_setoid S T)
 
 Global Instance setoid_fun_proper:
   forall S T,
-  (* TODO: I used setoid_map instead of setoid_map' in here by accident and it
-     still worked... should we figure it out why? *)
-  Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@setoid_map S T).
+  Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@setoid_map' S T).
 Proof.
   repeat intro.
   rename x into f, y into g, x0 into x, y0 into y.
-  transitivity (setoid_map S T g x).
+  transitivity (g x).
   - apply H.
   - now apply cong.
 Qed.
