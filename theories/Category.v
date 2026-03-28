@@ -65,9 +65,10 @@ Notation "x == y" := (setoid_equiv x y)
 
 Structure SetoidMap (S: Setoid) (T: Setoid): Type := {
   setoid_map: S -> T;
-  setoid_map_coherence:
-    forall x y, x == y -> setoid_map x == setoid_map y
+  cong: forall x y, x == y -> setoid_map x == setoid_map y
 }.
+
+Arguments cong {S} {T} s {x} {y}.
 
 (* ... *)
 
@@ -105,13 +106,15 @@ Global Notation "S ~> T" := (setoid_map_setoid S T)
 
 Global Instance setoid_fun_proper:
   forall S T,
+  (* TODO: I used setoid_map instead of setoid_map' in here by accident and it
+     still worked... should we figure it out why? *)
   Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@setoid_map S T).
 Proof.
   repeat intro.
   rename x into f, y into g, x0 into x, y0 into y.
   transitivity (setoid_map S T g x).
   - apply H.
-  - now apply setoid_map_coherence.
+  - now apply cong.
 Qed.
 
 (* ... *)
@@ -792,7 +795,12 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
+(* TODO: temporary... *)
 Coercion Domain: PartialSetoid >-> Sortclass.
+
+Coercion domain_cast: partial_path >-> Funclass.
+
+Print cong.
 
 Structure CwF: Type := {
   (* TODO: can we enforce that it is small? Check later! *)
@@ -809,6 +817,8 @@ Structure CwF: Type := {
   cwf_esub {G D A}:
     forall s: cwf_sub D G,
     cwf_el G A -> cwf_el D (cwf_tsub s A);
+  cwf_transp {G A B} (H: A == B) :=
+    cong (cwf_el G) H;
   (* ... *)
   cwf_ext G: cwf_ty G -> cwf_env;
   cwf_snoc {G D}:
@@ -824,12 +834,12 @@ Structure CwF: Type := {
   cwf_tsub_respectful {G D}:
     Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@cwf_tsub G D);
   cwf_tsub_id {G}:
-    forall A: cwf_ty G,
+    forall {A: cwf_ty G},
     cwf_tsub id A == A;
   cwf_tsub_comp {G D E}:
-    forall s: cwf_sub D G,
-    forall r: cwf_sub E D,
-    forall A: cwf_ty G,
+    forall {s: cwf_sub D G},
+    forall {r: cwf_sub E D},
+    forall {A: cwf_ty G},
     cwf_tsub r (cwf_tsub s A) == cwf_tsub (post r s) A;
   (* TODO: we need to check that esub is respectful, but that is a form of
      heterogeneous equality; figure it out how to do that later, please? *)
@@ -844,30 +854,13 @@ Structure CwF: Type := {
   (* TODO: law for (a, s) o r = (a[r], s o r) *)
   (* TODO: law for (q, p) = id *)
   (* TODO: do we need eta? I.e., (q[s], p o s) = s? This derives the above... *)
+  (* ... *)
+  (* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just
+     the subst/slash substitution built out of cons and identity. *)
+  cwf_slash {G A} (e: cwf_el G A) :=
+    cwf_snoc id A (cwf_esub id e);
+  (* Given a substitution s: D -> G, we want to lift it into another scope by
+     defining up s = (0, (proj; s)) : (D, A[s]) -> (G, A). *)
+  cwf_up {G D A} (s: cwf_sub D G) :=
+    cwf_snoc (post cwf_proj s) A (cwf_transp cwf_tsub_comp cwf_zero)
 }.
-
-Global Coercion cwf_cat: CwF >-> Category.
-
-(* -------------------------------------------------------------------------- *)
-
-(* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just the
-   subst/slash substitution built out of cons and identity. *)
-
-Definition cwf_slash M {G} {A} e: cwf_sub M G (cwf_ext M G A) :=
-  cwf_snoc M id A (cwf_esub M id e).
-
-(* Given a substitution s: D -> G, we want to lift it into another scope by
-   defining up s = (0, (proj; s)), which is a morphism (D, A[s]) -> (G, A).
-   TODO: there's some bookkeeping here! *)
-
-(* TODO: move me... *)
-Arguments setoid_map_coherence {S} {T} {s} {x} {y}.
-
-Definition cwf_el_cast {M G A B} (H: A == B) (e: cwf_el M G A): cwf_el M G B :=
-  domain_cast (setoid_map_coherence H) e.
-
-Definition cwf_up (M: CwF) {G} {D}
-  (s: cwf_sub M D G)
-  (A: cwf_ty M G): M (cwf_ext M D (cwf_tsub M s A)) (cwf_ext M G A) :=
-  cwf_snoc M (post (cwf_proj M) s) A (cwf_el_cast (cwf_tsub_comp M _ _ _)
-    (cwf_zero M)).
