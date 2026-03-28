@@ -164,15 +164,14 @@ Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
 
 (* ... *)
 
-Structure Domain (P: PartialSetoid): Type := relate {
-  wit: partial_carrier P;
-  self_relation: partial_equiv wit wit
-}.
-
-Arguments wit {P}.
+Definition Domain (P: PartialSetoid): Type :=
+  { wit: partial_carrier P | partial_equiv wit wit }.
 
 Definition domain_equiv {P: PartialSetoid} (x: Domain P) (y: Domain P): Prop :=
-  partial_equiv (wit x) (wit y).
+  partial_equiv (`x) (`y).
+
+Definition self_relation {P: PartialSetoid} (x: Domain P): domain_equiv x x :=
+  proj2_sig x.
 
 Program Definition domain_setoid (P: PartialSetoid): Setoid := {|
   setoid_carrier := Domain P;
@@ -188,7 +187,7 @@ Next Obligation.
 Qed.
 
 Next Obligation.
-  now apply partial_trans with (wit y).
+  now apply partial_trans with (`y).
 Qed.
 
 Global Canonical Structure domain_setoid.
@@ -445,15 +444,14 @@ Arguments partial_transp {P} {Q}.
 Arguments partial_reclassify {P} {Q}.
 
 Program Definition domain_cast {P} {Q} H (p: Domain P): Domain Q :=
-  {| wit := partial_transp H (wit p) |}.
+  partial_transp H p.
 
 Next Obligation.
   destruct p as (w, ?H); simpl in *.
   destruct H as (?H, ?H, ?H); simpl in *.
   destruct P as (P, ?H, ?H, ?H); simpl in *.
   destruct Q as (Q, ?H, ?H, ?H); simpl in *.
-  subst; apply H2.
-  assumption.
+  subst; now apply H2.
 Qed.
 
 (* ... *)
@@ -465,9 +463,7 @@ Global Program Definition partial_setoid: Setoid := {|
 
 Next Obligation.
   rename x into P.
-  exists eq_refl; split; intros.
-  - assumption.
-  - assumption.
+  now exists eq_refl.
 Qed.
 
 Next Obligation.
@@ -524,41 +520,61 @@ Section NaturalTransformation.
   Variable G: Functor C D.
 
   Structure NaturalTransformation: Type := {
-    transformation: forall X: C, D (F X) (G X);
-    naturality X Y f:
+    transformation: forall X, D (F X) (G X);
+    transformation_naturality X Y f:
       post (fmap F f) (transformation Y) == post (transformation X) (fmap G f)
   }.
 
+  Definition transformation' (A: NaturalTransformation) (X: C): D (F X) (G X) :=
+    transformation A X.
+
+  Definition transformation_equiv A B: Prop :=
+    forall X: C, transformation' A X == transformation' B X.
+
   Program Definition transformation_setoid: Setoid := {|
     setoid_carrier := NaturalTransformation;
-    setoid_equiv A B :=
-      forall X: C, transformation A X == transformation B X
+    setoid_equiv := transformation_equiv
   |}.
 
   Next Obligation of transformation_setoid.
+    intro.
     reflexivity.
   Qed.
 
   Next Obligation of transformation_setoid.
+    intro.
     now symmetry.
   Qed.
 
   Next Obligation of transformation_setoid.
+    intro.
     now transitivity (transformation y X).
   Qed.
-
-  (* TODO: fix this warning! *)
 
   Global Canonical Structure transformation_setoid.
 
 End NaturalTransformation.
 
 Arguments NaturalTransformation {C} {D}.
+Arguments transformation_equiv {C} {D} {F} {G}.
 Arguments transformation_setoid {C} {D}.
 Arguments transformation {C} {D} {F} {G}.
-Arguments naturality {C} {D} {F} {G}.
+Arguments transformation' {C} {D} {F} {G}.
 
-Global Coercion transformation: NaturalTransformation >-> Funclass.
+Global Coercion transformation': NaturalTransformation >-> Funclass.
+
+Definition naturality {C D F G} (A: @NaturalTransformation C D F G) X Y f:
+  post (fmap F f) (A Y) == post (A X) (fmap G f) :=
+  transformation_naturality C D F G A X Y f.
+
+Instance transformation_proper:
+  forall C D F G,
+  Proper (setoid_equiv ==> forall_relation (fun X => setoid_equiv))
+    (@transformation' C D F G).
+Proof.
+  repeat intro.
+  apply H.
+Qed.
 
 (* ... *)
 
@@ -594,22 +610,27 @@ Section FunctorCategory.
   Qed.
 
   Next Obligation of functor_category.
+    repeat intro; simpl.
     now rewrite H0.
   Qed.
 
   Next Obligation of functor_category.
+    repeat intro; simpl.
     now rewrite H0.
   Qed.
 
   Next Obligation of functor_category.
+    repeat intro; simpl.
     apply post_id_left.
   Qed.
 
   Next Obligation of functor_category.
+    repeat intro; simpl.
     apply post_id_right.
   Qed.
 
   Next Obligation of functor_category.
+    repeat intro; simpl.
     apply post_assoc.
   Qed.
 
@@ -657,9 +678,8 @@ Lemma restrict_id:
   restrict id S == S.
 Proof.
   intros; unfold restrict.
-  (* TODO: I'd like to have rewrite fmap_id in here! *)
+  (* TODO: I'd like to have rewrite fmap_id in here! :( *)
   assert (fmap G id (y := X) == id) by apply fmap_id.
-  simpl in H.
   now rewrite H.
 Qed.
 
