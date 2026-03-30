@@ -431,9 +431,9 @@ Structure partial_path (P: PartialSetoid) (Q: PartialSetoid): Prop := {
   partial_path_eq:
     partial_carrier P = partial_carrier Q;
   partial_transp (p: partial_carrier P) :=
-    match partial_path_eq in (_ = T) return T with
+    (match partial_path_eq in (_ = T) return T with
     | eq_refl => p
-    end :> partial_carrier Q;
+    end): partial_carrier Q;
   partial_reclassify:
     forall x y,
     partial_equiv x y <-> partial_equiv (partial_transp x) (partial_transp y)
