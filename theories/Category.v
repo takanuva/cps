@@ -567,7 +567,7 @@ Definition naturality {C D F G} (A: @NaturalTransformation C D F G) X Y f:
   post (fmap F f) (A Y) == post (A X) (fmap G f) :=
   transformation_naturality C D F G A X Y f.
 
-Instance transformation_proper:
+Global Instance transformation_proper:
   forall C D F G,
   Proper (setoid_equiv ==> forall_relation (fun X => setoid_equiv))
     (@transformation' C D F G).
