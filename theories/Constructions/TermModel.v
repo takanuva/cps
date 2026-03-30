@@ -520,8 +520,24 @@ Next Obligation of term_model.
 Qed.
 
 Next Obligation of term_model.
-  admit.
-Admitted.
+  unfold term_valid; simpl.
+  constructor; simpl.
+  - destruct t as (t, ?H); simpl.
+    apply typing_var with t.
+    + destruct H as (?H, _, ?H).
+      destruct H as (u, ?H).
+      now apply valid_env_var with u.
+    + constructor.
+    + now sigma.
+  - destruct t as (t, ?H); simpl.
+    apply typing_var with t.
+    + destruct H as (?H, _, ?H).
+      destruct H as (u, ?H).
+      now apply valid_env_var with u.
+    + constructor.
+    + now sigma.
+  - reflexivity.
+Qed.
 
 Next Obligation of term_model.
   admit.
