@@ -418,9 +418,43 @@ Qed.
 Next Obligation of term_model.
   exists (eq_refl term).
   simpl; split; intros.
-  - admit.
-  - admit.
-Admitted.
+  - destruct H as (?H, ?H, ?H).
+    destruct H0 as (?H, ?H, ?H).
+    constructor; simpl in *.
+    + unfold type_valid in *.
+      unfold term_valid in *.
+      destruct H1 as (u, ?H).
+      apply typing_conv with (`x) u.
+      * assumption.
+      * assumption.
+      * now apply Cumulativity.cumul_refl.
+    + unfold type_valid in *.
+      unfold term_valid in *.
+      destruct H1 as (u, ?H).
+      apply typing_conv with (`x) u.
+      * assumption.
+      * assumption.
+      * now apply Cumulativity.cumul_refl.
+    + assumption.
+  - destruct H as (?H, ?H, ?H).
+    destruct H0 as (?H, ?H, ?H).
+    constructor; simpl in *.
+    + unfold type_valid in *.
+      unfold term_valid in *.
+      destruct H as (u, ?H).
+      apply typing_conv with (`y) u.
+      * assumption.
+      * assumption.
+      * now apply Cumulativity.cumul_refl.
+    + unfold type_valid in *.
+      unfold term_valid in *.
+      destruct H as (u, ?H).
+      apply typing_conv with (`y) u.
+      * assumption.
+      * assumption.
+      * now apply Cumulativity.cumul_refl.
+    + assumption.
+Qed.
 
 Next Obligation of term_model.
   unfold term_valid; simpl.
