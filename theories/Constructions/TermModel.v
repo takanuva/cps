@@ -208,15 +208,29 @@ Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
 Definition terminal_subst (g: env): @substitution term :=
   iterate (length g) (fun s => subst_comp s (subst_lift 1)) subst_ids.
 
+Lemma terminal_subst_nil:
+  terminal_subst [] = subst_ids.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma terminal_subst_cons:
+  forall g t,
+  terminal_subst (t :: g) = subst_comp (terminal_subst g) (subst_lift 1).
+Proof.
+  intros.
+  reflexivity.
+Qed.
+
 Lemma terminal_subst_simpl:
   forall g,
   subst_equiv (terminal_subst g) (subst_lift (length g)).
 Proof.
   induction g; simpl.
-  - unfold terminal_subst.
+  - rewrite terminal_subst_nil.
     now sigma.
-  - unfold terminal_subst.
-    simpl; rewrite IHg.
+  - rewrite terminal_subst_cons.
+    rewrite IHg.
     now sigma.
 Qed.
 
@@ -224,7 +238,21 @@ Lemma terminal_subst_is_valid:
   forall g: welltyped_env,
   valid_subst (terminal_subst (`g)) (`g) [] conv.
 Proof.
-  admit.
+  destruct g as (g, ?H); simpl.
+  induction g; simpl.
+  - rewrite terminal_subst_nil.
+    do 2 constructor.
+  - rewrite terminal_subst_cons.
+    apply valid_subst_comp with g.
+    + apply IHg; clear IHg.
+      dependent destruction H.
+      * now apply valid_env_typing with t s.
+      * now apply valid_env_typing with t s.
+    + clear IHg.
+      dependent destruction H.
+      * now apply valid_subst_lift with s.
+      * (* Oops! We need to allow lifting to consider definitions! *)
+        admit.
 Admitted.
 
 Lemma terminal_subst_is_unique:
