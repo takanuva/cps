@@ -2,8 +2,9 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
-Require Import Relations.
 Require Import Equality.
+Require Import Relations.
+Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
@@ -426,6 +427,14 @@ Proof.
 Admitted.
 
 Global Hint Resolve conv_trans: cps.
+
+Global Instance conv_equivalence: forall g, Equivalence (conv g).
+Proof.
+  split.
+  - apply conv_refl.
+  - apply conv_sym.
+  - apply conv_trans.
+Qed.
 
 Lemma conv_context:
   forall (h: context) g e f,

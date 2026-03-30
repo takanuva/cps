@@ -16,132 +16,188 @@ Require Import Local.Constructions.Inversion.
 
 Import ListNotations.
 
-(* We build here the term model (which is also the initial model) for our type
-   theory. It is a category with families such that contexts (environments),
-   substitutions, types and elements (terms) are well-typed syntactic objects.
-   To build this model, we will consider our canonical notion of equality.
+(* TODO: move me! *)
 
-   Let us be honest, I don't really care about proving that this model is indeed
-   initial, so please bear with me. I'm very tired. :( *)
+Set Universe Polymorphism.
+
+Section SubSetoid.
+
+  Variable T: Type.
+  Variable Q: T -> Prop.
+  Variable R: T -> T -> Prop.
+
+  Structure restriction (x: T) (y: T): Prop := {
+    restriction_left: Q x;
+    restriction_right: Q y;
+    restriction_rel: R x y
+  }.
+
+  Definition restriction_sym:
+    (forall x y, R x y -> R y x) ->
+    forall x y,
+    restriction x y -> restriction y x.
+  Proof.
+    intros.
+    destruct H0 as (?H, ?H, ?H).
+    constructor.
+    - assumption.
+    - assumption.
+    - now apply H.
+  Qed.
+
+  Definition restriction_trans:
+    (forall x y z, R x y -> R y z -> R x z) ->
+    forall x y z,
+    restriction x y -> restriction y z -> restriction x z.
+  Proof.
+    intros.
+    destruct H0 as (?H, _, ?H).
+    destruct H1 as (_, ?H, ?H).
+    constructor.
+    - assumption.
+    - assumption.
+    - now apply H with y.
+  Qed.
+
+End SubSetoid.
+
+Arguments restriction {T}.
+Arguments restriction_left {T} {Q} {R}.
+Arguments restriction_right {T} {Q} {R}.
+Arguments restriction_rel {T} {Q} {R}.
+
+Instance restrition_per {T Q R} `{RelationClasses.PER T R}:
+  RelationClasses.PER (@restriction T Q R).
+Proof.
+  constructor; repeat intro.
+  - apply restriction_sym.
+    + apply PER_Symmetric.
+    + assumption.
+  - apply restriction_trans with y.
+    + apply PER_Transitive.
+    + assumption.
+    + assumption.
+Qed.
 
 Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
 
-Definition welltyped_subst (g: welltyped_env) (d: welltyped_env): Set :=
-  { s: substitution | valid_subst s (`g) (`d) conv }.
+Definition subst_valid (g: welltyped_env) (d: welltyped_env) :=
+  fun s => valid_subst s (`g) (`d) conv.
 
-Definition welltyped_type (g: welltyped_env): Type :=
-  { t: term | exists s, typing (`g) t (sort s) conv }.
-
-Definition welltyped_term (g: welltyped_env) (t: welltyped_type g): Type :=
-  { e: term | typing (`g) e (`t) conv }.
-
-(* Substitution equality amounts to extensional equality (i.e., instantiation
-   on any possible term always produces the same result for both). Types and
-   terms are treated modulo the convertibility relation (remember that both are
-   always typed). *)
-
-Definition welltyped_subst_eq {g d}: relation (welltyped_subst g d) :=
-  fun s t => subst_equiv (`s) (`t).
-
-Definition welltyped_type_eq {g}: relation (welltyped_type g) :=
-  fun t u => conv (`g) (`t) (`u).
-
-Definition welltyped_term_eq {g t}: relation (welltyped_term g t) :=
-  fun e f => conv (`g) (`e) (`f).
-
-(* We declare well-typed substitution as a setoid. *)
-
-Program Definition WelltypedSubstSetoid g d: Setoid := {|
-  setoid_carrier := @welltyped_subst g d;
-  setoid_equiv := @welltyped_subst_eq g d
+Program Definition subst_setoid g d: PartialSetoid := {|
+  partial_carrier := substitution;
+  partial_equiv := restriction (subst_valid g d) subst_equiv
 |}.
 
-Next Obligation.
-  admit.
-Admitted.
+Next Obligation of subst_setoid.
+  now symmetry.
+Qed.
 
-Next Obligation.
-  admit.
-Admitted.
+Next Obligation of subst_setoid.
+  now transitivity y.
+Qed.
 
-Next Obligation.
-  admit.
-Admitted.
+Notation welltyped_subst g d :=
+  (Domain (subst_setoid g d)).
 
-Global Canonical Structure WelltypedSubstSetoid.
+Lemma welltyped_subst_valid:
+  forall g d (s: welltyped_subst g d),
+  subst_valid g d (`s).
+Proof.
+  intros.
+  destruct s as (s, ?H); simpl.
+  apply H.
+Qed.
 
-(* Given that, well-typed environments and well-typed substitutions indeed form
-   a category with the identity substitution and substitution composition. *)
-
-Program Definition TermCategory: Category := {|
+Program Definition term_category: Category := {|
   obj := welltyped_env;
-  hom := welltyped_subst;
+  hom := subst_setoid;
   id X := subst_ids;
   post X Y Z := map f g => subst_comp g f
 |}.
 
-(* Identity substitution is well-typed. *)
-
-Next Obligation of TermCategory.
-  destruct X as (g, ?H); simpl.
-  now constructor.
+Next Obligation of term_category.
+  repeat split.
+  - constructor.
+    apply proj2_sig.
+  - constructor.
+    apply proj2_sig.
 Qed.
 
-(* Composition of well-typed substitutions is well-typed. *)
-
-Next Obligation of TermCategory.
-  destruct f as (s, ?H).
-  destruct g as (t, ?H).
-  simpl.
-  now apply valid_subst_comp with (`Y).
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
 Qed.
 
-(* Composition is respectful of morphism equality (on the left). *)
-
-Next Obligation of TermCategory.
-  repeat intro; simpl.
-  (* Oh boy, no way this is correct... but this needs fixing in sigma! *)
-  now apply subst_comp_proper.
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply subst_comp_proper.
+    + apply H.
+    + reflexivity.
 Qed.
 
-(* Composition is respectful of morphism equality (on the right). *)
-
-Next Obligation of TermCategory.
-  repeat intro; simpl.
-  now apply subst_comp_proper.
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply valid_subst_comp with (`Y).
+    + apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply subst_comp_proper.
+    + reflexivity.
+    + apply H.
 Qed.
 
-(* Identity is neutral on the right. *)
-
-Next Obligation of TermCategory.
-  repeat intro; simpl.
-  now sigma.
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`x).
+    + apply welltyped_subst_valid.
+    + constructor.
+      apply proj2_sig.
+  - apply welltyped_subst_valid.
+  - repeat intro.
+    now sigma.
 Qed.
 
-(* Identity is neutral on the left. *)
-
-Next Obligation of TermCategory.
-  repeat intro; simpl.
-  now sigma.
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`y).
+    + constructor.
+      apply proj2_sig.
+    + apply welltyped_subst_valid.
+  - apply welltyped_subst_valid.
+  - repeat intro.
+    now sigma.
 Qed.
 
-(* Identity is associative. *)
-
-Next Obligation of TermCategory.
-  repeat intro; simpl.
-  now sigma.
+Next Obligation of term_category.
+  repeat split.
+  - apply valid_subst_comp with (`y).
+    + apply valid_subst_comp with (`z).
+      * apply welltyped_subst_valid.
+      * apply welltyped_subst_valid.
+    + apply welltyped_subst_valid.
+  - apply valid_subst_comp with (`z).
+    + apply welltyped_subst_valid.
+    + apply valid_subst_comp with (`y).
+      * apply welltyped_subst_valid.
+      * apply welltyped_subst_valid.
+  - repeat intro.
+    now sigma.
 Qed.
-
-Global Canonical Structure TermCategory.
-
-(* We do have a terminal object in this category: the empty environment. Any
-   morphism from G to [] is indeed unique, extensionally: it is necessarily the
-   substitution (subst_lift (length G)). However, to get it typed with the plain
-   sigma-calculus operators, we define it as the composition of shifting through
-   iteration.
-
-   TODO: move the iterate function? Maybe? *)
 
 Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
   match n with
@@ -163,6 +219,13 @@ Proof.
     simpl; rewrite IHg.
     now sigma.
 Qed.
+
+Lemma terminal_subst_is_valid:
+  forall g: welltyped_env,
+  valid_subst (terminal_subst (`g)) (`g) [] conv.
+Proof.
+  admit.
+Admitted.
 
 Lemma terminal_subst_is_unique:
   forall g s,
@@ -212,188 +275,135 @@ Proof.
       now sigma.
 Qed.
 
-(* We declare well-typed types and well-typed terms as setoids, preparing to
-   build our category with families. *)
+Definition type_valid (g: welltyped_env) (t: term) :=
+  exists s, typing (`g) t (sort s) conv.
 
-Program Definition WelltypedTypeSetoid g: Setoid := {|
-  setoid_carrier := welltyped_type g;
-  setoid_equiv := welltyped_type_eq
+(* TODO: move me, please? *)
+
+Program Definition type_setoid (g: welltyped_env): PartialSetoid := {|
+  partial_carrier := term;
+  partial_equiv := restriction (type_valid g) (conv (`g))
 |}.
 
-Next Obligation.
-  apply conv_refl.
+Next Obligation of type_setoid.
+  now symmetry.
 Qed.
 
-Next Obligation.
-  now apply conv_sym.
+Next Obligation of type_setoid.
+  now transitivity y.
 Qed.
 
-Next Obligation.
-  now apply (conv_trans (`g) (`x) (`y) (`z)).
-Qed.
+Notation welltyped_type g :=
+  (Domain (type_setoid g)).
 
-Global Canonical Structure WelltypedTypeSetoid.
+Definition term_valid (g: welltyped_env) (t: welltyped_type g) (e: term) :=
+  typing (`g) e (`t) conv.
 
-Program Definition WelltypedTermSetoid g t: Setoid := {|
-  setoid_carrier := welltyped_term g t;
-  setoid_equiv := welltyped_term_eq
+Program Definition term_setoid g t: PartialSetoid := {|
+  partial_carrier := term;
+  partial_equiv := restriction (term_valid g t) (conv (`g))
 |}.
 
-Next Obligation.
-  apply conv_refl.
+Next Obligation of term_setoid.
+  now symmetry.
 Qed.
 
-Next Obligation.
-  now apply conv_sym.
+Next Obligation of term_setoid.
+  now transitivity y.
 Qed.
-
-Next Obligation.
-  now apply (conv_trans (`g) (`x) (`y) (`z)).
-Qed.
-
-Global Canonical Structure WelltypedTermSetoid.
 
 (* Finally, we can build the term model as a category with families, picking
    the term category, well-typed types and well-typed terms. *)
 
-Program Definition TermModel: CwF := {|
-  cwf_cat := welltyped_env;
+Program Definition term_model: CwF := {|
+  cwf_cat := term_category;
   cwf_empty := {|
     terminal := [];
     terminal_hom := terminal_subst
   |};
-  cwf_ty := welltyped_type;
-  cwf_tsub G D s t := inst (`s) (`t);
-  cwf_el G := {|
-    setoid_map := welltyped_term G
-  |};
-  cwf_esub G D A s t := inst (`s) (`t);
-  cwf_ext G A := decl_var (`A) :: (`G);
-  cwf_snoc G D s t e := subst_cons (`e) (`s);
-  cwf_proj G A := subst_lift 1;
-  cwf_zero G A := bound 0
+  cwf_ty := type_setoid;
+  cwf_tsub g d s t := inst (`s) (`t);
+  cwf_el g := map t => term_setoid g t;
+  cwf_esub g d a s t := inst (`s) (`t);
+  cwf_ext g t := decl_var (`t) :: (`g);
+  cwf_snoc g d s t e := subst_cons (`e) (`s);
+  cwf_proj g t := subst_lift 1;
+  cwf_zero g t := bound 0
 |}.
 
-(* The empty context is well-typed. *)
-
-Next Obligation of TermModel.
+Next Obligation of term_model.
   constructor.
 Qed.
 
-(* The terminal substitution is well-typed. *)
+Next Obligation of term_model.
+  constructor.
+  - apply terminal_subst_is_valid.
+  - apply terminal_subst_is_valid.
+  - reflexivity.
+Qed.
 
-Next Obligation of TermModel.
-  destruct x as (g, ?H); simpl.
-  induction g; simpl.
-  - do 2 constructor.
-  - apply valid_subst_comp with g.
-    + apply IHg; clear IHg.
-      dependent destruction H.
-      * now apply valid_env_typing with t s.
-      * now apply valid_env_typing with t s.
-    + clear IHg.
-      dependent destruction H.
-      * now apply valid_subst_lift with s.
-      * (* Oops! We need to allow lifting to consider definitions! *)
-        admit.
+Next Obligation of term_model.
+  unfold subst_valid; simpl.
+  constructor.
+  - destruct f as (f, ?H); simpl in *.
+    apply H.
+  - apply terminal_subst_is_valid.
+  - destruct f as (f, ?H); simpl in *.
+    apply terminal_subst_is_unique.
+    apply H.
+Qed.
+
+Next Obligation of term_model.
+  constructor.
+  - admit.
+  - admit.
+  - reflexivity.
 Admitted.
 
-(* The terminal substitution is unique. *)
-
-Next Obligation of TermModel.
-  destruct X as (g, ?H).
-  destruct f as (s, ?H).
-  compute in H0.
-  repeat intro; simpl.
-  now apply terminal_subst_is_unique.
-Qed.
-
-(* Instantiation of well-typed substitution and type is well-typed too. *)
-
-Next Obligation of TermModel.
-  destruct s as (s, ?H); simpl.
-  destruct t as (t, (u, ?H)); simpl.
-  (* As sorts are stable under substitution... *)
-  exists u; change (sort u) with (inst s (sort u)).
-  now apply typing_inst with (`G).
-Qed.
-
-(* The family of terms is respectful of equalities. *)
-
-Next Obligation of TermModel.
-  repeat intro.
-  admit.
-Admitted.
-
-(* Instantiation of well-typed substitution and term is well-typed too. *)
-
-Next Obligation of TermModel.
-  destruct s as (s, ?H); simpl.
-  destruct t as (e, ?H); simpl.
-  now apply typing_inst with (`G).
-Qed.
-
-(* Environment extension with well-typed type is well-typed. *)
-
-Next Obligation of TermModel.
-  destruct A as (t, (s, ?H)); simpl.
-  now apply valid_env_var with s.
-Qed.
-
-(* Consing a well-typed term and a well-typed substitution is well-typed. *)
-
-Next Obligation of TermModel.
-  destruct s as (s, ?H); simpl.
-  destruct t as (t, (u, ?H)); simpl.
-  destruct e as (e, ?H); simpl.
-  simpl in H1.
-  now apply valid_subst_cons with u.
-Qed.
-
-(* The shift substitution is well-typed. *)
-
-Next Obligation of TermModel.
-  destruct A as (t, (u, ?H)); simpl.
-  now apply valid_subst_lift with u.
-Qed.
-
-(* The variable zero is well-typed, given a well-typed environment. *)
-
-Next Obligation of TermModel.
-  destruct A as (t, (u, ?H)); simpl.
-  apply typing_var with t.
-  - now apply valid_env_var with u.
-  - constructor.
-  - now sigma.
-Qed.
-
-(* ... *)
-
-Next Obligation of TermModel.
-  repeat intro; simpl.
-  destruct G as (g, ?H); simpl in *.
-  destruct D as (d, ?H); simpl in *.
-  destruct x as (s1, ?H); simpl in *.
-  destruct y as (s2, ?H); simpl in *.
-  destruct x0 as (t, ?H); simpl in *.
-  destruct y0 as (u, ?H); simpl in *.
-  unfold welltyped_subst_eq in H; simpl in H.
-  unfold welltyped_type_eq in H0; simpl in H0.
-  compute.
-  apply conv_trans with (inst s2 t).
-  - enough (inst s2 t = inst s1 t).
-    + rewrite H7.
-      apply conv_refl.
-    + now rewrite H.
+Next Obligation of term_model.
+  exists (eq_refl term).
+  simpl; split; intros.
+  - admit.
   - admit.
 Admitted.
 
-Next Obligation of TermModel.
-  compute; sigma.
-  apply conv_refl.
+Next Obligation of term_model.
+  unfold term_valid; simpl.
+  constructor; simpl.
+  - admit.
+  - admit.
+  - reflexivity.
+Admitted.
+
+Next Obligation of term_model.
+  destruct g as (g, ?H); simpl in *.
+  destruct t as (t, ?H); simpl in *.
+  destruct H0 as (?H, ?H, ?H); simpl in *.
+  unfold type_valid in H0; clear H1; simpl in *.
+  destruct H0 as (s, ?H).
+  now apply valid_env_var with s.
 Qed.
 
-Next Obligation of TermModel.
-  compute; sigma.
-  apply conv_refl.
-Qed.
+Next Obligation of term_model.
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  admit.
+Admitted.
