@@ -459,10 +459,18 @@ Qed.
 Next Obligation of term_model.
   unfold term_valid; simpl.
   constructor; simpl.
-  - admit.
-  - admit.
+  - destruct s as (s, ?H); simpl in *.
+    destruct t as (e, ?H); simpl in *.
+    apply typing_inst with (`g).
+    + apply H0.
+    + apply H.
+  - destruct s as (s, ?H); simpl in *.
+    destruct t as (e, ?H); simpl in *.
+    apply typing_inst with (`g).
+    + apply H0.
+    + apply H.
   - reflexivity.
-Admitted.
+Qed.
 
 Next Obligation of term_model.
   destruct g as (g, ?H); simpl in *.
