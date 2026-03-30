@@ -540,13 +540,29 @@ Next Obligation of term_model.
 Qed.
 
 Next Obligation of term_model.
-  admit.
+  repeat intro; simpl.
+  constructor; simpl.
+  - apply type_valid_inst.
+  - apply type_valid_inst.
+  - destruct H as (?H, ?H, ?H); simpl.
+    destruct H0 as (?H, ?H, ?H); simpl.
+    (* Oops! *)
+    admit.
 Admitted.
 
 Next Obligation of term_model.
-  admit.
-Admitted.
+  destruct A as (t, ?H); simpl.
+  constructor.
+  - sigma; apply H.
+  - apply H.
+  - now sigma.
+Qed.
 
 Next Obligation of term_model.
-  admit.
+  destruct A as (t, ?H); simpl.
+  constructor.
+  - sigma.
+    admit.
+  - admit.
+  - now sigma.
 Admitted.
