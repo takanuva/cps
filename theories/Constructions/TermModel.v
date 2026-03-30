@@ -482,8 +482,28 @@ Next Obligation of term_model.
 Qed.
 
 Next Obligation of term_model.
-  admit.
-Admitted.
+  destruct e as (e, ?H); simpl in *.
+  unfold term_valid in *; simpl in *.
+  unfold subst_valid in *; simpl in *.
+  constructor.
+  - destruct t as (t, ?H); simpl in *.
+    destruct H0 as (?H, _, ?H); simpl in *.
+    destruct H0 as (u, ?H); simpl in *.
+    apply valid_subst_cons with u.
+    + destruct s as (s, ?H); simpl in *.
+      apply H2.
+    + assumption.
+    + apply H.
+  - destruct t as (t, ?H); simpl in *.
+    destruct H0 as (?H, _, ?H); simpl in *.
+    destruct H0 as (u, ?H); simpl in *.
+    apply valid_subst_cons with u.
+    + destruct s as (s, ?H); simpl in *.
+      apply H2.
+    + assumption.
+    + apply H.
+  - reflexivity.
+Qed.
 
 Next Obligation of term_model.
   admit.
