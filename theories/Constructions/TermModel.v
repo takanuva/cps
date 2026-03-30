@@ -66,7 +66,7 @@ Arguments restriction_left {T} {Q} {R}.
 Arguments restriction_right {T} {Q} {R}.
 Arguments restriction_rel {T} {Q} {R}.
 
-Instance restrition_per {T Q R} `{RelationClasses.PER T R}:
+Global Instance restrition_per {T Q R} `{RelationClasses.PER T R}:
   RelationClasses.PER (@restriction T Q R).
 Proof.
   constructor; repeat intro.
