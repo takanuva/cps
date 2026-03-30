@@ -250,10 +250,9 @@ Proof.
       * now apply valid_env_typing with t s.
     + clear IHg.
       dependent destruction H.
-      * now apply valid_subst_lift with s.
-      * (* Oops! We need to allow lifting to consider definitions! *)
-        admit.
-Admitted.
+      * now apply valid_subst_lift_var with s.
+      * now apply valid_subst_lift_def with s.
+Qed.
 
 Lemma terminal_subst_is_unique:
   forall g s,
@@ -268,6 +267,8 @@ Proof.
   - clear IHinfer; simpl.
     now sigma.
   - clear IHinfer; simpl.
+    reflexivity.
+  - clear IHinfer1 IHinfer2; simpl.
     reflexivity.
   - rename g2 into d, f into s, g0 into t.
     (* Composition gets complicated as we have an arbitrary substitution t on
@@ -286,7 +287,9 @@ Proof.
     dependent induction H0.
     + clear IHinfer.
       now sigma.
-    + clear IHinfer.
+    + clear IHinfer; simpl.
+      now sigma.
+    + clear IHinfer1 IHinfer2; simpl.
       now sigma.
     + (* Most complicated case: we need both inductive hypotheses to show that
          we'll accumulate the right amount of shifting! Luckly we can just

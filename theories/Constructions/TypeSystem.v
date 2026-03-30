@@ -267,10 +267,20 @@ Section TypeSystem.
       -----------------------
         G, x: T |- lift : G
     *)
-    | valid_subst_lift:
+    | valid_subst_lift_var:
       forall g t s,
       infer (typing g t (sort s)) ->
       infer (valid_subst (subst_lift 1) (decl_var t :: g) g)
+    (*
+        G |- e : T     G |- T : s
+      -----------------------------
+         G, x = e: T |- lift : G
+    *)
+    | valid_subst_lift_def:
+      forall g e t s,
+      infer (typing g e t) ->
+      infer (typing g t (sort s)) ->
+      infer (valid_subst (subst_lift 1) (decl_def e t :: g) g)
     (*
         G2 |- f : G3     G1 |- g : G2
       ---------------------------------
@@ -379,10 +389,15 @@ Proof.
     + now apply valid_env_def with s.
     + (* Either one of the hypotheses work... *)
       apply IHinfer1.
-  (* Case: subst cons. *)
+  (* Case: subst cons (var). *)
   - destruct n; simpl.
     + now apply valid_env_var with s.
     + apply IHinfer.
+  (* Case: subst cons (def). *)
+  - destruct n; simpl.
+    + now apply valid_env_def with s.
+    + (* Either one of the hypotheses work... *)
+      apply IHinfer1.
 Qed.
 
 Lemma valid_env_typing:
@@ -474,8 +489,10 @@ Proof.
   - now apply valid_env_def with s.
   (* Case: id substitution. *)
   - now apply valid_subst_ids.
-  (* Case: lift substitution. *)
-  - now apply valid_subst_lift with s.
+  (* Case: lift substitution (with var). *)
+  - now apply valid_subst_lift_var with s.
+  (* Case: lift substitution (with def). *)
+  - now apply valid_subst_lift_def with s.
   (* Case: comp substitution. *)
   - now apply valid_subst_comp with g2.
   (* Case: cons substitution. *)
@@ -579,7 +596,7 @@ Proof.
   apply valid_subst_cons with s1.
   - apply valid_subst_comp with g2.
     + assumption.
-    + apply valid_subst_lift with s2.
+    + apply valid_subst_lift_var with s2.
       assumption.
   - assumption.
   - apply typing_var with (inst f t).
@@ -621,6 +638,7 @@ Proof.
         assumption.
       * now constructor.
       * now sigma.
+    + admit.
     + specialize (IHinfer1 _ _ _ eq_refl).
       specialize (IHinfer2 _ _ _ eq_refl).
       change (bound n) with (var n).
