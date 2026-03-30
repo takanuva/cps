@@ -508,7 +508,7 @@ Structure Functor (C: Category) (D: Category): Type := {
 
 Arguments mapping {C D} F: rename.
 Arguments fmap {C D} F {x y}: rename.
-
+  
 (* ... *)
 
 Section NaturalTransformation.
@@ -585,7 +585,7 @@ Section FunctorCategory.
 
   Global Program Definition functor_category: Category := {|
     obj := Functor C D;
-    hom F G := NaturalTransformation F G :> Setoid;
+    hom F G := NaturalTransformation F G;
     id F :=
       {| transformation X := @id D (F X) |};
     post F G H := map A B =>
