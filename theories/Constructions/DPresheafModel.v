@@ -380,7 +380,7 @@ Section Dpresheaf.
     assumption.
   Defined.
 
-  Goal
+  (* Goal
     forall G: Dpresheaf,
     forall T: TY G,
     forall X: C,
@@ -442,14 +442,14 @@ Section Dpresheaf.
       compute in *.
       destruct (H0 X x0).
       reflexivity.
-  Qed.
+  Qed. *)
 
   Axiom TY_EQ: forall G, relation (TY G).
 
-  Local Program Definition TYSetoid (G: Dpresheaf) := {|
-    setoid_carrier := TY G;
+  Local Program Definition TY_setoid (G: Dpresheaf) := {|
+    partial_carrier := TY G;
     (* TODO: obviously, fix equivalence... *)
-    setoid_equiv := TY_EQ G
+    partial_equiv := TY_EQ G
   |}.
 
   Next Obligation.
@@ -459,12 +459,6 @@ Section Dpresheaf.
   Next Obligation.
     admit.
   Admitted.
-
-  Next Obligation.
-    admit.
-  Admitted.
-
-  Local Canonical Structure TYSetoid.
 
   Program Definition DpresheafModel: CwF := {|
     cwf_cat := Dpresheaf;
@@ -483,25 +477,23 @@ Section Dpresheaf.
           terminal_hom Dset (cwf_empty DsetModel) (X Y)
       |}
     |};
-    cwf_ty (G: Dpresheaf) := TY G;
+    cwf_ty (G: Dpresheaf) := TY_setoid G;
     cwf_tsub (G: Dpresheaf) (D: Dpresheaf) (s: NaturalTransformation D G)
-      (A: TY G) := {|
+      (A: TY G | _) := {|
       TY_fun (X: C) :=
         cwf_tsub DsetModel (s X) (TY_fun G A X);
       TY_restriction (X: C) (Y: C) (f: opposite C X Y) :=
         _
     |};
     (* ... *)
-    cwf_el (G: Dpresheaf) := {|
-      setoid_map (A: TY G) :=
-        forall X: C, cwf_el DsetModel (G X) (TY_fun G A X);
+    cwf_el (G: Dpresheaf) := map (A: TY G | _) =>
+        partial_inclusion (forall X: C, cwf_el DsetModel (G X) (TY_fun G A X));
         (* TODO: there's a coherence condition here... I think! *)
-    |};
     cwf_esub (G: Dpresheaf) (D: Dpresheaf) (A: _)
       (s: NaturalTransformation D G) e :=
       (* TODO: is there a cast happening here...? *)
       fun (X: C) => cwf_esub DsetModel (s X) (e X);
-    cwf_ext G (A: TY G) := {|
+    cwf_ext G (A: TY G | _) := {|
       mapping (X: C) := cwf_ext DsetModel (G X) (TY_fun G A X);
       fmap (X: C) (Y: C) := {|
         setoid_map (f: opposite C X Y) := {|
@@ -544,33 +536,36 @@ Section Dpresheaf.
   Qed.
 
   Next Obligation of DpresheafModel.
-    intro; simpl.
+    repeat intro; simpl.
     rename X0 into Y.
     remember (f Y x) as u.
     now destruct u.
   Qed.
 
   Next Obligation of DpresheafModel.
-    (* TODO: review me... *)
     set (e := cwf_esub DsetModel (s X) (TY_restriction G A X Y f)).
     destruct s as (s, ?H); simpl in *.
     destruct A as (Af, Ar); simpl in *.
-    destruct e as (e, ?H).
-    assert (forall d: D X, Af Y (s Y (fmap D f d))) as g; intros.
-    - unfold Dmap_eq in H.
-      unfold Dmap'_post in H.
-      simpl in H.
-      clear H0.
-      specialize (e d).
-      rewrite <- H in e.
-      assumption.
-    - exists g.
-      destruct H0 as (x, ?H).
-      exists x; intros.
-      specialize (H X Y f d).
-      specialize (H0 y d H1).
-      (* Why can't I rewrite here...? Types might be wrong... *)
-      admit.
+    destruct e as ((e, ?H), _).
+    clear H.
+    assert (forall d: D X, (` (Af Y)) (s Y (fmap D f d))) as g; intros.
+    - clear H1.
+      specialize (e d); simpl.
+      unfold Dmap_eq, Dmap'_post in H0; simpl in H0.
+      now rewrite H0.
+    - enough (exists (x: CL), forall y d, D X y d ->
+                (` (Af Y)) (s Y (fmap D f d)) (x y) (g d)).
+      + now exists {|
+          Dmap_fun := g;
+          Dmap_preserve := H
+        |}.
+      + destruct H1 as (x, ?H).
+        exists x; intros.
+        specialize (H0 X Y f d).
+        specialize (H y d H1).
+        unfold Dmap'_post in H0; simpl in H0.
+        (* Hmm...? *)
+        admit.
   Admitted.
 
   Next Obligation of DpresheafModel.
@@ -579,8 +574,18 @@ Section Dpresheaf.
   Admitted.
 
   Next Obligation of DpresheafModel.
+    admit.
+  Admitted.
+
+  Next Obligation of DpresheafModel.
+    repeat intro.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DpresheafModel.
     rename p into x, X0 into D.
     destruct A as (Af, Ar); simpl in *.
+    clear H.
     specialize (Ar X Y f).
     destruct Ar as (g, _); simpl in *.
     exists (fmap G f x).
