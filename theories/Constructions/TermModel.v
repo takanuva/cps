@@ -327,6 +327,30 @@ Qed.
 Notation welltyped_type g :=
   (Domain (type_setoid g)).
 
+Lemma type_valid_inst:
+  forall g: welltyped_env,
+  forall d: welltyped_env,
+  forall s: welltyped_subst d g,
+  forall t: welltyped_type g,
+  type_valid d (inst (`s) (`t)).
+Proof.
+  intros.
+  destruct g as (g, ?H); simpl in *.
+  destruct d as (d, ?H); simpl in *.
+  destruct s as (s, ?H); simpl in *.
+  destruct H1 as (?H, _, ?H); simpl in *.
+  unfold subst_valid in H1; simpl in H1.
+  destruct t as (t, ?H); simpl in *.
+  destruct H3 as (?H, _, ?H); simpl in *.
+  unfold type_valid in *; simpl in *.
+  destruct H3 as (u, ?H).
+  exists u.
+  (* As sorts are stable under substitution... *)
+  change (sort u) with (inst s (sort u)).
+  (* Now we can close the proof. *)
+  now apply typing_inst with g.
+Qed.
+
 Definition term_valid (g: welltyped_env) (t: welltyped_type g) (e: term) :=
   typing (`g) e (`t) conv.
 
@@ -386,10 +410,10 @@ Qed.
 
 Next Obligation of term_model.
   constructor.
-  - admit.
-  - admit.
+  - apply type_valid_inst.
+  - apply type_valid_inst.
   - reflexivity.
-Admitted.
+Qed.
 
 Next Obligation of term_model.
   exists (eq_refl term).
