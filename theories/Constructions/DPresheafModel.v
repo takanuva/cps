@@ -187,32 +187,30 @@ Section DsetModel.
         Dmap_fun (g: X) := ();
       |}
     |};
-    cwf_ty G := G -> Dset;
-    cwf_tsub G D (s: Dmap' D G) (A: G -> Dset) (d: D) :=
+    cwf_ty G := partial_inclusion (G -> Dset);
+    cwf_tsub G D (s: Dmap' D G) (A: G -> Dset | _) (d: D) :=
       A (s d);
-    cwf_el G := {|
-      setoid_map (A: G -> Dset) := Dmap G A;
+    cwf_el G := map A => partial_inclusion (Dmap G A);
+    cwf_esub G D (A: G -> Dset | _) (s: Dmap' D G) (e: Dmap G A | _) := {|
+      Dmap_fun (d: D) := (`e) (s d)
     |};
-    cwf_esub G D (A: G -> Dset) (s: Dmap' D G) (e: Dmap G A) := {|
-      Dmap_fun d := e (s d)
-    |};
-    cwf_ext G (A: G -> Dset) := {|
+    cwf_ext G (A: G -> Dset | _) := {|
       Dset_carrier := { g: G & A g };
       Dset_realization (x: CL) p :=
         let (g, e) := p in G (x K) g /\ A g (x F) e
     |};
     (* TODO: make a general definition for Dset pairs! *)
-    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset) e := {|
-      Dmap_fun d := existT _ (s d) (e d)
+    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset | _) e := {|
+      Dmap_fun d := existT _ (s d) ((`e) d)
     |};
     (* First projection. *)
-    cwf_proj G (A: G -> Dset) := {|
+    cwf_proj G (A: G -> Dset | _) := {|
       Dmap_fun p := let (g, e) := p in g
     |};
     (* Second projection. *)
-    cwf_zero G (A: G -> Dset) := {|
+    cwf_zero G (A: G -> Dset | _) := {|
       (* The program mode will make the conversion for us! *)
-      Dmap_fun p := let (g, e) := p in _ e
+      Dmap_fun p := _ (* let (g, e) := p in _ e *)
     |}
   |}.
 
@@ -229,20 +227,28 @@ Section DsetModel.
 
   Next Obligation of DsetModel.
     repeat intro.
-    unfold funext_eq in H.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DsetModel.
+    (* Hm, ok, this might not hold yet... *)
     admit.
   Admitted.
 
   Next Obligation of DsetModel.
     destruct e as (e, (x, ?H)); simpl in *.
     destruct s as (s, (y, ?H)); simpl in *.
+    unfold Dmap_eq in H; simpl in *.
     exists (B x y); intros.
     rename y0 into z.
-    (* TODO: may we merge this with the postcomposition definition for DMap? *)
     apply Dset_respectful with (x (y z)).
     - apply conv_B.
-    - apply H, H0.
-      assumption.
+    - now apply H1, H2.
+  Qed.
+
+  Next Obligation of DsetModel.
+    repeat intro; simpl in *.
+    reflexivity.
   Qed.
 
   Next Obligation of DsetModel.
@@ -274,10 +280,10 @@ Section DsetModel.
 
   Next Obligation of DsetModel.
     destruct (Dmap_preserve _ _ s) as (x, ?).
-    destruct (Dmap_preserve _ _ e) as (y, ?).
+    destruct (Dmap_preserve _ _ (`e)) as (y, ?).
     (* Careful inspection: this term is enough! *)
     exists (C (P x y)); intros z ? ?; split.
-    - specialize (H _ _ H1).
+    - specialize (H0 _ _ H2).
       unfold const in H.
       apply Dset_respectful with (x z).
       + rewrite conv_C.
@@ -285,7 +291,7 @@ Section DsetModel.
         rewrite conv_K.
         reflexivity.
       + assumption.
-    - specialize (H0 _ _ H1).
+    - specialize (H1 _ _ H2).
       apply Dset_respectful with (y z).
       + rewrite conv_C.
         rewrite conv_P.
@@ -302,7 +308,7 @@ Section DsetModel.
     - rewrite conv_C.
       rewrite conv_I.
       reflexivity.
-    - destruct H.
+    - destruct H0.
       assumption.
   Qed.
 
@@ -313,12 +319,18 @@ Section DsetModel.
     - rewrite conv_C.
       rewrite conv_I.
       reflexivity.
-    - destruct H.
+    - destruct H0.
+      simpl in H1.
       assumption.
   Qed.
 
   Next Obligation of DsetModel.
-    repeat intro.
+    repeat intro; simpl in *.
+    reflexivity.
+  Qed.
+
+  Next Obligation of DsetModel.
+    repeat intro; simpl.
     now rewrite H, H0.
   Qed.
 
