@@ -777,6 +777,8 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
+(*
+
 (* TODO: temporary...! *)
 Coercion Domain: PartialSetoid >-> Sortclass.
 
@@ -844,3 +846,5 @@ Structure CwF: Type := {
   cwf_up {G D A} (s: cwf_sub D G) :=
     cwf_cons (post cwf_proj s) A (cwf_transp cwf_tsub_comp cwf_zero)
 }.
+
+*)

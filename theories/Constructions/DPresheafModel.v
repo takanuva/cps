@@ -179,6 +179,7 @@ Local Canonical Structure DsetCategory.
 
 Section DsetModel.
 
+  (*
   Program Definition DsetModel: CwF := {|
     cwf_cat := Dset;
     cwf_empty := {|
@@ -343,6 +344,7 @@ Section DsetModel.
     repeat intro.
     reflexivity.
   Qed.
+  *)
 
 End DsetModel.
 
@@ -354,6 +356,7 @@ Section Dpresheaf.
 
   Local Definition Dpresheaf: Type := Functor (opposite C) Dset.
 
+  (*
   Structure TY (G: Dpresheaf) := {
     TY_fun: forall X: C, cwf_ty DsetModel (G X);
     TY_restriction X Y: forall f: opposite C X Y,
@@ -378,7 +381,7 @@ Section Dpresheaf.
     rewrite <- H.
     apply H0.
     assumption.
-  Defined.
+  Defined. *)
 
   (* Goal
     forall G: Dpresheaf,
@@ -444,6 +447,8 @@ Section Dpresheaf.
       reflexivity.
   Qed. *)
 
+  (*
+
   Axiom TY_EQ: forall G, relation (TY G).
 
   Local Program Definition TY_setoid (G: Dpresheaf) := {|
@@ -460,7 +465,9 @@ Section Dpresheaf.
     admit.
   Admitted.
 
-  Program Definition DpresheafModel: CwF := {|
+  *)
+
+  (* Program Definition DpresheafModel: CwF := {|
     cwf_cat := Dpresheaf;
     cwf_empty := {|
       terminal := {|
@@ -596,7 +603,7 @@ Section Dpresheaf.
     admit.
   Admitted.
 
-  Admit Obligations.
+  Admit Obligations. *)
 
 End Dpresheaf.
 

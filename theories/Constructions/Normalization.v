@@ -26,7 +26,7 @@ Import ListNotations.
 
 Section Normalization.
 
-  Variable M: CwF.
+  (* Variable M: CwF.
 
   Local Notation Env := (cwf_env M).
   Local Notation Sub := (cwf_sub M).
@@ -38,7 +38,7 @@ Section Normalization.
   Local Notation Ext := (cwf_ext M).
 
   Local Notation P := (cwf_proj M).
-  Local Notation Q := (cwf_zero M).
+  Local Notation Q := (cwf_zero M). *)
 
   (*
 

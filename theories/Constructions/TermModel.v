@@ -16,6 +16,7 @@ Require Import Local.Constructions.Inversion.
 
 Import ListNotations.
 
+(*
 (* TODO: move me! *)
 
 Set Universe Polymorphism.
@@ -78,36 +79,29 @@ Proof.
     + assumption.
     + assumption.
 Qed.
+*)
 
 Definition welltyped_env: Set :=
   { g: env | valid_env g conv }.
 
-Definition subst_valid (g: welltyped_env) (d: welltyped_env) :=
-  fun s => valid_subst s (`g) (`d) conv.
+Definition welltyped_subst (g: welltyped_env) (d: welltyped_env) :=
+  { s: substitution | valid_subst s (`g) (`d) conv }.
 
-Program Definition subst_setoid g d: PartialSetoid := {|
-  partial_carrier := substitution;
-  partial_equiv := restriction (subst_valid g d) subst_equiv
+Program Definition subst_setoid g d: Setoid := {|
+  setoid_carrier := welltyped_subst g d;
+  setoid_equiv := subst_equiv
 |}.
+
+Next Obligation of subst_setoid.
+  reflexivity.
+Qed.
 
 Next Obligation of subst_setoid.
   now symmetry.
 Qed.
 
 Next Obligation of subst_setoid.
-  now transitivity y.
-Qed.
-
-Notation welltyped_subst g d :=
-  (Domain (subst_setoid g d)).
-
-Lemma welltyped_subst_valid:
-  forall g d (s: welltyped_subst g d),
-  subst_valid g d (`s).
-Proof.
-  intros.
-  destruct s as (s, ?H); simpl.
-  apply H.
+  now transitivity (`y).
 Qed.
 
 Program Definition term_category: Category := {|
@@ -118,85 +112,37 @@ Program Definition term_category: Category := {|
 |}.
 
 Next Obligation of term_category.
-  repeat split.
-  - constructor.
-    apply proj2_sig.
-  - constructor.
-    apply proj2_sig.
+  constructor.
+  apply proj2_sig.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
+  apply valid_subst_comp with (`Y).
+  - apply proj2_sig.
+  - apply proj2_sig.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply subst_comp_proper.
-    + apply H.
-    + reflexivity.
+  now rewrite H.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply valid_subst_comp with (`Y).
-    + apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply subst_comp_proper.
-    + reflexivity.
-    + apply H.
+  now rewrite H.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`x).
-    + apply welltyped_subst_valid.
-    + constructor.
-      apply proj2_sig.
-  - apply welltyped_subst_valid.
-  - repeat intro.
-    now sigma.
+  repeat intro.
+  now sigma.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`y).
-    + constructor.
-      apply proj2_sig.
-    + apply welltyped_subst_valid.
-  - apply welltyped_subst_valid.
-  - repeat intro.
-    now sigma.
+  repeat intro.
+  now sigma.
 Qed.
 
 Next Obligation of term_category.
-  repeat split.
-  - apply valid_subst_comp with (`y).
-    + apply valid_subst_comp with (`z).
-      * apply welltyped_subst_valid.
-      * apply welltyped_subst_valid.
-    + apply welltyped_subst_valid.
-  - apply valid_subst_comp with (`z).
-    + apply welltyped_subst_valid.
-    + apply valid_subst_comp with (`y).
-      * apply welltyped_subst_valid.
-      * apply welltyped_subst_valid.
-  - repeat intro.
-    now sigma.
+  repeat intro.
+  now sigma.
 Qed.
 
 Local Fixpoint iterate (n: nat) {T: Type} (f: T -> T) (x: T): T :=
@@ -306,10 +252,10 @@ Proof.
       now sigma.
 Qed.
 
+(*
+
 Definition type_valid (g: welltyped_env) (t: term) :=
   exists s, typing (`g) t (sort s) conv.
-
-(* TODO: move me, please? *)
 
 Program Definition type_setoid (g: welltyped_env): PartialSetoid := {|
   partial_carrier := term;
@@ -566,3 +512,5 @@ Next Obligation of term_model.
   - admit.
   - now sigma.
 Admitted.
+
+*)
