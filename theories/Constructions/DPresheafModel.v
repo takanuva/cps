@@ -200,7 +200,7 @@ Section DsetModel.
         let (g, e) := p in G (x K) g /\ A g (x F) e
     |};
     (* TODO: make a general definition for Dset pairs! *)
-    cwf_snoc G D (s: Dmap' D G) (A: G -> Dset | _) e := {|
+    cwf_cons G D (s: Dmap' D G) (A: G -> Dset | _) e := {|
       Dmap_fun d := existT _ (s d) ((`e) d)
     |};
     (* First projection. *)
@@ -501,7 +501,7 @@ Section Dpresheaf.
         |}
       |}
     |};
-    cwf_snoc G D (s: NaturalTransformation D G) (A: _) e := {|
+    cwf_cons G D (s: NaturalTransformation D G) (A: _) e := {|
       transformation (X: C) := _
     |};
     cwf_proj G (A: _) := {|

@@ -381,7 +381,7 @@ Program Definition term_model: CwF := {|
   cwf_el g := map t => term_setoid g t;
   cwf_esub g d a s t := inst (`s) (`t);
   cwf_ext g t := decl_var (`t) :: (`g);
-  cwf_snoc g d s t e := subst_cons (`e) (`s);
+  cwf_cons g d s t e := subst_cons (`e) (`s);
   cwf_proj g t := subst_lift 1;
   cwf_zero g t := bound 0
 |}.

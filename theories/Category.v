@@ -782,10 +782,8 @@ Coercion Domain: PartialSetoid >-> Sortclass.
 
 Coercion domain_cast: partial_path >-> Funclass.
 
-Print cong.
-
 Structure CwF: Type := {
-  (* TODO: can we enforce that it is small? Check later! *)
+  (* TODO: can we enforce that this is small? Check later! *)
   cwf_cat: Category;
   cwf_env := obj cwf_cat;
   cwf_sub := hom cwf_cat;
@@ -803,7 +801,7 @@ Structure CwF: Type := {
     cong (cwf_el G) H;
   (* ... *)
   cwf_ext G: cwf_ty G -> cwf_env;
-  cwf_snoc {G D}:
+  cwf_cons {G D}:
     forall s: cwf_sub D G,
     forall A: cwf_ty G,
     cwf_el D (cwf_tsub s A) ->
@@ -840,9 +838,9 @@ Structure CwF: Type := {
   (* Given e: El(G, A), we take (e/) = (e[id], id) : G -> (G, A). This is just
      the subst/slash substitution built out of cons and identity. *)
   cwf_slash {G A} (e: cwf_el G A) :=
-    cwf_snoc id A (cwf_esub id e);
+    cwf_cons id A (cwf_esub id e);
   (* Given a substitution s: D -> G, we want to lift it into another scope by
-     defining up s = (0, (proj; s)) : (D, A[s]) -> (G, A). *)
+     defining up s = (0, (s o proj)) : (D, A[s]) -> (G, A). *)
   cwf_up {G D A} (s: cwf_sub D G) :=
-    cwf_snoc (post cwf_proj s) A (cwf_transp cwf_tsub_comp cwf_zero)
+    cwf_cons (post cwf_proj s) A (cwf_transp cwf_tsub_comp cwf_zero)
 }.
