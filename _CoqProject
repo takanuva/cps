@@ -1,4 +1,4 @@
--Q theories Local
+-Q theories Local -arg -impredicative-set
 
 theories/Prelude.v
 theories/AbstractRewriting.v
