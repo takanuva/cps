@@ -8,6 +8,7 @@ Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
+Require Import Local.Category.
 
 Inductive CL: Set :=
   | bound (n: nat)
@@ -290,5 +291,15 @@ Qed.
 Next Obligation of free_not_free_dec.
   now constructor.
 Qed.
+
+Definition cl_setoid: Setoid := {|
+  setoid_carrier := CL;
+  setoid_equiv := conv;
+  setoid_refl := reflexivity;
+  setoid_sym := symmetry;
+  setoid_trans := transitivity
+|}.
+
+Global Canonical Structure cl_setoid.
 
 (* TODO: bracket abstraction, just for fun, then define P and F with it. *)

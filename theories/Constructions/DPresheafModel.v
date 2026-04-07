@@ -32,7 +32,7 @@ Polymorphic Record Dset: Type := {
     CL -> Dset_carrier -> Prop;
   Dset_respectful:
     forall x1 x2,
-    Combinators.conv x1 x2 ->
+    x1 == x2 ->
     forall y, (* Note that conv is symmetric! *)
     Dset_realization x2 y -> Dset_realization x1 y;
   Dset_surjective:
