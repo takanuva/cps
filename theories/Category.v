@@ -777,6 +777,30 @@ Global Coercion terminal_hom: Terminal >-> Funclass.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
+Structure CwF := {
+  cwf_cat: Category;
+  cwf_env :=
+    obj cwf_cat;
+  cwf_sub: cwf_cat -> cwf_cat -> Setoid :=
+    hom cwf_cat;
+  cwf_empty: Terminal cwf_cat;
+  cwf_ty: cwf_env -> PartialSetoid;
+  cwf_el G: Domain (cwf_ty G) ~> PartialSetoid;
+  (* ... *)
+  cwf_u {G}: nat -> Domain (cwf_ty G);
+  cwf_t {G n}:
+    forall X: Domain (cwf_el G (cwf_u n)),
+    Domain (cwf_ty G);
+  cwf_lift {G n l}:
+    forall H: n < l,
+    forall X: Domain (cwf_el G (cwf_u n)),
+    Domain (cwf_el G (cwf_u l));
+  cwf_ucoh {G n l}:
+    forall H: n < l,
+    forall X: Domain (cwf_el G (cwf_u n)),
+    cwf_t (cwf_lift H X) == cwf_t X
+}.
+
 (*
 
 (* TODO: temporary...! *)

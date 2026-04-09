@@ -11,8 +11,9 @@ Require Import Local.Category.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
+Require Import Local.Constructions.Cumulativity.
 Require Import Local.Constructions.TypeSystem.
-Require Import Local.Constructions.Inversion.
+(* Require Import Local.Constructions.Inversion. *)
 
 Import ListNotations.
 
@@ -251,6 +252,220 @@ Proof.
       rewrite <- IHinfer1; simpl.
       now sigma.
 Qed.
+
+Lemma welltyped_env_is_valid:
+  forall G: welltyped_env,
+  infer conv (valid_env (` G)).
+Proof.
+  intros.
+  destruct G as (g, ?H); simpl.
+  assumption.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+(* TODO: move this definition? Seems general! *)
+
+Structure type_equiv (g: env) (t: term) (u: term): Prop := {
+  type_equiv_fst: exists s, typing g t (sort s) conv;
+  type_equiv_snd: exists s, typing g u (sort s) conv;
+  type_equiv_conv: conv g t u
+}.
+
+Program Definition type_setoid (g: env): PartialSetoid := {|
+  partial_carrier := term;
+  partial_equiv := type_equiv g
+|}.
+
+Next Obligation of type_setoid.
+  destruct H as (?H, ?H, ?H).
+  split.
+  - assumption.
+  - assumption.
+  - now apply conv_sym.
+Qed.
+
+Next Obligation of type_setoid.
+  destruct H as (?H, ?H, ?H).
+  destruct H0 as (?H, ?H, ?H).
+  split.
+  - assumption.
+  - assumption.
+  - now apply conv_trans with y.
+Qed.
+
+Local Notation welltyped_type G :=
+  (Domain (type_setoid (`G))).
+
+Structure term_equiv (g: env) (t: term) (e: term) (f: term): Prop := {
+  term_equiv_fst: typing g e t conv;
+  term_equiv_snd: typing g f t conv;
+  term_equiv_conv: conv g e f
+}.
+
+Program Definition term_setoid (g: env) (t: term): PartialSetoid := {|
+  partial_carrier := term;
+  partial_equiv := term_equiv g t
+|}.
+
+Next Obligation of term_setoid.
+  destruct H as (?H, ?H, ?H).
+  split.
+  - assumption.
+  - assumption.
+  - now apply conv_sym.
+Qed.
+
+Next Obligation of term_setoid.
+  destruct H as (?H, ?H, ?H).
+  destruct H0 as (?H, ?H, ?H).
+  split.
+  - assumption.
+  - assumption.
+  - now apply conv_trans with y.
+Qed.
+
+Local Notation welltyped_term G T :=
+  (Domain (term_setoid (`G) (`T))).
+
+Program Definition term_model: CwF := {|
+  cwf_cat := term_category;
+  cwf_empty := {|
+    terminal := [];
+    terminal_hom := terminal_subst
+  |};
+  cwf_ty (G: welltyped_env) :=
+    type_setoid (`G);
+  cwf_el (G: welltyped_env) :=
+    map (T: welltyped_type G) =>
+      term_setoid (`G) (`T);
+  cwf_u (G: welltyped_env) (n: nat) :=
+    sort (type n);
+  cwf_t (G: welltyped_env) (n: nat) U :=
+    U;
+  cwf_lift (G: welltyped_env) n l (H: n < l) U :=
+    U
+|}.
+
+Next Obligation of term_model.
+  constructor.
+Qed.
+
+Next Obligation of term_model.
+  apply terminal_subst_is_valid.
+Qed.
+
+Next Obligation of term_model.
+  destruct f as (f, ?H); simpl in *.
+  now apply terminal_subst_is_unique.
+Qed.
+
+Next Obligation of term_model.
+  destruct H as (?H, ?H, ?H).
+  exists (eq_refl term).
+  intros e f; simpl in *.
+  split; intro.
+  - destruct H2 as (?H, ?H, ?H); split.
+    + destruct H0 as (s, ?H).
+      apply typing_conv with (`x) s; auto.
+      now apply cumul_refl.
+    + destruct H0 as (s, ?H).
+      apply typing_conv with (`x) s; auto.
+      now apply cumul_refl.
+    + assumption.
+  - destruct H2 as (?H, ?H, ?H); split.
+    + destruct H as (s, ?H).
+      apply typing_conv with (`y) s; auto.
+      apply cumul_refl.
+      now apply conv_sym.
+    + destruct H as (s, ?H).
+      apply typing_conv with (`y) s; auto.
+      apply cumul_refl.
+      now apply conv_sym.
+    + assumption.
+Qed.
+
+Next Obligation of term_model.
+  split.
+  - exists (type (1 + n)).
+    apply typing_type.
+    apply welltyped_env_is_valid.
+  - exists (type (1 + n)).
+    apply typing_type.
+    apply welltyped_env_is_valid.
+  - apply conv_refl.
+Qed.
+
+Next Obligation of term_model.
+  destruct U as (u, (?H, ?H, ?H)); simpl in *.
+  split.
+  - now exists (type n).
+  - now exists (type n).
+  - assumption.
+Qed.
+
+(* TODO: move! *)
+
+Lemma typing_hierarchy:
+  forall n l,
+  n < l ->
+  forall g,
+  valid_env g conv ->
+  forall t,
+  typing g t (type n) conv ->
+  typing g t (type l) conv.
+Proof.
+  intros.
+  apply typing_conv with (type n) (type (1 + l)).
+  - assumption.
+  - now constructor.
+  - now apply cumul_type.
+Qed.
+
+Next Obligation of term_model.
+  destruct U as (u, (?H, ?H, ?H)); simpl in *.
+  split.
+  - apply typing_hierarchy with n.
+    + assumption.
+    + apply welltyped_env_is_valid.
+    + assumption.
+  - apply typing_hierarchy with n.
+    + assumption.
+    + apply welltyped_env_is_valid.
+    + assumption.
+  - assumption.
+Qed.
+
+Next Obligation of term_model.
+  destruct X as (u, (?H, ?H, ?H)); simpl in *.
+  split; intros.
+  - now exists (type n).
+  - now exists (type n).
+  - assumption.
+Qed.
+
+(*
+  cwf_ty: cwf_env -> PartialSetoid;
+  cwf_el G: Domain (cwf_ty G) ~> PartialSetoid;
+  (* ... *)
+  cwf_u {G}: nat -> Domain (cwf_ty G);
+  cwf_t {G n}:
+    forall X: Domain (cwf_el G (cwf_u n)),
+    Domain (cwf_ty G);
+  cwf_lift {G n l}:
+    forall H: n < l,
+    forall X: Domain (cwf_el G (cwf_u n)),
+    Domain (cwf_el G (cwf_u l));
+  cwf_ucoh {G n l}:
+    forall H: n < l,
+    forall X: Domain (cwf_el G (cwf_u n)),
+    cwf_t (cwf_lift H X) == cwf_t X
+*)
+
+
+
+
+
 
 (*
 

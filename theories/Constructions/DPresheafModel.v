@@ -13,9 +13,14 @@ Require Import Local.Combinators.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
-Require Import Local.Constructions.Inversion.
+(* Require Import Local.Constructions.Inversion. *)
 
+Set Universe Polymorphism.
 Set Primitive Projections.
+
+(* TODO: backup code, remove later!
+
+(* -------------------------------------------------------------------------- *)
 
 (* Given some partial combinatory algebra D, which in here we specialize for the
    plain SK combinatory logic, a D-set is a pair (G, R) such that:
@@ -697,3 +702,5 @@ End Dpresheaf.
   Qed.
 
 End Elements. *)
+
+*)
