@@ -18,6 +18,160 @@ Require Import Local.Constructions.TypeSystem.
 Set Universe Polymorphism.
 Set Primitive Projections.
 
+Inductive dset: Type@{Set+1} :=
+  | Dset_mk:
+    forall T: Set,
+    forall R: CL -> T -> Prop,
+    (forall x1 x2 y, x1 == x2 -> R x2 y -> R x1 y) ->
+    (forall y, exists x, R x y) ->
+    dset
+  | delta_unit:
+    dset
+  | delta_dset:
+    dset.
+
+Definition dset_carrier (G: dset): Type :=
+  match G with
+  | Dset_mk T R _ _ => T
+  | delta_unit => unit
+  | delta_dset => dset
+  end.
+
+Local Coercion dset_carrier: dset >-> Sortclass.
+
+Definition dset_realization (G: dset): CL -> G -> Prop :=
+  match G with
+  | Dset_mk T R _ _ => R
+  (* For the following, return the universal relation. *)
+  | delta_unit => fun _ _ => True
+  | delta_dset => fun _ _ => True
+  end.
+
+Local Coercion dset_realization: dset >-> Funclass.
+
+Lemma dset_respectful:
+  forall x1 x2,
+  x1 == x2 ->
+  forall (G: dset) y,
+  G x2 y -> G x1 y.
+Proof.
+  simpl; intros.
+  destruct G.
+  + now apply r with x2.
+  + trivial.
+  + trivial.
+Qed.
+
+Lemma dset_surjective (G: dset) (y: G): exists x, G x y.
+Proof.
+  destruct G.
+  - apply e.
+  - exists I; simpl.
+    trivial.
+  - exists I; simpl.
+    trivial.
+Qed.
+
+Structure dmap (G: dset) (D: dset) := {
+  dmap_fun: G -> D;
+  dmap_wit: CL;
+  dmap_preserves:
+    forall y g,
+    G y g -> D (app dmap_wit y) (dmap_fun g)
+}.
+
+Global Arguments dmap_fun {G} {D}.
+Global Arguments dmap_wit {G} {D}.
+
+Local Coercion dmap_fun: dmap >-> Funclass.
+
+Program Definition dmap_id {G: dset}: dmap G G := {|
+  dmap_fun x := x;
+  dmap_wit := I
+|}.
+
+Next Obligation of dmap_id.
+  apply dset_respectful with y.
+  - apply conv_I.
+  - assumption.
+Qed.
+
+Program Definition dmap_post {G D E} (f: dmap G D) (g: dmap D E): dmap G E := {|
+  dmap_fun x := g (f x);
+  dmap_wit := B (dmap_wit g) (dmap_wit f)
+|}.
+
+Next Obligation of dmap_post.
+  rename g0 into x.
+  apply dset_respectful with (dmap_wit g (dmap_wit f y)).
+  - apply conv_B.
+  - now apply g, f.
+Qed.
+
+(* TODO: should dmaps carry setoids...? *)
+Definition dmap_equiv {G D}: dmap G D -> dmap G D -> Prop :=
+  fun f g => forall x, f x = g x.
+
+Program Definition dmap_setoid {G D}: Setoid := {|
+  setoid_carrier := dmap G D;
+  setoid_equiv := dmap_equiv
+|}.
+
+Next Obligation of dmap_setoid.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation of dmap_setoid.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation of dmap_setoid.
+  repeat intro.
+  now rewrite H, H0.
+Qed.
+
+Global Canonical Structure dmap_setoid.
+
+Program Definition dset_category: Category := {|
+  obj := dset;
+  hom := dmap;
+  id X := dmap_id;
+  post X Y Z := map f g => dmap_post f g
+|}.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  now rewrite H.
+Qed.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  now rewrite H.
+Qed.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Program Definition dset_model: CwF := {|
+  cwf_cat := dset_category
+|}.
+
+Admit Obligations.
+
 (* TODO: backup code, remove later!
 
 (* -------------------------------------------------------------------------- *)
