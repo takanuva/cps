@@ -165,10 +165,14 @@ Qed.
 Definition dset_family_equiv (G: dset): (G -> dset) -> (G -> dset) -> Prop :=
   funext_equiv.
 
-Program Definition dset_family (G: dset): PartialSetoid := {|
-  partial_carrier := G -> dset;
-  partial_equiv := dset_family_equiv G
+Program Definition dset_family (G: dset): Setoid := {|
+  setoid_carrier := G -> dset;
+  setoid_equiv := dset_family_equiv G
 |}.
+
+Next Obligation of dset_family.
+  reflexivity.
+Qed.
 
 Next Obligation of dset_family.
   now symmetry.
@@ -178,19 +182,30 @@ Next Obligation of dset_family.
   now transitivity y.
 Qed.
 
+(* TODO: move me! *)
+Import EqNotations.
+
 Program Definition dset_model: CwF := {|
   cwf_cat := dset_category;
   cwf_empty := {|
     terminal := delta_unit;
     terminal_hom X := {|
-      dmap_fun x := tt;
+      dmap_fun x := ();
       dmap_wit := I
     |}
   |};
   cwf_ty := dset_family;
-  cwf_el (G: dset) :=
-    map (A: Domain (dset_family G)) =>
-      partial_inclusion (dmap G A);
+  cwf_el (G: dset) := {|
+    setoid_family (T: dset_family G) :=
+      dmap_setoid G T;
+    setoid_transport T U H := {|
+      setoid_map E := {|
+        dmap_fun (X: G) :=
+          rew [dset_carrier] H X in E X;
+        dmap_wit := dmap_wit E
+      |}
+    |}
+  |};
   cwf_u (G: dset) (n: nat) (g: G) :=
     delta_dset;
   cwf_t (G: dset) (n: nat) U :=
@@ -205,12 +220,43 @@ Next Obligation of dset_model.
 Qed.
 
 Next Obligation of dset_model.
-  (* This would be true... if we had functional extensionality! *)
-  admit.
-Admitted.
+  destruct (H g); simpl.
+  now apply dmap_preserves.
+Qed.
 
 Next Obligation of dset_model.
-  repeat intro.
+  repeat intro; simpl.
+  destruct (H x0); simpl.
+  apply H0.
+Qed.
+
+Next Obligation of dset_model.
+  (* Some rewriting gimmicks here! *)
+  repeat intro; simpl.
+  generalize (H2 x1) as Y.
+  generalize (H1 x1) as X.
+  clear H1 H2; intros.
+  dependent destruction X; simpl.
+  dependent destruction Y; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro; simpl.
+  generalize (H x1) as X; intros.
+  dependent destruction X; simpl.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro; simpl.
+  generalize (H3 x1) as Z.
+  generalize (H2 x1) as Y.
+  generalize (H1 x1) as X.
+  intros.
+  dependent destruction X; simpl.
+  dependent destruction Y; simpl.
+  dependent destruction Z; simpl.
   reflexivity.
 Qed.
 
@@ -224,7 +270,7 @@ Next Obligation of dset_model.
   reflexivity.
 Qed.
 
-Section Elements.
+(* Section Elements.
 
   Variable C: Category.
   Variable G: Functor (opposite C) dset_category.
@@ -332,13 +378,27 @@ Section DPresheaf.
       |};
     |};
     cwf_ty (G: dpresheaf) := {|
-      partial_carrier := elem C G;
+      partial_carrier := Functor
+        (opposite (elements_category C G)) dset_category;
       (* Hmmmm... *)
       partial_equiv := eq
     |};
     cwf_el (G: dpresheaf) :=
-      map (A: elem C G | _) =>
-        partial_inclusion _
+      map A => {|
+        partial_carrier :=
+          (* forall X: C,
+          let Ax D := (`A) (elem_mk _ _ X D) in
+          partial_carrier (cwf_el dset_model (G X) Ax); *)
+          @NaturalTransformation _ _ ({|
+        mapping X := delta_unit;
+        fmap X Y :=
+          map f => {|
+            dmap_fun (g: delta_unit) := ();
+            dmap_wit := I
+          |}
+      |}: Functor _ dset_category) (`A);
+        partial_equiv := transformation_equiv
+      |}
   |}.
 
   Next Obligation of dpresheaf_model.
@@ -366,12 +426,39 @@ Section DPresheaf.
     now destruct (f X0 x).
   Qed.
 
+  (* ... *)
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    now destruct x0.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    now symmetry.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    now transitivity y.
+  Qed.
+
   Admit Obligations.
 
-End DPresheaf.
+End DPresheaf. *)
 
 (* TODO: backup code, remove later!
 
+(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
 (* -------------------------------------------------------------------------- *)
 
 (* Given some partial combinatory algebra D, which in here we specialize for the

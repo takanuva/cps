@@ -264,69 +264,45 @@ Qed.
 
 (* -------------------------------------------------------------------------- *)
 
-(* TODO: move this definition? Seems general! *)
+Definition welltyped_type (g: env) :=
+  { t: term | exists s, typing g t (sort s) conv }.
 
-Structure type_equiv (g: env) (t: term) (u: term): Prop := {
-  type_equiv_fst: exists s, typing g t (sort s) conv;
-  type_equiv_snd: exists s, typing g u (sort s) conv;
-  type_equiv_conv: conv g t u
-}.
-
-Program Definition type_setoid (g: env): PartialSetoid := {|
-  partial_carrier := term;
-  partial_equiv := type_equiv g
+Program Definition type_setoid (g: env): Setoid := {|
+  setoid_carrier := welltyped_type g;
+  setoid_equiv T U := conv g (`T) (`U)
 |}.
 
 Next Obligation of type_setoid.
-  destruct H as (?H, ?H, ?H).
-  split.
-  - assumption.
-  - assumption.
-  - now apply conv_sym.
+  apply conv_refl.
 Qed.
 
 Next Obligation of type_setoid.
-  destruct H as (?H, ?H, ?H).
-  destruct H0 as (?H, ?H, ?H).
-  split.
-  - assumption.
-  - assumption.
-  - now apply conv_trans with y.
+  now apply conv_sym.
 Qed.
 
-Local Notation welltyped_type G :=
-  (Domain (type_setoid (`G))).
+Next Obligation of type_setoid.
+  now apply conv_trans with (`y).
+Qed.
 
-Structure term_equiv (g: env) (t: term) (e: term) (f: term): Prop := {
-  term_equiv_fst: typing g e t conv;
-  term_equiv_snd: typing g f t conv;
-  term_equiv_conv: conv g e f
-}.
+Definition welltyped_term (g: env) (t: term) :=
+  { e: term | typing g e t conv }.
 
-Program Definition term_setoid (g: env) (t: term): PartialSetoid := {|
-  partial_carrier := term;
-  partial_equiv := term_equiv g t
+Program Definition term_setoid (g: env) (t: term): Setoid := {|
+  setoid_carrier := welltyped_term g t;
+  setoid_equiv E F := conv g (`E) (`F)
 |}.
 
 Next Obligation of term_setoid.
-  destruct H as (?H, ?H, ?H).
-  split.
-  - assumption.
-  - assumption.
-  - now apply conv_sym.
+  apply conv_refl.
 Qed.
 
 Next Obligation of term_setoid.
-  destruct H as (?H, ?H, ?H).
-  destruct H0 as (?H, ?H, ?H).
-  split.
-  - assumption.
-  - assumption.
-  - now apply conv_trans with y.
+  now apply conv_sym.
 Qed.
 
-Local Notation welltyped_term G T :=
-  (Domain (term_setoid (`G) (`T))).
+Next Obligation of term_setoid.
+  now apply conv_trans with (`y).
+Qed.
 
 Program Definition term_model: CwF := {|
   cwf_cat := term_category;
@@ -336,9 +312,13 @@ Program Definition term_model: CwF := {|
   |};
   cwf_ty (G: welltyped_env) :=
     type_setoid (`G);
-  cwf_el (G: welltyped_env) :=
-    map (T: welltyped_type G) =>
+  cwf_el (G: welltyped_env) := {|
+    setoid_family (T: welltyped_type G) :=
       term_setoid (`G) (`T);
+    setoid_transport T U H := {|
+      setoid_map E := E
+    |}
+  |};
   cwf_u (G: welltyped_env) (n: nat) :=
     sort (type n);
   cwf_t (G: welltyped_env) (n: nat) U :=
@@ -361,47 +341,36 @@ Next Obligation of term_model.
 Qed.
 
 Next Obligation of term_model.
-  destruct H as (?H, ?H, ?H).
-  exists (eq_refl term).
-  intros e f; simpl in *.
-  split; intro.
-  - destruct H2 as (?H, ?H, ?H); split.
-    + destruct H0 as (s, ?H).
-      apply typing_conv with (`x) s; auto.
-      now apply cumul_refl.
-    + destruct H0 as (s, ?H).
-      apply typing_conv with (`x) s; auto.
-      now apply cumul_refl.
-    + assumption.
-  - destruct H2 as (?H, ?H, ?H); split.
-    + destruct H as (s, ?H).
-      apply typing_conv with (`y) s; auto.
-      apply cumul_refl.
-      now apply conv_sym.
-    + destruct H as (s, ?H).
-      apply typing_conv with (`y) s; auto.
-      apply cumul_refl.
-      now apply conv_sym.
-    + assumption.
-Qed.
-
-Next Obligation of term_model.
-  split.
-  - exists (type (1 + n)).
-    apply typing_type.
-    apply welltyped_env_is_valid.
-  - exists (type (1 + n)).
-    apply typing_type.
-    apply welltyped_env_is_valid.
-  - apply conv_refl.
-Qed.
-
-Next Obligation of term_model.
-  destruct U as (u, (?H, ?H, ?H)); simpl in *.
-  split.
-  - now exists (type n).
-  - now exists (type n).
+  destruct T as (t, (s1, ?H)); simpl in *.
+  destruct U as (u, (s2, ?H)); simpl in *.
+  destruct E as (e, ?H); simpl in *.
+  apply typing_conv with t s2.
   - assumption.
+  - assumption.
+  - now apply cumul_refl.
+Qed.
+
+Next Obligation of term_model.
+  apply conv_refl.
+Qed.
+
+Next Obligation of term_model.
+  apply conv_refl.
+Qed.
+
+Next Obligation of term_model.
+  apply conv_refl.
+Qed.
+
+Next Obligation of term_model.
+  exists (type (1 + n)).
+  apply typing_type.
+  apply welltyped_env_is_valid.
+Qed.
+
+Next Obligation of term_model.
+  destruct U as (u, ?H); simpl in *.
+  now exists (type n).
 Qed.
 
 (* TODO: move! *)
@@ -423,25 +392,19 @@ Proof.
 Qed.
 
 Next Obligation of term_model.
-  destruct U as (u, (?H, ?H, ?H)); simpl in *.
-  split.
-  - apply typing_hierarchy with n.
-    + assumption.
-    + apply welltyped_env_is_valid.
-    + assumption.
-  - apply typing_hierarchy with n.
-    + assumption.
-    + apply welltyped_env_is_valid.
-    + assumption.
+  apply conv_refl.
+Qed.
+
+Next Obligation of term_model.
+  destruct U as (u, ?H); simpl in *.
+  apply typing_hierarchy with n.
+  - assumption.
+  - apply welltyped_env_is_valid.
   - assumption.
 Qed.
 
 Next Obligation of term_model.
-  destruct X as (u, (?H, ?H, ?H)); simpl in *.
-  split; intros.
-  - now exists (type n).
-  - now exists (type n).
-  - assumption.
+  apply conv_refl.
 Qed.
 
 (*

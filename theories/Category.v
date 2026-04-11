@@ -765,6 +765,40 @@ Structure Terminal (C: Category): Type := {
 Global Coercion terminal: Terminal >-> obj.
 Global Coercion terminal_hom: Terminal >-> Funclass.
 
+(* -------------------------------------------------------------------------- *)
+
+Program Definition setoid_map_id {S}: S ~> S := {|
+  setoid_map x := x
+|}.
+
+Program Definition setoid_map_post {S T U} (f: S ~> T) (g: T ~> U): S ~> U := {|
+  setoid_map x := g (f x)
+|}.
+
+Next Obligation of setoid_map_post.
+  now rewrite H.
+Qed.
+
+(* TODO: we can surely simplify this if Setoid is itself a setoid, right...? *)
+
+Structure SetoidFamily@{u} (S: Setoid@{u}) := {
+  setoid_family: S -> Setoid@{u};
+  setoid_transport:
+    forall x y, x == y -> setoid_family x ~> setoid_family y;
+  setoid_transport_irr:
+    forall x y H1 H2,
+    setoid_transport x y H1 == setoid_transport x y H2;
+  setoid_transport_id:
+    forall x H,
+    setoid_transport x x H == setoid_map_id;
+  setoid_transport_post:
+    forall x y z H1 H2 H3,
+    setoid_map_post (setoid_transport x y H1) (setoid_transport y z H2) ==
+      setoid_transport x z H3
+}.
+
+Global Coercion setoid_family: SetoidFamily >-> Funclass.
+
 (* We define the notion of a category with families, which forms a model of
    basic dependent type theory. This is a category C, such that:
 
@@ -784,20 +818,20 @@ Structure CwF := {
   cwf_sub: cwf_cat -> cwf_cat -> Setoid :=
     hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
-  cwf_ty: cwf_env -> PartialSetoid;
-  cwf_el G: Domain (cwf_ty G) ~> PartialSetoid;
+  cwf_ty: cwf_env -> Setoid;
+  cwf_el G: SetoidFamily (cwf_ty G);
   (* ... *)
-  cwf_u {G}: nat -> Domain (cwf_ty G);
+  cwf_u {G}: nat -> cwf_ty G;
   cwf_t {G n}:
-    forall X: Domain (cwf_el G (cwf_u n)),
+    forall X: cwf_el G (cwf_u n),
     Domain (cwf_ty G);
   cwf_lift {G n l}:
     forall H: n < l,
-    forall X: Domain (cwf_el G (cwf_u n)),
-    Domain (cwf_el G (cwf_u l));
+    forall X: cwf_el G (cwf_u n),
+    cwf_el G (cwf_u l);
   cwf_ucoh {G n l}:
     forall H: n < l,
-    forall X: Domain (cwf_el G (cwf_u n)),
+    forall X: cwf_el G (cwf_u n),
     cwf_t (cwf_lift H X) == cwf_t X
 }.
 
