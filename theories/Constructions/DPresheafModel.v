@@ -224,6 +224,59 @@ Next Obligation of dset_model.
   reflexivity.
 Qed.
 
+Section DPresheaf.
+
+  Variable C: Category.
+
+  Definition dpresheaf := Functor (opposite C) dset_category.
+
+  Program Definition dpresheaf_model := {|
+    cwf_cat := dpresheaf;
+    cwf_empty := {|
+      terminal := {|
+        mapping (X: C) := delta_unit;
+        fmap (X: C) (Y: C) :=
+          map (f: C Y X) => {|
+            dmap_fun (x: delta_unit) := tt;
+            dmap_wit := I
+          |}
+      |};
+      terminal_hom (F: dpresheaf) := {|
+        transformation (X: C) :=
+          terminal_hom _ (cwf_empty dset_model) (F X)
+      |};
+    |}
+  |}.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    now destruct x0.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    now destruct (f X0 x).
+  Qed.
+
+  Admit Obligations.
+
+End DPresheaf.
+
 (* TODO: backup code, remove later!
 
 (* -------------------------------------------------------------------------- *)
