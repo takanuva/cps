@@ -799,6 +799,8 @@ Structure SetoidFamily@{u} (S: Setoid@{u}) := {
 
 Global Coercion setoid_family: SetoidFamily >-> Funclass.
 
+Global Arguments setoid_transport {S} s {x} {y}.
+
 (* We define the notion of a category with families, which forms a model of
    basic dependent type theory. This is a category C, such that:
 
@@ -820,6 +822,9 @@ Structure CwF := {
   cwf_empty: Terminal cwf_cat;
   cwf_ty: cwf_env -> Setoid;
   cwf_el G: SetoidFamily (cwf_ty G);
+  (* ... *)
+  cwf_transp {G A B} (H: A == B) :=
+    setoid_transport (cwf_el G) H;
   (* ... *)
   cwf_u {G}: nat -> cwf_ty G;
   cwf_t {G n}:
