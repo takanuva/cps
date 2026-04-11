@@ -278,12 +278,12 @@ Qed.
    functions, as a generalization, and then we proceed to build the canonical
    category for sets. *)
 
-Definition funext_eq T U: relation (forall t: T, U t) :=
-  fun f g => forall x, f x = g x.
+Definition funext_equiv {T U} (f g: forall t: T, U t): Prop :=
+  forall x, f x = g x.
 
 Global Program Definition function_setoid T U: Setoid := {|
   setoid_carrier := forall t: T, U t;
-  setoid_equiv := funext_eq T U
+  setoid_equiv := funext_equiv
 |}.
 
 Next Obligation.

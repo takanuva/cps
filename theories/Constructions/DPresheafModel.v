@@ -19,7 +19,7 @@ Set Universe Polymorphism.
 Set Primitive Projections.
 
 Inductive dset: Type@{Set+1} :=
-  | Dset_mk:
+  | dset_mk:
     forall T: Set,
     forall R: CL -> T -> Prop,
     (forall x1 x2 y, x1 == x2 -> R x2 y -> R x1 y) ->
@@ -32,7 +32,7 @@ Inductive dset: Type@{Set+1} :=
 
 Definition dset_carrier (G: dset): Type :=
   match G with
-  | Dset_mk T R _ _ => T
+  | dset_mk T R _ _ => T
   | delta_unit => unit
   | delta_dset => dset
   end.
@@ -41,7 +41,7 @@ Local Coercion dset_carrier: dset >-> Sortclass.
 
 Definition dset_realization (G: dset): CL -> G -> Prop :=
   match G with
-  | Dset_mk T R _ _ => R
+  | dset_mk T R _ _ => R
   (* For the following, return the universal relation. *)
   | delta_unit => fun _ _ => True
   | delta_dset => fun _ _ => True
@@ -72,12 +72,12 @@ Proof.
     trivial.
 Qed.
 
-Structure dmap (G: dset) (D: dset) := {
-  dmap_fun: G -> D;
+Structure dmap (G: dset) (D: G -> dset) := {
+  dmap_fun: forall g: G, D g;
   dmap_wit: CL;
   dmap_preserves:
     forall y g,
-    G y g -> D (app dmap_wit y) (dmap_fun g)
+    G y g -> D g (app dmap_wit y) (dmap_fun g)
 }.
 
 Global Arguments dmap_fun {G} {D}.
@@ -85,34 +85,11 @@ Global Arguments dmap_wit {G} {D}.
 
 Local Coercion dmap_fun: dmap >-> Funclass.
 
-Program Definition dmap_id {G: dset}: dmap G G := {|
-  dmap_fun x := x;
-  dmap_wit := I
-|}.
-
-Next Obligation of dmap_id.
-  apply dset_respectful with y.
-  - apply conv_I.
-  - assumption.
-Qed.
-
-Program Definition dmap_post {G D E} (f: dmap G D) (g: dmap D E): dmap G E := {|
-  dmap_fun x := g (f x);
-  dmap_wit := B (dmap_wit g) (dmap_wit f)
-|}.
-
-Next Obligation of dmap_post.
-  rename g0 into x.
-  apply dset_respectful with (dmap_wit g (dmap_wit f y)).
-  - apply conv_B.
-  - now apply g, f.
-Qed.
-
-(* TODO: should dmaps carry setoids...? *)
+(* TODO: should dmaps carry setoids...? We'll find out later! *)
 Definition dmap_equiv {G D}: dmap G D -> dmap G D -> Prop :=
-  fun f g => forall x, f x = g x.
+  funext_equiv.
 
-Program Definition dmap_setoid {G D}: Setoid := {|
+Program Definition dmap_setoid G D: Setoid := {|
   setoid_carrier := dmap G D;
   setoid_equiv := dmap_equiv
 |}.
@@ -136,14 +113,28 @@ Global Canonical Structure dmap_setoid.
 
 Program Definition dset_category: Category := {|
   obj := dset;
-  hom := dmap;
-  id X := dmap_id;
-  post X Y Z := map f g => dmap_post f g
+  hom G D := dmap G (fun _ => D);
+  id G := {|
+    dmap_fun x := x;
+    dmap_wit := I
+  |};
+  post G D E := map f g => {|
+    dmap_fun x := g (f x);
+    dmap_wit := B (dmap_wit g) (dmap_wit f)
+  |}
 |}.
 
 Next Obligation of dset_category.
-  repeat intro; simpl.
-  now rewrite H.
+  apply dset_respectful with y.
+  - apply conv_I.
+  - assumption.
+Qed.
+
+Next Obligation of dset_category.
+  rename g0 into x.
+  apply dset_respectful with (dmap_wit g (dmap_wit f y)).
+  - apply conv_B.
+  - now apply g, f.
 Qed.
 
 Next Obligation of dset_category.
@@ -153,7 +144,7 @@ Qed.
 
 Next Obligation of dset_category.
   repeat intro; simpl.
-  reflexivity.
+  now rewrite H.
 Qed.
 
 Next Obligation of dset_category.
@@ -164,13 +155,74 @@ Qed.
 Next Obligation of dset_category.
   repeat intro; simpl.
   reflexivity.
+Qed.
+
+Next Obligation of dset_category.
+  repeat intro; simpl.
+  reflexivity.
+Qed.
+
+Definition dset_family_equiv (G: dset): (G -> dset) -> (G -> dset) -> Prop :=
+  funext_equiv.
+
+Program Definition dset_family (G: dset): PartialSetoid := {|
+  partial_carrier := G -> dset;
+  partial_equiv := dset_family_equiv G
+|}.
+
+Next Obligation of dset_family.
+  now symmetry.
+Qed.
+
+Next Obligation of dset_family.
+  now transitivity y.
 Qed.
 
 Program Definition dset_model: CwF := {|
-  cwf_cat := dset_category
+  cwf_cat := dset_category;
+  cwf_empty := {|
+    terminal := delta_unit;
+    terminal_hom X := {|
+      dmap_fun x := tt;
+      dmap_wit := I
+    |}
+  |};
+  cwf_ty := dset_family;
+  cwf_el (G: dset) :=
+    map (A: Domain (dset_family G)) =>
+      partial_inclusion (dmap G A);
+  cwf_u (G: dset) (n: nat) (g: G) :=
+    delta_dset;
+  cwf_t (G: dset) (n: nat) U :=
+    dmap_fun U;
+  cwf_lift (G: dset) n l (H: n < l) U :=
+    U
 |}.
 
-Admit Obligations.
+Next Obligation of dset_model.
+  repeat intro; simpl.
+  now destruct (f x).
+Qed.
+
+Next Obligation of dset_model.
+  (* This would be true... if we had functional extensionality! *)
+  admit.
+Admitted.
+
+Next Obligation of dset_model.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro.
+  reflexivity.
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro.
+  reflexivity.
+Qed.
 
 (* TODO: backup code, remove later!
 
