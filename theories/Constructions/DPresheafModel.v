@@ -224,6 +224,89 @@ Next Obligation of dset_model.
   reflexivity.
 Qed.
 
+Section Elements.
+
+  Variable C: Category.
+  Variable G: Functor (opposite C) dset_category.
+
+  Structure elem: Type := elem_mk {
+    elem_obj: opposite C;
+    elem_set: G elem_obj
+  }.
+
+  Record elem_hom (x: elem) (y: elem): Type := elem_hom_mk {
+    elem_hom_morphism: opposite C (elem_obj x) (elem_obj y);
+    elem_hom_coherence: elem_set y = fmap G elem_hom_morphism (elem_set x)
+  }.
+
+  Local Coercion elem_hom_morphism: elem_hom >-> setoid_carrier.
+
+  Program Definition elem_hom_setoid e f: Setoid := {|
+    setoid_carrier := elem_hom e f;
+    (* We use the D-set morphism definition of equality for the inner map! *)
+    setoid_equiv := setoid_equiv
+  |}.
+
+  Next Obligation.
+    reflexivity.
+  Qed.
+
+  Next Obligation.
+    now symmetry.
+  Qed.
+
+  Next Obligation.
+    now transitivity (elem_hom_morphism e f y).
+  Qed.
+
+  Local Canonical Structure elem_hom_setoid.
+
+  Program Definition elements_category: Category := {|
+    obj := elem;
+    hom e f := elem_hom e f;
+    id x := elem_hom_mk x x id _;
+    post x y z := map f g => elem_hom_mk x z (post f g) _
+  |}.
+
+  Next Obligation of elements_category.
+    destruct x as (X, Y); simpl.
+    (* It's invisible, but beware! *)
+    pose proof fmap_id _ _ G Y.
+    now symmetry.
+  Qed.
+
+  Next Obligation of elements_category.
+    destruct f as (X, ?H); simpl.
+    destruct g as (Y, ?H); simpl.
+    rewrite H0, H.
+    (* Again... *)
+    pose proof fmap_comp _ _ G X Y.
+    now symmetry.
+  Qed.
+
+  Next Obligation of elements_category.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of elements_category.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of elements_category.
+    apply post_id_right.
+  Qed.
+
+  Next Obligation of elements_category.
+    apply post_id_left.
+  Qed.
+
+  Next Obligation of elements_category.
+    symmetry.
+    apply post_assoc.
+  Qed.
+
+End Elements.
+
 Section DPresheaf.
 
   Variable C: SmallCategory.
@@ -247,7 +330,15 @@ Section DPresheaf.
           dmap_wit := I
         |}
       |};
-    |}
+    |};
+    cwf_ty (G: dpresheaf) := {|
+      partial_carrier := elem C G;
+      (* Hmmmm... *)
+      partial_equiv := eq
+    |};
+    cwf_el (G: dpresheaf) :=
+      map (A: elem C G | _) =>
+        partial_inclusion _
   |}.
 
   Next Obligation of dpresheaf_model.
