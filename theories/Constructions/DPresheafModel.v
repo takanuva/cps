@@ -226,7 +226,7 @@ Qed.
 
 Section DPresheaf.
 
-  Variable C: Category.
+  Variable C: SmallCategory.
 
   Definition dpresheaf := Functor (opposite C) dset_category.
 
@@ -237,13 +237,15 @@ Section DPresheaf.
         mapping (X: C) := delta_unit;
         fmap (X: C) (Y: C) :=
           map (f: C Y X) => {|
-            dmap_fun (x: delta_unit) := tt;
+            dmap_fun (g: delta_unit) := ();
             dmap_wit := I
           |}
       |};
       terminal_hom (F: dpresheaf) := {|
-        transformation (X: C) :=
-          terminal_hom _ (cwf_empty dset_model) (F X)
+        transformation (X: C) := {|
+          dmap_fun (g: F X) := ();
+          dmap_wit := I
+        |}
       |};
     |}
   |}.
