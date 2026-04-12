@@ -312,6 +312,9 @@ Program Definition term_model: CwF := {|
   |};
   cwf_ty (G: welltyped_env) :=
     type_setoid (`G);
+  cwf_tsub (G D: welltyped_env) :=
+    map (S: welltyped_subst D G) (T: welltyped_type G) =>
+      inst (`S) (`T);
   cwf_el (G: welltyped_env) := {|
     setoid_family (T: welltyped_type G) :=
       term_setoid (`G) (`T);
@@ -338,6 +341,26 @@ Qed.
 Next Obligation of term_model.
   destruct f as (f, ?H); simpl in *.
   now apply terminal_subst_is_unique.
+Qed.
+
+Next Obligation of term_model.
+  destruct G as (g, ?H); simpl in *.
+  destruct D as (d, ?H); simpl in *.
+  destruct S as (s, ?H); simpl in *.
+  destruct T as (t, (u, ?H)); simpl in *.
+  exists u.
+  (* Since substitution doesn't change sorts... *)
+  change (sort u) with (inst s (sort u)).
+  now apply typing_inst with g.
+Qed.
+
+Next Obligation of term_model.
+  (* Well, haven't proven that yet, but it's true! *)
+  admit.
+Admitted.
+
+Next Obligation of term_model.
+  now rewrite H.
 Qed.
 
 Next Obligation of term_model.

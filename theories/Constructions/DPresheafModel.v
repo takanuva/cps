@@ -195,6 +195,9 @@ Program Definition dset_model: CwF := {|
     |}
   |};
   cwf_ty := dset_family;
+  cwf_tsub (G D: dset) :=
+    map (S: dmap D (const G)) (T: dset_family G) =>
+      fun d => T (S d);
   cwf_el (G: dset) := {|
     setoid_family (T: dset_family G) :=
       dmap_setoid G T;
@@ -217,6 +220,16 @@ Program Definition dset_model: CwF := {|
 Next Obligation of dset_model.
   repeat intro; simpl.
   now destruct (f x).
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro.
+  now rewrite H.
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro.
+  now rewrite H.
 Qed.
 
 Next Obligation of dset_model.

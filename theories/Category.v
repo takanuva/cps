@@ -779,7 +779,10 @@ Next Obligation of setoid_map_post.
   now rewrite H.
 Qed.
 
-(* TODO: we can surely simplify this if Setoid is itself a setoid, right...? *)
+(* TODO: we can surely simplify this if Setoid is itself a setoid, right...?
+
+   NOTE: if the family is constant (i.e., it doesn't use S), this is really
+   just a setoid map! Cool! *)
 
 Structure SetoidFamily@{u} (S: Setoid@{u}) := {
   setoid_family: S -> Setoid@{u};
@@ -820,7 +823,11 @@ Structure CwF := {
   cwf_sub: cwf_cat -> cwf_cat -> Setoid :=
     hom cwf_cat;
   cwf_empty: Terminal cwf_cat;
+  (* ... *)
   cwf_ty: cwf_env -> Setoid;
+  cwf_tsub {G D}:
+    cwf_sub D G ~> cwf_ty G ~> cwf_ty D;
+  (* ... *)
   cwf_el G: SetoidFamily (cwf_ty G);
   (* ... *)
   cwf_transp {G A B} (H: A == B) :=
