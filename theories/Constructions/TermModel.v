@@ -415,10 +415,6 @@ Proof.
 Qed.
 
 Next Obligation of term_model.
-  apply conv_refl.
-Qed.
-
-Next Obligation of term_model.
   destruct U as (u, ?H); simpl in *.
   apply typing_hierarchy with n.
   - assumption.

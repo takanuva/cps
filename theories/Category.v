@@ -836,7 +836,7 @@ Structure CwF := {
   cwf_u {G}: nat -> cwf_ty G;
   cwf_t {G n}:
     forall X: cwf_el G (cwf_u n),
-    Domain (cwf_ty G);
+    cwf_ty G;
   cwf_lift {G n l}:
     forall H: n < l,
     forall X: cwf_el G (cwf_u n),
