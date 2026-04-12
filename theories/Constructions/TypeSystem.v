@@ -573,7 +573,8 @@ Lemma inst_sort_simpl:
   forall f s,
   inst f (sort s) = sort s.
 Proof.
-  now induction s.
+  intros.
+  reflexivity.
 Qed.
 
 Lemma typing_uplift:
