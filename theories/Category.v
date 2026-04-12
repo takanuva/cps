@@ -817,11 +817,15 @@ Global Arguments setoid_transport {S} s {x} {y}.
 *)
 
 Structure CwF := {
+  (* ... *)
   cwf_cat: Category;
+  (* ... *)
   cwf_env :=
     obj cwf_cat;
+  (* ... *)
   cwf_sub: cwf_cat -> cwf_cat -> Setoid :=
     hom cwf_cat;
+  (* ... *)
   cwf_empty: Terminal cwf_cat;
   (* ... *)
   cwf_ty: cwf_env -> Setoid;
@@ -844,6 +848,7 @@ Structure CwF := {
     forall H: n < l,
     forall X: cwf_el G (cwf_u n),
     cwf_el G (cwf_u l);
+  (* ... *)
   cwf_ucoh {G n l}:
     forall H: n < l,
     forall X: cwf_el G (cwf_u n),
