@@ -269,6 +269,7 @@ Definition welltyped_type (g: env) :=
 
 Program Definition type_setoid (g: env): Setoid := {|
   setoid_carrier := welltyped_type g;
+  (* TODO: what about comulativity...? *)
   setoid_equiv T U := conv g (`T) (`U)
 |}.
 
@@ -289,6 +290,7 @@ Definition welltyped_term (g: env) (t: term) :=
 
 Program Definition term_setoid (g: env) (t: term): Setoid := {|
   setoid_carrier := welltyped_term g t;
+  (* TODO: what about comulativity...? *)
   setoid_equiv E F := conv g (`E) (`F)
 |}.
 
