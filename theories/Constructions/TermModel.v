@@ -412,24 +412,6 @@ Next Obligation of term_model.
   now exists (type n).
 Qed.
 
-(* TODO: move! *)
-
-Lemma typing_hierarchy:
-  forall n l,
-  n < l ->
-  forall g,
-  valid_env g conv ->
-  forall t,
-  typing g t (type n) conv ->
-  typing g t (type l) conv.
-Proof.
-  intros.
-  apply typing_conv with (type n) (type (1 + l)).
-  - assumption.
-  - now constructor.
-  - now apply cumul_type.
-Qed.
-
 Next Obligation of term_model.
   destruct U as (u, ?H); simpl in *.
   apply typing_hierarchy with n.

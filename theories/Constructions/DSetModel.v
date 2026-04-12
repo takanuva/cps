@@ -14,6 +14,8 @@ Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 
+Import EqNotations.
+
 Set Universe Polymorphism.
 Set Primitive Projections.
 
@@ -85,6 +87,7 @@ Global Arguments dmap_wit {G} {D}.
 Local Coercion dmap_fun: dmap >-> Funclass.
 
 (* TODO: should dmaps carry setoids...? We'll find out later! *)
+
 Definition dmap_equiv {G D}: dmap G D -> dmap G D -> Prop :=
   funext_equiv.
 
@@ -180,9 +183,6 @@ Qed.
 Next Obligation of dset_family.
   now transitivity y.
 Qed.
-
-(* TODO: move me! *)
-Import EqNotations.
 
 Program Definition dset_model: CwF := {|
   cwf_cat := dset_category;
