@@ -499,16 +499,10 @@ Proof.
   - now apply valid_subst_cons with s.
 Qed.
 
-Conjecture weakening:
-  (* TODO: prove this later! *)
-  forall g e t R,
-  typing g e t R ->
-  forall d,
-  valid_env (d :: g) R ->
-  typing (d :: g) (lift 1 0 e) (lift 1 0 t) R.
-
 Conjecture subject_reduction:
-  (* TODO: prove this later. TODO: generalize to other equivalences. *)
+  (* TODO: prove this later. TODO: generalize to other equivalences.
+
+     Note to self: Coquand shows how to derive this from the model. *)
   forall g e t,
   typing g e t conv ->
   forall f,
@@ -699,6 +693,26 @@ Proof.
     + (* Cumulativity is stable under substitution! *)
       admit.
 Admitted.
+
+Lemma weakening:
+  (* TODO: prove this later! *)
+  forall g e t R,
+  typing g e t R ->
+  forall d,
+  valid_env (d :: g) R ->
+  typing (d :: g) (lift 1 0 e) (lift 1 0 t) R.
+Proof.
+  intros.
+  change (lift 1 0 e) with (inst (subst_lift 1) e).
+  change (lift 1 0 t) with (inst (subst_lift 1) t).
+  apply typing_inst with g.
+  - assumption.
+  - destruct d as ([ f | ], u).
+    + dependent destruction H0.
+      now apply valid_subst_lift_def with s.
+    + dependent destruction H0.
+      now apply valid_subst_lift_var with s.
+Qed.
 
 Lemma typing_hierarchy:
   forall n l,
