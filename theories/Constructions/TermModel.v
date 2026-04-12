@@ -322,6 +322,9 @@ Program Definition term_model: CwF := {|
       setoid_map E := E
     |}
   |};
+  cwf_esub G D T (S: welltyped_subst D G) :=
+    map (E: welltyped_term G T) =>
+      inst (`S) (`E);
   cwf_u (G: welltyped_env) (n: nat) :=
     sort (type n);
   cwf_t (G: welltyped_env) (n: nat) U :=
@@ -329,7 +332,6 @@ Program Definition term_model: CwF := {|
   cwf_lift (G: welltyped_env) n l (H: n < l) U :=
     U
 |}.
-
 Next Obligation of term_model.
   constructor.
 Qed.
@@ -384,6 +386,20 @@ Qed.
 Next Obligation of term_model.
   apply conv_refl.
 Qed.
+
+Next Obligation of term_model.
+  destruct G as (g, ?H); simpl in *.
+  destruct D as (d, ?H); simpl in *.
+  destruct T as (t, (u, ?H)); simpl in *.
+  destruct S as (s, ?H); simpl in *.
+  destruct E as (e, ?H); simpl in *.
+  now apply typing_inst with g.
+Qed.
+
+Next Obligation of term_model.
+  (* Same as above, gotta admit that! *)
+  admit.
+Admitted.
 
 Next Obligation of term_model.
   exists (type (1 + n)).

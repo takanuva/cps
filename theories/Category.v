@@ -829,6 +829,9 @@ Structure CwF := {
     cwf_sub D G ~> cwf_ty G ~> cwf_ty D;
   (* ... *)
   cwf_el G: SetoidFamily (cwf_ty G);
+  cwf_esub {G D A}:
+    forall s: cwf_sub D G,
+    cwf_el G A ~> cwf_el D (cwf_tsub s A);
   (* ... *)
   cwf_transp {G A B} (H: A == B) :=
     setoid_transport (cwf_el G) H;

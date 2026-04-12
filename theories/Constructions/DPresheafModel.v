@@ -209,6 +209,11 @@ Program Definition dset_model: CwF := {|
       |}
     |}
   |};
+  cwf_esub (G D: dset) (T: dset_family G) (S: dmap D (const G)) :=
+    map (E: dmap G T) => {|
+      dmap_fun (d: D) := E (S d);
+      dmap_wit := B (dmap_wit E) (dmap_wit S)
+    |};
   cwf_u (G: dset) (n: nat) (g: G) :=
     delta_dset;
   cwf_t (G: dset) (n: nat) U :=
@@ -271,6 +276,18 @@ Next Obligation of dset_model.
   dependent destruction Y; simpl.
   dependent destruction Z; simpl.
   reflexivity.
+Qed.
+
+Next Obligation of dset_model.
+  apply dset_respectful with (dmap_wit E (dmap_wit S y)).
+  - apply conv_B.
+  - apply dmap_preserves.
+    now apply (dmap_preserves D (const G)).
+Qed.
+
+Next Obligation of dset_model.
+  repeat intro; simpl.
+  now rewrite H.
 Qed.
 
 Next Obligation of dset_model.
