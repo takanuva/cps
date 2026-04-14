@@ -21,17 +21,15 @@ Set Primitive Projections.
 
 Section DPresheaf.
 
-  Variable C: SmallCategory.
-
-  Notation DSET :=
-    (obj dset_category: Set).
+  Definition C: SmallCategory :=
+    DSetModel.C.
 
   Notation DMAP G D :=
     (dset_category@{Set _ _ _} G D: Set).
 
   (* Just a D-set-valued presheaf on C... *)
   Structure ENV: Set := {
-    ENV_fam: C -> DSET;
+    ENV_fam: C -> dset;
     (* The restriction operation is a morphism, thus a map... *)
     ENV_restrict {X Y}:
       (* Lets try forcing this to be small, for now... *)
@@ -149,45 +147,44 @@ Section DPresheaf.
     reflexivity.
   Qed.
 
-  Axiom delta_hom: C -> C -> DSET.
-
-  Axiom foo: forall X Y,
-    dset_carrier (delta_hom X Y) = C X Y.
-
   Program Definition yo (X: C): ENV := {|
     ENV_fam Y := delta_hom Y X;
     ENV_restrict Y Z g := {|
-      dmap_fun f := _;
+      dmap_fun f := post g f;
       (* TODO: the thesis doesn't mention this! *)
       dmap_wit := I
     |}
   |}.
 
   Next Obligation of yo.
-    rewrite foo in f |- *.
-    exact (post g f).
-  Defined.
+    repeat intro; simpl.
+    admit.
+  Admitted.
 
-  Admit Obligations.
+  Next Obligation of yo.
+    repeat intro; simpl.
+    admit.
+  Admitted.
 
-  Program Definition bar (G: ENV) (X: C) (g: dset_carrier (G X)):
+  Program Definition phi (G: ENV) (X: C) (g: G X):
     SUBST (yo X) G := {|
     SUBST_map Y := {|
-      dmap_fun f := _ (* ENV_restrict G f g *);
+      (* TODO: fix coercion, of course... *)
+      dmap_fun f := dmap_fun (ENV_restrict G f) g;
       (* The thesis doesn't mention this one! *)
       dmap_wit := I
     |}
   |}.
 
-  Next Obligation of bar.
-    rewrite foo in f.
-    pose proof ENV_restrict G f.
-    (* Why can't I apply g to it...? *)
-    destruct H as (h, w, ?H).
-    exact (h g).
-  Qed.
+  Next Obligation of phi.
+    (* Hmmm... *)
+    admit.
+  Admitted.
 
-  Admit Obligations.
+  Next Obligation of phi.
+    repeat intro; simpl.
+    admit.
+  Admitted.
 
 End DPresheaf.
 

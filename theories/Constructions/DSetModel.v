@@ -19,6 +19,9 @@ Import EqNotations.
 Set Universe Polymorphism.
 Set Primitive Projections.
 
+(* TODO: these will be the telescopes! *)
+Axiom C: SmallCategory.
+
 Inductive dset: Set :=
   (* | dset_mk:
     forall T: Set,
@@ -26,19 +29,19 @@ Inductive dset: Set :=
     (forall x1 x2 y, x1 == x2 -> R x2 y -> R x1 y) ->
     (forall y, exists x, R x y) ->
     dset *)
-  | delta_unit:
-    dset
-  | delta_dset:
-    dset.
+  | delta_unit: dset
+  | delta_dset: dset
+  | delta_hom: C -> C -> dset.
 
 Definition dset_carrier (G: dset): Type :=
   match G with
   (* | dset_mk T R _ _ => T *)
   | delta_unit => unit
   | delta_dset => dset
+  | delta_hom X Y => C X Y
   end.
 
-Local Coercion dset_carrier: dset >-> Sortclass.
+Global Coercion dset_carrier: dset >-> Sortclass.
 
 Definition dset_realization (G: dset): CL -> G -> Prop :=
   match G with
@@ -46,9 +49,10 @@ Definition dset_realization (G: dset): CL -> G -> Prop :=
   (* For the following, return the universal relation. *)
   | delta_unit => fun _ _ => True
   | delta_dset => fun _ _ => True
+  | delta_hom X Y => fun _ _ => True
   end.
 
-Local Coercion dset_realization: dset >-> Funclass.
+Global Coercion dset_realization: dset >-> Funclass.
 
 Lemma dset_respectful:
   forall x1 x2,
@@ -61,12 +65,15 @@ Proof.
   (* + now apply r with x2. *)
   + trivial.
   + trivial.
+  + trivial.
 Qed.
 
 Lemma dset_surjective (G: dset) (y: G): exists x, G x y.
 Proof.
   destruct G.
   (* - apply e. *)
+  - exists I; simpl.
+    trivial.
   - exists I; simpl.
     trivial.
   - exists I; simpl.
@@ -84,7 +91,7 @@ Structure dmap (G: dset) (D: G -> dset): Type := {
 Global Arguments dmap_fun {G} {D}.
 Global Arguments dmap_wit {G} {D}.
 
-Local Coercion dmap_fun: dmap >-> Funclass.
+Global Coercion dmap_fun: dmap >-> Funclass.
 
 (* TODO: should dmaps carry setoids...? We'll find out later! *)
 
