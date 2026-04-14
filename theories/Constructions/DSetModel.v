@@ -19,13 +19,13 @@ Import EqNotations.
 Set Universe Polymorphism.
 Set Primitive Projections.
 
-Inductive dset: Type@{Set+1} :=
-  | dset_mk:
+Inductive dset: Set :=
+  (* | dset_mk:
     forall T: Set,
     forall R: CL -> T -> Prop,
     (forall x1 x2 y, x1 == x2 -> R x2 y -> R x1 y) ->
     (forall y, exists x, R x y) ->
-    dset
+    dset *)
   | delta_unit:
     dset
   | delta_dset:
@@ -33,7 +33,7 @@ Inductive dset: Type@{Set+1} :=
 
 Definition dset_carrier (G: dset): Type :=
   match G with
-  | dset_mk T R _ _ => T
+  (* | dset_mk T R _ _ => T *)
   | delta_unit => unit
   | delta_dset => dset
   end.
@@ -42,7 +42,7 @@ Local Coercion dset_carrier: dset >-> Sortclass.
 
 Definition dset_realization (G: dset): CL -> G -> Prop :=
   match G with
-  | dset_mk T R _ _ => R
+  (* | dset_mk T R _ _ => R *)
   (* For the following, return the universal relation. *)
   | delta_unit => fun _ _ => True
   | delta_dset => fun _ _ => True
@@ -58,7 +58,7 @@ Lemma dset_respectful:
 Proof.
   simpl; intros.
   destruct G.
-  + now apply r with x2.
+  (* + now apply r with x2. *)
   + trivial.
   + trivial.
 Qed.
@@ -66,14 +66,14 @@ Qed.
 Lemma dset_surjective (G: dset) (y: G): exists x, G x y.
 Proof.
   destruct G.
-  - apply e.
+  (* - apply e. *)
   - exists I; simpl.
     trivial.
   - exists I; simpl.
     trivial.
 Qed.
 
-Structure dmap (G: dset) (D: G -> dset) := {
+Structure dmap (G: dset) (D: G -> dset): Type := {
   dmap_fun: forall g: G, D g;
   dmap_wit: CL;
   dmap_preserves:
