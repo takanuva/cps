@@ -24,7 +24,7 @@ Section DPresheaf.
   Variable C: SmallCategory.
 
   Notation DSET :=
-    (dset_category: Set).
+    (obj dset_category: Set).
 
   Notation DMAP G D :=
     (dset_category@{Set _ _ _} G D: Set).
@@ -44,6 +44,8 @@ Section DPresheaf.
       ENV_restrict (post f g) ==
         post (ENV_restrict g) (ENV_restrict f)
   }.
+
+  Local Coercion ENV_fam: ENV >-> Funclass.
 
   (* A natural transformation... *)
   Structure SUBST (G: ENV) (D: ENV): Set := {
@@ -146,6 +148,46 @@ Section DPresheaf.
     repeat intro; simpl.
     reflexivity.
   Qed.
+
+  Axiom delta_hom: C -> C -> DSET.
+
+  Axiom foo: forall X Y,
+    dset_carrier (delta_hom X Y) = C X Y.
+
+  Program Definition yo (X: C): ENV := {|
+    ENV_fam Y := delta_hom Y X;
+    ENV_restrict Y Z g := {|
+      dmap_fun f := _;
+      (* TODO: the thesis doesn't mention this! *)
+      dmap_wit := I
+    |}
+  |}.
+
+  Next Obligation of yo.
+    rewrite foo in f |- *.
+    exact (post g f).
+  Defined.
+
+  Admit Obligations.
+
+  Program Definition bar (G: ENV) (X: C) (g: dset_carrier (G X)):
+    SUBST (yo X) G := {|
+    SUBST_map Y := {|
+      dmap_fun f := _ (* ENV_restrict G f g *);
+      (* The thesis doesn't mention this one! *)
+      dmap_wit := I
+    |}
+  |}.
+
+  Next Obligation of bar.
+    rewrite foo in f.
+    pose proof ENV_restrict G f.
+    (* Why can't I apply g to it...? *)
+    destruct H as (h, w, ?H).
+    exact (h g).
+  Qed.
+
+  Admit Obligations.
 
 End DPresheaf.
 
