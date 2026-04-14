@@ -16,6 +16,141 @@ Require Import Local.Constructions.TypeSystem.
 (* Require Import Local.Constructions.Inversion. *)
 Require Import Local.Constructions.DSetModel.
 
+Set Universe Polymorphism.
+Set Primitive Projections.
+
+Section DPresheaf.
+
+  Variable C: SmallCategory.
+
+  Notation DSET :=
+    (dset_category: Set).
+
+  Notation DMAP G D :=
+    (dset_category@{Set _ _ _} G D: Set).
+
+  (* Just a D-set-valued presheaf on C... *)
+  Structure ENV: Set := {
+    ENV_fam: C -> DSET;
+    (* The restriction operation is a morphism, thus a map... *)
+    ENV_restrict {X Y}:
+      (* Lets try forcing this to be small, for now... *)
+      C Y X -> DMAP (ENV_fam X) (ENV_fam Y);
+    ENV_id {X}:
+      ENV_restrict (@id C X) == id;
+    ENV_post {X Y Z}:
+      forall f: C Z Y,
+      forall g: C Y X,
+      ENV_restrict (post f g) ==
+        post (ENV_restrict g) (ENV_restrict f)
+  }.
+
+  (* A natural transformation... *)
+  Structure SUBST (G: ENV) (D: ENV): Set := {
+    SUBST_map X:
+      DMAP (ENV_fam G X) (ENV_fam D X);
+    SUBST_nat {X Y}:
+      forall f,
+      post (ENV_restrict G f) (SUBST_map Y) ==
+        post (SUBST_map X) (ENV_restrict D f)
+  }.
+
+  Local Coercion SUBST_map: SUBST >-> Funclass.
+
+  Arguments SUBST_map {G} {D}.
+  Arguments SUBST_nat {G} {D}.
+
+  Definition SUBST_equiv {G D} (f: SUBST G D) (g: SUBST G D): Prop :=
+    (* TODO: Do D-sets carry their own equivalences...? *)
+    forall X, dmap_equiv (SUBST_map f X) (SUBST_map g X).
+
+  Program Definition SUBST_setoid G D: Setoid@{Set} := {|
+    setoid_carrier := SUBST G D;
+    setoid_equiv := SUBST_equiv
+  |}.
+
+  Next Obligation of SUBST_setoid.
+    repeat intro.
+    reflexivity.
+  Qed.
+
+  Next Obligation of SUBST_setoid.
+    repeat intro.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of SUBST_setoid.
+    repeat intro.
+    now rewrite H, H0.
+  Qed.
+
+  Local Canonical Structure SUBST_setoid.
+
+  Program Definition SUBST_id {G: ENV}: SUBST G G := {|
+    SUBST_map X := id
+  |}.
+
+  Next Obligation of SUBST_id.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Program Definition SUBST_post {G D E} :=
+    map f g => {|
+      SUBST_map X := post (@SUBST_map G D f X) (@SUBST_map D E g X)
+    |}.
+
+  Next Obligation of SUBST_post.
+    rename f0 into h.
+    repeat intro; simpl.
+    assert (post (ENV_restrict G h) (post (f Y) (g Y)) ==
+      post (post (f X) (g X)) (ENV_restrict E h)).
+    - rewrite post_assoc.
+      rewrite SUBST_nat.
+      rewrite <- post_assoc.
+      rewrite SUBST_nat.
+      rewrite post_assoc.
+      reflexivity.
+    - specialize (H x).
+      assumption.
+  Qed.
+
+  Next Obligation of SUBST_post.
+    repeat intro; simpl.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of SUBST_post.
+    repeat intro; simpl.
+    now rewrite H.
+  Qed.
+
+  Program Definition dpresheaf_category: SmallCategory := {|
+    obj := ENV;
+    hom := SUBST_setoid;
+    id G := SUBST_id;
+    post G D E := SUBST_post
+  |}.
+
+  Next Obligation of dpresheaf_category.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_category.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_category.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+End DPresheaf.
+
+(* -------------------------------------------------------------------------- *)
+
 (* Section Elements.
 
   Variable C: Category.
