@@ -428,7 +428,8 @@ Admitted.
 
 Global Hint Resolve conv_trans: cps.
 
-Global Instance conv_equivalence: forall g, Equivalence (conv g).
+Global Instance conv_equivalence:
+  forall g, Equivalence (conv g).
 Proof.
   split.
   - apply conv_refl.
@@ -436,13 +437,14 @@ Proof.
   - apply conv_trans.
 Qed.
 
-Lemma conv_context:
+(* TODO: not true, since e and f may delta-reduce! *)
+(* Lemma conv_context:
   forall (h: context) g e f,
   conv g e f ->
   conv g (h e) (h f).
 Proof.
   admit.
-Admitted.
+Admitted. *)
 
 (* Lemma surjective_pairing:
   forall g e t,
