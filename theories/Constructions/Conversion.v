@@ -455,3 +455,12 @@ Proof.
   - apply conv_refl.
   - apply conv_refl.
 Qed. *)
+
+Lemma conv_inst:
+  forall g e f,
+  conv g e f ->
+  forall s,
+  conv g (inst s e) (inst s f).
+Proof.
+  admit.
+Admitted.
