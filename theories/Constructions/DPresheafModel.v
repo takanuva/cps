@@ -158,6 +158,29 @@ Section DPresheaf.
     (* TODO: add conditions! *)
   }.
 
+  Local Coercion TYPE_fam: TYPE >-> Funclass.
+
+  Arguments TYPE_restrict {G} t {X} {Y} f.
+
+  Axiom TYPE_equiv: forall G, TYPE G -> TYPE G -> Prop.
+
+  Program Definition TYPE_setoid (G: ENV): Setoid := {|
+    setoid_carrier := TYPE G;
+    setoid_equiv := TYPE_equiv G
+  |}.
+
+  Next Obligation of TYPE_setoid.
+    admit.
+  Admitted.
+
+  Next Obligation of TYPE_setoid.
+    admit.
+  Admitted.
+
+  Next Obligation of TYPE_setoid.
+    admit.
+  Admitted.
+
   Program Definition yo (X: C): ENV := {|
     ENV_fam Y := delta_hom Y X;
     ENV_restrict Y Z g := {|
@@ -210,6 +233,14 @@ Section DPresheaf.
         SUBST_map (X: C) := terminal_hom (cwf_empty dset_model)
       |}
     |};
+    cwf_ty := TYPE_setoid;
+    cwf_tsub (G D: ENV) :=
+      map (S: SUBST D G) (T: TYPE G) => {|
+        TYPE_fam (X: C) :=
+          cwf_tsub dset_model (S X) (T X);
+        TYPE_restrict (X: C) (Y: C) (f: opposite C X Y) :=
+          _
+      |}
   |}.
 
   Next Obligation of dpresheaf_model.
@@ -231,6 +262,10 @@ Section DPresheaf.
     repeat intro; simpl.
     now destruct (f X0 x).
   Qed.
+
+  Next Obligation of dpresheaf_model.
+    admit.
+  Admitted.
 
   Admit Obligations.
 
