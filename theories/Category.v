@@ -762,6 +762,9 @@ Structure Terminal (C: Category): Type := {
     f == terminal_hom X
 }.
 
+Global Arguments terminal {C}.
+Global Arguments terminal_hom {C} t {X}.
+
 Global Coercion terminal: Terminal >-> obj.
 Global Coercion terminal_hom: Terminal >-> Funclass.
 

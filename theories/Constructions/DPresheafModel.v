@@ -197,6 +197,43 @@ Section DPresheaf.
     admit.
   Admitted.
 
+  Print ENV.
+
+  Program Definition dpresheaf_model: CwF := {|
+    cwf_cat := dpresheaf_category;
+    cwf_empty := {|
+      terminal := {|
+        ENV_fam (X: C) := terminal (cwf_empty dset_model);
+        ENV_restrict (X: C) (Y: C) (f: opposite C X Y) := id
+      |};
+      terminal_hom (G: ENV) := {|
+        SUBST_map (X: C) := terminal_hom (cwf_empty dset_model)
+      |}
+    |};
+  |}.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dpresheaf_model.
+    repeat intro; simpl.
+    now destruct (f X0 x).
+  Qed.
+
+  Admit Obligations.
+
 End DPresheaf.
 
 (* -------------------------------------------------------------------------- *)
