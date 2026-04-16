@@ -2,7 +2,6 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
-Require Import List.
 Require Import Program.
 Require Import Morphisms.
 Require Import Local.Prelude.
@@ -146,6 +145,18 @@ Section DPresheaf.
     repeat intro; simpl.
     reflexivity.
   Qed.
+
+  (* A D-set-valued presheaf on the category of elements, I think? *)
+  Structure TYPE (G: ENV): Set := {
+    TYPE_fam (X: C): cwf_ty dset_model (G X);
+    (* We simplify a bit the condition from the thesis a bit... *)
+    TYPE_restrict {X Y}:
+      forall f: opposite C X Y,
+      (* This is a dependent D-map... should this be modelled as a family? *)
+      cwf_el dset_model (G X) (cwf_tsub dset_model
+                                (ENV_restrict G f) (TYPE_fam Y));
+    (* TODO: add conditions! *)
+  }.
 
   Program Definition yo (X: C): ENV := {|
     ENV_fam Y := delta_hom Y X;
