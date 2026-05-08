@@ -13,6 +13,7 @@ Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 (* Require Import Local.Constructions.Inversion. *)
+Require Import Local.Constructions.DSet.
 Require Import Local.Constructions.DSetModel.
 
 Set Universe Polymorphism.
@@ -20,15 +21,14 @@ Set Primitive Projections.
 
 Section DPresheaf.
 
-  Definition C: SmallCategory :=
-    DSetModel.C.
+  Variable C: SmallCategory.
 
   Notation DMAP G D :=
-    (dset_category@{Set _ _ _} G D: Set).
+    (dset_category@{Set _ _ _} C G D: Set).
 
   (* Just a D-set-valued presheaf on C... *)
   Structure ENV: Set := {
-    ENV_fam: C -> dset;
+    ENV_fam: C -> dset C;
     (* The restriction operation is a morphism, thus a map... *)
     ENV_restrict {X Y}:
       (* Lets try forcing this to be small, for now... *)
@@ -61,7 +61,7 @@ Section DPresheaf.
 
   Definition SUBST_equiv {G D} (f: SUBST G D) (g: SUBST G D): Prop :=
     (* TODO: Do D-sets carry their own equivalences...? *)
-    forall X, dmap_equiv (SUBST_map f X) (SUBST_map g X).
+    forall X, dmap_equiv C (SUBST_map f X) (SUBST_map g X).
 
   Program Definition SUBST_setoid G D: Setoid@{Set} := {|
     setoid_carrier := SUBST G D;
@@ -148,12 +148,12 @@ Section DPresheaf.
 
   (* A D-set-valued presheaf on the category of elements, I think? *)
   Structure TYPE (G: ENV): Set := {
-    TYPE_fam (X: C): cwf_ty dset_model (G X);
+    TYPE_fam (X: C): cwf_ty (dset_model C) (G X);
     (* We simplify a bit the condition from the thesis a bit... *)
     TYPE_restrict {X Y}:
       forall f: opposite C X Y,
       (* This is a dependent D-map... should this be modelled as a family? *)
-      cwf_el dset_model (G X) (cwf_tsub dset_model
+      cwf_el (dset_model C) (G X) (cwf_tsub (dset_model C)
                                 (ENV_restrict G f) (TYPE_fam Y));
     (* TODO: add conditions! *)
   }.
@@ -182,7 +182,7 @@ Section DPresheaf.
   Admitted.
 
   Program Definition yo (X: C): ENV := {|
-    ENV_fam Y := delta_hom Y X;
+    ENV_fam Y := delta_hom C Y X;
     ENV_restrict Y Z g := {|
       dmap_fun f := post g f;
       (* TODO: the thesis doesn't mention this! *)
@@ -204,7 +204,7 @@ Section DPresheaf.
     SUBST (yo X) G := {|
     SUBST_map Y := {|
       (* TODO: fix coercion, of course... *)
-      dmap_fun f := dmap_fun (ENV_restrict G f) g;
+      dmap_fun f := dmap_fun C (ENV_restrict G f) g;
       (* The thesis doesn't mention this one! *)
       dmap_wit := I
     |}
@@ -226,18 +226,18 @@ Section DPresheaf.
     cwf_cat := dpresheaf_category;
     cwf_empty := {|
       terminal := {|
-        ENV_fam (X: C) := terminal (cwf_empty dset_model);
+        ENV_fam (X: C) := terminal (cwf_empty (dset_model C));
         ENV_restrict (X: C) (Y: C) (f: opposite C X Y) := id
       |};
       terminal_hom (G: ENV) := {|
-        SUBST_map (X: C) := terminal_hom (cwf_empty dset_model)
+        SUBST_map (X: C) := terminal_hom (cwf_empty (dset_model C))
       |}
     |};
     cwf_ty := TYPE_setoid;
     cwf_tsub (G D: ENV) :=
       map (S: SUBST D G) (T: TYPE G) => {|
         TYPE_fam (X: C) :=
-          cwf_tsub dset_model (S X) (T X);
+          cwf_tsub (dset_model C) (S X) (T X);
         TYPE_restrict (X: C) (Y: C) (f: opposite C X Y) :=
           _
       |}

@@ -56,6 +56,7 @@ theories/Constructions/Confluence.v
 theories/Constructions/TypeSystem.v
 theories/Constructions/Inversion.v
 theories/Constructions/TermModel.v
+theories/Constructions/DSet.v
 theories/Constructions/DSetModel.v
 theories/Constructions/DPresheafModel.v
 theories/Constructions/Normalization.v

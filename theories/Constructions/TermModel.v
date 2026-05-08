@@ -327,6 +327,8 @@ Program Definition term_model: CwF := {|
   cwf_esub G D T (S: welltyped_subst D G) :=
     map (E: welltyped_term G T) =>
       inst (`S) (`E);
+  (* cwf_ext (G: welltyped_env) (T: welltyped_type G) :=
+    decl_var (`T) :: (`G); *)
   cwf_u (G: welltyped_env) (n: nat) :=
     sort (type n);
   cwf_t (G: welltyped_env) (n: nat) U :=
@@ -334,6 +336,7 @@ Program Definition term_model: CwF := {|
   cwf_lift (G: welltyped_env) n l (H: n < l) U :=
     U
 |}.
+
 Next Obligation of term_model.
   constructor.
 Qed.
@@ -402,6 +405,12 @@ Next Obligation of term_model.
   (* Same as above, gotta admit that! *)
   admit.
 Admitted.
+
+(* Next Obligation of term_model.
+  destruct T as (t, (u, ?H)); simpl.
+  apply valid_env_var with u.
+  assumption.
+Qed. *)
 
 Next Obligation of term_model.
   exists (type (1 + n)).
