@@ -16,15 +16,14 @@ Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.DSet.
 Require Import Local.Constructions.DSetModel.
 
-Set Universe Polymorphism.
 Set Primitive Projections.
 
 Section DPresheaf.
 
   Variable C: SmallCategory.
 
-  Notation DMAP G D :=
-    (dset_category@{Set _ _ _} C G D: Set).
+  Local Definition DMAP G D: Set :=
+    dset_category C G D.
 
   (* Just a D-set-valued presheaf on C... *)
   Structure ENV: Set := {
