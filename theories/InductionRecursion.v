@@ -11,7 +11,7 @@ Section IR.
   Inductive Sig: Type :=
     | iota (o: O)
     | sigma (A: Set) (K: A -> Sig): Sig
-    | delta (A: Set) (K: (A -> O) -> Sig): Sig.
+    | delta (A: Type) (K: (A -> O) -> Sig): Sig.
 
   Fixpoint E (S: Sig) (X: Type) (H: X -> O): Type :=
     match S return Type with
