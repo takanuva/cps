@@ -119,7 +119,7 @@ Section DSet.
 
   Global Canonical Structure dmap_setoid.
 
-  Program Definition dset_category: Category := {|
+  Program Definition dset_category: SmallCategory := {|
     obj := dset;
     hom G D := dmap G (fun _ => D);
     id G := {|
