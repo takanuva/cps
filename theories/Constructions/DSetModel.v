@@ -14,7 +14,6 @@ Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.DSet.
 
-Set Universe Polymorphism.
 Set Primitive Projections.
 
 Section DSetModel.

@@ -147,9 +147,7 @@ Section DPresheaf.
 
   (* A D-set-valued presheaf on the category of elements, I think? *)
 
-  (* TODO: this used to live in Set nicely, but I broke things... how, tho? *)
-
-  Structure TYPE (G: ENV): Type := {
+  Structure TYPE (G: ENV): Set := {
     TYPE_fam (X: C): cwf_ty (dset_model C) (G X);
     (* We simplify a bit the condition from the thesis a bit... *)
     TYPE_restrict {X Y}:

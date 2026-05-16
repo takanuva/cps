@@ -97,7 +97,7 @@ Section DSet.
   Definition dmap_equiv {G D}: dmap G D -> dmap G D -> Prop :=
     funext_equiv.
 
-  Program Definition dmap_setoid G D: Setoid := {|
+  Program Definition dmap_setoid G D: SmallSetoid := {|
     setoid_carrier := dmap G D;
     setoid_equiv := dmap_equiv
   |}.
@@ -173,7 +173,7 @@ Section DSet.
   Definition dset_family_equiv (G: dset): (G -> dset) -> (G -> dset) -> Prop :=
     funext_equiv.
 
-  Program Definition dset_family (G: dset): Setoid := {|
+  Program Definition dset_family (G: dset): SmallSetoid := {|
     setoid_carrier := G -> dset;
     setoid_equiv := dset_family_equiv G
   |}.
