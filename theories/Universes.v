@@ -10,6 +10,7 @@ Require Import Local.Category.
 Require Import Local.InductionRecursion.
 
 Import ListNotations.
+Set Universe Polymorphism.
 Set Primitive Projections.
 
 (* This file will have a version of my technique for encoding Tarski universes
@@ -35,7 +36,7 @@ Section Family.
     | U_lft
     | U_ctor.
 
-  Local Program Definition GET_CTOR (n: { n: nat | n < length C }) :=
+  Local Program Definition GET_CTOR (n: nat | n < length C) :=
     match nth_error C n with
     | Some ctor => ctor
     | None => False_rect _ _
