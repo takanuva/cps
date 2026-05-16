@@ -3,10 +3,13 @@
 (******************************************************************************)
 
 Require Import Lia.
+Require Import List.
+Require Import Program.
 Require Import Equality.
 Require Import Local.Category.
 Require Import Local.InductionRecursion.
 
+Import ListNotations.
 Set Primitive Projections.
 
 (* This file will have a version of my technique for encoding Tarski universes
@@ -23,6 +26,40 @@ Set Primitive Projections.
 
 Section Family.
 
-  (* ... *)
+  Variable A: SmallSetoid.
+  Variable B: A -> Setoid.
+  Variable C: list (forall (X: Setoid), (X -> Setoid) -> Setoid).
+
+  Variant branch: Set :=
+    | U_idx
+    | U_lft
+    | U_ctor.
+
+  Local Program Definition GET_CTOR (n: { n: nat | n < length C }) :=
+    match nth_error C n with
+    | Some ctor => ctor
+    | None => False_rect _ _
+    end.
+
+  Next Obligation.
+    eapply nth_error_Some.
+    - eassumption.
+    - auto.
+  Qed.
+
+  Definition TARSKI: @Sig Setoid :=
+    sigma branch (fun b: branch =>
+      match b with
+      | U_idx =>
+        iota (A: Setoid)
+      | U_lft =>
+        sigma A (fun a: A =>
+          iota (B a))
+      | U_ctor =>
+        sigma { n: nat | n < length C } (fun n =>
+          delta unit (fun Ta: unit -> Setoid =>
+            delta (Ta tt) (fun Tb: Ta tt -> Setoid =>
+              iota (GET_CTOR n (Ta tt) Tb))))
+      end).
 
 End Family.
