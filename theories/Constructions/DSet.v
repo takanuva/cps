@@ -7,9 +7,9 @@ Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Category.
+Require Import Local.Universes.
 Require Import Local.Substitution.
 Require Import Local.Combinators.
-Require Import Local.InductionRecursion.
 
 Set Universe Polymorphism.
 Set Primitive Projections.

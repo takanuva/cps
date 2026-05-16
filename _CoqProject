@@ -5,6 +5,7 @@ theories/AbstractRewriting.v
 theories/Substitution.v
 theories/Category.v
 theories/InductionRecursion.v
+theories/Universes.v
 # Ignore for now...
 # theories/Generic.v
 theories/Syntax.v
