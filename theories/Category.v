@@ -22,7 +22,7 @@ Set Universe Polymorphism.
    with the setoid itself), and setoid_equiv as an instance proving that the
    packed relation is indeed an equivalence relation over the carrier type. *)
 
-Structure Setoid: Type := {
+Cumulative Structure Setoid: Type := {
   setoid_carrier :> Type;
   setoid_equiv: setoid_carrier -> setoid_carrier -> Prop;
   setoid_refl:
@@ -40,6 +40,8 @@ Arguments setoid_equiv {s}.
 Arguments setoid_refl {s}.
 Arguments setoid_sym {s}.
 Arguments setoid_trans {s}.
+
+SubClass SmallSetoid: Type@{Set+1} := Setoid@{Set}.
 
 Global Instance setoid_equiv_equivalence:
   forall S,
