@@ -63,4 +63,18 @@ Section Family.
               iota (GET_CTOR n (Ta tt) Tb))))
       end).
 
+  Arguments projT1 {A} {P}.
+  Arguments projT2 {A} {P}.
+  Arguments exist {A} {P}.
+  Arguments existT {A} {P}.
+
+  Local Definition IND: Type :=
+    E TARSKI (total (muE TARSKI)) projT1.
+
+  Local Definition REC: IND -> Setoid :=
+    F TARSKI (total (muE TARSKI)) projT1.
+
+  Local Definition embed (x: IND): total (muE TARSKI) :=
+    existT (REC x) (inE TARSKI (exist x eq_refl)).
+
 End Family.
