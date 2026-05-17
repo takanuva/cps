@@ -33,10 +33,13 @@ Section Family.
 
   Variant branch: Set :=
     | U_idx
-    | U_lft
+    | U_lift
     | U_ctor.
 
-  Local Program Definition GET_CTOR (n: nat | n < length C) :=
+  Local Notation ctor_index :=
+    ({ n: nat | n < length C }).
+
+  Local Program Definition GET_CTOR (n: ctor_index) :=
     match nth_error C n with
     | Some ctor => ctor
     | None => False_rect _ _
@@ -53,11 +56,11 @@ Section Family.
       match b with
       | U_idx =>
         iota (A: Setoid)
-      | U_lft =>
+      | U_lift =>
         sigma A (fun a: A =>
           iota (B a))
       | U_ctor =>
-        sigma { n: nat | n < length C } (fun n =>
+        sigma ctor_index (fun n =>
           delta unit (fun Ta: unit -> Setoid =>
             delta (Ta tt) (fun Tb: Ta tt -> Setoid =>
               iota (GET_CTOR n (Ta tt) Tb))))
@@ -76,5 +79,33 @@ Section Family.
 
   Local Definition embed (x: IND): total (muE TARSKI) :=
     existT (REC x) (inE TARSKI (exist x eq_refl)).
+
+  Definition IDX': IND :=
+    existT U_idx tt.
+
+  Definition LIFT' (a: A): IND :=
+    existT U_lift
+      (existT a tt).
+
+  Definition CTOR' (n: ctor_index) (a: IND) (b: REC a -> IND): IND :=
+    existT U_ctor
+      (existT n
+        (existT (fun _ => embed a)
+          (existT (fun x => embed (b x))
+            tt))).
+
+  Inductive canonical: IND -> Type :=
+    | canonical_idx:
+      canonical IDX'
+    | canonical_lift:
+      forall a: A,
+      canonical (LIFT' a)
+    | canonical_ctor:
+      forall n: ctor_index,
+      forall a: IND,
+      forall b: REC a -> IND,
+      forall ok_a: canonical a,
+      forall ok_b: (forall x, canonical (b x)),
+      canonical (CTOR' n a b).
 
 End Family.
