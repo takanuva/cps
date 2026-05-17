@@ -395,4 +395,38 @@ Section Constructors.
     reflexivity.
   Qed.
 
+  Local Definition pi_carrier: Type :=
+    { f: forall x: S, F x | forall x y H, setoid_transport F H (f x) == f y }.
+
+  Local Definition pi_equiv (f: pi_carrier) (g: pi_carrier): Prop :=
+    forall x, proj1_sig f x == proj1_sig g x.
+
+  Program Definition pi_setoid: Setoid := {|
+    setoid_carrier := pi_carrier;
+    setoid_equiv := pi_equiv
+  |}.
+
+  Next Obligation of pi_setoid.
+    destruct x as (f, ?H); simpl in *.
+    intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of pi_setoid.
+    destruct x as (f, ?H); simpl in *.
+    destruct y as (g, ?H); simpl in *.
+    intro; simpl.
+    symmetry; apply H.
+  Qed.
+
+  Next Obligation of pi_setoid.
+    destruct x as (f, ?H); simpl in *.
+    destruct y as (g, ?H); simpl in *.
+    destruct z as (h, ?H); simpl in *.
+    intro; simpl.
+    transitivity (g x).
+    - apply H.
+    - apply H0.
+  Qed.
+
 End Constructors.
