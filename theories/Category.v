@@ -89,39 +89,6 @@ Next Obligation of opposite.
   apply post_assoc.
 Qed.
 
-(* We define, as a test and an example, a category of sets and functions (which
-   we will not be using in favor of setoids, of course). As morphisms, we define
-   the desired notion of equivalence for functions as extensional equality (so
-   that we would not need to take that as an axiom, since it's not derivable in
-   Coq's type theory anyway). First we define a canonical setoid for dependent
-   functions, as a generalization, and then we proceed to build the canonical
-   category for sets. *)
-
-Definition funext_equiv {T U} (f g: forall t: T, U t): Prop :=
-  forall x, f x = g x.
-
-Global Program Definition function_setoid T U: Setoid := {|
-  setoid_carrier := forall t: T, U t;
-  setoid_equiv := funext_equiv
-|}.
-
-Next Obligation.
-  repeat intro.
-  reflexivity.
-Qed.
-
-Next Obligation.
-  repeat intro.
-  now rewrite H.
-Qed.
-
-Next Obligation.
-  repeat intro.
-  now rewrite H, H0.
-Qed.
-
-Global Canonical Structure function_setoid.
-
 Global Program Example set_category: Category := {|
   obj := Set;
   hom T U := T -> U;
@@ -245,69 +212,6 @@ Arguments iso_to_from {C} {X} {Y}.
 Arguments iso_from_to {C} {X} {Y}. *)
 
 (* ... *)
-
-Structure partial_path (P: PartialSetoid) (Q: PartialSetoid): Prop := {
-  partial_path_eq:
-    partial_carrier P = partial_carrier Q;
-  partial_transp (p: partial_carrier P) :=
-    (match partial_path_eq in (_ = T) return T with
-    | eq_refl => p
-    end): partial_carrier Q;
-  partial_reclassify:
-    forall x y,
-    partial_equiv x y <-> partial_equiv (partial_transp x) (partial_transp y)
-}.
-
-Arguments partial_path_eq {P} {Q}.
-Arguments partial_transp {P} {Q}.
-Arguments partial_reclassify {P} {Q}.
-
-Program Definition domain_cast {P} {Q} H (p: Domain P): Domain Q :=
-  partial_transp H p.
-
-Next Obligation.
-  destruct p as (w, ?H); simpl in *.
-  destruct H as (?H, ?H, ?H); simpl in *.
-  destruct P as (P, ?H, ?H, ?H); simpl in *.
-  destruct Q as (Q, ?H, ?H, ?H); simpl in *.
-  subst; now apply H2.
-Qed.
-
-(* ... *)
-
-Global Program Definition partial_setoid: Setoid := {|
-  setoid_carrier := PartialSetoid;
-  setoid_equiv := partial_path
-|}.
-
-Next Obligation.
-  rename x into P.
-  now exists eq_refl.
-Qed.
-
-Next Obligation.
-  destruct H as (?H, ?H, ?H); simpl in *.
-  destruct x as (P, PR, ?H, ?H); simpl in *.
-  destruct y as (Q, QR, ?H, ?H); simpl in *.
-  exists (symmetry H); simpl in *; intros.
-  subst; simpl; split; intro.
-  - now apply H1.
-  - now apply H1.
-Qed.
-
-Next Obligation.
-  destruct H as (?H, ?H, ?H); simpl in *.
-  destruct H0 as (?H, ?H, ?H); simpl in *.
-  destruct x as (P, PQ, ?H, ?H); simpl in *.
-  destruct y as (Q, QR, ?H, ?H); simpl in *.
-  destruct z as (R, RR, ?H, ?H); simpl in *.
-  exists (transitivity H H0); simpl in *; intros.
-  subst; simpl; split; intro.
-  - now apply H4, H2.
-  - now apply H2, H4.
-Qed.
-
-Global Canonical Structure partial_setoid.
 
 (* As usual, we define functors from categories C and D as structure-preserving
    morphisms. So we keep to functions: one for converting objects from C to D,
@@ -588,43 +492,6 @@ Global Coercion terminal: Terminal >-> obj.
 Global Coercion terminal_hom: Terminal >-> Funclass.
 
 (* -------------------------------------------------------------------------- *)
-
-Program Definition setoid_map_id {S}: S ~> S := {|
-  setoid_map x := x
-|}.
-
-Program Definition setoid_map_post {S T U} (f: S ~> T) (g: T ~> U): S ~> U := {|
-  setoid_map x := g (f x)
-|}.
-
-Next Obligation of setoid_map_post.
-  now rewrite H.
-Qed.
-
-(* TODO: we can surely simplify this if Setoid is itself a setoid, right...?
-
-   NOTE: if the family is constant (i.e., it doesn't use S), this is really
-   just a setoid map! Cool! *)
-
-Structure SetoidFamily@{u} (S: Setoid@{u}) := {
-  setoid_family: S -> Setoid@{u};
-  setoid_transport:
-    forall x y, x == y -> setoid_family x ~> setoid_family y;
-  setoid_transport_irr:
-    forall x y H1 H2,
-    setoid_transport x y H1 == setoid_transport x y H2;
-  setoid_transport_id:
-    forall x H,
-    setoid_transport x x H == setoid_map_id;
-  setoid_transport_post:
-    forall x y z H1 H2 H3,
-    setoid_map_post (setoid_transport x y H1) (setoid_transport y z H2) ==
-      setoid_transport x z H3
-}.
-
-Global Coercion setoid_family: SetoidFamily >-> Funclass.
-
-Global Arguments setoid_transport {S} s {x} {y}.
 
 (* We define the notion of a category with families, which forms a model of
    basic dependent type theory. This is a category C, such that:
