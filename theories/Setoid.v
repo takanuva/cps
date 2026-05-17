@@ -322,3 +322,77 @@ Structure SetoidFamily@{u} (S: Setoid@{u}) := {
 Global Coercion setoid_family: SetoidFamily >-> Funclass.
 
 Global Arguments setoid_transport {S} s {x} {y}.
+
+Lemma setoid_transport_comp:
+  forall {S: Setoid},
+  forall F: SetoidFamily S,
+  forall {x: S},
+  forall {y: S},
+  forall {z: S},
+  forall H1: y == z,
+  forall H2: x == y,
+  forall {w: F x},
+  setoid_transport F H1 (setoid_transport F H2 w) ==
+    setoid_transport F (setoid_trans _ _ _ H2 H1) w.
+Proof.
+  intros.
+  (* A small (definitional) rewrite to make things work... *)
+  change (setoid_transport F H1 (setoid_transport F H2 w)) with
+    (setoid_map_post (setoid_transport F H2) (setoid_transport F H1) w).
+  (* There we go. *)
+  apply setoid_transport_post.
+Qed.
+
+(* -------------------------------------------------------------------------- *)
+
+Section Constructors.
+
+  Local Notation Family := SetoidFamily.
+
+  Variable S: Setoid.
+  Variable F: Family S.
+
+  Local Definition sigma_carrier: Type :=
+    { x: S & F x }.
+
+  Local Definition sigma_equiv (p: sigma_carrier) (q: sigma_carrier): Prop :=
+    exists H: projT1 p == projT1 q,
+    setoid_transport F H (projT2 p) == (projT2 q).
+
+  Program Definition sigma_setoid: Setoid := {|
+    setoid_carrier := sigma_carrier;
+    setoid_equiv := sigma_equiv
+  |}.
+
+  Next Obligation of sigma_setoid.
+    destruct x as (x, x').
+    exists (setoid_refl x); simpl.
+    rewrite setoid_transport_id.
+    reflexivity.
+  Qed.
+
+  Next Obligation of sigma_setoid.
+    destruct x as (x, x').
+    destruct y as (y, y').
+    destruct H as (?H, ?H); simpl in *.
+    exists (setoid_sym x y H); simpl.
+    rewrite <- H0.
+    rewrite setoid_transport_comp.
+    rewrite setoid_transport_id.
+    reflexivity.
+  Qed.
+
+  Next Obligation of sigma_setoid.
+    destruct x as (x, x').
+    destruct y as (y, y').
+    destruct z as (z, z').
+    destruct H as (?H, ?H).
+    destruct H0 as (?H, ?H).
+    simpl in *.
+    exists (setoid_trans x y z H H0); simpl.
+    rewrite <- H2, <- H1.
+    rewrite setoid_transport_comp.
+    reflexivity.
+  Qed.
+
+End Constructors.
