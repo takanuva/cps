@@ -108,4 +108,31 @@ Section Family.
       forall ok_b: (forall x, canonical (b x)),
       canonical (CTOR' n a b).
 
+  Unset Elimination Schemes.
+
+  Inductive CODE: Set :=
+    | shrink (x: IND) (ok: canonical x).
+
+  Set Elimination Schemes.
+
+  Definition get_branch (c: CODE): branch :=
+    let (x, ok) := c in projT1 x.
+
+  Definition left_child:
+    forall c: CODE,
+    U_ctor = get_branch c ->
+    CODE.
+  Proof.
+    intros.
+    destruct c.
+    destruct ok.
+    - exfalso.
+      simpl in H.
+      inversion H.
+    - exfalso.
+      simpl in H.
+      inversion H.
+    - exact (shrink a ok).
+  Defined.
+
 End Family.
