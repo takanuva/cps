@@ -6,8 +6,9 @@ Require Import Program.
 Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
-Require Import Local.Category.
 Require Import Local.Substitution.
+Require Import Local.Setoid.
+Require Import Local.Category.
 Require Import Local.Combinators.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.

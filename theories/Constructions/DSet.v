@@ -6,9 +6,10 @@ Require Import Program.
 Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
+Require Import Local.Setoid.
 Require Import Local.Category.
 Require Import Local.Universe.
-Require Import Local.Substitution.
 Require Import Local.Combinators.
 
 Set Universe Polymorphism.

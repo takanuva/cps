@@ -8,7 +8,7 @@ Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
-Require Import Local.Category.
+Require Import Local.Setoid.
 
 Inductive CL: Set :=
   | bound (n: nat)

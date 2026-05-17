@@ -6,8 +6,8 @@ Require Import Lia.
 Require Import List.
 Require Import Program.
 Require Import Equality.
-Require Import Local.Category.
 Require Import Local.InductionRecursion.
+Require Import Local.Setoid.
 
 Import ListNotations.
 Set Universe Polymorphism.

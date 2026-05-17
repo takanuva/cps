@@ -3,6 +3,7 @@
 theories/Prelude.v
 theories/AbstractRewriting.v
 theories/Substitution.v
+theories/Setoid.v
 theories/Category.v
 theories/InductionRecursion.v
 theories/Universe.v
