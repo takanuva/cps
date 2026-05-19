@@ -9,6 +9,7 @@ Require Import Morphisms.
 
 Set Primitive Projections.
 Set Universe Polymorphism.
+Set Polymorphic Inductive Cumulativity.
 
 (* In this project, we'll need to formalize some categorical notions.
 
@@ -24,7 +25,7 @@ Set Universe Polymorphism.
    with the setoid itself), and setoid_equiv as an instance proving that the
    packed relation is indeed an equivalence relation over the carrier type. *)
 
-Cumulative Structure Setoid: Type := {
+Structure Setoid: Type := {
   setoid_carrier :> Type;
   setoid_equiv: setoid_carrier -> setoid_carrier -> Prop;
   setoid_refl:
@@ -168,14 +169,16 @@ Global Coercion partial_inclusion: Setoid >-> PartialSetoid.
 
 (* ... *)
 
-Definition Domain (P: PartialSetoid): Type :=
-  { wit: partial_carrier P | partial_equiv wit wit }.
+Structure Domain (P: PartialSetoid): Type := {
+  domain: partial_carrier P;
+  self_relation: partial_equiv domain domain
+}.
+
+Global Arguments domain {P}.
+Global Arguments self_relation {P}.
 
 Definition domain_equiv {P: PartialSetoid} (x: Domain P) (y: Domain P): Prop :=
-  partial_equiv (`x) (`y).
-
-Definition self_relation {P: PartialSetoid} (x: Domain P): domain_equiv x x :=
-  proj2_sig x.
+  partial_equiv (domain x) (domain y).
 
 Program Definition domain_setoid (P: PartialSetoid): Setoid := {|
   setoid_carrier := Domain P;
@@ -191,7 +194,7 @@ Next Obligation.
 Qed.
 
 Next Obligation.
-  now apply partial_trans with (`y).
+  now apply partial_trans with (domain y).
 Qed.
 
 Global Canonical Structure domain_setoid.
@@ -303,7 +306,7 @@ Qed.
    NOTE: if the family is constant (i.e., it doesn't use S), this is really
    just a setoid map! Cool! *)
 
-Structure SetoidFamily@{u} (S: Setoid@{u}) := {
+Structure SetoidFamily@{+u} (S: Setoid@{u}) := {
   setoid_family: S -> Setoid@{u};
   setoid_transport:
     forall x y, x == y -> setoid_family x ~> setoid_family y;
