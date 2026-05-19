@@ -158,46 +158,56 @@ Global Canonical Structure partial_category.
 
 (* ... *)
 
-(* Section Isomorphism.
+Section Isomorphism.
 
   Variable C: Category.
 
-  Structure Isomorphism (X: C) (Y: C): Type := isomorphism_mk {
-    iso_to: C X Y;
+  Structure Isomorphism (X: C) (Y: C) (iso_to: C X Y): Type := isomorphism_mk {
     iso_from: C Y X;
     iso_to_from: post iso_to iso_from == id;
     iso_from_to: post iso_from iso_to == id;
   }.
 
-  Definition isomorphism (X: C) (Y: C): Prop :=
-    inhabited (Isomorphism X Y).
+  Definition iso_to (X: C) (Y: C) (f: C X Y) (i: Isomorphism X Y f): C X Y :=
+    f.
 
-  Global Instance IsomorphismEquiv: Equivalence isomorphism.
+  Definition iso_rev:
+    forall X Y f i,
+    Isomorphism Y X (iso_from X Y f i).
+  Proof.
+    intros.
+    destruct i as (g, ?H, ?H); simpl.
+    now apply isomorphism_mk with f.
+  Qed.
+
+  Definition isomorphism (X: C) (Y: C): Prop :=
+    exists f: C X Y, inhabited (Isomorphism X Y f).
+
+  Global Instance isomorphism_equiv: Equivalence isomorphism.
   Proof.
     split; repeat intro.
-    - constructor.
-      apply isomorphism_mk with id id.
+    - exists id; constructor.
+      apply isomorphism_mk with id.
       + now rewrite post_id_left.
       + now rewrite post_id_left.
-    - destruct H.
-      destruct X as (f, g, ?H, ?H).
+    - destruct H as (f, (?X)).
+      exists (iso_from x y f X).
       constructor.
-      apply isomorphism_mk with g f.
-      + assumption.
-      + assumption.
-    - destruct H, H0.
-      destruct X as (f1, g1, ?H, ?H).
-      destruct X0 as (f2, g2, ?H, ?H).
-      constructor.
-      apply isomorphism_mk with (post f1 f2) (post g2 g1).
+      apply iso_rev.
+    - destruct H as (f1, (?H)).
+      destruct H0 as (f2, (H0)).
+      destruct H as (g1, ?H, ?H).
+      destruct H0 as (g2, ?H, ?H).
+      exists (post f1 f2); constructor.
+      apply isomorphism_mk with (post g2 g1).
       + rewrite <- post_assoc.
         rewrite post_assoc with (f := f2).
-        rewrite H1.
+        rewrite H0.
         rewrite post_id_left.
         assumption.
       + rewrite <- post_assoc.
         rewrite post_assoc with (f := g1).
-        rewrite H0.
+        rewrite H1.
         rewrite post_id_left.
         assumption.
   Qed.
@@ -209,7 +219,8 @@ Arguments isomorphism {C}.
 Arguments iso_to {C} {X} {Y}.
 Arguments iso_from {C} {X} {Y}.
 Arguments iso_to_from {C} {X} {Y}.
-Arguments iso_from_to {C} {X} {Y}. *)
+Arguments iso_from_to {C} {X} {Y}.
+Arguments iso_rev {C} {X} {Y}.
 
 (* ... *)
 
