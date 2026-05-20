@@ -321,8 +321,10 @@ Program Definition term_model: CwF := {|
   cwf_el (G: welltyped_env) := {|
     setoid_family (T: welltyped_type G) :=
       term_setoid (`G) (`T);
-    setoid_transport T U H := {|
-      setoid_map E := E
+    setoid_family_prf := {|
+      setoid_transport T U H := {|
+        setoid_map E := E
+      |}
     |}
   |};
   cwf_esub G D T (S: welltyped_subst D G) :=

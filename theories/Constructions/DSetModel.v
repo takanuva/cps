@@ -40,11 +40,13 @@ Section DSetModel.
     cwf_el (G: dset C) := {|
       setoid_family (T: dset_family C G) :=
         dmap_setoid C G T;
-      setoid_transport T U H := {|
-        setoid_map E := {|
-          dmap_fun (X: G) :=
-            rew [dset_carrier C] H X in E X;
-          dmap_wit := dmap_wit C E
+      setoid_family_prf := {|
+        setoid_transport T U H := {|
+          setoid_map E := {|
+            dmap_fun (X: G) :=
+              rew [dset_carrier C] H X in E X;
+            dmap_wit := dmap_wit C E
+          |}
         |}
       |}
     |};

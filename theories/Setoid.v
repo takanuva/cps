@@ -306,10 +306,9 @@ Qed.
    NOTE: if the family is constant (i.e., it doesn't use S), this is really
    just a setoid map! Cool! *)
 
-Structure SetoidFamily@{+u} (S: Setoid@{u}) := {
-  setoid_family: S -> Setoid@{u};
+Structure is_family (S: Setoid) (f: S -> Setoid): Type := {
   setoid_transport:
-    forall x y, x == y -> setoid_family x ~> setoid_family y;
+    forall x y, x == y -> f x ~> f y;
   setoid_transport_irr:
     forall x y H1 H2,
     setoid_transport x y H1 == setoid_transport x y H2;
@@ -322,9 +321,14 @@ Structure SetoidFamily@{+u} (S: Setoid@{u}) := {
       setoid_transport x z H3
 }.
 
+Structure SetoidFamily (S: Setoid): Type := {
+  setoid_family: S -> Setoid;
+  setoid_family_prf :> is_family S setoid_family
+}.
+
 Global Coercion setoid_family: SetoidFamily >-> Funclass.
 
-Global Arguments setoid_transport {S} s {x} {y}.
+Global Arguments setoid_transport {S} {f} i {x} {y}.
 
 Lemma setoid_transport_comp:
   forall {S: Setoid},
