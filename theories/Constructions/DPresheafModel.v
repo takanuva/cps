@@ -19,6 +19,8 @@ Require Import Local.Constructions.DSetModel.
 
 Set Primitive Projections.
 
+(*
+
 Section DPresheaf.
 
   Variable C: SmallCategory.
@@ -271,6 +273,8 @@ Section DPresheaf.
   Admit Obligations.
 
 End DPresheaf.
+
+*)
 
 (* -------------------------------------------------------------------------- *)
 

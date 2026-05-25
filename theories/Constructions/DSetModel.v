@@ -17,6 +17,8 @@ Require Import Local.Constructions.DSet.
 
 Set Primitive Projections.
 
+(*
+
 Section DSetModel.
 
   Import EqNotations.
@@ -136,3 +138,5 @@ Section DSetModel.
   Qed.
 
 End DSetModel.
+
+*)
