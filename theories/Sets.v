@@ -306,4 +306,20 @@ Section IZF.
         assumption.
   Qed.
 
+  (* ---------------------------------------------------------------------- *)
+
+  Definition V_singleton (x: V): V :=
+    V_pair x x.
+
+  Definition V_couple (x: V) (y: V): V :=
+    V_pair (V_singleton x) (V_pair x y).
+
+  Definition V_cartesian (x: V) (y: V): V :=
+    match x, y with
+    | setof A f, setof B g =>
+      setof (SIGMA A (const B)) (fun p =>
+        let (z, w) := cast (T_SIGMA A (const B)) p in
+        V_couple (f z) (g w))
+    end.
+
 End IZF.
