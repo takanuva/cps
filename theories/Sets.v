@@ -83,7 +83,7 @@ Section IZF.
 
   Global Canonical Structure V_setoid.
 
-  Global Instance V_in_proper:
+  Global Instance V_in_is_proper:
     Proper (setoid_equiv ==> setoid_equiv ==> iff) V_in.
   Proof.
     split; intros.
@@ -132,6 +132,30 @@ Section IZF.
     setof (FIN 2) (fun n: T (FIN 2) =>
       if proj1_sig (cast (T_FIN 2) n) then x else y).
 
+  Definition V_pair_fst:
+    forall x y,
+    V_in x (V_pair x y).
+  Proof.
+    intros; simpl.
+    generalize (T (FIN 2)) (T_FIN 2); intros.
+    subst; simpl.
+    unshelve eexists (exist 0 _); simpl.
+    - lia.
+    - reflexivity.
+  Qed.
+
+  Definition V_pair_snd:
+    forall x y,
+    V_in y (V_pair x y).
+  Proof.
+    intros; simpl.
+    generalize (T (FIN 2)) (T_FIN 2); intros.
+    subst; simpl.
+    unshelve eexists (exist 1 _); simpl.
+    - lia.
+    - reflexivity.
+  Qed.
+
   Theorem V_pairing_ax:
     forall x y w,
     V_in w (V_pair x y) <-> (w == x \/ w == y).
@@ -155,6 +179,26 @@ Section IZF.
         subst; unshelve eexists (exist 1 _); simpl.
         * simpl; lia.
         * assumption.
+  Qed.
+
+  Global Instance V_pair_is_proper:
+    Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) V_pair.
+  Proof.
+    repeat intro; split; intros.
+    - exists a; generalize dependent a.
+      generalize (T (FIN 2)) (T_FIN 2); intros.
+      subst; simpl.
+      destruct a as (n, ?H); simpl.
+      destruct n.
+      + assumption.
+      + assumption.
+    - exists b; generalize dependent b.
+      generalize (T (FIN 2)) (T_FIN 2); intros.
+      subst; simpl.
+      destruct b as (n, ?H); simpl.
+      destruct n.
+      + assumption.
+      + assumption.
   Qed.
 
 End IZF.
