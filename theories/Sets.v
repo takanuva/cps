@@ -309,6 +309,22 @@ Section IZF.
         assumption.
   Qed.
 
+  Definition V_separation (x: V) (P: V -> U): V :=
+    match x with
+    | sup _ _ A f =>
+      setof (SIGMA A (fun a: T A => P (f a)))
+        (fun p =>
+          let (a, _) := cast (T_SIGMA A _) p in f a)
+    end.
+
+  Theorem V_separation_ax:
+    forall x P z,
+    V_in z (V_separation x P) <->
+      (V_in z x /\ exists2 z', z == z' & inhabited (T (P z'))).
+  Proof.
+    admit.
+  Admitted.
+
   (* ---------------------------------------------------------------------- *)
 
   Definition V_singleton (x: V): V :=
