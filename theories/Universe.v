@@ -280,4 +280,17 @@ Section Family.
         eapply v; reflexivity.
   Qed.
 
+  Definition T (c: CODE): TYPE :=
+    REC (get_ind (rebuild c)).
+
+  Lemma T_shrink:
+    forall a ok,
+    T (shrink a ok) = REC a.
+  Proof.
+    intros.
+    unfold T.
+    destruct rebuild; simpl.
+    eapply v; reflexivity.
+  Qed.
+
 End Family.
