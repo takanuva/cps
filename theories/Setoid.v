@@ -321,7 +321,7 @@ Structure is_family (S: Setoid) (f: S -> Setoid): Type := {
       setoid_transport x z H3
 }.
 
-Structure SetoidFamily (S: Setoid): Type := {
+Structure SetoidFamily (S: Setoid): Type := family {
   setoid_family: S -> Setoid;
   setoid_family_prf :> is_family S setoid_family
 }.
