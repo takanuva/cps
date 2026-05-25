@@ -341,4 +341,11 @@ Section IZF.
         V_couple (f z) (g w))
     end.
 
+  Definition V_subset (x: V) (y: V): Prop :=
+    forall z: V,
+    V_in z x -> V_in z y.
+
+  Definition V_relation (x: V) (y: V): V_class :=
+    fun z => V_subset z (V_cartesian x y).
+
 End IZF.
