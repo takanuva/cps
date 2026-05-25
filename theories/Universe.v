@@ -16,6 +16,11 @@ Import ListNotations.
 Set Universe Polymorphism.
 Set Primitive Projections.
 
+Arguments projT1 {A} {P}.
+Arguments projT2 {A} {P}.
+Arguments exist {A} {P}.
+Arguments existT {A} {P}.
+
 (* ... *)
 
 Section Family.
@@ -65,11 +70,6 @@ Section Family.
             delta (Ta tt) (fun Tb: Ta tt -> TYPE =>
               iota (GET_CTOR n (Ta tt) Tb))))
       end).
-
-  Arguments projT1 {A} {P}.
-  Arguments projT2 {A} {P}.
-  Arguments exist {A} {P}.
-  Arguments existT {A} {P}.
 
   Local Definition IND: Type :=
     E TARSKI (total (muE TARSKI)) projT1.
@@ -280,6 +280,7 @@ Section Family.
         eapply v; reflexivity.
   Qed.
 
+  (*
   Definition T (c: CODE): TYPE :=
     REC (get_ind (rebuild c)).
 
@@ -335,5 +336,22 @@ Section Family.
     specialize (v _ _ eq_refl).
     now rewrite v.
   Qed.
+  *)
 
 End Family.
+
+Definition finite (n: nat): Set :=
+  { m: nat | m < n }.
+
+Class Universe: Type := {
+  U: Set;
+  T: U -> Set;
+  NAT: U;
+  T_NAT: T NAT = nat;
+  FIN: nat -> U;
+  T_FIN: forall n, T (FIN n) = finite n;
+  PI: forall a: U, (T a -> U) -> U;
+  T_PI: forall a b, T (PI a b) = (forall x: T a, T (b x));
+  SIGMA: forall a: U, (T a -> U) -> U;
+  T_SIGMA: forall a b, T (PI a b) = { x: T a & T (b x) };
+}.
