@@ -2,11 +2,11 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
+Require Import Program.
 Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
-
-Set Universe Polymorphism.
 
 Section IZF.
 
@@ -103,7 +103,7 @@ Section IZF.
       assumption.
   Qed.
 
-  Theorem extensionality:
+  Theorem V_extensionality_ax:
     forall x y,
     (forall z, V_in z x <-> V_in z y) ->
     x == y.
@@ -119,6 +119,42 @@ Section IZF.
       destruct H1 as (a, ?H).
       + now exists b.
       + now exists a.
+  Qed.
+
+  (* TODO: improve how we do casts... *)
+
+  Import EqNotations.
+
+  Local Definition cast {T: Set} {U: Set} (H: T = U) (x: T): U :=
+    rew dependent H in x.
+
+  Definition V_pair (x: V) (y: V): V :=
+    setof (FIN 2) (fun n: T (FIN 2) =>
+      if proj1_sig (cast (T_FIN 2) n) then x else y).
+
+  Theorem V_pairing_ax:
+    forall x y w,
+    V_in w (V_pair x y) <-> (w == x \/ w == y).
+  Proof.
+    split; intros.
+    - destruct H0 as (n, ?H).
+      generalize dependent n.
+      generalize (T (FIN 2)) (T_FIN 2); intros.
+      subst; simpl.
+      destruct n as (n, ?H).
+      simpl in *.
+      destruct n.
+      + now left.
+      + now right.
+    - destruct H0; simpl.
+      + generalize (T (FIN 2)) (T_FIN 2); intros.
+        subst; unshelve eexists (exist 0 _); simpl.
+        * simpl; lia.
+        * assumption.
+      + generalize (T (FIN 2)) (T_FIN 2); intros.
+        subst; unshelve eexists (exist 1 _); simpl.
+        * simpl; lia.
+        * assumption.
   Qed.
 
 End IZF.
