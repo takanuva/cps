@@ -15,6 +15,16 @@ Section IZF.
   Inductive V: Set :=
     | setof (A: U) (f: T A -> V): V.
 
+  Definition idx (x: V): U :=
+    match x with
+    | setof A f => A
+    end.
+
+  Definition elts (x: V): T (idx x) -> V :=
+    match x return T (idx x) -> V with
+    | setof A f => f
+    end.
+
   Definition V_class: Type :=
     V -> Prop.
 
@@ -199,6 +209,50 @@ Section IZF.
       destruct n.
       + assumption.
       + assumption.
+  Qed.
+
+  Definition V_union (x: V): V :=
+    match x with
+    | setof A f =>
+      setof (SIGMA A (fun a => idx (f a)))
+        (fun p =>
+          let (y, z) := cast (T_SIGMA A _) p in elts (f y) z)
+    end.
+
+  Theorem V_union_ax:
+    forall a z,
+    V_in z (V_union a) <-> (exists2 b, V_in z b & V_in b a).
+  Proof.
+    split; intros.
+    - destruct a; simpl in *.
+      destruct H0.
+      generalize dependent x.
+      generalize (T (SIGMA A (fun a : T A => idx (f a))))
+        (T_SIGMA A (fun a : T A => idx (f a))); intros.
+      subst; simpl in *.
+      destruct x as (x, ?H).
+      exists (f x).
+      + remember (f x) as y.
+        destruct y; simpl in *.
+        now exists H1.
+      + now exists x.
+    - destruct H0 as (b, ?H, ?H).
+      destruct a; simpl in *.
+      generalize (T (SIGMA A (fun a : T A => idx (f a))))
+        (T_SIGMA A (fun a : T A => idx (f a))); intros.
+      subst; simpl in *.
+      destruct H1.
+      rewrite H1 in H0; clear H1.
+      remember (f x) as y.
+      destruct y; simpl in *.
+      destruct H0.
+      unshelve eexists.
+      + exists x.
+        rewrite <- Heqy; simpl.
+        assumption.
+      + simpl.
+        rewrite <- Heqy; simpl.
+        assumption.
   Qed.
 
 End IZF.

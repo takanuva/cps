@@ -353,5 +353,5 @@ Class Universe: Type := {
   PI: forall a: U, (T a -> U) -> U;
   T_PI: forall a b, T (PI a b) = (forall x: T a, T (b x));
   SIGMA: forall a: U, (T a -> U) -> U;
-  T_SIGMA: forall a b, T (PI a b) = { x: T a & T (b x) };
+  T_SIGMA: forall a b, T (SIGMA a b) = { x: T a & T (b x) };
 }.
