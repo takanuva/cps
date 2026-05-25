@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
 
@@ -79,5 +80,27 @@ Section IZF.
     setoid_sym := V_equiv_sym;
     setoid_trans := V_equiv_trans
   |}.
+
+  Global Canonical Structure V_setoid.
+
+  Global Instance V_in_proper:
+    Proper (setoid_equiv ==> setoid_equiv ==> iff) V_in.
+  Proof.
+    split; intros.
+    - destruct x0 as (A, f), y0 as (B, g); simpl in H2 |- *.
+      destruct H2 as (a, ?H).
+      destruct H1 as (?H, _).
+      destruct (H1 a) as (b, ?H).
+      exists b.
+      rewrite <- H0, H2.
+      assumption.
+    - destruct x0 as (A, f), y0 as (B, g); simpl in H2 |- *.
+      destruct H2 as (b, ?H).
+      destruct H1 as (_, ?H).
+      destruct (H1 b) as (a, ?H).
+      exists a.
+      rewrite H0, H3.
+      assumption.
+  Qed.
 
 End IZF.
