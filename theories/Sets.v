@@ -255,4 +255,55 @@ Section IZF.
         assumption.
   Qed.
 
+  Global Instance V_union_is_proper:
+    Proper (setoid_equiv ==> setoid_equiv) V_union.
+  Proof.
+    repeat intro.
+    destruct x, y; split; intros.
+    - generalize dependent a.
+      generalize (T (SIGMA A (fun a : T A => idx (f a))))
+        (T_SIGMA A (fun a : T A => idx (f a))); intros.
+      subst; simpl.
+      generalize (T (SIGMA A0 (fun a : T A0 => idx (f0 a))))
+        (T_SIGMA A0 (fun a : T A0 => idx (f0 a))); intros.
+      subst; simpl.
+      destruct H0 as (?H, _).
+      destruct a as (a, ?H).
+      specialize (H0 a) as (b, ?H).
+      remember (f a) as y.
+      remember (f0 b) as z.
+      destruct y, z; simpl in H0, H1.
+      destruct H0 as (?H, _).
+      destruct (H0 H1) as (c, ?H).
+      unshelve eexists.
+      + exists b; simpl.
+        rewrite <- Heqz; simpl.
+        assumption.
+      + simpl.
+        rewrite <- Heqz; simpl.
+        assumption.
+    - generalize dependent b.
+      generalize (T (SIGMA A0 (fun a : T A0 => idx (f0 a))))
+        (T_SIGMA A0 (fun a : T A0 => idx (f0 a))); intros.
+      subst; simpl.
+      generalize (T (SIGMA A (fun a : T A => idx (f a))))
+        (T_SIGMA A (fun a : T A => idx (f a))); intros.
+      subst; simpl.
+      destruct H0 as (_, ?H).
+      destruct b as (b, ?H).
+      specialize (H0 b) as (a, ?H).
+      remember (f0 b) as y.
+      remember (f a) as z.
+      destruct y, z; simpl in H0, H1.
+      destruct H0 as (_, ?H).
+      destruct (H0 H1) as (c, ?H).
+      unshelve eexists.
+      + exists a; simpl.
+        rewrite <- Heqz; simpl.
+        assumption.
+      + simpl.
+        rewrite <- Heqz; simpl.
+        assumption.
+  Qed.
+
 End IZF.
