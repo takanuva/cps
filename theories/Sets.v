@@ -8,7 +8,7 @@ Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
 
-Section IZF.
+(* Section IZF.
 
   Context `{Universe}.
 
@@ -348,4 +348,4 @@ Section IZF.
   Definition V_relation (x: V) (y: V): V_class :=
     fun z => V_subset z (V_cartesian x y).
 
-End IZF.
+End IZF. *)
