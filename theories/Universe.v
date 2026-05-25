@@ -293,4 +293,47 @@ Section Family.
     eapply v; reflexivity.
   Qed.
 
+  Definition IDX: CODE :=
+    shrink IDX' canonical_idx.
+
+  Lemma T_IDX:
+    T IDX = A.
+  Proof.
+    unfold T.
+    destruct (rebuild IDX); simpl.
+    specialize (v _ _ eq_refl).
+    now rewrite v.
+  Qed.
+
+  Definition LIFT (a: A): CODE :=
+    shrink (LIFT' a) (canonical_lift a).
+
+  Lemma T_LIFT:
+    forall a,
+    T (LIFT a) = B a.
+  Proof.
+    intros.
+    unfold T.
+    destruct (rebuild (LIFT a)); simpl.
+    specialize (v _ _ eq_refl).
+    now rewrite v.
+  Qed.
+
+  Definition CTOR (n: ctor_index) (a: CODE) (b: T a -> CODE): CODE :=
+    let a' := rebuild a in
+    let b' y := rebuild (b y) in
+    shrink (CTOR' n (get_ind a') (fun y => get_ind (b' y)))
+      (canonical_ctor n _ _ (get_canonical a') (fun y => get_canonical (b' y))).
+
+  Lemma T_CTOR:
+    forall n a b,
+    T (CTOR n a b) = GET_CTOR n (T a) (fun x => T (b x)).
+  Proof.
+    intros.
+    unfold T.
+    destruct (rebuild (CTOR n a b)); simpl.
+    specialize (v _ _ eq_refl).
+    now rewrite v.
+  Qed.
+
 End Family.
