@@ -103,4 +103,22 @@ Section IZF.
       assumption.
   Qed.
 
+  Theorem extensionality:
+    forall x y,
+    (forall z, V_in z x <-> V_in z y) ->
+    x == y.
+  Proof.
+    intros.
+    destruct x, y; split; intros.
+    - simpl in H0.
+      destruct (H0 (f a)) as (?H, _).
+      apply H1.
+      now exists a.
+    - simpl in H0.
+      destruct (H0 (f0 b)) as (_, ?H).
+      destruct H1 as (a, ?H).
+      + now exists b.
+      + now exists a.
+  Qed.
+
 End IZF.
