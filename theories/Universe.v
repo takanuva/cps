@@ -343,6 +343,16 @@ End Family.
 Definition finite (n: nat): Set :=
   { m: nat | m < n }.
 
+Cumulative Inductive w (A: Type) (B: A -> Type): Type :=
+  | sup (a: A) (f: B a -> w A B): w A B.
+
+(*
+  Cumulative CoInductive m (A: Type) (B: A -> Type): Type := inf {
+    seed: A;
+    step: B seed -> m A B
+  }.
+*)
+
 Class Universe: Type := {
   U: Set;
   T: U -> Set;
@@ -354,4 +364,6 @@ Class Universe: Type := {
   T_PI: forall a b, T (PI a b) = (forall x: T a, T (b x));
   SIGMA: forall a: U, (T a -> U) -> U;
   T_SIGMA: forall a b, T (SIGMA a b) = { x: T a & T (b x) };
+  W: forall a: U, (T a -> U) -> U;
+  T_W: forall a b, T (W a b) = w (T a) (fun x => T (b x))
 }.
