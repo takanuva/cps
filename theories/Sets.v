@@ -12,17 +12,20 @@ Section IZF.
 
   Context `{Universe}.
 
-  Inductive V: Set :=
-    | setof (A: U) (f: T A -> V): V.
+  Definition V: Set :=
+    w U T.
+
+  Local Notation setof :=
+    (sup U T).
 
   Definition idx (x: V): U :=
     match x with
-    | setof A f => A
+    | sup _ _ A f => A
     end.
 
   Definition elts (x: V): T (idx x) -> V :=
     match x return T (idx x) -> V with
-    | setof A f => f
+    | sup _ _ A f => f
     end.
 
   Definition V_class: Type :=
@@ -30,7 +33,7 @@ Section IZF.
 
   Fixpoint V_equiv (x: V) (y: V): Prop :=
     match x, y with
-    | setof A f, setof B g =>
+    | sup _ _ A f, sup _ _ B g =>
       (forall a: T A, exists b: T B, V_equiv (f a) (g b)) /\
         (forall b: T B, exists a: T A, V_equiv (f a) (g b))
     end.
@@ -39,7 +42,7 @@ Section IZF.
     forall x,
     V_equiv x x.
   Proof.
-    induction x; split; intros.
+    induction x as [A f]; split; intros.
     - now exists a.
     - now exists b.
   Qed.
@@ -48,7 +51,7 @@ Section IZF.
     forall x y,
     V_equiv x y -> V_equiv y x.
   Proof.
-    induction x; destruct y; split; intros.
+    induction x as [A f]; destruct y as (B, g); split; intros.
     - destruct H1 as (_, ?H).
       destruct (H1 a) as (b, ?H).
       exists b.
@@ -63,24 +66,24 @@ Section IZF.
     forall x y z,
     V_equiv x y -> V_equiv y z -> V_equiv x z.
   Proof.
-    induction x; destruct y, z; split; intros.
+    induction x as [A f]; destruct y as (B, g), z as (C, h); split; intros.
     - destruct H1 as (?H, _).
       destruct H2 as (?H, _).
       destruct (H1 a) as (b, ?H).
       destruct (H2 b) as (c, ?H).
       exists c.
-      now apply H0 with (f0 b).
+      now apply H0 with (g b).
     - destruct H1 as (_, ?H).
       destruct H2 as (_, ?H).
       destruct (H2 b) as (a, ?H).
       destruct (H1 a) as (c, ?H).
       exists c.
-      now apply H0 with (f0 a).
+      now apply H0 with (g a).
   Qed.
 
   Definition V_in (x: V) (y: V): Prop :=
     match y with
-    | setof A f => exists a: T A, V_equiv x (f a)
+    | sup _ _ A f => exists a: T A, V_equiv x (f a)
     end.
 
   Definition V_setoid: SmallSetoid := {|
@@ -119,13 +122,13 @@ Section IZF.
     x == y.
   Proof.
     intros.
-    destruct x, y; split; intros.
+    destruct x as (A, f), y as (B, g); split; intros.
     - simpl in H0.
       destruct (H0 (f a)) as (?H, _).
       apply H1.
       now exists a.
     - simpl in H0.
-      destruct (H0 (f0 b)) as (_, ?H).
+      destruct (H0 (g b)) as (_, ?H).
       destruct H1 as (a, ?H).
       + now exists b.
       + now exists a.
@@ -213,7 +216,7 @@ Section IZF.
 
   Definition V_union (x: V): V :=
     match x with
-    | setof A f =>
+    | sup _ _ A f =>
       setof (SIGMA A (fun a => idx (f a)))
         (fun p =>
           let (y, z) := cast (T_SIGMA A _) p in elts (f y) z)
@@ -224,7 +227,7 @@ Section IZF.
     V_in z (V_union a) <-> (exists2 b, V_in z b & V_in b a).
   Proof.
     split; intros.
-    - destruct a; simpl in *.
+    - destruct a as (A, f); simpl in *.
       destruct H0.
       generalize dependent x.
       generalize (T (SIGMA A (fun a : T A => idx (f a))))
@@ -237,7 +240,7 @@ Section IZF.
         now exists H1.
       + now exists x.
     - destruct H0 as (b, ?H, ?H).
-      destruct a; simpl in *.
+      destruct a as (A, f); simpl in *.
       generalize (T (SIGMA A (fun a : T A => idx (f a))))
         (T_SIGMA A (fun a : T A => idx (f a))); intros.
       subst; simpl in *.
@@ -259,19 +262,19 @@ Section IZF.
     Proper (setoid_equiv ==> setoid_equiv) V_union.
   Proof.
     repeat intro.
-    destruct x, y; split; intros.
+    destruct x as (A, f), y as (B, g); split; intros.
     - generalize dependent a.
       generalize (T (SIGMA A (fun a : T A => idx (f a))))
         (T_SIGMA A (fun a : T A => idx (f a))); intros.
       subst; simpl.
-      generalize (T (SIGMA A0 (fun a : T A0 => idx (f0 a))))
-        (T_SIGMA A0 (fun a : T A0 => idx (f0 a))); intros.
+      generalize (T (SIGMA B (fun a : T B => idx (g a))))
+        (T_SIGMA B (fun a : T B => idx (g a))); intros.
       subst; simpl.
       destruct H0 as (?H, _).
       destruct a as (a, ?H).
       specialize (H0 a) as (b, ?H).
       remember (f a) as y.
-      remember (f0 b) as z.
+      remember (g b) as z.
       destruct y, z; simpl in H0, H1.
       destruct H0 as (?H, _).
       destruct (H0 H1) as (c, ?H).
@@ -283,8 +286,8 @@ Section IZF.
         rewrite <- Heqz; simpl.
         assumption.
     - generalize dependent b.
-      generalize (T (SIGMA A0 (fun a : T A0 => idx (f0 a))))
-        (T_SIGMA A0 (fun a : T A0 => idx (f0 a))); intros.
+      generalize (T (SIGMA B (fun a : T B => idx (g a))))
+        (T_SIGMA B (fun a : T B => idx (g a))); intros.
       subst; simpl.
       generalize (T (SIGMA A (fun a : T A => idx (f a))))
         (T_SIGMA A (fun a : T A => idx (f a))); intros.
@@ -292,7 +295,7 @@ Section IZF.
       destruct H0 as (_, ?H).
       destruct b as (b, ?H).
       specialize (H0 b) as (a, ?H).
-      remember (f0 b) as y.
+      remember (g b) as y.
       remember (f a) as z.
       destruct y, z; simpl in H0, H1.
       destruct H0 as (_, ?H).
@@ -316,7 +319,7 @@ Section IZF.
 
   Definition V_cartesian (x: V) (y: V): V :=
     match x, y with
-    | setof A f, setof B g =>
+    | sup _ _ A f, sup _ _ B g =>
       setof (SIGMA A (const B)) (fun p =>
         let (z, w) := cast (T_SIGMA A (const B)) p in
         V_couple (f z) (g w))
