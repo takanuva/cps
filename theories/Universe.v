@@ -386,8 +386,11 @@ Arguments T_SIGMA {u}.
 Arguments T_W {u}.
 Arguments T_M {u}.
 
+Local Notation ctors :=
+  [pi; sigma; w; m].
+
 Program Definition u0: universe := {|
-  U := CODE nat finite [pi; sigma; w; m];
+  U := CODE nat finite ctors;
   T := TYPE;
   NAT := IDX;
   FIN := LIFT;
@@ -422,7 +425,7 @@ Next Obligation of u0.
 Qed.
 
 Program Definition next_universe (u: universe): universe := {|
-  U := CODE (U u) (@T u) [pi; sigma; w; m];
+  U := CODE (U u) (@T u) ctors;
   T := TYPE;
   NAT := LIFT (NAT u);
   FIN n := LIFT (FIN u n);
@@ -463,3 +466,75 @@ Fixpoint un (i: nat): universe :=
   | 0 => u0
   | S j => next_universe (un j)
   end.
+
+Program Definition uw: universe := {|
+  U := CODE { i: nat & U (un i) } (fun p => T (projT2 p)) ctors;
+  T := TYPE;
+  NAT := LIFT (existT 0 (NAT u0));
+  FIN n := LIFT (existT 0 (FIN u0 n));
+  PI := CTOR 0;
+  SIGMA := CTOR 1;
+  W := CTOR 2;
+  M := CTOR 3
+|}.
+
+Next Obligation of uw.
+  rewrite TYPE_LIFT; simpl.
+  apply TYPE_IDX.
+Qed.
+
+Next Obligation of uw.
+  rewrite TYPE_LIFT; simpl.
+  apply TYPE_LIFT.
+Qed.
+
+Next Obligation of uw.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of uw.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of uw.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of uw.
+  apply TYPE_CTOR.
+Qed.
+
+Program Definition us: universe := {|
+  U := CODE nat finite ((fun A B => CODE A B ctors) :: ctors);
+  T := TYPE;
+  NAT := IDX;
+  FIN := LIFT;
+  PI := CTOR 1;
+  SIGMA := CTOR 2;
+  W := CTOR 3;
+  M := CTOR 4
+|}.
+
+Next Obligation of us.
+  apply TYPE_IDX.
+Qed.
+
+Next Obligation of us.
+  apply TYPE_LIFT.
+Qed.
+
+Next Obligation of us.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of us.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of us.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of us.
+  apply TYPE_CTOR.
+Qed.
