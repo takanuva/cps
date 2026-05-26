@@ -9,8 +9,10 @@ Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Setoid.
+Require Import Local.Universe.
 Require Import Local.Sets.
 
+(*
 Inductive CL: Set :=
   | bound (n: nat)
   | S: CL
@@ -304,3 +306,4 @@ Definition cl_setoid: Setoid := {|
 Global Canonical Structure cl_setoid.
 
 (* TODO: bracket abstraction, just for fun, then define P and F with it. *)
+*)
