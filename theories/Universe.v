@@ -457,3 +457,9 @@ Qed.
 Next Obligation of next_universe.
   apply TYPE_CTOR.
 Qed.
+
+Fixpoint un (i: nat): universe :=
+  match i with
+  | 0 => u0
+  | S j => next_universe (un j)
+  end.
