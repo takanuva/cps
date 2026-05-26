@@ -420,3 +420,40 @@ Qed.
 Next Obligation of u0.
   apply TYPE_CTOR.
 Qed.
+
+Program Definition next_universe (u: universe): universe := {|
+  U := CODE (U u) (@T u) [pi; sigma; w; m];
+  T := TYPE;
+  NAT := LIFT (NAT u);
+  FIN n := LIFT (FIN u n);
+  PI := CTOR 0;
+  SIGMA := CTOR 1;
+  W := CTOR 2;
+  M := CTOR 3
+|}.
+
+Next Obligation of next_universe.
+  rewrite TYPE_LIFT.
+  apply T_NAT.
+Qed.
+
+Next Obligation of next_universe.
+  rewrite TYPE_LIFT.
+  apply T_FIN.
+Qed.
+
+Next Obligation of next_universe.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of next_universe.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of next_universe.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of next_universe.
+  apply TYPE_CTOR.
+Qed.
