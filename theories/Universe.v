@@ -27,13 +27,11 @@ Section Family.
 
   Universe u0.
 
-  Local Notation TYPE := (Type@{u0}).
-
   Local Notation constructor :=
-    (forall X: TYPE, (X -> TYPE) -> TYPE).
+    (forall X: Type@{u0}, (X -> Type@{u0}) -> Type@{u0}).
 
   Variable A: Set.
-  Variable B: A -> TYPE.
+  Variable B: A -> Type@{u0}.
   Variable C: list constructor.
 
   Local Notation ctor_index :=
@@ -56,38 +54,38 @@ Section Family.
     | U_lift
     | U_ctor.
 
-  Definition TARSKI: @Sig TYPE :=
+  Definition TARSKI: @Sig Type@{u0} :=
     sigma branch (fun b: branch =>
       match b with
       | U_idx =>
-        iota (A: TYPE)
+        iota (A: Type@{u0})
       | U_lift =>
         sigma A (fun a: A =>
           iota (B a))
       | U_ctor =>
         sigma ctor_index (fun n =>
-          delta unit (fun Ta: unit -> TYPE =>
-            delta (Ta tt) (fun Tb: Ta tt -> TYPE =>
+          delta unit (fun Ta: unit -> Type@{u0} =>
+            delta (Ta tt) (fun Tb: Ta tt -> Type@{u0} =>
               iota (GET_CTOR n (Ta tt) Tb))))
       end).
 
   Local Definition IND: Type :=
     E TARSKI (total (muE TARSKI)) projT1.
 
-  Local Definition REC: IND -> TYPE :=
+  Local Definition REC: IND -> Type@{u0} :=
     F TARSKI (total (muE TARSKI)) projT1.
 
   Local Definition embed (x: IND): total (muE TARSKI) :=
     existT (REC x) (inE TARSKI (exist x eq_refl)).
 
-  Definition IDX': IND :=
+  Local Definition IDX': IND :=
     existT U_idx tt.
 
-  Definition LIFT' (a: A): IND :=
+  Local Definition LIFT' (a: A): IND :=
     existT U_lift
       (existT a tt).
 
-  Definition CTOR' (n: ctor_index) (a: IND) (b: REC a -> IND): IND :=
+  Local Definition CTOR' (n: ctor_index) (a: IND) (b: REC a -> IND): IND :=
     existT U_ctor
       (existT n
         (existT (fun _ => embed a)
@@ -138,7 +136,7 @@ Section Family.
     now destruct ok.
   Defined.
 
-  Definition valid_type (c: CODE) (T: TYPE): Type :=
+  Definition valid_type (c: CODE) (T: Type@{u0}): Type :=
     forall a H, c = shrink a H -> T = REC a.
 
   Definition left_child:
@@ -161,7 +159,7 @@ Section Family.
   Definition right_child:
     forall c: CODE,
     forall H: U_ctor = get_branch c,
-    forall T: TYPE,
+    forall T: Type@{u0},
     forall X: valid_type (left_child c H) T,
     T -> CODE.
   Proof.
@@ -280,80 +278,91 @@ Section Family.
         eapply v; reflexivity.
   Qed.
 
-  (* Definition T (c: CODE): TYPE :=
+  Definition TYPE (c: CODE): Type@{u0} :=
     REC (get_ind (rebuild c)).
 
-  Lemma T_shrink:
+  Lemma TYPE_shrink:
     forall a ok,
-    T (shrink a ok) = REC a.
+    TYPE (shrink a ok) = REC a.
   Proof.
     intros.
-    unfold T.
+    unfold TYPE.
     destruct rebuild; simpl.
     eapply v; reflexivity.
-  Qed. *)
+  Qed.
 
-  (*
-  Definition IDX: CODE :=
+  Local Definition IDX: CODE :=
     shrink IDX' canonical_idx.
 
-  Lemma T_IDX:
-    T IDX = A.
+  Local Lemma TYPE_IDX:
+    TYPE IDX = A.
   Proof.
-    unfold T.
+    unfold TYPE.
     destruct (rebuild IDX); simpl.
     specialize (v _ _ eq_refl).
     now rewrite v.
   Qed.
 
-  Definition LIFT (a: A): CODE :=
+  Local Definition LIFT (a: A): CODE :=
     shrink (LIFT' a) (canonical_lift a).
 
-  Lemma T_LIFT:
+  Local Lemma TYPE_LIFT:
     forall a,
-    T (LIFT a) = B a.
+    TYPE (LIFT a) = B a.
   Proof.
     intros.
-    unfold T.
+    unfold TYPE.
     destruct (rebuild (LIFT a)); simpl.
     specialize (v _ _ eq_refl).
     now rewrite v.
   Qed.
 
-  Definition CTOR (n: ctor_index) (a: CODE) (b: T a -> CODE): CODE :=
+  Local Definition CTOR (n: ctor_index) (a: CODE) (b: TYPE a -> CODE): CODE :=
     let a' := rebuild a in
     let b' y := rebuild (b y) in
     shrink (CTOR' n (get_ind a') (fun y => get_ind (b' y)))
       (canonical_ctor n _ _ (get_canonical a') (fun y => get_canonical (b' y))).
 
-  Lemma T_CTOR:
+  Lemma TYPE_CTOR:
     forall n a b,
-    T (CTOR n a b) = GET_CTOR n (T a) (fun x => T (b x)).
+    TYPE (CTOR n a b) = GET_CTOR n (TYPE a) (fun x => TYPE (b x)).
   Proof.
     intros.
-    unfold T.
+    unfold TYPE.
     destruct (rebuild (CTOR n a b)); simpl.
     specialize (v _ _ eq_refl).
     now rewrite v.
   Qed.
-  *)
 
 End Family.
 
-Definition finite (n: nat): Set :=
-  { m: nat | m < n }.
+Arguments IDX {A} {B} {C}.
+Arguments LIFT {A} {B} {C}.
+Arguments CTOR {A} {B} {C}.
+Arguments TYPE {A} {B} {C}.
 
-Cumulative Inductive w (A: Type) (B: A -> Type): Type :=
-  | sup (a: A) (f: B a -> w A B): w A B.
+Section Preliminaries.
 
-(*
+  Definition finite (n: nat): Set :=
+    { m: nat | m < n }.
+
+  Definition pi (A: Type) (B: A -> Type): Type :=
+    forall x: A, B x.
+
+  Definition sigma (A: Type) (B: A -> Type): Type :=
+    @sigT A B.
+
+  Cumulative Inductive w (A: Type) (B: A -> Type): Type :=
+    | sup (a: A) (f: B a -> w A B): w A B.
+
   Cumulative CoInductive m (A: Type) (B: A -> Type): Type := inf {
     seed: A;
     step: B seed -> m A B
   }.
-*)
 
-Class Universe: Type := {
+End Preliminaries.
+
+Structure universe: Type := {
   U: Set;
   T: U -> Set;
   NAT: U;
@@ -365,5 +374,49 @@ Class Universe: Type := {
   SIGMA: forall a: U, (T a -> U) -> U;
   T_SIGMA: forall a b, T (SIGMA a b) = { x: T a & T (b x) };
   W: forall a: U, (T a -> U) -> U;
-  T_W: forall a b, T (W a b) = w (T a) (fun x => T (b x))
+  T_W: forall a b, T (W a b) = w (T a) (fun x => T (b x));
+  M: forall a: U, (T a -> U) -> U;
+  T_M: forall a b, T (M a b) = m (T a) (fun x => T (b x))
 }.
+
+Arguments T {u}.
+Arguments T_FIN {u}.
+Arguments T_PI {u}.
+Arguments T_SIGMA {u}.
+Arguments T_W {u}.
+Arguments T_M {u}.
+
+Program Definition u0: universe := {|
+  U := CODE nat finite [pi; sigma; w; m];
+  T := TYPE;
+  NAT := IDX;
+  FIN := LIFT;
+  PI := CTOR 0;
+  SIGMA := CTOR 1;
+  W := CTOR 2;
+  M := CTOR 3
+|}.
+
+Next Obligation of u0.
+  apply TYPE_IDX.
+Qed.
+
+Next Obligation of u0.
+  apply TYPE_LIFT.
+Qed.
+
+Next Obligation of u0.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of u0.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of u0.
+  apply TYPE_CTOR.
+Qed.
+
+Next Obligation of u0.
+  apply TYPE_CTOR.
+Qed.
