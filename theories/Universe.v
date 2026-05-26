@@ -280,8 +280,7 @@ Section Family.
         eapply v; reflexivity.
   Qed.
 
-  (*
-  Definition T (c: CODE): TYPE :=
+  (* Definition T (c: CODE): TYPE :=
     REC (get_ind (rebuild c)).
 
   Lemma T_shrink:
@@ -292,8 +291,9 @@ Section Family.
     unfold T.
     destruct rebuild; simpl.
     eapply v; reflexivity.
-  Qed.
+  Qed. *)
 
+  (*
   Definition IDX: CODE :=
     shrink IDX' canonical_idx.
 

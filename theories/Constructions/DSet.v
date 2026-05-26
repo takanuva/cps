@@ -2,6 +2,7 @@
 (*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import List.
 Require Import Program.
 Require Import Morphisms.
 Require Import Local.Prelude.
@@ -12,16 +13,14 @@ Require Import Local.Category.
 Require Import Local.Universe.
 Require Import Local.Combinators.
 
-Set Universe Polymorphism.
+Import ListNotations.
 Set Primitive Projections.
-
-(* TODO: we're axiomatizing D-sets as an inductive-recursive type for now, but
-   we'll later properly encode it once we're satisfied with the formulation. *)
 
 Section DSet.
 
   Variable C: SmallCategory.
 
+  (*
   Inductive dset: Set :=
     (* | dset_mk:
       forall T: Set,
@@ -190,5 +189,6 @@ Section DSet.
   Next Obligation of dset_family.
     now transitivity y.
   Qed.
+  *)
 
 End DSet.

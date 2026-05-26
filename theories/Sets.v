@@ -8,7 +8,7 @@ Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
 
-(* Section IZF.
+Section IZF.
 
   Context `{Universe}.
 
@@ -330,6 +330,8 @@ Require Import Local.Universe.
   Definition V_singleton (x: V): V :=
     V_pair x x.
 
+  (* Kuratowski's pairs. *)
+
   Definition V_couple (x: V) (y: V): V :=
     V_pair (V_singleton x) (V_pair x y).
 
@@ -348,4 +350,4 @@ Require Import Local.Universe.
   Definition V_relation (x: V) (y: V): V_class :=
     fun z => V_subset z (V_cartesian x y).
 
-End IZF. *)
+End IZF.

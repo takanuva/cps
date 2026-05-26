@@ -9,6 +9,7 @@ Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Setoid.
+Require Import Local.Sets.
 
 Inductive CL: Set :=
   | bound (n: nat)
