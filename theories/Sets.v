@@ -312,6 +312,30 @@ Section IZF.
         assumption.
   Qed.
 
+  Program Definition V_empty: V :=
+    setof (FIN u 0) (fun zero => False_rect V _).
+
+  Next Obligation of V_empty.
+    rewrite T_FIN in zero.
+    destruct zero.
+    inversion l.
+  Defined.
+
+  Theorem V_empty_ax:
+    forall x,
+    ~V_in x V_empty.
+  Proof.
+    repeat intro.
+    simpl in H.
+    destruct H.
+    clear H x.
+    rewrite T_FIN in x0.
+    destruct x0.
+    inversion l.
+  Qed.
+
+  (* TODO: infinity... *)
+
   Definition V_separation (x: V) (P: V -> U u): V :=
     match x with
     | sup _ _ A f =>
