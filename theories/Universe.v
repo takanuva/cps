@@ -503,38 +503,3 @@ Qed.
 Next Obligation of uw.
   apply TYPE_CTOR.
 Qed.
-
-Program Definition us: universe := {|
-  U := CODE nat finite ((fun A B => CODE A B ctors) :: ctors);
-  T := TYPE;
-  NAT := IDX;
-  FIN := LIFT;
-  PI := CTOR 1;
-  SIGMA := CTOR 2;
-  W := CTOR 3;
-  M := CTOR 4
-|}.
-
-Next Obligation of us.
-  apply TYPE_IDX.
-Qed.
-
-Next Obligation of us.
-  apply TYPE_LIFT.
-Qed.
-
-Next Obligation of us.
-  apply TYPE_CTOR.
-Qed.
-
-Next Obligation of us.
-  apply TYPE_CTOR.
-Qed.
-
-Next Obligation of us.
-  apply TYPE_CTOR.
-Qed.
-
-Next Obligation of us.
-  apply TYPE_CTOR.
-Qed.
