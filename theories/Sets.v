@@ -142,12 +142,6 @@ Section IZF.
   Local Definition cast {T: Set} {U: Set} (H: T = U) (x: T): U :=
     rew dependent H in x.
 
-  Program Definition fin2_case (n: finite 2) {P: Type} (x: P) (y: P) :=
-    match n with
-    | finite_O _ => x
-    | finite_S _ _ => y
-    end.
-
   Definition V_pair (x: V) (y: V): V :=
     setof (FIN u 2) (fun n: T (FIN u 2) =>
       match cast (T_FIN 2) n with
