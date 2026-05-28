@@ -4,6 +4,7 @@
 
 Require Import Lia.
 Require Import Program.
+Require Import Equality.
 Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
@@ -141,11 +142,18 @@ Section IZF.
   Local Definition cast {T: Set} {U: Set} (H: T = U) (x: T): U :=
     rew dependent H in x.
 
-  (* TODO: define FIN u 2 as BOOL? *)
+  Program Definition fin2_case (n: finite 2) {P: Type} (x: P) (y: P) :=
+    match n with
+    | finite_O _ => x
+    | finite_S _ _ => y
+    end.
 
   Definition V_pair (x: V) (y: V): V :=
     setof (FIN u 2) (fun n: T (FIN u 2) =>
-      if proj1_sig (cast (T_FIN 2) n) then x else y).
+      match cast (T_FIN 2) n with
+      | finite_O _ => x
+      | finite_S _ _ => y
+      end).
 
   Definition V_pair_fst:
     forall x y,
@@ -154,9 +162,8 @@ Section IZF.
     intros; simpl.
     generalize (T (FIN u 2)) (@T_FIN u 2); intros.
     subst; simpl.
-    unshelve eexists (exist 0 _); simpl.
-    - lia.
-    - reflexivity.
+    exists (finite_O _).
+    reflexivity.
   Qed.
 
   Definition V_pair_snd:
@@ -166,9 +173,8 @@ Section IZF.
     intros; simpl.
     generalize (T (FIN u 2)) (@T_FIN u 2); intros.
     subst; simpl.
-    unshelve eexists (exist 1 _); simpl.
-    - lia.
-    - reflexivity.
+    exists (finite_S _ (finite_O _)).
+    reflexivity.
   Qed.
 
   Theorem V_pairing_ax:
@@ -179,21 +185,17 @@ Section IZF.
     - destruct H as (n, ?H).
       generalize dependent n.
       generalize (T (FIN u 2)) (@T_FIN u 2); intros.
-      subst; simpl.
-      destruct n as (n, ?H).
-      simpl in *.
-      destruct n.
+      subst; simpl in *.
+      dependent destruction n.
       + now left.
       + now right.
     - destruct H; simpl.
       + generalize (T (FIN u 2)) (@T_FIN u 2); intros.
-        subst; unshelve eexists (exist 0 _); simpl.
-        * simpl; lia.
-        * assumption.
+        subst; exists (finite_O _); simpl.
+        assumption.
       + generalize (T (FIN u 2)) (@T_FIN u 2); intros.
-        subst; unshelve eexists (exist 1 _); simpl.
-        * simpl; lia.
-        * assumption.
+        subst; exists (finite_S _ (finite_O _)); simpl.
+        assumption.
   Qed.
 
   Global Instance V_pair_is_proper:
@@ -203,15 +205,13 @@ Section IZF.
     - exists a; generalize dependent a.
       generalize (T (FIN u 2)) (@T_FIN u 2); intros.
       subst; simpl.
-      destruct a as (n, ?H); simpl.
-      destruct n.
+      dependent destruction a.
       + assumption.
       + assumption.
     - exists b; generalize dependent b.
       generalize (T (FIN u 2)) (@T_FIN u 2); intros.
       subst; simpl.
-      destruct b as (n, ?H); simpl.
-      destruct n.
+      dependent destruction b.
       + assumption.
       + assumption.
   Qed.
@@ -313,12 +313,11 @@ Section IZF.
   Qed.
 
   Program Definition V_empty: V :=
-    setof (FIN u 0) (fun zero => False_rect V _).
+    setof (FIN u 0) (fun zero => !).
 
   Next Obligation of V_empty.
     rewrite T_FIN in zero.
-    destruct zero.
-    inversion l.
+    inversion zero.
   Defined.
 
   Theorem V_empty_ax:
@@ -330,8 +329,7 @@ Section IZF.
     destruct H.
     clear H x.
     rewrite T_FIN in x0.
-    destruct x0.
-    inversion l.
+    inversion x0.
   Qed.
 
   (* TODO: infinity... *)
