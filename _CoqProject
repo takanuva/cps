@@ -6,6 +6,8 @@ theories/Substitution.v
 theories/Setoid.v
 theories/Category.v
 theories/InductionRecursion.v
+theories/Universe/Construction.v
+theories/Universe/Hierarchy.v
 theories/Universe.v
 theories/Sets.v
 # Ignore for now...
