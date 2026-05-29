@@ -7,8 +7,8 @@ Require Import List.
 Require Import Program.
 Require Import Equality.
 Require Import FunctionalExtensionality.
-Require Import Local.InductionRecursion.
 Require Import Local.Setoid.
+Require Import Local.Universe.InductionRecursion.
 
 Import EqNotations.
 Import ListNotations.
