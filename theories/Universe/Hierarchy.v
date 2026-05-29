@@ -6,6 +6,7 @@ Require Import List.
 Require Import Local.Universe.Construction.
 
 Import ListNotations.
+(* Set Universe Polymorphism. *)
 Set Primitive Projections.
 
 Section Preliminaries.
@@ -58,17 +59,30 @@ Arguments T_PI {u}.
 Arguments T_SIGMA {u}.
 Arguments T_W {u}.
 
-Local Notation ctors :=
-  [pi; sigma; w].
+Local Notation constructor :=
+  (forall X: Set, (X -> Set) -> Set).
+
+Local Definition ctors: list constructor :=
+  [pi: constructor; sigma: constructor; w: constructor].
+
+(* There's a small issue in how program definitions deal with universes among
+   Coq versions, and there's probably a regression in Coq 8.20 cause it works
+   on versions 8.19 and 9.0, so we'll set the universes by using this. *)
+
+Local Definition TYPE' {A: Set} {B: A -> Set} {C: list constructor} :=
+  @TYPE A B C.
+
+Local Program Definition CTOR' (n: nat | n < 3) {A: Set} {B: A -> Set} :=
+  @CTOR A B ctors n.
 
 Program Definition u0: universe := {|
   U := CODE nat finite ctors;
-  T := TYPE;
+  T := TYPE';
   NAT := IDX;
   FIN := LIFT;
-  PI := CTOR 0;
-  SIGMA := CTOR 1;
-  W := CTOR 2
+  PI := CTOR' 0;
+  SIGMA := CTOR' 1;
+  W := CTOR' 2
 |}.
 
 Next Obligation of u0.
@@ -80,25 +94,28 @@ Next Obligation of u0.
 Qed.
 
 Next Obligation of u0.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of u0.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of u0.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Program Definition next_universe (u: universe): universe := {|
   U := CODE (U u) (@T u) ctors;
-  T := TYPE;
+  T := TYPE';
   NAT := LIFT (NAT u);
   FIN n := LIFT (FIN u n);
-  PI := CTOR 0;
-  SIGMA := CTOR 1;
-  W := CTOR 2
+  PI := CTOR' 0;
+  SIGMA := CTOR' 1;
+  W := CTOR' 2
 |}.
 
 Next Obligation of next_universe.
@@ -112,15 +129,18 @@ Next Obligation of next_universe.
 Qed.
 
 Next Obligation of next_universe.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of next_universe.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of next_universe.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Fixpoint un (i: nat): universe :=
@@ -131,12 +151,12 @@ Fixpoint un (i: nat): universe :=
 
 Program Definition uw: universe := {|
   U := CODE { i: nat & U (un i) } (fun p => T (projT2 p)) ctors;
-  T := TYPE;
+  T := TYPE';
   NAT := LIFT (existT 0 (NAT u0));
   FIN n := LIFT (existT 0 (FIN u0 n));
-  PI := CTOR 0;
-  SIGMA := CTOR 1;
-  W := CTOR 2
+  PI := CTOR' 0;
+  SIGMA := CTOR' 1;
+  W := CTOR' 2
 |}.
 
 Next Obligation of uw.
@@ -150,13 +170,16 @@ Next Obligation of uw.
 Qed.
 
 Next Obligation of uw.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of uw.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
 
 Next Obligation of uw.
-  apply TYPE_CTOR.
+  unfold TYPE', CTOR'.
+  now rewrite TYPE_CTOR.
 Qed.
