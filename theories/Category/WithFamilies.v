@@ -151,7 +151,14 @@ Structure pseudomorphism (M: CwF) (N: CwF): Type := {
   psm_ty G:
     cwf_ty M G ~> cwf_ty N (psm_con G);
   psm_el G A:
-    cwf_el M G A ~> cwf_el N (psm_con G) (psm_ty G A)
+    cwf_el M G A ~> cwf_el N (psm_con G) (psm_ty G A);
+  (* ... *)
+  psm_id G:
+    psm_sub G G id == id;
+  psm_post G D E:
+    forall s: cwf_cat M G D,
+    forall t: cwf_cat M D E,
+    psm_sub G E (post s t) == post (psm_sub G D s) (psm_sub D E t)
 }.
 
 Arguments psm_con {M} {N}.
@@ -167,8 +174,16 @@ Program Definition pseudomorphism_id {M: CwF}: pseudomorphism M M := {|
   psm_ty G :=
     map A => A;
   psm_el G A :=
-    map e => e
+    map e => e;
 |}.
+
+Next Obligation of pseudomorphism_id.
+  reflexivity.
+Qed.
+
+Next Obligation of pseudomorphism_id.
+  reflexivity.
+Qed.
 
 Section PseudomorphismPost.
 
@@ -180,7 +195,8 @@ Section PseudomorphismPost.
   Variable Y: pseudomorphism N O.
 
   Program Definition pseudomorphism_post: pseudomorphism M O := {|
-    psm_con G := psm_con Y (psm_con X G);
+    psm_con G :=
+      psm_con Y (psm_con X G);
     psm_sub G D :=
       map (s: cwf_cat M G D) =>
         psm_sub Y (psm_con X G) (psm_con X D) (psm_sub X G D s);
@@ -202,6 +218,14 @@ Section PseudomorphismPost.
 
   Next Obligation of pseudomorphism_post.
     now rewrite H.
+  Qed.
+
+  Next Obligation of pseudomorphism_post.
+    now do 2 rewrite psm_id.
+  Qed.
+
+  Next Obligation of pseudomorphism_post.
+    now do 2 rewrite psm_post.
   Qed.
 
 End PseudomorphismPost.
