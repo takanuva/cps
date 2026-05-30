@@ -487,6 +487,21 @@ End Yoneda. *)
 
 (* ... *)
 
+Structure Initial (C: Category): Type := {
+  initial: C;
+  initial_hom X: C initial X;
+  initial_unique:
+    forall X: C,
+    forall f: C initial X,
+    f == initial_hom X
+}.
+
+Global Arguments initial {C}.
+Global Arguments initial_hom {C} i {X}.
+
+Global Coercion initial: Initial >-> obj.
+Global Coercion initial_hom: Initial >-> Funclass.
+
 Structure Terminal (C: Category): Type := {
   terminal: C;
   terminal_hom X: C X terminal;
