@@ -4,6 +4,8 @@ theories/Prelude.v
 theories/AbstractRewriting.v
 theories/Substitution.v
 theories/Setoid.v
+theories/Category/Theory.v
+theories/Category/WithFamilies.v
 theories/Category.v
 theories/Universe/InductionRecursion.v
 theories/Universe/Construction.v
