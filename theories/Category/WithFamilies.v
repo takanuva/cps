@@ -6,6 +6,7 @@ Require Import Local.Setoid.
 Require Import Local.Category.Theory.
 
 Set Primitive Projections.
+(* TODO: we might want to make these monomorphic. *)
 Set Universe Polymorphism.
 
 (* -------------------------------------------------------------------------- *)
@@ -153,8 +154,14 @@ Structure pseudomorphism (M: CwF) (N: CwF): Type := {
     cwf_el M G A ~> cwf_el N (psm_con G) (psm_ty G A)
 }.
 
-Program Definition pseudomorphism_id (M: CwF): pseudomorphism M M := {|
-  psm_con G := G;
+Arguments psm_con {M} {N}.
+Arguments psm_sub {M} {N}.
+Arguments psm_ty {M} {N}.
+Arguments psm_el {M} {N}.
+
+Program Definition pseudomorphism_id {M: CwF}: pseudomorphism M M := {|
+  psm_con G :=
+    G;
   psm_sub G D :=
     map s => s;
   psm_ty G :=
@@ -162,3 +169,41 @@ Program Definition pseudomorphism_id (M: CwF): pseudomorphism M M := {|
   psm_el G A :=
     map e => e
 |}.
+
+Section PseudomorphismPost.
+
+  Variable M: CwF.
+  Variable N: CwF.
+  Variable O: CwF.
+
+  Variable X: pseudomorphism M N.
+  Variable Y: pseudomorphism N O.
+
+  Program Definition pseudomorphism_post: pseudomorphism M O := {|
+    psm_con G := psm_con Y (psm_con X G);
+    psm_sub G D :=
+      map (s: cwf_cat M G D) =>
+        psm_sub Y (psm_con X G) (psm_con X D) (psm_sub X G D s);
+    psm_ty G :=
+      map (A: cwf_ty M G) =>
+        psm_ty Y (psm_con X G) (psm_ty X G A);
+    psm_el G A :=
+      map (e: cwf_el M G A) =>
+        psm_el Y (psm_con X G) (psm_ty X G A) (psm_el X G A e)
+  |}.
+
+  Next Obligation of pseudomorphism_post.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of pseudomorphism_post.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of pseudomorphism_post.
+    now rewrite H.
+  Qed.
+
+End PseudomorphismPost.
+
+(* TODO: define the CwF category... if needed, of course. *)
