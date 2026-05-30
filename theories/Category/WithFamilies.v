@@ -132,3 +132,33 @@ Structure CwF: Type := {
 }.
 
 *)
+
+(* -------------------------------------------------------------------------- *)
+
+(* A pseudomorphism is just a mapping between two CwFs M and N such that it is
+   strict on the base category structure, i.e., things are preserved by setoid
+   equality here, but it is weak in the terminal object and on environment
+   extension, i.e., those are only preserved up to isomorphism.
+
+   A good reference for this: "Gluing for Type Theory", by Kaposi et al. *)
+
+Structure pseudomorphism (M: CwF) (N: CwF): Type := {
+  psm_con:
+    cwf_cat M -> cwf_cat N;
+  psm_sub G D:
+    cwf_cat M G D ~> cwf_cat N (psm_con G) (psm_con D);
+  psm_ty G:
+    cwf_ty M G ~> cwf_ty N (psm_con G);
+  psm_el G A:
+    cwf_el M G A ~> cwf_el N (psm_con G) (psm_ty G A)
+}.
+
+Program Definition pseudomorphism_id (M: CwF): pseudomorphism M M := {|
+  psm_con G := G;
+  psm_sub G D :=
+    map s => s;
+  psm_ty G :=
+    map A => A;
+  psm_el G A :=
+    map e => e
+|}.
