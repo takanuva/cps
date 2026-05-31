@@ -136,8 +136,8 @@ Inductive logic: Type :=
   | IMPL (p: logic) (q: logic)
   | CONJ (p: logic) (q: logic)
   | DISJ (p: logic) (q: logic)
-  | FORALL (x: V) (p: V -> logic)
-  | EXISTS (x: V) (p: V -> logic).
+  | FORALL (p: V -> logic)
+  | EXISTS (p: V -> logic).
 
 Fixpoint interpret (formula: logic): Prop :=
   match formula with
@@ -153,14 +153,20 @@ Fixpoint interpret (formula: logic): Prop :=
     interpret p /\ interpret q
   | DISJ p q =>
     interpret p \/ interpret q
-  | FORALL x p =>
-    forall a: idx x, interpret (p (elts x a))
-  | EXISTS x p =>
-    exists a: idx x, interpret (p (elts x a))
+  | FORALL p =>
+    forall x: V, interpret (p x)
+  | EXISTS p =>
+    exists x: V, interpret (p x)
   end.
 
 Definition V_class (x: V): Type :=
   { p: V -> logic | interpret (p x) }.
+
+(* -------------------------------------------------------------------------- *)
+
+Section CZF.
+
+End CZF.
 
 (* -------------------------------------------------------------------------- *)
 
@@ -174,14 +180,3 @@ Fixpoint emb {u: universe} (x: sV u): V :=
 
 Definition uV (u: universe): V :=
   setof (sV u) emb.
-
-(* -------------------------------------------------------------------------- *)
-
-Section CZF.
-
-  Variable u: universe.
-
-  Local Notation v :=
-    (uV u).
-
-End CZF.
