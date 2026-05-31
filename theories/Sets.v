@@ -166,6 +166,29 @@ Definition V_class (x: V): Type :=
 
 Section CZF.
 
+  (* forall x y w,
+     (w \in pair x y <-> w = x \/ x = y *)
+  Definition V_pair (x: V) (y: V): V :=
+    setof bool (fun b => if b then x else y).
+
+  (* forall x z,
+     (z \in union x <-> exists2 w, z \in w & w \in x) *)
+  Definition V_union (x: V): V :=
+    setof { a: idx x & idx (elts x a) } (fun p =>
+      elts (elts x (projT1 p)) (projT2 p)).
+
+  (* exists x, forall y, not (y \in x) *)
+  Definition V_empty: V :=
+    setof False (False_rect V).
+
+  (*
+    empty \in infinity /\
+      forall y,
+      (y \in infinity -> suc y \in infinity)
+
+    where suc y = y \union {y}
+  *)
+
 End CZF.
 
 (* -------------------------------------------------------------------------- *)
