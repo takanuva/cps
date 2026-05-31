@@ -138,7 +138,9 @@ Inductive logic: Type :=
   | logic_falsum
   | logic_impl (p: logic) (q: logic)
   | logic_conj (p: logic) (q: logic)
-  | logic_disj (p: logic) (q: logic).
+  | logic_disj (p: logic) (q: logic)
+  | logic_forall (x: V) (p: V -> logic)
+  | logic_exists (x: V) (p: V -> logic).
 
 Fixpoint interpret (formula: logic): Prop :=
   match formula with
@@ -154,6 +156,10 @@ Fixpoint interpret (formula: logic): Prop :=
     interpret p /\ interpret q
   | logic_disj p q =>
     interpret p \/ interpret q
+  | logic_forall x p =>
+    forall a: idx x, interpret (p (elts x a))
+  | logic_exists x p =>
+    exists a: idx x, interpret (p (elts x a))
   end.
 
 (* -------------------------------------------------------------------------- *)
