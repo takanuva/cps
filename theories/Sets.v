@@ -9,7 +9,7 @@ Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
 
-Section IZF.
+Section CZF.
 
   Variable u: universe.
 
@@ -328,7 +328,7 @@ Section IZF.
 
   (* TODO: infinity... *)
 
-  Definition V_separation (x: V) (P: V -> U u): V :=
+  (* Definition V_separation (x: V) (P: V -> U u): V :=
     match x with
     | sup _ _ A f =>
       setof (SIGMA u A (fun a: T A => P (f a)))
@@ -342,17 +342,14 @@ Section IZF.
       (V_in z x /\ exists2 z', z == z' & inhabited (T (P z'))).
   Proof.
     admit.
-  Admitted.
+  Admitted. *)
 
   (* ---------------------------------------------------------------------- *)
-
-  Definition V_singleton (x: V): V :=
-    V_pair x x.
 
   (* Kuratowski's pairs. *)
 
   Definition V_couple (x: V) (y: V): V :=
-    V_pair (V_singleton x) (V_pair x y).
+    V_pair (V_pair x x) (V_pair x y).
 
   Definition V_cartesian (x: V) (y: V): V :=
     match x, y with
@@ -366,7 +363,29 @@ Section IZF.
     forall z: V,
     V_in z x -> V_in z y.
 
+  Lemma V_subset_refl:
+    forall x,
+    V_subset x x.
+  Proof.
+    repeat intro.
+    destruct x; simpl in *.
+    assumption.
+  Qed.
+
+  Lemma V_subset_trans:
+    forall x y z,
+    V_subset x y ->
+    V_subset y z ->
+    V_subset x z.
+  Proof.
+    repeat intro; rename z0 into w.
+    destruct x as (A, f), y as (B, g), z as (C, h); simpl.
+    specialize (H w H1).
+    specialize (H0 w H).
+    exact H0.
+  Qed.
+
   Definition V_relation (x: V) (y: V): V_class :=
     fun z => V_subset z (V_cartesian x y).
 
-End IZF.
+End CZF.
