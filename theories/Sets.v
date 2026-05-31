@@ -130,32 +130,32 @@ Qed.
 (* -------------------------------------------------------------------------- *)
 
 Inductive logic: Type :=
-  | logic_equiv (x: V) (y: V)
-  | logic_member (x: V) (y: V)
-  | logic_falsum
-  | logic_impl (p: logic) (q: logic)
-  | logic_conj (p: logic) (q: logic)
-  | logic_disj (p: logic) (q: logic)
-  | logic_forall (x: V) (p: V -> logic)
-  | logic_exists (x: V) (p: V -> logic).
+  | EQUIV (x: V) (y: V)
+  | IN (x: V) (y: V)
+  | FALSE
+  | IMPL (p: logic) (q: logic)
+  | CONJ (p: logic) (q: logic)
+  | DISJ (p: logic) (q: logic)
+  | FORALL (x: V) (p: V -> logic)
+  | EXISTS (x: V) (p: V -> logic).
 
 Fixpoint interpret (formula: logic): Prop :=
   match formula with
-  | logic_equiv x y =>
+  | EQUIV x y =>
     V_equiv x y
-  | logic_member x y =>
+  | IN x y =>
     V_in x y
-  | logic_falsum =>
+  | FALSE =>
     False
-  | logic_impl p q =>
+  | IMPL p q =>
     interpret p -> interpret q
-  | logic_conj p q =>
+  | CONJ p q =>
     interpret p /\ interpret q
-  | logic_disj p q =>
+  | DISJ p q =>
     interpret p \/ interpret q
-  | logic_forall x p =>
+  | FORALL x p =>
     forall a: idx x, interpret (p (elts x a))
-  | logic_exists x p =>
+  | EXISTS x p =>
     exists a: idx x, interpret (p (elts x a))
   end.
 
