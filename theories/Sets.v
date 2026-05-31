@@ -24,9 +24,6 @@ Definition elts (x: V): idx x -> V :=
   | setof A f => f
   end.
 
-Definition V_class: Type :=
-  V -> Prop.
-
 Fixpoint V_equiv (x: V) (y: V): Prop :=
   match x, y with
   | setof A f, setof B g =>
@@ -161,6 +158,9 @@ Fixpoint interpret (formula: logic): Prop :=
   | logic_exists x p =>
     exists a: idx x, interpret (p (elts x a))
   end.
+
+Definition V_class (x: V): Type :=
+  { p: V -> logic | interpret (p x) }.
 
 (* -------------------------------------------------------------------------- *)
 
