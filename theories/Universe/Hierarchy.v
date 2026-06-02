@@ -11,7 +11,7 @@ Set Primitive Projections.
 
 Section Preliminaries.
 
-  Polymorphic Inductive finite: nat -> Set :=
+  Inductive finite: nat -> Set :=
     | finite_O:
       forall n,
       finite (S n)

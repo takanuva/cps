@@ -193,6 +193,7 @@ End CZF.
 
 (* -------------------------------------------------------------------------- *)
 
+(*
 Definition sV (u: universe): Set :=
   w (U u) T.
 
@@ -203,3 +204,4 @@ Fixpoint emb {u: universe} (x: sV u): V :=
 
 Definition uV (u: universe): V :=
   setof (sV u) emb.
+*)

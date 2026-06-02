@@ -16,11 +16,13 @@ Require Import Local.Combinators.
 Import ListNotations.
 Set Primitive Projections.
 
-Section DSet.
+Structure dset_data: Type := {
+  dset_carrier: Type;
+  dset_equiv: dset_carrier -> dset_carrier -> Prop;
+  dset_realization: CL -> dset_carrier -> Prop
+}.
 
-  Variable C: SmallCategory.
-
-  (*
+(*
   Inductive dset: Set :=
     (* | dset_mk:
       forall T: Set,
@@ -189,6 +191,4 @@ Section DSet.
   Next Obligation of dset_family.
     now transitivity y.
   Qed.
-  *)
-
-End DSet.
+*)
