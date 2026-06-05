@@ -52,12 +52,46 @@ Inductive step: relation CL :=
     step y1 y2 ->
     step (app x y1) (app x y2).
 
-Definition conv: relation CL :=
+Definition CL_equiv: relation CL :=
   rst(step).
 
-Definition conv_S:
+Lemma CL_equiv_refl:
+  forall x,
+  CL_equiv x x.
+Proof.
+  intros.
+  apply rst_refl.
+Qed.
+
+Lemma CL_equiv_sym:
+  forall x y,
+  CL_equiv x y -> CL_equiv y x.
+Proof.
+  intros.
+  now apply rst_sym.
+Qed.
+
+Lemma CL_equiv_trans:
   forall x y z,
-  conv (S x y z) (x z (y z)).
+  CL_equiv x y -> CL_equiv y z -> CL_equiv x z.
+Proof.
+  intros.
+  now apply rst_trans with y.
+Qed.
+
+Definition CL_setoid: Setoid := {|
+  setoid_carrier := CL;
+  setoid_equiv := CL_equiv;
+  setoid_refl := CL_equiv_refl;
+  setoid_sym := CL_equiv_sym;
+  setoid_trans := CL_equiv_trans
+|}.
+
+Global Canonical Structure CL_setoid.
+
+Definition CL_equiv_S:
+  forall x y z,
+  CL_equiv (S x y z) (x z (y z)).
 Proof.
   intros.
   apply clos_rt_clos_rst.
@@ -65,9 +99,9 @@ Proof.
   apply step_S.
 Qed.
 
-Definition conv_K:
+Definition CL_equiv_K:
   forall x y,
-  conv (K x y) x.
+  CL_equiv (K x y) x.
 Proof.
   intros.
   apply clos_rt_clos_rst.
@@ -75,17 +109,8 @@ Proof.
   apply step_K.
 Qed.
 
-Global Instance conv_equiv:
-  Equivalence conv.
-Proof.
-  split; repeat intro.
-  - apply rst_refl.
-  - now apply rst_sym.
-  - now apply rst_trans with y.
-Qed.
-
-Global Instance conv_app_proper:
-  Proper (conv ==> conv ==> conv) app.
+Global Instance CL_equiv_app_proper:
+  Proper (CL_equiv ==> CL_equiv ==> CL_equiv) app.
 Proof.
   repeat intro.
   transitivity (y x0).
@@ -105,80 +130,86 @@ Proof.
     + now transitivity (y y0).
 Qed.
 
-Definition conv_I:
+Global Instance setoid_equiv_app_proper:
+  Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) app.
+Proof.
+  apply CL_equiv_app_proper.
+Qed.
+
+Definition CL_equiv_I:
   forall x,
-  conv (I x) x.
+  CL_equiv (I x) x.
 Proof.
   intros.
   unfold I.
-  rewrite conv_S.
-  rewrite conv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
   reflexivity.
 Qed.
 
-Definition conv_B:
+Definition CL_equiv_B:
   forall x y z,
-  conv (B x y z) (x (y z)).
+  CL_equiv (B x y z) (x (y z)).
 Proof.
   intros.
   unfold B.
-  rewrite conv_S.
-  rewrite conv_K.
-  rewrite conv_S.
-  rewrite conv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
   reflexivity.
 Qed.
 
-Definition conv_C:
+Definition CL_equiv_C:
   forall x y z,
-  conv (C x y z) (x z y).
+  CL_equiv (C x y z) (x z y).
 Proof.
   intros.
   unfold C.
-  rewrite conv_S.
-  rewrite conv_S.
-  rewrite conv_K.
-  rewrite conv_S.
-  rewrite conv_K.
-  rewrite conv_S.
-  rewrite conv_K.
-  rewrite conv_S.
-  rewrite conv_K.
-  rewrite conv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
+  rewrite CL_equiv_K.
   reflexivity.
 Qed.
 
-Definition conv_F:
+Definition CL_equiv_F:
   forall x y,
-  conv (F x y) y.
+  CL_equiv (F x y) y.
 Proof.
   intros.
   unfold F.
-  rewrite conv_S.
-  rewrite conv_K.
+  rewrite CL_equiv_S.
+  rewrite CL_equiv_K.
   reflexivity.
 Qed.
 
-Definition conv_P:
+Definition CL_equiv_P:
   forall x y f,
-  conv (P x y f) (f x y).
+  CL_equiv (P x y f) (f x y).
 Proof.
   intros.
   unfold P.
-  rewrite conv_C.
-  rewrite conv_B.
-  rewrite conv_B.
-  rewrite conv_B.
-  rewrite conv_C.
-  rewrite conv_B.
-  rewrite conv_C.
-  rewrite conv_I.
-  rewrite conv_I.
-  rewrite conv_I.
+  rewrite CL_equiv_C.
+  rewrite CL_equiv_B.
+  rewrite CL_equiv_B.
+  rewrite CL_equiv_B.
+  rewrite CL_equiv_C.
+  rewrite CL_equiv_B.
+  rewrite CL_equiv_C.
+  rewrite CL_equiv_I.
+  rewrite CL_equiv_I.
+  rewrite CL_equiv_I.
   reflexivity.
 Qed.
 
-Fixpoint cl_traverse (f: nat -> nat -> CL) (k: nat) (e: CL): CL :=
+Fixpoint CL_traverse (f: nat -> nat -> CL) (k: nat) (e: CL): CL :=
   match e with
   | bound n =>
     f k n
@@ -187,33 +218,33 @@ Fixpoint cl_traverse (f: nat -> nat -> CL) (k: nat) (e: CL): CL :=
   | K =>
     K
   | app e1 e2 =>
-    app (cl_traverse f k e1) (cl_traverse f k e2)
+    app (CL_traverse f k e1) (CL_traverse f k e2)
   end.
 
-Global Instance cl_dbVar: dbVar CL :=
+Global Instance CL_dbVar: dbVar CL :=
   bound.
 
-Global Instance cl_dbTraverse: dbTraverse CL CL :=
-  cl_traverse.
+Global Instance CL_dbTraverse: dbTraverse CL CL :=
+  CL_traverse.
 
-Global Instance cl_dbVarLaws: dbVarLaws CL.
+Global Instance CL_dbVarLaws: dbVarLaws CL.
 Proof.
   split; intros.
   reflexivity.
 Qed.
 
-Global Instance cl_dbTraverseLaws: dbTraverseLaws CL CL.
+Global Instance CL_dbTraverseLaws: dbTraverseLaws CL CL.
 Proof.
   split; intros.
-  - unfold traverse, cl_dbTraverse.
+  - unfold traverse, CL_dbTraverse.
     induction x; simpl; eauto.
     congruence.
   - apply (H k (bound n)).
-  - unfold traverse, cl_dbTraverse.
+  - unfold traverse, CL_dbTraverse.
     induction x; simpl; eauto.
     + apply (H 0 n).
     + congruence.
-  - unfold traverse, cl_dbTraverse.
+  - unfold traverse, CL_dbTraverse.
     induction x; simpl; eauto.
     congruence.
 Qed.
@@ -293,15 +324,5 @@ Qed.
 Next Obligation of free_not_free_dec.
   now constructor.
 Qed.
-
-Definition cl_setoid: Setoid := {|
-  setoid_carrier := CL;
-  setoid_equiv := conv;
-  setoid_refl := reflexivity;
-  setoid_sym := symmetry;
-  setoid_trans := transitivity
-|}.
-
-Global Canonical Structure cl_setoid.
 
 (* TODO: bracket abstraction, just for fun, then define P and F with it. *)
