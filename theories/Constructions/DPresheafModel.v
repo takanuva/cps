@@ -10,11 +10,11 @@ Require Import Local.Substitution.
 Require Import Local.Setoid.
 Require Import Local.Category.
 Require Import Local.Combinators.
+Require Import Local.DSet.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 (* Require Import Local.Constructions.Inversion. *)
-Require Import Local.Constructions.DSet.
 Require Import Local.Constructions.DSetModel.
 
 Set Primitive Projections.

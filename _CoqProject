@@ -7,6 +7,7 @@ theories/Setoid.v
 theories/Category/Theory.v
 theories/Category/WithFamilies.v
 theories/Category.v
+theories/DSet.v
 theories/Universe/InductionRecursion.v
 theories/Universe/Construction.v
 theories/Universe/Hierarchy.v
@@ -64,7 +65,6 @@ theories/Constructions/Confluence.v
 theories/Constructions/TypeSystem.v
 theories/Constructions/Inversion.v
 theories/Constructions/TermModel.v
-theories/Constructions/DSet.v
 theories/Constructions/DSetModel.v
 theories/Constructions/DPresheafModel.v
 theories/Constructions/Normalization.v
