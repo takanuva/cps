@@ -3,6 +3,7 @@
 (******************************************************************************)
 
 Require Import Program.
+Require Import Equality.
 Require Import Morphisms.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
@@ -31,6 +32,20 @@ Arguments finite_S {n}.
 Definition tt1 {l}: T (FINITE 1) :=
   rew <- [fun T => T] T_FINITE l 1 in finite_O.
 
+Lemma tt1_unique:
+  forall l: level,
+  forall u: T (@FINITE l 1),
+  u = @tt1 l.
+Proof.
+  intro; unfold tt1.
+  rewrite T_FINITE.
+  compute; intros.
+  dependent destruction u.
+  - reflexivity.
+  - exfalso.
+    inversion u.
+Qed.
+
 Program Definition nabla_unit: dset_omega := {|
   dset_code := FINITE 1;
   dset_equiv := eq;
@@ -54,8 +69,8 @@ Program Definition dset_model: CwF := {|
 
 Next Obligation of dset_model.
   repeat intro; simpl in *.
-  (* Oh boy... *)
-Admitted.
+  apply (@tt1_unique uw).
+Qed.
 
 Admit Obligations.
 
