@@ -12,7 +12,6 @@ theories/Universe/InductionRecursion.v
 theories/Universe/Construction.v
 theories/Universe/Hierarchy.v
 theories/Universe.v
-theories/Sets.v
 # Ignore for now...
 # theories/Generic.v
 theories/Syntax.v
