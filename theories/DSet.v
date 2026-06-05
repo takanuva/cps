@@ -139,21 +139,23 @@ Section DSet.
     setoid_equiv := dmap_equiv
   |}.
 
-  Next Obligation.
+  Next Obligation of dmap_setoid.
     repeat intro.
     reflexivity.
   Qed.
 
-  Next Obligation.
+  Next Obligation of dmap_setoid.
     repeat intro.
     now symmetry.
   Qed.
 
-  Next Obligation.
+  Next Obligation of dmap_setoid.
     repeat intro.
     rename x0 into w.
     now transitivity (y w).
   Qed.
+
+  Global Canonical Structure dmap_setoid.
 
   Global Instance dmap_proper:
     forall G D f,
@@ -168,7 +170,7 @@ Section DSet.
     dmap_wit := I
   |}.
 
-  Next Obligation.
+  Next Obligation of dmap_id.
     now rewrite CL_equiv_I.
   Qed.
 
@@ -177,15 +179,58 @@ Section DSet.
     dmap_wit := B (dmap_wit _ _ g) (dmap_wit _ _ f)
   |}.
 
-  Next Obligation.
+  Next Obligation of dmap_post.
     now rewrite H.
   Qed.
 
-  Next Obligation.
+  Next Obligation of dmap_post.
     rewrite CL_equiv_B.
     apply dmap_preserves.
     apply dmap_preserves.
     assumption.
+  Qed.
+
+  Global Instance dmap_post_proper:
+    forall G D E,
+    Proper (setoid_equiv ==> setoid_equiv ==> setoid_equiv) (@dmap_post G D E).
+  Proof.
+    repeat intro.
+    unfold dmap_post; simpl.
+    transitivity (y0 (x x1)).
+    - apply H0.
+    - apply dmap_respectful.
+      apply H.
+  Qed.
+
+  Program Definition dset_category: Category := {|
+    obj := dset;
+    hom := dmap_setoid;
+    id G := dmap_id;
+    post G D E :=
+      map f g => dmap_post f g
+  |}.
+
+  Next Obligation of dset_category.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of dset_category.
+    now rewrite H.
+  Qed.
+
+  Next Obligation of dset_category.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dset_category.
+    repeat intro; simpl.
+    reflexivity.
+  Qed.
+
+  Next Obligation of dset_category.
+    repeat intro; simpl.
+    reflexivity.
   Qed.
 
 End DSet.
