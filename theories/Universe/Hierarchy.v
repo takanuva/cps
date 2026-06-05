@@ -3,13 +3,12 @@
 (******************************************************************************)
 
 Require Import List.
+Require Import Local.Category.
+Require Import Local.DSet.
 Require Import Local.Universe.Construction.
 
 Import ListNotations.
-(* Set Universe Polymorphism. *)
 Set Primitive Projections.
-
-(* TODO: we might need to import the D-set file... *)
 
 (*
 
