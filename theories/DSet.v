@@ -37,13 +37,14 @@ Set Primitive Projections.
 
   So, in order to model this, we rely on the encoding for induction-recursion
   using impredicative Set, in order to make internal Tarski universes. We start
-  with some basic universe U 0: Set (defined in TODO). We then build a small
-  generalization of D-sets over some family of types, dset A B, which allows
-  most of the constructions needed when A = U 0 and B = T 0. For the following
-  universes in the hierarchy, we need then a code for dset itself, which we can
-  take as a type constructor. So, by now using dset (U 1) (T 1), we can embed
-  everything from dset (U 0) (T 0) due to cumulativity, plus we will have a code
-  for dset (U 0) (T 0) itself too, leading to the desired notion of hierarchy.
+  with some basic universe U 0: Set (defined in [Univese/Hierarchy.v]). We then
+  build a small generalization of D-sets over some family of types, dset A B,
+  which allows most of the constructions needed when A = U 0 and B = T 0. For
+  the following universes in the hierarchy, we need then a code for dset itself,
+  which we can take as a type constructor. So, by now using dset (U 1) (T 1), we
+  can embed everything from dset (U 0) (T 0) due to cumulativity, plus we will
+  have a code for dset (U 0) (T 0) itself too, leading to the desired notion of
+  hierarchy.
 *)
 
 Section DSet.
