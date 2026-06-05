@@ -95,6 +95,29 @@ Section DSet.
 
 End DSet.
 
+(* TODO: move these, of course... *)
+
+Inductive finite: nat -> Set :=
+  | finite_O:
+    forall n,
+    finite (1 + n)
+  | finite_S:
+    forall n,
+    finite n ->
+    finite (1 + n).
+
+Polymorphic Definition pi (A: Type) (B: A -> Type): Type :=
+  forall x: A, B x.
+
+Polymorphic Definition sigma (A: Type) (B: A -> Type): Type :=
+  @sigT A B.
+
+Definition U0: Set :=
+  Universe.Construction.CODE nat finite [pi; sigma].
+
+Definition T0: U0 -> Type :=
+  @Universe.Construction.TYPE _ _ _.
+
 (*
   Inductive dset: Set :=
     (* | dset_mk:
