@@ -9,6 +9,8 @@ Require Import Morphisms.
 Require Import Local.Setoid.
 Require Import Local.Universe.
 
+(*
+
 (* I would like to set those types at level 2 and 1, respectively, but... *)
 
 Inductive V: Type :=
@@ -204,4 +206,6 @@ Fixpoint emb {u: universe} (x: sV u): V :=
 
 Definition uV (u: universe): V :=
   setof (sV u) emb.
+*)
+
 *)

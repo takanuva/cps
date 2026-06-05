@@ -16,10 +16,64 @@ Require Import Local.Combinators.
 Import ListNotations.
 Set Primitive Projections.
 
-Structure dset_data: Type := {
-  dset_carrier: Type;
+(*
+  Modeling a D-set hierarchy in Coq is seemingly not a trivial task... but lets
+  give it a shot. Out of spite, of course.
+
+  Namely, a D-set, also called an assembly (actually this name seems preferred),
+  is just a carrier set S along with a relation between some combinatory algebra
+  D (which we fix as CL here!) and S, that specifies that a combinator realizes
+  S. We can think of these as "machine implementations" for such a carrier, as
+  noted by van Evert ("Realizability semantics for type theory").
+
+  This would usually be simple to code, but in order to construct universes in
+  the categorical model for some type theory, we'll need to build a D-set such
+  that the carrier set is the set of D-sets itself. Of course then there will be
+  size issues: we need to define D-set up to some size. While we can define the
+  D-set type as a polymorphic structure, such that we can always take D-sets
+  from a smaller universe as carrier sets, these universes are not internally
+  indexable in Coq's type theory, so we can't really make an initial model (out
+  of the syntax objects). In Agda we would simply eliminate from nat into Level
+  and call it a day... sigh.
+
+  So, in order to model this, we rely on the encoding for induction-recursion
+  using impredicative Set, in order to make internal Tarski universes. We start
+  with some basic universe U 0: Set (defined in TODO). We then build a small
+  generalization of D-sets over some family of types, dset A B, which allows
+  most of the constructions needed when A = U 0 and B = T 0. For the following
+  universes in the hierarchy, we need then a code for dset itself, which we can
+  take as a type constructor. So, by now using dset (U 1) (T 1), we can embed
+  everything from dset (U 0) (T 0) due to cumulativity, plus we will have a code
+  for dset (U 0) (T 0) itself too, leading to the desired notion of hierarchy.
+*)
+
+Polymorphic Structure dset (A: Type) (B: A -> Type): Type := {
+  dset_code: A;
+  dset_carrier := B dset_code;
   dset_equiv: dset_carrier -> dset_carrier -> Prop;
-  dset_realization: CL -> dset_carrier -> Prop
+  dset_realization: CL -> dset_carrier -> Prop;
+  dset_refl:
+    forall x: dset_carrier,
+    dset_equiv x x;
+  dset_sym:
+    forall x y: dset_carrier,
+    dset_equiv x y ->
+    dset_equiv y x;
+  dset_trans:
+    forall x y z: dset_carrier,
+    dset_equiv x y ->
+    dset_equiv y z ->
+    dset_equiv x z;
+  dset_respectful:
+    forall x1 x2,
+    CL_equiv x1 x2 ->
+    forall y1 y2,
+    dset_equiv y1 y2 ->
+    dset_realization x2 y2 ->
+    dset_realization x1 y1;
+  dset_surjective:
+    forall y: dset_carrier,
+    { x: CL | dset_realization x y }
 }.
 
 (*

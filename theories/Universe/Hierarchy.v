@@ -9,6 +9,10 @@ Import ListNotations.
 (* Set Universe Polymorphism. *)
 Set Primitive Projections.
 
+(* TODO: we might need to import the D-set file... *)
+
+(*
+
 Section Preliminaries.
 
   Inductive finite: nat -> Set :=
@@ -183,3 +187,5 @@ Next Obligation of uw.
   unfold TYPE', CTOR'.
   now rewrite TYPE_CTOR.
 Qed.
+
+*)
