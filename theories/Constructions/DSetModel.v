@@ -11,11 +11,21 @@ Require Import Local.Setoid.
 Require Import Local.Category.
 Require Import Local.Combinators.
 Require Import Local.DSet.
+Require Import Local.Universe.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.TypeSystem.
 
 Set Primitive Projections.
+
+Definition dset_omega: Type :=
+  dset (U uw) T.
+
+Program Definition dset_model: CwF := {|
+  cwf_cat := dset_category (U uw) T
+|}.
+
+Admit Obligations.
 
 (*
 
