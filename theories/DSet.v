@@ -44,7 +44,9 @@ Set Primitive Projections.
   which we can take as a type constructor. So, by now using dset (U 1) (T 1), we
   can embed everything from dset (U 0) (T 0) due to cumulativity, plus we will
   have a code for dset (U 0) (T 0) itself too, leading to the desired notion of
-  hierarchy.
+  hierarchy. This will, of course, also happen for all U n in the hierarchy. So
+  finally, we can work using the transfinite universe, by defining our category
+  using dset (U uw) (T uw).
 *)
 
 Section DSet.
