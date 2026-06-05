@@ -93,6 +93,46 @@ Section DSet.
 
   Global Coercion dset_setoid: dset >-> Setoid.
 
+  Structure dmap (G: dset) (D: dset): Type := {
+    dmap_fun: G -> D;
+    dmap_wit: CL;
+    dmap_respectful:
+      forall y1 y2,
+      y1 == y2 ->
+      dmap_fun y1 == dmap_fun y2;
+    dmap_preserves:
+      forall y g,
+      G y g ->
+      D (app dmap_wit y) (dmap_fun g)
+  }.
+
+  Global Coercion dmap_fun: dmap >-> Funclass.
+
+  Definition dmap_equiv {G D} (f: dmap G D) (g: dmap G D): Prop :=
+    forall x,
+    f x == g x.
+
+  Program Definition dmap_setoid G D: Setoid := {|
+    setoid_carrier := dmap G D;
+    setoid_equiv := dmap_equiv
+  |}.
+
+  Next Obligation.
+    repeat intro.
+    reflexivity.
+  Qed.
+
+  Next Obligation.
+    repeat intro.
+    now symmetry.
+  Qed.
+
+  Next Obligation.
+    repeat intro.
+    rename x0 into w.
+    now transitivity (y w).
+  Qed.
+
 End DSet.
 
 (*
