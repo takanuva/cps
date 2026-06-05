@@ -83,6 +83,16 @@ Section DSet.
 
   Global Coercion dset_realization: dset >-> Funclass.
 
+  Global Instance dset_equiv_is_equivalence:
+    forall G,
+    Equivalence (dset_equiv G).
+  Proof.
+    split; repeat intro.
+    - apply dset_refl.
+    - now apply dset_sym.
+    - now apply dset_trans with y.
+  Qed.
+
   Definition dset_setoid (s: dset): Setoid := {|
     setoid_carrier := dset_carrier s;
     setoid_equiv := dset_equiv s;
@@ -90,6 +100,8 @@ Section DSet.
     setoid_sym := dset_sym s;
     setoid_trans := dset_trans s
   |}.
+
+  Global Canonical Structure dset_setoid.
 
   Global Coercion dset_setoid: dset >-> Setoid.
 
@@ -109,8 +121,7 @@ Section DSet.
   Global Coercion dmap_fun: dmap >-> Funclass.
 
   Definition dmap_equiv {G D} (f: dmap G D) (g: dmap G D): Prop :=
-    forall x,
-    f x == g x.
+    forall x, f x == g x.
 
   Program Definition dmap_setoid G D: Setoid := {|
     setoid_carrier := dmap G D;
@@ -131,6 +142,26 @@ Section DSet.
     repeat intro.
     rename x0 into w.
     now transitivity (y w).
+  Qed.
+
+  Global Instance dset_realization_proper:
+    forall {G: dset},
+    Proper (setoid_equiv ==>
+            (@setoid_equiv (dset_setoid G)) ==>
+            iff) (dset_realization G).
+  Proof.
+    split; intro.
+    - now apply dset_respectful with x x0.
+    - now apply dset_respectful with y y0.
+  Qed.
+
+  Program Definition dmap_id {G}: dmap G G := {|
+    dmap_fun x := x;
+    dmap_wit := I
+  |}.
+
+  Next Obligation.
+    now rewrite CL_equiv_I.
   Qed.
 
 End DSet.
