@@ -47,34 +47,53 @@ Set Primitive Projections.
   for dset (U 0) (T 0) itself too, leading to the desired notion of hierarchy.
 *)
 
-Polymorphic Structure dset (A: Type) (B: A -> Type): Type := {
-  dset_code: A;
-  dset_carrier := B dset_code;
-  dset_equiv: dset_carrier -> dset_carrier -> Prop;
-  dset_realization: CL -> dset_carrier -> Prop;
-  dset_refl:
-    forall x: dset_carrier,
-    dset_equiv x x;
-  dset_sym:
-    forall x y: dset_carrier,
-    dset_equiv x y ->
-    dset_equiv y x;
-  dset_trans:
-    forall x y z: dset_carrier,
-    dset_equiv x y ->
-    dset_equiv y z ->
-    dset_equiv x z;
-  dset_respectful:
-    forall x1 x2,
-    CL_equiv x1 x2 ->
-    forall y1 y2,
-    dset_equiv y1 y2 ->
-    dset_realization x2 y2 ->
-    dset_realization x1 y1;
-  dset_surjective:
-    forall y: dset_carrier,
-    { x: CL | dset_realization x y }
-}.
+Section DSet.
+
+  Variable A: Type.
+  Variable B: A -> Type.
+
+  Structure dset: Type := {
+    dset_code: A;
+    dset_carrier := B dset_code;
+    dset_equiv: dset_carrier -> dset_carrier -> Prop;
+    dset_realization: CL -> dset_carrier -> Prop;
+    dset_refl:
+      forall x: dset_carrier,
+      dset_equiv x x;
+    dset_sym:
+      forall x y: dset_carrier,
+      dset_equiv x y ->
+      dset_equiv y x;
+    dset_trans:
+      forall x y z: dset_carrier,
+      dset_equiv x y ->
+      dset_equiv y z ->
+      dset_equiv x z;
+    dset_respectful:
+      forall x1 x2,
+      CL_equiv x1 x2 ->
+      forall y1 y2,
+      dset_equiv y1 y2 ->
+      dset_realization x2 y2 ->
+      dset_realization x1 y1;
+    dset_surjective:
+      forall y: dset_carrier,
+      { x: CL | dset_realization x y }
+  }.
+
+  Global Coercion dset_realization: dset >-> Funclass.
+
+  Definition dset_setoid (s: dset): Setoid := {|
+    setoid_carrier := dset_carrier s;
+    setoid_equiv := dset_equiv s;
+    setoid_refl := dset_refl s;
+    setoid_sym := dset_sym s;
+    setoid_trans := dset_trans s
+  |}.
+
+  Global Coercion dset_setoid: dset >-> Setoid.
+
+End DSet.
 
 (*
   Inductive dset: Set :=
