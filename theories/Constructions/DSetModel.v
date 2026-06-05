@@ -56,21 +56,23 @@ Next Obligation of nabla_unit.
   now exists I.
 Defined.
 
-Program Definition dset_model: CwF := {|
-  cwf_cat := dset_category (U uw) T;
-  cwf_empty := {|
-    terminal := nabla_unit;
-    terminal_hom X := {|
-      dmap_fun x := tt1;
-      dmap_wit := I
-    |}
+Program Definition dset_terminal: Terminal (dset_category (U uw) T) := {|
+  terminal := nabla_unit;
+  terminal_hom X := {|
+    dmap_fun x := tt1;
+    dmap_wit := I
   |}
 |}.
 
-Next Obligation of dset_model.
+Next Obligation of dset_terminal.
   repeat intro; simpl in *.
-  apply (@tt1_unique uw).
+  apply (tt1_unique uw).
 Qed.
+
+Program Definition dset_model: CwF := {|
+  cwf_cat := dset_category (U uw) T;
+  cwf_empty := dset_terminal
+|}.
 
 Admit Obligations.
 
