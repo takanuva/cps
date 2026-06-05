@@ -49,12 +49,12 @@ Set Primitive Projections.
 
 Section DSet.
 
-  Variable A: Type.
-  Variable B: A -> Type.
+  Variable U: Type.
+  Variable T: U -> Type.
 
   Structure dset: Type := {
-    dset_code: A;
-    dset_carrier := B dset_code;
+    dset_code: U;
+    dset_carrier := T dset_code;
     dset_equiv: dset_carrier -> dset_carrier -> Prop;
     dset_realization: CL -> dset_carrier -> Prop;
     dset_refl:
@@ -105,6 +105,17 @@ Section DSet.
 
   Global Coercion dset_setoid: dset >-> Setoid.
 
+  Global Instance dset_realization_proper:
+    forall {G: dset},
+    Proper (setoid_equiv ==>
+            (@setoid_equiv (dset_setoid G)) ==>
+            iff) (dset_realization G).
+  Proof.
+    split; intro.
+    - now apply dset_respectful with x x0.
+    - now apply dset_respectful with y y0.
+  Qed.
+
   Structure dmap (G: dset) (D: dset): Type := {
     dmap_fun: G -> D;
     dmap_wit: CL;
@@ -144,15 +155,12 @@ Section DSet.
     now transitivity (y w).
   Qed.
 
-  Global Instance dset_realization_proper:
-    forall {G: dset},
-    Proper (setoid_equiv ==>
-            (@setoid_equiv (dset_setoid G)) ==>
-            iff) (dset_realization G).
+  Global Instance dmap_proper:
+    forall G D f,
+    Proper (setoid_equiv ==> setoid_equiv) (@dmap_fun G D f).
   Proof.
-    split; intro.
-    - now apply dset_respectful with x x0.
-    - now apply dset_respectful with y y0.
+    repeat intro.
+    now apply dmap_respectful.
   Qed.
 
   Program Definition dmap_id {G}: dmap G G := {|
@@ -162,6 +170,22 @@ Section DSet.
 
   Next Obligation.
     now rewrite CL_equiv_I.
+  Qed.
+
+  Program Definition dmap_post {G D E} (f: dmap G D) (g: dmap D E) := {|
+    dmap_fun x := g (f x);
+    dmap_wit := B (dmap_wit _ _ g) (dmap_wit _ _ f)
+  |}.
+
+  Next Obligation.
+    now rewrite H.
+  Qed.
+
+  Next Obligation.
+    rewrite CL_equiv_B.
+    apply dmap_preserves.
+    apply dmap_preserves.
+    assumption.
   Qed.
 
 End DSet.
