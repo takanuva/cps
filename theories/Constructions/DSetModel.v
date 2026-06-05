@@ -21,9 +21,41 @@ Set Primitive Projections.
 Definition dset_omega: Type :=
   dset (U uw) T.
 
-Program Definition dset_model: CwF := {|
-  cwf_cat := dset_category (U uw) T
+(* TODO: might want to move this... *)
+
+Import EqNotations.
+
+Arguments finite_O {n}.
+Arguments finite_S {n}.
+
+Definition tt1 {l}: T (FINITE 1) :=
+  rew <- [fun T => T] T_FINITE l 1 in finite_O.
+
+Program Definition nabla_unit: dset_omega := {|
+  dset_code := FINITE 1;
+  dset_equiv := eq;
+  dset_realization x y := True
 |}.
+
+Next Obligation of nabla_unit.
+  now exists I.
+Defined.
+
+Program Definition dset_model: CwF := {|
+  cwf_cat := dset_category (U uw) T;
+  cwf_empty := {|
+    terminal := nabla_unit;
+    terminal_hom X := {|
+      dmap_fun x := tt1;
+      dmap_wit := I
+    |}
+  |}
+|}.
+
+Next Obligation of dset_model.
+  repeat intro; simpl in *.
+  (* Oh boy... *)
+Admitted.
 
 Admit Obligations.
 
