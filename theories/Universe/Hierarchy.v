@@ -70,7 +70,8 @@ Definition universe (l: level): tarski :=
 
 Global Coercion universe: level >-> tarski.
 
-Definition NAT' (l: level): { c: U l | T _ c = nat }.
+Local Definition NAT' (l: level):
+  { c: U l | T _ c = nat }.
 Proof.
   destruct l.
   - induction i; simpl.
@@ -100,7 +101,8 @@ Proof.
   now destruct (NAT' l).
 Qed.
 
-Definition FINITE' (l: level) (n: nat): { c: U l | T _ c = finite n }.
+Local Definition FINITE' (l: level) (n: nat):
+  { c: U l | T _ c = finite n }.
 Proof.
   destruct l.
   - induction i; simpl.
