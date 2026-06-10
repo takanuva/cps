@@ -32,18 +32,21 @@ Arguments finite_S {n}.
 Definition tt1 {l}: T (FINITE 1) :=
   rew <- [fun T => T] T_FINITE l 1 in finite_O.
 
-Lemma tt1_unique:
-  forall l: level,
-  forall u: T (@FINITE l 1),
-  u = @tt1 l.
+Lemma FINITE_1_rect:
+  forall l,
+  forall P: T (@FINITE l 1) -> Type,
+  P (@tt1 l) ->
+  forall x: T (@FINITE l 1),
+  P x.
 Proof.
-  intro; unfold tt1.
-  rewrite T_FINITE.
-  compute; intros.
-  dependent destruction u.
-  - reflexivity.
+  intro.
+  unfold tt1.
+  rewrite T_FINITE; intros.
+  compute in X.
+  dependent destruction x.
+  - assumption.
   - exfalso.
-    inversion u.
+    inversion x.
 Qed.
 
 Program Definition nabla_unit: dset_omega := {|
@@ -66,7 +69,8 @@ Program Definition dset_terminal: Terminal (dset_category (U uw) T) := {|
 
 Next Obligation of dset_terminal.
   repeat intro; simpl in *.
-  apply (tt1_unique uw).
+  destruct (f x) using (@FINITE_1_rect uw).
+  reflexivity.
 Qed.
 
 Program Definition dset_model: CwF := {|
