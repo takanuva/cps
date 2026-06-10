@@ -57,7 +57,8 @@ Program Definition nabla_unit: dset_omega := {|
 |}.
 
 Program Definition dset_model: CwF := {|
-  cwf_cat := dset_category (U uw) T;
+  cwf_cat :=
+    dset_category (U uw) T;
   cwf_empty := {|
     terminal := nabla_unit;
     terminal_hom X := {|
@@ -65,7 +66,12 @@ Program Definition dset_model: CwF := {|
       dmap_wit := I
     |}
   |};
-  cwf_ty := dset_family_setoid (U uw) T
+  cwf_ty :=
+    dset_family_setoid (U uw) T;
+  cwf_tsub G D :=
+    (* T[S] := fun (d: D) => T (S d) *)
+    map (S: dmap (U uw) T D G) (T: dset_family (U uw) T G) =>
+      existT (fun (d: D) => projT1 T (S d)) _
 |}.
 
 Next Obligation of dset_model.
@@ -73,6 +79,27 @@ Next Obligation of dset_model.
   destruct (f x) using (@FINITE_1_rect uw).
   reflexivity.
 Qed.
+
+Next Obligation of dset_model.
+  destruct T as (f, ?X); simpl in *.
+  unshelve eexists; intros.
+  - apply X.
+    now rewrite H.
+  - repeat intro; simpl.
+    apply (setoid_transport_irr _ _ X).
+  - repeat intro; simpl.
+    apply (setoid_transport_id _ _ X).
+  - repeat intro; simpl.
+    apply (setoid_transport_post _ _ X).
+Qed.
+
+Next Obligation of dset_model.
+  admit.
+Admitted.
+
+Next Obligation of dset_model.
+  admit.
+Admitted.
 
 Admit Obligations.
 
