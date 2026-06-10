@@ -56,25 +56,23 @@ Program Definition nabla_unit: dset_omega := {|
   dset_surjective y := I
 |}.
 
-Program Definition dset_terminal: Terminal (dset_category (U uw) T) := {|
-  terminal := nabla_unit;
-  terminal_hom X := {|
-    dmap_fun x := tt1;
-    dmap_wit := I
-  |}
+Program Definition dset_model: CwF := {|
+  cwf_cat := dset_category (U uw) T;
+  cwf_empty := {|
+    terminal := nabla_unit;
+    terminal_hom X := {|
+      dmap_fun x := tt1;
+      dmap_wit := I
+    |}
+  |};
+  cwf_ty := dset_family_setoid (U uw) T
 |}.
 
-Next Obligation of dset_terminal.
+Next Obligation of dset_model.
   repeat intro; simpl in *.
   destruct (f x) using (@FINITE_1_rect uw).
   reflexivity.
 Qed.
-
-Program Definition dset_model: CwF := {|
-  cwf_cat := dset_category (U uw) T;
-  cwf_empty := dset_terminal;
-  cwf_ty := dset_family_setoid (U uw) T
-|}.
 
 Admit Obligations.
 
