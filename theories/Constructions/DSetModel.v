@@ -72,7 +72,8 @@ Qed.
 
 Program Definition dset_model: CwF := {|
   cwf_cat := dset_category (U uw) T;
-  cwf_empty := dset_terminal
+  cwf_empty := dset_terminal;
+  cwf_ty := dset_family_setoid (U uw) T
 |}.
 
 Admit Obligations.

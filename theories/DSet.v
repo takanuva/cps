@@ -235,6 +235,34 @@ Section DSet.
     reflexivity.
   Qed.
 
+  Definition dset_family (G: dset): Type :=
+    { f: G -> dset & is_family G f }.
+
+  (* TODO: we need to define the notion of equality on families... *)
+
+  Axiom dset_family_equiv:
+    forall G: dset,
+    dset_family G ->
+    dset_family G ->
+    Prop.
+
+  Program Definition dset_family_setoid (G: dset): Setoid := {|
+    setoid_carrier := dset_family G;
+    setoid_equiv := dset_family_equiv G
+  |}.
+
+  Next Obligation of dset_family_setoid.
+    admit.
+  Admitted.
+
+  Next Obligation of dset_family_setoid.
+    admit.
+  Admitted.
+
+  Next Obligation of dset_family_setoid.
+    admit.
+  Admitted.
+
 End DSet.
 
 (*

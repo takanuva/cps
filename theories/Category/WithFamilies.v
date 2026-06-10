@@ -23,7 +23,7 @@ Set Universe Polymorphism.
    substitution and to the sigma-calculus, which is quite evident!
 *)
 
-Structure CwF := {
+Structure CwF: Type := {
   (* ... *)
   cwf_cat: Category;
   (* ... *)
