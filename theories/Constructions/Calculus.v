@@ -15,20 +15,19 @@ Variant sort: Set :=
   | iset
   | type (n: nat).
 
-(*
-Definition top (s1: universe) (s2: universe) :=
-  match s1, s2 with
-  | _, iset => s1
-  | iset, _ => s2
-  | type n, type m => type (max n m)
-  end.
+(* TODO: use or remove this... *)
 
-Definition sort_of_product (s1: universe) (s2: universe) :=
+Definition sort_of_product (s1: sort) (s2: sort) :=
+  (* Impredicativity... *)
   if s2 (* is iset *) then
     iset
   else
-    top s1 s2.
-*)
+    (* Otherwise, largest universe. *)
+    match s1, s2 with
+    | iset, _ => s2
+    | _, iset => s1
+    | type n, type m => type (max n m)
+    end.
 
 (*
   TODO: thunking/later modality.
