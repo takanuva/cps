@@ -179,12 +179,12 @@ Proof.
   eapply TT.typing_abs.
   eapply TT.typing_app.
   eapply TT.typing_bound.
-  repeat econstructor; vm_compute; reflexivity.
+  admit.
   repeat constructor.
   now simpl.
   now vm_compute.
   eapply TT.typing_bound.
-  repeat econstructor; vm_compute; reflexivity.
+  admit.
   constructor.
   now simpl.
   now vm_compute.

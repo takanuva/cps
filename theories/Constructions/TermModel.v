@@ -266,11 +266,10 @@ Qed.
 (* -------------------------------------------------------------------------- *)
 
 Definition welltyped_type (g: env) :=
-  { t: term | exists s, typing g t (sort s) conv }.
+  { t: term | exists s: sort, typing g t (sort_term s) conv }.
 
 Program Definition type_setoid (g: env): Setoid := {|
   setoid_carrier := welltyped_type g;
-  (* TODO: what about comulativity...? *)
   setoid_equiv T U := conv g (`T) (`U)
 |}.
 
@@ -291,7 +290,6 @@ Definition welltyped_term (g: env) (t: term) :=
 
 Program Definition term_setoid (g: env) (t: term): Setoid := {|
   setoid_carrier := welltyped_term g t;
-  (* TODO: what about comulativity...? *)
   setoid_equiv E F := conv g (`E) (`F)
 |}.
 
@@ -333,7 +331,7 @@ Program Definition term_model: CwF := {|
   (* cwf_ext (G: welltyped_env) (T: welltyped_type G) :=
     decl_var (`T) :: (`G); *)
   cwf_u (G: welltyped_env) (n: nat) :=
-    sort (type n);
+    sort_term (type n);
   cwf_t (G: welltyped_env) (n: nat) U :=
     U;
   cwf_lift (G: welltyped_env) n l (H: n < l) U :=
@@ -360,7 +358,7 @@ Next Obligation of term_model.
   destruct T as (t, (u, ?H)); simpl in *.
   exists u.
   (* Since substitution doesn't change sorts... *)
-  change (sort u) with (inst s (sort u)).
+  change (sort_term u) with (inst s (sort_term u)).
   now apply typing_inst with g.
 Qed.
 

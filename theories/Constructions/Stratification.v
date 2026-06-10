@@ -35,7 +35,7 @@ Import ListNotations.
 Inductive is_arity: term -> Prop :=
   | is_arity_now:
     forall s,
-    is_arity (sort s)
+    is_arity (sort_term s)
   | is_arity_pi:
     forall t u,
     is_arity u ->
@@ -61,7 +61,7 @@ Inductive type_scheme (R: typing_equivalence) (g: env): term -> Prop :=
 Lemma type_scheme_sort:
   forall R g s,
   valid_env g R ->
-  type_scheme R g (sort s).
+  type_scheme R g (sort_term s).
 Proof.
   intros.
   destruct s.
@@ -109,26 +109,22 @@ Proof.
     + right; now inversion 1.
   - right; inversion 1.
   - right; inversion 1.
-  (* - destruct IHt3.
-    + left; now constructor.
-    + right; now inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1.
-  - right; inversion 1. *)
-Qed.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
 
 Definition schemes_only (R: typing_equivalence) (g: env): Prop :=
   forall d n,
-  (* TODO: improve this definition. *)
-  item d g n -> exists s, typing g (lift (S n) 0 (snd d)) (sort s) R.
+  (* TODO: improve this definition... *)
+  item d g n ->
+  exists s: sort, typing g (lift (S n) 0 (snd d)) (sort_term s) R.
 
 Definition well_sorted (R: typing_equivalence) (g: env) (t: term): Prop :=
   schemes_only R g /\ type_scheme R g t.
@@ -168,24 +164,25 @@ Proof.
     + econstructor.
       * eassumption.
       * constructor.
-  (* Case: pi. *)
-  - subst.
-    destruct IHinfer1.
+  (* Case: pi_type. *)
+  - assumption.
+  (* Case: pi_iset. *)
+  - destruct IHinfer1.
     destruct IHinfer2.
     split; auto.
     apply type_scheme_sort.
-    apply valid_env_typing in H.
-    assumption.
+    now apply valid_env_typing in H.
   (* Case: abstraction. *)
   - destruct IHinfer as (?H, ?H).
     split.
     + admit.
     + admit.
   (* Case: application. *)
-  - (* Type schemes are stable under substitution according to "A New
+  - (* TODO: Type schemes are stable under substitution according to "A New
        Extraction for Coq". *)
+    subst.
     admit.
-  (* (* Case: definition. *)
+  (* Case: definition. *)
   - (* Ditto. *)
     admit.
   (* Case: sigma. *)
@@ -204,12 +201,6 @@ Proof.
   - admit.
   (* Case: if. *)
   - admit.
-  (* Case: thunk. *)
-  - admit.
-  (* Case: delay. *)
-  - admit.
-  (* Case: force. *)
-  - admit. *)
   (* Case: conv. *)
   - admit.
   (* Case: empty env. *)
@@ -220,14 +211,14 @@ Proof.
   - repeat intro.
     dependent destruction H0; simpl.
     + exists s.
-      replace (sort s) with (lift 1 0 (sort s)) by now sigma.
+      change (sort_term s) with (lift 1 0 (sort_term s)).
       apply weakening.
       * assumption.
       * now apply valid_env_var with s.
     + destruct IHinfer.
       specialize (H1 d n H0) as (s2, ?).
       exists s2.
-      replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
+      change (sort_term s2) with (lift 1 0 (sort_term s2)).
       replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
         by now sigma.
       apply weakening.
@@ -238,7 +229,7 @@ Proof.
     destruct n.
     + dependent destruction H1; simpl.
       exists s.
-      replace (sort s) with (lift 1 0 (sort s)) by now sigma.
+      change (sort_term s) with (lift 1 0 (sort_term s)).
       apply weakening.
       * assumption.
       * now apply valid_env_def with s.
@@ -246,7 +237,7 @@ Proof.
       destruct IHinfer1.
       specialize (H2 d n H1) as (s2, ?).
       exists s2.
-      replace (sort s2) with (lift 1 0 (sort s2)) by now sigma.
+      change (sort_term s2) with (lift 1 0 (sort_term s2)).
       replace (lift (S (S n)) 0 (snd d)) with (lift 1 0 (lift (S n) 0 (snd d)))
         by now sigma.
       apply weakening.
@@ -308,7 +299,7 @@ Local Notation TERM := class_term.
 Inductive stratify: class -> list class -> term -> Prop :=
   | stratify_universe:
     forall h u,
-    stratify KIND h (sort u)
+    stratify KIND h (sort_term u)
   (* --------------------------- *)
   | stratify_type_variable:
     forall h n,

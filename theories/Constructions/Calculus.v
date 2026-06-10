@@ -11,10 +11,11 @@ Require Import Local.Substitution.
    but we do have impredicative (computationally relevant) sets and an infinite
    hierarchy of predicative types. *)
 
-Variant universe: Set :=
+Variant sort: Set :=
   | iset
   | type (n: nat).
 
+(*
 Definition top (s1: universe) (s2: universe) :=
   match s1, s2 with
   | _, iset => s1
@@ -27,17 +28,23 @@ Definition sort_of_product (s1: universe) (s2: universe) :=
     iset
   else
     top s1 s2.
+*)
+
+(*
+  TODO: thunking/later modality.
+  TODO: split, for weak sigma types.
+*)
 
 Inductive term: Set :=
   (* Sorts. *)
-  | sort (s: universe)
+  | sort_term (s: sort)
   (* Variables. *)
   | bound (n: nat)
   (* Products. *)
   | pi (t: term) (u: term)
   | abstraction (t: term) (e: term)
   | application (e: term) (f: term)
-  (* | definition (e: term) (t: term) (f: term)
+  | definition (e: term) (t: term) (f: term)
   (* Pairs. *)
   | sigma (t: term) (u: term)
   | pair (e: term) (f: term) (t: term)
@@ -47,18 +54,14 @@ Inductive term: Set :=
   | boolean
   | bool_tt
   | bool_ff
-  | bool_if (e: term) (t: term) (f1: term) (f2: term)
-  (* Thunks. *)
-  | thunk (t: term)
-  | delay (e: term)
-  | force (e: term) *).
+  | bool_if (e: term) (t: term) (f1: term) (f2: term).
 
-Global Coercion sort: universe >-> term.
+Global Coercion sort_term: sort >-> term.
 
 Fixpoint traverse g k e: term :=
   match e with
-  | sort u =>
-    sort u
+  | sort_term s =>
+    sort_term s
   | bound n =>
     g k n 
   | pi t u =>
@@ -67,7 +70,7 @@ Fixpoint traverse g k e: term :=
     abstraction (traverse g k t) (traverse g (S k) e)
   | application e f =>
     application (traverse g k e) (traverse g k f)
-  (* | definition e t f =>
+  | definition e t f =>
     definition (traverse g k e) (traverse g k t) (traverse g (S k) f)
   | sigma t u =>
     sigma (traverse g k t) (traverse g (S k) u)
@@ -84,14 +87,8 @@ Fixpoint traverse g k e: term :=
   | bool_ff =>
     bool_ff
   | bool_if e t f1 f2 =>
-    let rec := traverse in
-    bool_if (rec g k e) (rec g (S k) t) (rec g k f1) (rec g k f2)
-  | thunk t =>
-    thunk (traverse g k t)
-  | delay e =>
-    delay (traverse g k e)
-  | force e =>
-    force (traverse g k e) *)
+    bool_if (traverse g k e) (traverse g (S k) t) (traverse g k f1)
+      (traverse g k f2)
   end.
 
 Global Instance cc_dbVar: dbVar term :=
@@ -131,7 +128,7 @@ Proof.
         replace (l + S k) with (S l + k) by lia.
         replace (l + S j) with (S l + j) by lia.
         apply H.
-    (* + f_equal.
+    + f_equal.
       * apply IHx1; intros.
         apply H.
       * apply IHx2; intros.
@@ -157,7 +154,7 @@ Proof.
       * apply IHx3; intros.
         apply H.
       * apply IHx4; intros.
-        apply H. *)
+        apply H.
   - generalize dependent k.
     induction x; simpl; intros; auto;
     f_equal; auto.
@@ -171,7 +168,7 @@ Inductive context: Set :=
   | context_abs_body (t: term) (e: context)
   | context_app_left (f: context) (e: term)
   | context_app_right (f: term) (e: context)
-  (* | context_def_val (e: context) (t: term) (f: term)
+  | context_def_val (e: context) (t: term) (f: term)
   | context_def_type (e: term) (t: context) (f: term)
   | context_def_body (e: term) (t: term) (f: context)
   | context_sigma_type (t: context) (u: term)
@@ -184,10 +181,7 @@ Inductive context: Set :=
   | context_if_term (e: context) (t: term) (f1: term) (f2: term)
   | context_if_type (e: term) (t: context) (f1: term) (f2: term)
   | context_if_then (e: term) (t: term) (f1: context) (f2: term)
-  | context_if_else (e: term) (t: term) (f1: term) (f2: context)
-  | context_thunk (t: context)
-  | context_delay (e: context)
-  | context_force (e: context) *).
+  | context_if_else (e: term) (t: term) (f1: term) (f2: context).
 
 Fixpoint apply_context (h: context) (x: term): term :=
   match h with
@@ -205,7 +199,7 @@ Fixpoint apply_context (h: context) (x: term): term :=
     application (apply_context f x) e
   | context_app_right f e =>
     application f (apply_context e x)
-  (* | context_def_val e t f =>
+  | context_def_val e t f =>
     definition (apply_context e x) t f
   | context_def_type e t f =>
     definition e (apply_context t x) f
@@ -233,12 +227,6 @@ Fixpoint apply_context (h: context) (x: term): term :=
     bool_if e t (apply_context f1 x) f2
   | context_if_else e t f1 f2 =>
     bool_if e t f1 (apply_context f2 x)
-  | context_thunk t =>
-    thunk (apply_context t x)
-  | context_delay e =>
-    delay (apply_context e x)
-  | context_force e =>
-    force (apply_context e x) *)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -258,7 +246,7 @@ Definition env: Set :=
 Inductive value: term -> Prop :=
   | value_sort:
     forall s,
-    value (sort s)
+    value (sort_term s)
   | value_bound:
     forall n,
     value (bound n)
@@ -268,7 +256,7 @@ Inductive value: term -> Prop :=
   | value_abstraction:
     forall t e,
     value (abstraction t e)
-  (* | value_sigma:
+  | value_sigma:
     forall t u,
     value (sigma t u)
   | value_pair:
@@ -279,7 +267,6 @@ Inductive value: term -> Prop :=
   | value_true:
     value bool_tt
   | value_false:
-    value bool_ff
-  (* TODO: thunks... *) *).
+    value bool_ff.
 
 Global Hint Constructors value: cps.

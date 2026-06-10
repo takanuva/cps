@@ -10,12 +10,14 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 
+(* Strong reduction! *)
+
 Inductive step: env -> relation term :=
   (* Beta reduction. *)
   | step_beta:
     forall g t e f,
     step g (application (abstraction t e) f) (subst f 0 e)
-  (* (* Zeta reduction. *)
+  (* Zeta reduction. *)
   | step_zeta:
     forall g e t f,
     step g (definition e t f) (subst e 0 f)
@@ -37,100 +39,12 @@ Inductive step: env -> relation term :=
     step g (bool_if bool_tt t f1 f2) f1
   | step_ff:
     forall g t f1 f2,
-    step g (bool_if bool_ff t f1 f2) f2 *)
-  (* Congruence closure... many rules! *)
-  | step_pi_type:
-    forall g t1 t2 u,
-    step g t1 t2 ->
-    step g (pi t1 u) (pi t2 u)
-  | step_pi_body:
-    forall g t u1 u2,
-    step (decl_var t :: g) u1 u2 ->
-    step g (pi t u1) (pi t u2)
-  | step_abs_type:
-    forall g t1 t2 e,
-    step g t1 t2 ->
-    step g (abstraction t1 e) (abstraction t2 e)
-  | step_abs_body:
-    forall g t e1 e2,
-    step (decl_var t :: g) e1 e2 ->
-    step g (abstraction t e1) (abstraction t e2)
-  | step_app_left:
-    forall g e1 e2 f,
+    step g (bool_if bool_ff t f1 f2) f2
+  (* Congruence closure. *)
+  | step_context:
+    forall g e1 e2 h,
     step g e1 e2 ->
-    step g (application e1 f) (application e2 f)
-  | step_app_right:
-    forall g e f1 f2,
-    step g f1 f2 ->
-    step g (application e f1) (application e f2)
-  (* | step_def_term:
-    forall g e1 e2 t f,
-    step g e1 e2 ->
-    step g (definition e1 t f) (definition e2 t f)
-  | step_def_type:
-    forall g e t1 t2 f,
-    step g t1 t2 ->
-    step g (definition e t1 f) (definition e t2 f)
-  | step_def_body:
-    forall g e t f1 f2,
-    step (decl_def e t :: g) f1 f2 ->
-    step g (definition e t f1) (definition e t f2)
-  | step_sigma_type:
-    forall g t1 t2 u,
-    step g t1 t2 ->
-    step g (sigma t1 u) (sigma t2 u)
-  | step_sigma_body:
-    forall g t u1 u2,
-    step (decl_var t :: g) u1 u2 ->
-    step g (sigma t u1) (sigma t u2)
-  | step_pair_left:
-    forall g e1 e2 f t,
-    step g e1 e2 ->
-    step g (pair e1 f t) (pair e2 f t)
-  | step_pair_right:
-    forall g e f1 f2 t,
-    step g f1 f2 ->
-    step g (pair e f1 t) (pair e f2 t)
-  | step_pair_type:
-    forall g e f t1 t2,
-    step g t1 t2 ->
-    step g (pair e f t1) (pair e f t2)
-  | step_proj1:
-    forall g e1 e2,
-    step g e1 e2 ->
-    step g (proj1 e1) (proj1 e2)
-  | step_proj2:
-    forall g e1 e2,
-    step g e1 e2 ->
-    step g (proj2 e1) (proj2 e2)
-  | step_if_term:
-    forall g e1 e2 t f1 f2,
-    step g e1 e2 ->
-    step g (bool_if e1 t f1 f2) (bool_if e2 t f1 f2)
-  | step_if_type:
-    forall g e t1 t2 f1 f2,
-    step (decl_var boolean :: g) t1 t2 ->
-    step g (bool_if e t1 f1 f2) (bool_if e t2 f1 f2)
-  | step_if_then:
-    forall g e t f11 f12 f2,
-    step g f11 f12 ->
-    step g (bool_if e t f11 f2) (bool_if e t f12 f2)
-  | step_if_else:
-    forall g e t f1 f21 f22,
-    step g f21 f22 ->
-    step g (bool_if e t f1 f21) (bool_if e t f1 f22)
-  | step_thunk:
-    forall g t1 t2,
-    step g t1 t2 ->
-    step g (thunk t1) (thunk t2)
-  | step_delay:
-    forall g e1 e2,
-    step g e1 e2 ->
-    step g (delay e1) (delay e2)
-  | step_force:
-    forall g e1 e2,
-    step g e1 e2 ->
-    step g (force e1) (force e2) *).
+    step g (apply_context h e1) (apply_context h e2).
 
 Global Hint Constructors step: cps.
 
@@ -165,6 +79,7 @@ Proof.
         firstorder.
 Qed.
 
+(* TODO: move me! *)
 Local Hint Extern 4 (~(_ = _)) => discriminate: cps.
 
 Lemma abstraction_is_decidable:
@@ -198,29 +113,30 @@ Proof.
   induction x; auto with cps.
 Qed. *)
 
-(* Pick a reduct for a term, arbitrarily defined in a call-by-name order in a
-   computationally relevant way, or return a proof that there is none. *)
+(* Pick a reduct for a term, in an arbitrary order (we prefer call-by-name).
+   TODO: fix this! :( *)
 
 Lemma step_is_decidable:
   forall g e,
   { f | step g e f } + { normal (step g) e }.
 Proof with eauto with cps.
-  intros.
+  (* intros.
   generalize dependent g.
   induction e; intros.
   (* Case: sort. *)
-  - (* Sorts are atomics, of course. *)
-    right; easy.
+  - (* Sorts are atomics, of course. There's no step. *)
+    right; repeat intro.
+    dependent induction H.
+    induction h; simpl in *; try easy...
   (* Case: bound. *)
-  - (* (* A variable can reduce if and only if the environment defines it. *)
+  - (* A variable can reduce if and only if the environment defines it. *)
     destruct declaration_existance_is_decidable with g n as [ (e, ?H) | ?H ].
     + (* It does, so we have a delta reduction. *)
       left; eexists.
       destruct H as (t, ?H)...
     + (* There's no definition, so no reduction either. *)
       right; intros x ?.
-      inversion H0; firstorder. *)
-    right; inversion 1.
+      admit.
   (* Case: pi. *)
   - (* Check subterms, left to right. *)
     destruct IHe1 with g as [ (x, ?H) | ?H ]...
@@ -327,8 +243,8 @@ Proof with eauto with cps.
     right; intros x ?.
     inversion H0.
     subst; rename e into e1.
-    now apply H with e2. *)
-Qed.
+    now apply H with e2. *) *)
+Admitted.
 
 Definition typing_equivalence: Type :=
   env -> relation term.
@@ -341,7 +257,7 @@ Definition typing_equivalence: Type :=
    then compare the leftmost item; if it's a pi, a lambda, a constructor or etc,
    equal in both sides, they keep going (e.g., in an application). So, at this
    point, if only one side is a lambda, or only one side is a primitive record,
-   they try to eta expand as described (symmetrically, indeed). I believe that
+   they try to eta expand as described (symmetrically, indeed!). I believe that
    simply turning this relation into a congruence is enough to characterize this
    behavior, having the algorithm as a decision procedure, but then again we'd
    have to prove this. As we do not have arbitrary record types, we "specialize"
@@ -370,7 +286,7 @@ Inductive conv: typing_equivalence :=
     rt(step g) e2 (abstraction t f2) ->
     conv (decl_var t :: g) (application (lift 1 0 f1) (bound 0)) f2 ->
     conv g e1 e2
-  (* (* Surjective pairing, pair on the left. *)
+  (* Surjective pairing, pair on the left. *)
   | conv_sur_left:
     forall g e1 p q t e2 f,
     rt(step g) e1 (pair p q t) ->
@@ -386,8 +302,8 @@ Inductive conv: typing_equivalence :=
     conv g (proj1 f) p ->
     conv g (proj2 f) q ->
     conv g e1 e2
-  (* TODO: eta for thunks. *)
-  (* TODO: add congruence rules. *) *).
+  (* TODO: eta for thunks... *)
+  (* TODO: add congruence rules... *).
 
 Global Hint Constructors conv: cps.
 
@@ -411,8 +327,8 @@ Proof.
   - now apply conv_join with f.
   - eapply conv_eta_right; eauto with cps.
   - eapply conv_eta_left; eauto with cps.
-  (* - eapply conv_sur_right; eauto with cps.
-  - eapply conv_sur_left; eauto with cps. *)
+  - eapply conv_sur_right; eauto with cps.
+  - eapply conv_sur_left; eauto with cps.
 Qed.
 
 Global Hint Resolve conv_sym: cps.

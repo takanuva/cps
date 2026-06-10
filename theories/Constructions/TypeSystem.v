@@ -27,21 +27,23 @@ Section TypeSystem.
     (*
                |- G
       ----------------------
-        G |- Set : Type 0
+        G |- ISet : Type 0
     *)
     | typing_iset:
       forall g,
       infer (valid_env g) ->
       infer (typing g iset (type 0))
+
     (*
-               |- G
-      ----------------------
+                   |- G
+      ------------------------------
         G |- Type n : Type (1 + n)
     *)
     | typing_type:
       forall g n,
       infer (valid_env g) ->
       infer (typing g (type n) (type (1 + n)))
+
     (*
         |- G     (x: T) in G
       ------------------------
@@ -53,6 +55,7 @@ Section TypeSystem.
       item (None, t) g n ->
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
+
     (*
         |- G     (x = e: T) in G
       ----------------------------
@@ -64,19 +67,29 @@ Section TypeSystem.
       item (Some e, t) g n ->
       u = lift (1 + n) 0 t ->
       infer (typing g (bound n) u)
+
     (*
-         G |- T : s1     G, x: T |- U : s2
-      --------------------------------------
-             G |- Pi x: T.U : s1 o s2
+        G |- T : Type n     G, x: T |- U : Type n
+      ---------------------------------------------
+                G |- Pi x: T.U : Type n
     *)
-    | typing_pi:
-      (* Sort of products will deal with impredicativity for prop, and will get
-         the right universe level otherwise. *)
-      forall g t u s1 s2 s3,
-      infer (typing g t (sort s1)) ->
-      infer (typing (decl_var t :: g) u (sort s2)) ->
-      s3 = sort_of_product s1 s2 ->
-      infer (typing g (pi t u) s3)
+    | typing_pi_type:
+      forall g t u n,
+      infer (typing g t (type n)) ->
+      infer (typing (decl_var t :: g) u (type n)) ->
+      infer (typing g (pi t u) (type n))
+
+    (*
+        G |- T : s     G, x: T |- U : ISet
+      --------------------------------------
+              G |- Pi x: T.U : ISet
+    *)
+    | typing_pi_iset:
+      forall g t u s,
+      infer (typing g t (sort_term s)) ->
+      infer (typing (decl_var t :: g) u iset) ->
+      infer (typing g (pi t u) iset)
+
     (*
             G, x: T |- e : U
       ----------------------------
@@ -86,6 +99,7 @@ Section TypeSystem.
       forall g t e u,
       infer (typing (decl_var t :: g) e u) ->
       infer (typing g (abstraction t e) (pi t u))
+
     (*
         G |- f : Pi x: T.U     G |- e : T
       -------------------------------------
@@ -97,28 +111,30 @@ Section TypeSystem.
       infer (typing g e t) ->
       v = subst e 0 u ->
       infer (typing g (application f e) v)
+
     (*
         G |- e : T     G, x = e: T |- f : U
       ---------------------------------------
           G |- let x = e: T in f : U[e/x]
     *)
-    (* | typing_def:
+    | typing_def:
       forall g e f t u v,
       infer (typing g e t) ->
       infer (typing (decl_def e t :: g) f u) ->
       v = subst e 0 u ->
       infer (typing g (definition e t f) v)
+
     (*
-        G |- T : s1     G, x: T |- U : s2
-      -------------------------------------
-           G |- Sigma x: T.U : s1 & s2
+        G |- T : s     G, x: T |- U : s
+      -----------------------------------
+             G |- Sigma x: T.U : s
     *)
     | typing_sigma:
-      forall g t u s1 s2 s3,
-      infer (typing g t (sort s1)) ->
-      infer (typing (decl_var t :: g) u (sort s2)) ->
-      s3 = top s1 s2 ->
-      infer (typing g (sigma t u) s3)
+      forall g t u s,
+      infer (typing g t (sort_term s)) ->
+      infer (typing (decl_var t :: g) u (sort_term s)) ->
+      infer (typing g (sigma t u) (sort_term s))
+
     (*
                G |- e : T     G |- f : U[e/x]
       ------------------------------------------------
@@ -132,6 +148,7 @@ Section TypeSystem.
       infer (typing g e t) ->
       infer (typing g f (subst e 0 u)) ->
       infer (typing g (pair e f (sigma t u)) (sigma t u))
+
     (*
         G |- e : Sigma x: T.U
       -------------------------
@@ -141,6 +158,7 @@ Section TypeSystem.
       forall g e t u,
       infer (typing g e (sigma t u)) ->
       infer (typing g (proj1 e) t)
+
     (*
            G |- e : Sigma x: T.U
       -------------------------------
@@ -150,6 +168,7 @@ Section TypeSystem.
       forall g e t u,
       infer (typing g e (sigma t u)) ->
       infer (typing g (proj2 e) (subst (proj1 e) 0 u))
+
     (*
              |- G
       -------------------
@@ -158,7 +177,8 @@ Section TypeSystem.
     | typing_bool:
       forall g,
       infer (valid_env g) ->
-      infer (typing g boolean (sort iset))
+      infer (typing g boolean iset)
+
     (*
             |- G
       -----------------
@@ -168,6 +188,7 @@ Section TypeSystem.
       forall g,
       infer (valid_env g) ->
       infer (typing g bool_tt boolean)
+
     (*
             |- G
       -----------------
@@ -177,6 +198,7 @@ Section TypeSystem.
       forall g,
       infer (valid_env g) ->
       infer (typing g bool_ff boolean)
+
     (*
              G |- e : bool        G, x: bool |- T : s
           G |- f1 : T[true/x]     G |- f2 : T[false/x]
@@ -186,37 +208,11 @@ Section TypeSystem.
     | typing_if:
       forall g e t s f1 f2,
       infer (typing g e boolean) ->
-      infer (typing (decl_var boolean :: g) t (sort s)) ->
+      infer (typing (decl_var boolean :: g) t (sort_term s)) ->
       infer (typing g f1 (subst bool_tt 0 t)) ->
       infer (typing g f2 (subst bool_ff 0 t)) ->
       infer (typing g (bool_if e t f1 f2) (subst e 0 t))
-    (*
-         G |- T : s
-      ----------------
-        G |- <T> : s
-    *)
-    | typing_thunk:
-      forall g t s,
-      infer (typing g t (sort s)) ->
-      infer (typing g (thunk t) (sort s))
-    (*
-          G |- e : T
-      -------------------
-        G |- ?(e) : <T>
-    *)
-    | typing_delay:
-      forall g e t,
-      infer (typing g e t) ->
-      infer (typing g (delay e) (thunk t))
-    (*
-         G |- e : <T>
-      -----------------
-        G |- !(e) : T
-    *)
-    | typing_force:
-      forall g e t,
-      infer (typing g e (thunk t)) ->
-      infer (typing g (force e) t) *)
+
     (*
         G |- e : T     G |- U : s     G |- T <=R U
       ----------------------------------------------
@@ -225,15 +221,17 @@ Section TypeSystem.
     | typing_conv:
       forall g e t u s,
       infer (typing g e t) ->
-      infer (typing g u (sort s)) ->
+      infer (typing g u (sort_term s)) ->
       cumul R g t u ->
       infer (typing g e u)
+
     (*
       --------
         |- .
     *)
     | valid_env_nil:
       infer (valid_env [])
+
     (*
         G |- T : s
       --------------
@@ -241,8 +239,9 @@ Section TypeSystem.
     *)
     | valid_env_var:
       forall g t s,
-      infer (typing g t (sort s)) ->
+      infer (typing g t (sort_term s)) ->
       infer (valid_env (decl_var t :: g))
+
     (*
         G |- e : T     G |- T : s
       -----------------------------
@@ -251,8 +250,9 @@ Section TypeSystem.
     | valid_env_def:
       forall g e t s,
       infer (typing g e t) ->
-      infer (typing g t (sort s)) ->
+      infer (typing g t (sort_term s)) ->
       infer (valid_env (decl_def e t :: g))
+
     (*
            |- G
       ----------------
@@ -262,6 +262,7 @@ Section TypeSystem.
       forall g,
       infer (valid_env g) ->
       infer (valid_subst subst_ids g g)
+
     (*
              G |- T : s
       -----------------------
@@ -269,8 +270,9 @@ Section TypeSystem.
     *)
     | valid_subst_lift_var:
       forall g t s,
-      infer (typing g t (sort s)) ->
+      infer (typing g t (sort_term s)) ->
       infer (valid_subst (subst_lift 1) (decl_var t :: g) g)
+
     (*
         G |- e : T     G |- T : s
       -----------------------------
@@ -279,8 +281,9 @@ Section TypeSystem.
     | valid_subst_lift_def:
       forall g e t s,
       infer (typing g e t) ->
-      infer (typing g t (sort s)) ->
+      infer (typing g t (sort_term s)) ->
       infer (valid_subst (subst_lift 1) (decl_def e t :: g) g)
+
     (*
         G2 |- f : G3     G1 |- g : G2
       ---------------------------------
@@ -291,6 +294,7 @@ Section TypeSystem.
       infer (valid_subst f g2 g3) ->
       infer (valid_subst g g1 g2) ->
       infer (valid_subst (subst_comp f g) g1 g3)
+
     (*
         G1 |- f : G2     G2 |- T : s     G1 |- e : T[f]
       ---------------------------------------------------
@@ -299,7 +303,7 @@ Section TypeSystem.
     | valid_subst_cons:
       forall g1 g2 f t s e,
       infer (valid_subst f g1 g2) ->
-      infer (typing g2 t (sort s)) ->
+      infer (typing g2 t (sort_term s)) ->
       infer (typing g1 e (inst f t)) ->
       infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2)).
 
@@ -321,11 +325,11 @@ Section TypeSystem.
 
   (* Coq term: [\X: Prop.\x: X.x]. *)
   Example polymorphic_id_term: term :=
-    abstraction (sort iset) (abstraction (bound 0) (bound 0)).
+    abstraction iset (abstraction (bound 0) (bound 0)).
 
   (* Coq term: [Pi X: Prop.X -> X]. *)
   Example polymorphic_id_type: term :=
-    pi (sort iset) (pi (bound 0) (bound 1)).
+    pi iset (pi (bound 0) (bound 1)).
 
   (* Let's check typeability. *)
   Local Goal
@@ -443,16 +447,18 @@ Proof.
   - now apply typing_var with t.
   (* Case: ref. *)
   - now apply typing_ref with e t.
-  (* Case: pi. *)
-  - now apply typing_pi with s1 s2.
+  (* Case: pi_type. *)
+  - now apply typing_pi_type.
+  (* Case: pi_iset. *)
+  - now apply typing_pi_iset with s.
   (* Case: abstraction. *)
   - now apply typing_abs.
   (* Case: application. *)
   - now apply typing_app with t u.
-  (* (* Case: definition. *)
+  (* Case: definition. *)
   - now apply typing_def with u.
-  (* Case: sigma. *)
-  - now apply typing_sigma with s1 s2.
+  (* Case: sigma_strong. *)
+  - now apply typing_sigma.
   (* Case: pair. *)
   - now apply typing_pair.
   (* Case: projection 1. *)
@@ -467,12 +473,6 @@ Proof.
   - now apply typing_false.
   (* Case: if. *)
   - now apply typing_if with s.
-  (* Case: thunk. *)
-  - now apply typing_thunk.
-  (* Case: delay. *)
-  - now apply typing_delay.
-  (* Case: force. *)
-  - now apply typing_force. *)
   (* Case: conv. *)
   - (* The only difference in the structure is on the (CONV) rule, which will
        require us to show that [t] and [u] are still convertible under the new
@@ -571,7 +571,7 @@ Admitted.
 
 Lemma inst_sort_simpl:
   forall f s,
-  inst f (sort s) = sort s.
+  inst f (sort_term s) = sort_term s.
 Proof.
   intros.
   reflexivity.
@@ -581,8 +581,8 @@ Lemma typing_uplift:
   forall f g1 g2 R,
   valid_subst f g2 g1 R ->
   forall t s1 s2,
-  typing g1 t (sort s1) R ->
-  typing g2 (inst f t) (sort s2) R ->
+  typing g1 t (sort_term s1) R ->
+  typing g2 (inst f t) (sort_term s2) R ->
   valid_subst
     (subst_cons (var 0) (subst_comp f (subst_lift 1)))
     (decl_var (inst f t) :: g2) (decl_var t :: g1) R.
@@ -665,22 +665,30 @@ Proof.
     specialize (IHinfer2 _ _ _ eq_refl).
     change (inst f (pi t u)) with (pi (f 0 t) (f 1 u)).
     rewrite inst_sort_simpl.
-    apply typing_pi with s1 s2.
+    apply typing_pi_type.
     + sigma.
-      replace (sort s1) with (inst f (sort s1)).
-      * now apply IHinfer1.
-      * apply inst_sort_simpl.
+      change (sort_term (type n)) with (inst f (sort_term (type n))).
+      now apply IHinfer1.
     + sigma.
       (* This is an equality, sure. *)
       replace (inst (subst_upn 1 f) u) with
         (inst (subst_cons (var 0) (subst_comp f (subst_lift 1))) u) by admit.
       apply IHinfer2.
-      apply typing_uplift with s1 s1.
+      apply typing_uplift with (type n) (type n).
       * assumption.
       * assumption.
-      * change (sort s1) with (inst f (sort s1)).
+      * change (sort_term (type n)) with (inst f (sort_term (type n))).
         now apply IHinfer1.
-    + reflexivity.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
   - admit.
   - admit.
   - rename t0 into t, t into u.
@@ -688,15 +696,13 @@ Proof.
     specialize (IHinfer2 _ _ _ eq_refl).
     apply typing_conv with (inst f t) s.
     + now apply IHinfer1.
-    + replace (sort s) with (inst f (sort s)).
-      * now apply IHinfer2.
-      * apply inst_sort_simpl.
+    + change (sort_term s) with (inst f (sort_term s)).
+      now apply IHinfer2.
     + (* Cumulativity is stable under substitution! *)
       admit.
 Admitted.
 
 Lemma weakening:
-  (* TODO: prove this later! *)
   forall g e t R,
   typing g e t R ->
   forall d,

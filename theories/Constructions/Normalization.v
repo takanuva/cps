@@ -221,10 +221,6 @@ Lemma bottom_typeable:
 Proof.
   intros.
   repeat econstructor.
-  - (* Use vm_compute to bypass opaque definitions. *)
-    now vm_compute.
-  - (* By definition, as set is impredicative. *)
-    reflexivity.
 Qed.
 
 (* For this one, we'll follow the proof given by Coquand and Gallier in "A Proof
@@ -245,5 +241,6 @@ Proof.
       now apply subject_reduction with e.
   - (* So, forget the non-normal one. *)
     clear e H; rename f into e.
+    (* Yadda, yadda, yadda... *)
     admit.
 Admitted.
