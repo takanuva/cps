@@ -52,12 +52,9 @@ Qed.
 Program Definition nabla_unit: dset_omega := {|
   dset_code := FINITE 1;
   dset_equiv := eq;
-  dset_realization x y := True
+  dset_realization x y := True;
+  dset_surjective y := I
 |}.
-
-Next Obligation of nabla_unit.
-  now exists I.
-Defined.
 
 Program Definition dset_terminal: Terminal (dset_category (U uw) T) := {|
   terminal := nabla_unit;
