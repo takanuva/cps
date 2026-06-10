@@ -56,6 +56,9 @@ Program Definition nabla_unit: dset_omega := {|
   dset_surjective y := I
 |}.
 
+(* TODO: move me... *)
+Global Arguments dmap_respectful {U} {T} {G} {D} d {y1} {y2}.
+
 Program Definition dset_model: CwF := {|
   cwf_cat :=
     dset_category (U uw) T;
@@ -71,7 +74,10 @@ Program Definition dset_model: CwF := {|
   cwf_tsub G D :=
     (* T[S] := fun (d: D) => T (S d) *)
     map (S: dmap (U uw) T D G) (T: dset_family (U uw) T G) =>
-      existT (fun (d: D) => projT1 T (S d)) _
+      existT (fun (d: D) => projT1 T (S d)) {|
+        setoid_transport x y H :=
+          setoid_transport (projT2 T) (dmap_respectful S H)
+      |}
 |}.
 
 Next Obligation of dset_model.
@@ -81,16 +87,15 @@ Next Obligation of dset_model.
 Qed.
 
 Next Obligation of dset_model.
-  destruct T as (f, ?X); simpl in *.
-  unshelve eexists; intros.
-  - apply X.
-    now rewrite H.
-  - repeat intro; simpl.
-    apply (setoid_transport_irr _ _ X).
-  - repeat intro; simpl.
-    apply (setoid_transport_id _ _ X).
-  - repeat intro; simpl.
-    apply (setoid_transport_post _ _ X).
+  apply (setoid_transport_irr _ _ (projT2 T)).
+Qed.
+
+Next Obligation of dset_model.
+  apply (setoid_transport_id _ _ (projT2 T)).
+Qed.
+
+Next Obligation of dset_model.
+  apply (setoid_transport_post _ _ (projT2 T)).
 Qed.
 
 Next Obligation of dset_model.
