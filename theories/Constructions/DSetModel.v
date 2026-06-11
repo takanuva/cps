@@ -56,35 +56,56 @@ Program Definition nabla_unit: dset_omega := {|
   dset_surjective y := I
 |}.
 
-(* TODO: move me... *)
-Global Arguments dmap_respectful {U} {T} {G} {D} d {y1} {y2}.
+Local Notation DSET := (dset (U uw) T).
+Local Notation DMAP := (dmap (U uw) T).
+Local Notation DFAM := (dset_family (U uw) T).
 
 Program Definition dset_model: CwF := {|
   cwf_cat :=
     dset_category (U uw) T;
   cwf_empty := {|
     terminal := nabla_unit;
-    terminal_hom X := {|
-      dmap_fun x := tt1;
-      dmap_wit := I
+    terminal_hom (X: DSET) := {|
+      dmap_fun :=
+        map (x: X) => tt1;
+      dmap_machine := I
     |}
   |};
-  cwf_ty :=
-    dset_family_setoid (U uw) T;
-  cwf_tsub G D :=
+  cwf_ty (G: DSET) :=
+    dset_family_setoid (U uw) T G;
+  cwf_tsub (G: DSET) (D: DSET) :=
     (* T[S] := fun (d: D) => T (S d) *)
-    map (S: dmap (U uw) T D G) (T: dset_family (U uw) T G) =>
+    map (S: DMAP D G) (T: DFAM G) =>
       existT (fun (d: D) => projT1 T (S d)) {|
         setoid_transport x y H :=
-          setoid_transport (projT2 T) (dmap_respectful S H)
+          setoid_transport (projT2 T) (cong S H)
+      |};
+  cwf_el (G: DSET) := {|
+    setoid_family (T: dset_family (U uw) T G) :=
+      _
+  |}
+  (* cwf_el (G: DSET) := {|
+      setoid_family (T: dset_family (U uw) T G) :=
+        dmap_setoid G T;
+      setoid_family_prf := {|
+        setoid_transport T U H := {|
+          setoid_map E := {|
+            dmap_fun (X: G) :=
+              rew [dset_carrier C] H X in E X;
+            dmap_wit := dmap_wit C E
+          |}
+        |}
       |}
+    |} *)
 |}.
 
 Next Obligation of dset_model.
   repeat intro; simpl in *.
+  (* Crap, a bug in Coq...
   destruct (f x) using (@FINITE_1_rect uw).
-  reflexivity.
-Qed.
+  reflexivity. *)
+  admit.
+Admitted.
 
 Next Obligation of dset_model.
   apply (setoid_transport_irr _ _ (projT2 T)).

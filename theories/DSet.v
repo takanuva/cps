@@ -119,19 +119,17 @@ Section DSet.
   Qed.
 
   Structure dmap (G: dset) (D: dset): Type := {
-    dmap_fun: G -> D;
-    dmap_wit: CL;
-    dmap_respectful:
-      forall y1 y2,
-      y1 == y2 ->
-      dmap_fun y1 == dmap_fun y2;
-    dmap_preserves:
+    dmap_fun: SetoidMap G D;
+    dmap_machine: CL;
+    dmap_tracks:
       forall y g,
       G y g ->
-      D (app dmap_wit y) (dmap_fun g)
+      D (app dmap_machine y) (dmap_fun g)
   }.
 
-  Global Coercion dmap_fun: dmap >-> Funclass.
+  Global Coercion dmap_fun: dmap >-> SetoidMap.
+
+  Global Arguments dmap_machine {G} {D}.
 
   Definition dmap_equiv {G D} (f: dmap G D) (g: dmap G D): Prop :=
     forall x, f x == g x.
@@ -159,17 +157,9 @@ Section DSet.
 
   Global Canonical Structure dmap_setoid.
 
-  Global Instance dmap_proper:
-    forall G D f,
-    Proper (setoid_equiv ==> setoid_equiv) (@dmap_fun G D f).
-  Proof.
-    repeat intro.
-    now apply dmap_respectful.
-  Qed.
-
   Program Definition dmap_id {G}: dmap G G := {|
-    dmap_fun x := x;
-    dmap_wit := I
+    dmap_fun := map x => x;
+    dmap_machine := I
   |}.
 
   Next Obligation of dmap_id.
@@ -177,8 +167,8 @@ Section DSet.
   Qed.
 
   Program Definition dmap_post {G D E} (f: dmap G D) (g: dmap D E) := {|
-    dmap_fun x := g (f x);
-    dmap_wit := B (dmap_wit _ _ g) (dmap_wit _ _ f)
+    dmap_fun := map x => g (f x);
+    dmap_machine := B (dmap_machine g) (dmap_machine f)
   |}.
 
   Next Obligation of dmap_post.
@@ -187,8 +177,8 @@ Section DSet.
 
   Next Obligation of dmap_post.
     rewrite CL_equiv_B.
-    apply dmap_preserves.
-    apply dmap_preserves.
+    apply dmap_tracks.
+    apply dmap_tracks.
     assumption.
   Qed.
 
@@ -200,7 +190,7 @@ Section DSet.
     unfold dmap_post; simpl.
     transitivity (y0 (x x1)).
     - apply H0.
-    - apply dmap_respectful.
+    - apply cong.
       apply H.
   Qed.
 

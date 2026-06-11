@@ -68,6 +68,8 @@ Definition universe (l: level): tarski :=
   | uw => universe_transfinite
   end.
 
+Global Arguments universe: simpl never.
+
 Global Coercion universe: level >-> tarski.
 
 Local Definition NAT' (l: level):
