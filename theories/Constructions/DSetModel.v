@@ -101,11 +101,13 @@ Program Definition dset_model: CwF := {|
 
 Next Obligation of dset_model.
   repeat intro; simpl in *.
-  (* Crap, a bug in Coq...
-  destruct (f x) using (@FINITE_1_rect uw).
-  reflexivity. *)
-  admit.
-Admitted.
+  (* Trying to destruct directly triggers a bug in Coq... *)
+  assert (forall x, x = @tt1 uw).
+  - clear; intros.
+    destruct x using (@FINITE_1_rect uw).
+    reflexivity.
+  - apply H.
+Qed.
 
 Next Obligation of dset_model.
   apply (setoid_transport_irr _ _ (projT2 T)).
