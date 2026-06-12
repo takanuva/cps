@@ -269,3 +269,5 @@ Section DSet.
   Global Coercion dset_setoid_family: dset_family >-> SetoidFamily.
 
 End DSet.
+
+Global Arguments dset_code {U} {T}.

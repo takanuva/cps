@@ -168,5 +168,59 @@ Proof.
   now destruct (PI' l a b).
 Qed.
 
+Local Definition SIGMA' (l: level) (a: U l) (b: T l a -> U l):
+  { c: U l | T l c = { x: T l a & T l (b x) } }.
+Proof.
+  unshelve eexists.
+  - unshelve eapply CTOR.
+    + exact a.
+    + exists 1.
+      eauto with arith.
+    + exact b.
+  - simpl.
+    rewrite TYPE_CTOR.
+    unfold GET_CTOR; simpl.
+    reflexivity.
+Defined.
+
+Definition SIGMA {l: level} (a: U l) (b: T l a -> U l): U l :=
+  proj1_sig (SIGMA' l a b).
+
+Lemma T_SIGMA:
+  forall l a b,
+  T _ (@SIGMA l a b) = { x: T _ a & T _ (b x) }.
+Proof.
+  intros; simpl.
+  unfold SIGMA.
+  now destruct (SIGMA' l a b).
+Qed.
+
+Local Definition DSET' (l: level) (a: U l) (b: T l a -> U l):
+  { c: U l | T l c = dset (T l a) (fun x => T l (b x)) }.
+Proof.
+  unshelve eexists.
+  - unshelve eapply CTOR.
+    + exact a.
+    + exists 2.
+      eauto with arith.
+    + exact b.
+  - simpl.
+    rewrite TYPE_CTOR.
+    unfold GET_CTOR; simpl.
+    reflexivity.
+Defined.
+
+Definition DSET {l: level} (a: U l) (b: T l a -> U l): U l :=
+  proj1_sig (DSET' l a b).
+
+Lemma T_DSET:
+  forall l a b,
+  T _ (@DSET l a b) = dset (T _ a) (fun x => T _ (b x)).
+Proof.
+  intros; simpl.
+  unfold DSET.
+  now destruct (DSET' l a b).
+Qed.
+
 Global Arguments U: simpl never.
 Global Arguments T {t}: simpl never.
