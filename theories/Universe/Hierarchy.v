@@ -33,16 +33,6 @@ Structure tarski: Type := {
 Local Definition ctors :=
   [pi; sigma; dset].
 
-Definition small_universe: tarski := {|
-  U := CODE nat finite ctors;
-  T := @TYPE _ _ _
-|}.
-
-Definition next_universe (u: tarski): tarski := {|
-  U := CODE (U u) (@T u) ctors;
-  T := @TYPE _ _ _
-|}.
-
 Variant level: Set :=
   | un (i: nat)
   | uw.
