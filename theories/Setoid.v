@@ -359,10 +359,10 @@ Section Constructors.
   Variable S: Setoid.
   Variable F: Family S.
 
-  Local Definition sigma_carrier: Type :=
+  Definition sigma_carrier: Type :=
     { x: S & F x }.
 
-  Local Definition sigma_equiv (p: sigma_carrier) (q: sigma_carrier): Prop :=
+  Definition sigma_equiv (p: sigma_carrier) (q: sigma_carrier): Prop :=
     exists H: projT1 p == projT1 q,
     setoid_transport F H (projT2 p) == (projT2 q).
 
@@ -402,10 +402,12 @@ Section Constructors.
     reflexivity.
   Qed.
 
-  Local Definition pi_carrier: Type :=
+  Global Canonical Structure sigma_setoid.
+
+  Definition pi_carrier: Type :=
     { f: forall x: S, F x | forall x y H, setoid_transport F H (f x) == f y }.
 
-  Local Definition pi_equiv (f: pi_carrier) (g: pi_carrier): Prop :=
+  Definition pi_equiv (f: pi_carrier) (g: pi_carrier): Prop :=
     forall x, proj1_sig f x == proj1_sig g x.
 
   Program Definition pi_setoid: Setoid := {|
@@ -435,5 +437,12 @@ Section Constructors.
     - apply H.
     - apply H0.
   Qed.
+
+  Global Canonical Structure pi_setoid.
+
+  Definition pi_setoid_fun (f: pi_carrier): forall x: S, F x :=
+    proj1_sig f.
+
+  Global Coercion pi_setoid_fun: pi_carrier >-> Funclass.
 
 End Constructors.
