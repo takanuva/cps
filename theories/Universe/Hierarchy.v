@@ -49,31 +49,36 @@ Variant level: Set :=
 
 Global Coercion un: nat >-> level.
 
-Fixpoint universe_finite (i: nat): tarski :=
-  match i with
-  | 0 =>
-    small_universe
-  | S j => 
-    next_universe (universe_finite j)
-  end.
+Local Definition universe_fam (l: level): { X: Set & X -> Type } :=
+  let fix fin i :=
+    match i with
+    | 0 =>
+      existT nat finite
+    | S k =>
+      let A := projT1 (fin k) in
+      let B := projT2 (fin k) in
+      existT (CODE A B ctors) TYPE
+    end
+  in match l with
+     | un i =>
+       fin i
+     | uw =>
+       let A := { i: nat & projT1 (fin (1 + i)) } in
+       let B (p: A) := TYPE (projT2 p) in
+       existT A B
+     end.
 
-Definition universe_transfinite: tarski := {|
-  U := CODE { i: nat & U (universe_finite i) } (fun p => T _ (projT2 p)) ctors;
-  T := @TYPE _ _ _
+Definition universe (l: level): tarski := {|
+  U := CODE (projT1 (universe_fam l)) (projT2 (universe_fam l)) ctors;
+  T := TYPE
 |}.
-
-Definition universe (l: level): tarski :=
-  match l with
-  | un i => universe_finite i
-  | uw => universe_transfinite
-  end.
 
 Global Arguments universe: simpl never.
 
 Global Coercion universe: level >-> tarski.
 
 Local Definition NAT' (l: level):
-  { c: U l | T _ c = nat }.
+  { c: U l | T l c = nat }.
 Proof.
   destruct l.
   - induction i; simpl.
@@ -83,7 +88,9 @@ Proof.
       exists (LIFT c).
       now rewrite TYPE_LIFT.
   - unshelve eexists.
-    + apply LIFT.
+    + change (U uw) with
+        (CODE { i: nat & U i } (fun p => TYPE (projT2 p)) ctors).
+      apply LIFT.
       exists 0.
       exact IDX.
     + simpl.
@@ -104,7 +111,7 @@ Proof.
 Qed.
 
 Local Definition FINITE' (l: level) (n: nat):
-  { c: U l | T _ c = finite n }.
+  { c: U l | T l c = finite n }.
 Proof.
   destruct l.
   - induction i; simpl.
@@ -115,7 +122,7 @@ Proof.
       now rewrite TYPE_LIFT.
   - unshelve eexists.
     + apply LIFT.
-      exists 0.
+      exists 0; simpl.
       exact (LIFT n).
     + simpl.
       rewrite TYPE_LIFT; simpl.
@@ -132,6 +139,33 @@ Proof.
   intros; simpl.
   unfold FINITE.
   now destruct (FINITE' l n).
+Qed.
+
+Local Definition PI' (l: level) (a: U l) (b: T l a -> U l):
+  { c: U l | T l c = (forall x: T l a, T l (b x)) }.
+Proof.
+  unshelve eexists.
+  - unshelve eapply CTOR.
+    + exact a.
+    + exists 0.
+      eauto with arith.
+    + exact b.
+  - simpl.
+    rewrite TYPE_CTOR.
+    unfold GET_CTOR; simpl.
+    reflexivity.
+Defined.
+
+Definition PI {l: level} (a: U l) (b: T l a -> U l): U l :=
+  proj1_sig (PI' l a b).
+
+Lemma T_PI:
+  forall l a b,
+  T _ (@PI l a b) = (forall x: T _ a, T _ (b x)).
+Proof.
+  intros; simpl.
+  unfold PI.
+  now destruct (PI' l a b).
 Qed.
 
 Global Arguments U: simpl never.
