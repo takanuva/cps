@@ -95,7 +95,7 @@ Section DSet.
     - now apply dset_trans with y.
   Qed.
 
-  Definition dset_setoid (s: dset): Setoid := {|
+  Definition dset_carrier_setoid (s: dset): Setoid := {|
     setoid_carrier := dset_carrier s;
     setoid_equiv := dset_equiv s;
     setoid_refl := dset_refl s;
@@ -103,14 +103,14 @@ Section DSet.
     setoid_trans := dset_trans s
   |}.
 
-  Global Canonical Structure dset_setoid.
+  Global Canonical Structure dset_carrier_setoid.
 
-  Global Coercion dset_setoid: dset >-> Setoid.
+  Global Coercion dset_carrier_setoid: dset >-> Setoid.
 
   Global Instance dset_realization_proper:
     forall {G: dset},
     Proper (setoid_equiv ==>
-            (@setoid_equiv (dset_setoid G)) ==>
+            (@setoid_equiv (dset_carrier_setoid G)) ==>
             iff) (dset_realization G).
   Proof.
     split; intro.
@@ -136,7 +136,7 @@ Section DSet.
   Definition dmap_equiv {G D} (f: dmap G D) (g: dmap G D): Prop :=
     forall x, f x == g x.
 
-  Program Definition dmap_setoid G D: Setoid := {|
+  Program Definition dmap_setoid (G: dset) (D: dset): Setoid := {|
     setoid_carrier := dmap G D;
     setoid_equiv := dmap_equiv
   |}.
