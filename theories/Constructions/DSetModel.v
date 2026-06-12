@@ -49,22 +49,28 @@ Proof.
     inversion x.
 Qed.
 
-Program Definition nabla_unit: dset_omega := {|
+(* -------------------------------------------------------------------------- *)
+
+Local Notation DSET := (dset (U uw) T).
+Local Notation DMAP := (dmap (U uw) T).
+Local Notation DFAM := (dset_family (U uw) T).
+
+Program Definition dset_unit: DSET := {|
   dset_code := FINITE 1;
   dset_equiv := eq;
   dset_realization x y := True;
   dset_surjective y := I
 |}.
 
-Local Notation DSET := (dset (U uw) T).
-Local Notation DMAP := (dmap (U uw) T).
-Local Notation DFAM := (dset_family (U uw) T).
+(* Program Definition dset_pi (G: DSET) (D: DFAM G): DSET := {|
+
+|}. *)
 
 Program Definition dset_model: CwF := {|
   cwf_cat :=
     dset_category (U uw) T;
   cwf_empty := {|
-    terminal := nabla_unit;
+    terminal := dset_unit;
     terminal_hom (X: DSET) := {|
       dmap_fun :=
         map (x: X) => tt1;
