@@ -100,6 +100,11 @@ Program Definition dset_model: CwF := {|
 |}.
 
 Next Obligation of dset_model.
+  repeat intro; simpl.
+  trivial.
+Qed.
+
+Next Obligation of dset_model.
   repeat intro; simpl in *.
   (* Trying to destruct directly triggers a bug in Coq... *)
   assert (forall x, x = @tt1 uw).

@@ -118,13 +118,15 @@ Section DSet.
     - now apply dset_respectful with y y0.
   Qed.
 
+  Definition tracks {G: dset} {D: G -> dset} (d: CL) (f: forall x: G, D x) :=
+    forall x: G,
+    forall e: CL,
+    G e x -> D x (d e) (f x).
+
   Structure dmap (G: dset) (D: dset): Type := {
     dmap_fun: SetoidMap G D;
     dmap_machine: CL;
-    dmap_tracks:
-      forall y g,
-      G y g ->
-      D (app dmap_machine y) (dmap_fun g)
+    dmap_tracks: tracks dmap_machine dmap_fun
   }.
 
   Global Coercion dmap_fun: dmap >-> SetoidMap.
@@ -163,6 +165,7 @@ Section DSet.
   |}.
 
   Next Obligation of dmap_id.
+    repeat intro.
     now rewrite CL_equiv_I.
   Qed.
 
@@ -176,6 +179,7 @@ Section DSet.
   Qed.
 
   Next Obligation of dmap_post.
+    repeat intro.
     rewrite CL_equiv_B.
     apply dmap_tracks.
     apply dmap_tracks.
@@ -188,6 +192,7 @@ Section DSet.
   Proof.
     repeat intro.
     unfold dmap_post; simpl.
+    setoidify.
     transitivity (y0 (x x1)).
     - apply H0.
     - apply cong.
