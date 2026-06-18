@@ -70,5 +70,6 @@ theories/Constructions/Normalization.v
 theories/Constructions/Stratification.v
 theories/Constructions/Reduction.v
 theories/Constructions/Observational.v
+theories/Constructions/Thunking.v
 theories/Constructions.v
 theories/Dependent.v
