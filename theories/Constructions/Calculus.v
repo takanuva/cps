@@ -53,7 +53,11 @@ Inductive term: Set :=
   | boolean
   | bool_tt
   | bool_ff
-  | bool_if (e: term) (t: term) (f1: term) (f2: term).
+  | bool_if (e: term) (t: term) (f1: term) (f2: term)
+  (* Thunks. *)
+  | thunk (t: term)
+  | delay (e: term)
+  | force (e: term).
 
 Global Coercion sort_term: sort >-> term.
 
@@ -88,6 +92,12 @@ Fixpoint traverse g k e: term :=
   | bool_if e t f1 f2 =>
     bool_if (traverse g k e) (traverse g (S k) t) (traverse g k f1)
       (traverse g k f2)
+  | thunk t =>
+    thunk (traverse g k t)
+  | delay e =>
+    delay (traverse g k e)
+  | force e =>
+    force (traverse g k e)
   end.
 
 Global Instance cc_dbVar: dbVar term :=
@@ -180,7 +190,10 @@ Inductive context: Set :=
   | context_if_term (e: context) (t: term) (f1: term) (f2: term)
   | context_if_type (e: term) (t: context) (f1: term) (f2: term)
   | context_if_then (e: term) (t: term) (f1: context) (f2: term)
-  | context_if_else (e: term) (t: term) (f1: term) (f2: context).
+  | context_if_else (e: term) (t: term) (f1: term) (f2: context)
+  | context_thunk (t: context)
+  | context_delay (e: context)
+  | context_force (e: context).
 
 Fixpoint apply_context (h: context) (x: term): term :=
   match h with
@@ -226,6 +239,12 @@ Fixpoint apply_context (h: context) (x: term): term :=
     bool_if e t (apply_context f1 x) f2
   | context_if_else e t f1 f2 =>
     bool_if e t f1 (apply_context f2 x)
+  | context_thunk t =>
+    thunk (apply_context t x)
+  | context_delay e =>
+    delay (apply_context e x)
+  | context_force e =>
+    force (apply_context e x)
   end.
 
 Coercion apply_context: context >-> Funclass.
@@ -266,6 +285,9 @@ Inductive value: term -> Prop :=
   | value_true:
     value bool_tt
   | value_false:
-    value bool_ff.
+    value bool_ff
+  | value_delay:
+    forall e,
+    value (delay e).
 
 Global Hint Constructors value: cps.
