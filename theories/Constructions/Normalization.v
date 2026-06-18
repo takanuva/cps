@@ -196,20 +196,19 @@ Conjecture strong_normalization:
 Lemma normal_form_is_decidable:
   forall g e t,
   typing g e t conv ->
-  exists2 f,
-  rt(step g) e f & normal (step g) f.
+  { f | rt(step g) e f /\ normal (step g) f }.
 Proof.
   intros.
   apply strong_normalization in H.
-  induction H using SN_ind.
+  induction H; clear H.
   destruct step_is_decidable with g x as [ (y, ?H) | ?H ].
-  - destruct H2 with y as (z, ?, ?).
-    + now apply t_step.
+  - destruct H0 with y as (z, (?, ?)).
+    + assumption.
     + exists z; eauto with cps.
-  - exists x.
+  - exists x; split.
     + apply rt_refl.
     + intros y ?.
-      now apply H0 with y.
+      now apply H with y.
 Qed.
 
 Definition bottom: term :=
@@ -235,7 +234,7 @@ Proof.
   (* So there's a term in normal form that also is. *)
   assert (exists2 f, typing [] f bottom conv & normal (step []) f) as (f, ?, ?).
   - (* We calculate it from strong normalization and subject reduction. *)
-    destruct normal_form_is_decidable with ([]: env) e bottom as (f, ?, ?).
+    destruct normal_form_is_decidable with ([]: env) e bottom as (f, (?, ?)).
     + assumption.
     + exists f; auto.
       now apply subject_reduction with e.
