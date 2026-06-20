@@ -2,6 +2,8 @@
 (*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
+Require Import Lia.
+Require Import Arith.
 Require Import List.
 Require Import Equality.
 Require Import Local.Prelude.
@@ -15,8 +17,6 @@ Require Import Local.Constructions.Reduction.
 
 Import ListNotations.
 
-(*
-
 (* We can't properly define this relation the standard way as it would violate
    the strict positivity rule. Instead, we use a trick similar to Sangiorgi's
    definition of stratified strong bisimilarity (definition 2.2.10 on the "The
@@ -27,82 +27,70 @@ Import ListNotations.
 
 (* TODO: check also https://www.cs.ox.ac.uk/files/293/lazy.pdf. *)
 
-Fixpoint observational_approx (n: nat): env -> relation term :=
+Local Notation eval := cbv_eval.
+
+Local Definition complete_relation: typing_equivalence :=
   fun g e1 e2 =>
-    match n with
-    | 0 =>
-      True
-    | S m =>
-      forall (h: context) v,
-      (* TODO: close over g! *)
-      typing [] (h e1) boolean (observational_approx m) ->
-      typing [] (h e2) boolean (observational_approx m) ->
-      eval (h e1) v <-> eval (h e2) v
-   end.
+    True.
 
-Local Notation approx := observational_approx.
-
-Definition observational: env -> relation term :=
+Local Definition phi (R: typing_equivalence): typing_equivalence :=
   fun g e1 e2 =>
-    (* We take the intersection of all approximations! *)
-    forall n, approx n g e1 e2.
+    forall (h: context) v,
+    typing [] (h e1) boolean R ->
+    typing [] (h e2) boolean R ->
+    eval (h e1) v <-> eval (h e2) v.
 
-Lemma approx_unfold:
+Fixpoint approx_naive (n: nat): typing_equivalence :=
+  match n with
+  | 0 =>
+    complete_relation
+  | S m =>
+    phi (approx_naive m)
+  end.
+
+Definition approx (n: nat): typing_equivalence :=
+  fun g e1 e2 =>
+    forall m,
+    m <= n -> approx_naive m g e1 e2.
+
+Definition observational: typing_equivalence :=
+  fun g e1 e2 =>
+    forall n, approx_naive n g e1 e2.
+
+Lemma approx_is_monotone:
   forall n g e1 e2,
-  approx (S n) g e1 e2 =
-    (forall (h: context) v,
-     typing [] (h e1) boolean (approx n) ->
-     typing [] (h e2) boolean (approx n) ->
-     eval (h e1) v <-> eval (h e2) v).
+  approx (S n) g e1 e2 ->
+  approx n g e1 e2.
 Proof.
-  auto.
-Qed.
-
-Lemma approx_refl:
-  forall n g,
-  reflexive (approx n g).
-Proof.
-  induction n; intros.
-  - easy.
-  - unfold reflexive; intros.
-    rewrite approx_unfold; intros.
-    firstorder.
-Qed.
-
-Lemma approx_sym:
-  forall n g,
-  symmetric (approx n g).
-Proof.
-  induction n; intros.
-  - easy.
-  - unfold symmetric; intros.
-    rewrite approx_unfold in H |- *; intros.
-    firstorder.
+  repeat intro.
+  apply H.
+  lia.
 Qed.
 
 Lemma observational_refl:
-  forall g,
-  reflexive (observational g).
+  forall g e,
+  observational g e e.
 Proof.
   repeat intro.
-  apply approx_refl.
+  destruct n; simpl.
+  - unfold complete_relation.
+    trivial.
+  - repeat intro.
+    firstorder.
 Qed.
 
 Lemma observational_sym:
-  forall g,
-  symmetric (observational g).
+  forall g e1 e2,
+  observational g e1 e2 ->
+  observational g e2 e1.
 Proof.
   repeat intro.
-  now apply approx_sym.
+  destruct n; simpl.
+  - unfold complete_relation.
+    trivial.
+  - specialize (H (S n)); simpl in H.
+    firstorder.
 Qed.
-
-(* Goal
-  forall n g,
-  inclusion (approx n g) (approx (S n) g).
-Proof.
-  unfold inclusion.
-  admit.
-Admitted. *)
 
 Lemma observational_tt_ff:
   forall g,
@@ -111,24 +99,19 @@ Proof.
   (* Assume the relation is degenerate; so [true ~ false]. *)
   repeat intro.
   (* For every approximation level, on every context, true and false return the
-     same value after computation; we pick the empty context and the truth value
+     same value after computation; we pick the empty context and the true value
      for checking. *)
-  specialize (H 1).
-  unfold approx in H; simpl in H.
+  specialize (H 1); simpl in H.
+  unfold phi in H.
   specialize (H context_hole bool_tt).
+  simpl in H.
   (* Now we observe... *)
   destruct H as (?, _); simpl.
-  - (* True is typable, obviously. *)
-    repeat constructor.
-  - (* So is false. *)
-    repeat constructor.
-  - (* If [true] reduces to [true] (which is trivial), then [false] should also
-       reduce to [true]: that's an absurd! *)
-    simpl in H; destruct H.
-    + (* Clearly... *)
-      split; auto with cps.
-    + (* TODO: properly define CBN and CBV. *)
-      admit.
+  - repeat constructor.
+  - repeat constructor.
+  - (* As true trivially evaluates to true, so should false: which of course is
+       an absurd. *)
+    admit.
 Admitted.
 
 Theorem observational_is_consistent:
@@ -141,71 +124,25 @@ Proof.
   now apply observational_tt_ff with g.
 Qed.
 
-Lemma approx_conv:
-  forall n g e1 e2,
-  conv g e1 e2 ->
-  approx n g e1 e2.
-Proof.
-  induction n; intros.
-  - easy.
-  - rewrite approx_unfold; split; intros.
-    + (* Respecting variables, conv is a congruence. So if we close over g,
-         we have that conv [] (h (g x)) (h (g y))... so if one evaluates to a
-         boolean, by Church-Rosser, so does the other. Typing doesn't seem to
-         be relevant here... *)
-      admit.
-    + (* Same as above. *)
-      admit.
-Admitted.
-
-Lemma observational_conv:
-  forall g,
-  inclusion (conv g) (observational g).
-Proof.
-  repeat intro.
-  now apply approx_conv.
-Qed.
-
-Lemma observational_if:
-  forall n g e1 e2,
-  (forall (h: context) v,
-   typing [] (h e1) boolean observational ->
-   typing [] (h e2) boolean observational ->
-   eval (h e1) v <-> eval (h e2) v) ->
-  approx n g e1 e2.
-Proof.
-  (* Hmmmm... *)
-  admit.
-Admitted.
-
-Theorem observational_characterization:
+Theorem observational_equality:
   forall g e1 e2,
-  observational g e1 e2 <->
-    (forall (h: context) v,
-     typing [] (h e1) boolean observational ->
-     typing [] (h e2) boolean observational ->
-     eval (h e1) v <-> eval (h e2) v).
+  observational g e1 e2 ->
+  forall (h: context) v R,
+  typing [] (h e1) boolean R ->
+  typing [] (h e2) boolean R ->
+  eval (h e1) v <-> eval (h e2) v.
 Proof.
-  (* This gives a characterization of the observational relation. This is indeed
-     the definition we would have liked to give it, but defining it in this way
-     would violate strict positivity rules. *)
-  split; intros.
-  - (* This is trivially so. From H, e1 and e2 are equivalent at level 1. *)
-    specialize (H 1).
-    rewrite approx_unfold in H.
-    apply H.
-    + (* Terms are always convertible if equivalent at level 0, so any typing
-         derivation is enough. *)
-      apply infer_subset with observational.
-      * easy.
-      * assumption.
-    + (* Ditto. *)
-      apply infer_subset with observational.
-      * easy.
-      * assumption.
-  - (* This case is a bit trickier... see the documentation for it above. *)
-    intro.
-    now apply observational_if.
+  intros.
+  specialize (H 1).
+  apply H.
+  - apply infer_subset with (R := R); repeat intro.
+    + unfold complete_relation.
+      trivial.
+    + assumption.
+  - apply infer_subset with (R := R); repeat intro.
+    + unfold complete_relation.
+      trivial.
+    + assumption.
 Qed.
 
 Theorem observational_is_conservative:
@@ -214,10 +151,10 @@ Theorem observational_is_conservative:
   infer observational j.
 Proof.
   intros.
-  apply infer_subset with conv; intros.
-  - apply observational_conv.
-  - assumption.
-Qed.
+  (* TODO: infer_subset should probably give us a witness of typing and that the
+     element is a subterm... *)
+  admit.
+Admitted.
 
 Lemma extensionality_if:
   forall g f1 f2 a b,
@@ -230,8 +167,11 @@ Proof.
   repeat intro.
   induction n; simpl; intros.
   - easy.
-  - split; intros.
-    + (* Ignore, for now, definitions inside the context [g], as the relation
+  - repeat intro.
+    split; intros.
+    + (* TODO: I no longer believe the following is correct...
+
+         Ignore, for now, definitions inside the context [g], as the relation
          will need to be reworked to take care of that. In order to prove that
          pi types admit functional extensionality in the observational relation,
          we first check if the context [h] goes inside a binder. If it does, it
@@ -246,7 +186,7 @@ Proof.
          [f2 e2] are equivalent. If they are, so will be [f1 e1 ... en] and
          [f2 e1 ... en], which is our context. As it's equivalent to [h], this
          means [f1 ...] will return [v], and so will [f2 ...] as expected. *)
-      admit.
+        admit.
     + (* Same as above. *)
       admit.
 Admitted.
@@ -264,6 +204,7 @@ Proof.
   destruct n; simpl; intros.
   - easy.
   - specialize (H1 (S n)); simpl in H1.
+    unfold phi in H1 |- *; repeat intro.
     (* We need composition of contexts to finish this, but this is clearly true
        as we can supply [h (application [-] x)] to [H2] and get our goal. *)
     admit.
@@ -308,5 +249,3 @@ Proof.
   (* ... *)
   admit.
 Admitted.
-
-*)

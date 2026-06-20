@@ -40,6 +40,12 @@ Inductive evaluation_context: context -> Prop :=
 
 Axiom cbn: relation term.
 
-Definition eval: relation term :=
+Axiom cbv: relation term.
+
+Definition cbn_eval: relation term :=
   fun e v =>
     rt(cbn) e v /\ value v.
+
+Definition cbv_eval: relation term :=
+  fun e v =>
+    rt(cbv) e v /\ value v.
