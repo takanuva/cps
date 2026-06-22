@@ -6,10 +6,10 @@ Require Import List.
 Require Import Local.Prelude.
 Require Import Local.Substitution.
 Require Import Local.AbstractRewriting.
-Require Local.Constructions.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Intuitionistic.
+Require Local.Constructions.
 
 Import ListNotations.
 
@@ -25,10 +25,10 @@ Module TT := Local.Constructions.
 
     |-
       (let f: (forall T: Type, T -> T) :=
-        fun (T: Type) (x: T) =>
-          x
-      in fun (x: f Set bool) =>
-        f bool x) : bool -> bool
+         fun (T: Type) (x: T) =>
+           x
+       in fun (x: f Set bool) =>
+         f bool x) : bool -> bool
 
   How should this be CPS-translated? We notice we're using f both in type-level
   and in term-level! It's CBV translation (as CBV is the standard one) would be
