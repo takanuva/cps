@@ -28,6 +28,23 @@ Proof.
   apply step_is_confluent.
 Qed.
 
+Lemma conv_prepend:
+  forall g e1 f1,
+  rt(step g) e1 f1 ->
+  forall e2 f2,
+  rt(step g) e2 f2 ->
+  conv g f1 f2 ->
+  conv g e1 e2.
+Proof.
+  intros.
+  destruct H1.
+  - apply conv_join with f; eauto with cps.
+  - apply conv_eta_left with t f1 f2; eauto with cps.
+  - apply conv_eta_right with t f1 f2; eauto with cps.
+  - apply conv_sur_left with p q t f; eauto with cps.
+  - apply conv_sur_right with p q t f; eauto with cps.
+Qed.
+
 Lemma conv_trans:
   forall g,
   transitive (conv g).
@@ -36,22 +53,7 @@ Proof.
      I'm not really sure yet how to prove this, tho. I'll come back here later.
 
      More recent note: I hate my past self. *)
-  repeat intro.
-  generalize dependent z.
-  induction H; intros.
-  - dependent destruction H1.
-    + rename f into f1, f0 into f2.
-      destruct step_is_church_rosser with g f1 f2.
-      * eapply rst_trans with e0; eauto with cps.
-      * apply conv_join with x; eauto with cps.
-    + admit.
-    + admit.
-    + admit.
-    + admit.
-  - admit.
-  - admit.
-  - admit.
-  - admit.
+  admit.
 Admitted.
 
 Global Hint Resolve conv_trans: cps.
