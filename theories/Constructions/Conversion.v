@@ -268,8 +268,9 @@ Definition typing_equivalence: Type :=
 Inductive conv: typing_equivalence :=
   (* Common reduct. *)
   | conv_join:
-    forall g e1 e2,
-    rst(step g) e1 e2 ->
+    forall g e1 e2 f,
+    rt(step g) e1 f ->
+    rt(step g) e2 f ->
     conv g e1 e2
   (* Eta-expansion for lambda, abstraction on the left. *)
   | conv_eta_left:
@@ -311,8 +312,9 @@ Lemma conv_refl:
   reflexive (conv g).
 Proof.
   repeat intro.
-  apply conv_join.
-  apply rst_refl.
+  apply conv_join with x.
+  - apply rt_refl.
+  - apply rt_refl.
 Qed.
 
 Global Hint Resolve conv_refl: cps.
@@ -322,8 +324,7 @@ Lemma conv_sym:
   symmetric (conv g).
 Proof.
   induction 1.
-  - apply conv_join.
-    now apply rst_sym.
+  - now apply conv_join with f.
   - eapply conv_eta_right; eauto with cps.
   - eapply conv_eta_left; eauto with cps.
   - eapply conv_sur_right; eauto with cps.

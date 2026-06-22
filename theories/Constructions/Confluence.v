@@ -7,6 +7,7 @@ Require Import Morphisms.
 Require Import Relations.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
+Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 
@@ -35,13 +36,29 @@ Proof.
      I'm not really sure yet how to prove this, tho. I'll come back here later.
 
      More recent note: I hate my past self. *)
-  admit.
+  repeat intro.
+  generalize dependent z.
+  induction H; intros.
+  - dependent destruction H1.
+    + rename f into f1, f0 into f2.
+      destruct step_is_church_rosser with g f1 f2.
+      * eapply rst_trans with e0; eauto with cps.
+      * apply conv_join with x; eauto with cps.
+    + admit.
+    + admit.
+    + admit.
+    + admit.
+  - admit.
+  - admit.
+  - admit.
+  - admit.
 Admitted.
 
 Global Hint Resolve conv_trans: cps.
 
 Global Instance conv_equivalence:
-  forall g, Equivalence (conv g).
+  forall g,
+  Equivalence (conv g).
 Proof.
   split.
   - apply conv_refl.
