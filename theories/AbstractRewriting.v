@@ -62,7 +62,16 @@ Global Hint Resolve equiv_sym: cps.
 Global Hint Resolve equiv_trans: cps.
 Global Hint Constructors equivalence: cps.
 
-Global Hint Resolve clos_rt_clos_rst: cps.
+Lemma clos_rt_clos_rst':
+  forall {T} R e1 e2,
+  @clos_refl_trans T R e1 e2 ->
+  @clos_refl_sym_trans T R e1 e2.
+Proof.
+  intros.
+  now apply clos_rt_clos_rst.
+Qed.
+
+Global Hint Resolve clos_rt_clos_rst': cps.
 
 (* Generalize the idea of a square commutation diagram. *)
 

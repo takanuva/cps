@@ -76,9 +76,6 @@ Section Technique.
       + destruct R_diagram1 with x w y as (p, ?, ?); auto.
         destruct IHclos_refl_sym_trans_1n with p as (q, ?, ?); try easy.
         exists q; eauto with cps.
-        (* I'm not sure why eauto can't solve this one. *)
-        eapply rst_trans; eauto.
-        apply clos_rt_clos_rst; auto.
       + destruct R_diagram2 with x w y as (p, ?, ?); auto.
         destruct IHclos_refl_sym_trans_1n with p as (q, ?, ?); try easy.
         exists q; eauto with cps.
@@ -98,9 +95,6 @@ Section Technique.
       + destruct R_diagram1 with z w x as (p, ?, ?); auto.
         destruct IHclos_refl_sym_trans_n1 with p as (q, ?, ?); try easy.
         exists q; eauto with cps.
-        eapply rst_trans; eauto.
-        apply rst_sym, clos_rt_clos_rst.
-        clear H1 H3 H4 H5; induction H2; eauto with cps.
   Qed.
 
   Local Lemma strong_normalization_module_equi:
