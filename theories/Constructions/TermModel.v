@@ -13,6 +13,7 @@ Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
 Require Import Local.Constructions.Cumulativity.
+Require Import Local.Constructions.Confluence.
 Require Import Local.Constructions.TypeSystem.
 (* Require Import Local.Constructions.Inversion. *)
 

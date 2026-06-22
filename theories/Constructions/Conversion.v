@@ -268,9 +268,8 @@ Definition typing_equivalence: Type :=
 Inductive conv: typing_equivalence :=
   (* Common reduct. *)
   | conv_join:
-    forall g e1 e2 f,
-    rt(step g) e1 f ->
-    rt(step g) e2 f ->
+    forall g e1 e2,
+    rst(step g) e1 e2 ->
     conv g e1 e2
   (* Eta-expansion for lambda, abstraction on the left. *)
   | conv_eta_left:
@@ -312,9 +311,8 @@ Lemma conv_refl:
   reflexive (conv g).
 Proof.
   repeat intro.
-  apply conv_join with x.
-  - apply rt_refl.
-  - apply rt_refl.
+  apply conv_join.
+  apply rst_refl.
 Qed.
 
 Global Hint Resolve conv_refl: cps.
@@ -324,7 +322,8 @@ Lemma conv_sym:
   symmetric (conv g).
 Proof.
   induction 1.
-  - now apply conv_join with f.
+  - apply conv_join.
+    now apply rst_sym.
   - eapply conv_eta_right; eauto with cps.
   - eapply conv_eta_left; eauto with cps.
   - eapply conv_sur_right; eauto with cps.
@@ -333,25 +332,8 @@ Qed.
 
 Global Hint Resolve conv_sym: cps.
 
-Lemma conv_trans:
-  forall g,
-  transitive (conv g).
-Proof.
-  (* TODO: Bowman's paper says this is transitive, and, intuitively, I agree.
-     I'm not really sure yet how to prove this, tho. I'll come back here later.
-  *)
-Admitted.
-
-Global Hint Resolve conv_trans: cps.
-
-Global Instance conv_equivalence:
-  forall g, Equivalence (conv g).
-Proof.
-  split.
-  - apply conv_refl.
-  - apply conv_sym.
-  - apply conv_trans.
-Qed.
+(* If you're looking for the transitivity rule, conv_trans, that's into the
+   [Constructions/Confluence.v] file, as it relies on confluence of course! *)
 
 (* TODO: not true, since e and f may delta-reduce! *)
 (* Lemma conv_context:
