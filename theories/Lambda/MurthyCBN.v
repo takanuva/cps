@@ -66,3 +66,30 @@ Require Import Local.Lambda.Calculus.
   something that only works due to the image of the CPS translation...? TODO:
   study this! And may the gods help me, I'm so tired...
 *)
+
+(*
+
+*)
+
+
+
+Inductive cbn: relation term :=
+  | cbn_beta:
+    forall t b x,
+    cbn
+      (application (abstraction t b) x)
+      (subst x 0 b)
+  | cbn_application_left:
+    forall f1 f2 x,
+    cbn f1 f2 ->
+    cbn (application f1 x) (application f2 x)
+  | cbn_application_right:
+    (* This rule is hardly ever considered, probably because it's only necessary
+       for open terms, but it was used in Plotkin's paper, so we'll add it here
+       as well. *)
+    forall (f: nat) x1 x2,
+    cbn x1 x2 ->
+    cbn (application f x1) (application f x2).
+
+
+

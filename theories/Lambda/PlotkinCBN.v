@@ -68,14 +68,10 @@ Proof.
   - now constructor.
   - now constructor.
   - now constructor.
-  - now constructor.
-  - now constructor.
   - induction H.
     + constructor.
     + now constructor.
     + now constructor.
-  - now constructor.
-  - now constructor.
   - now constructor.
   - now constructor.
   - now constructor.
@@ -156,12 +152,6 @@ Proof.
       * right.
         destruct e as (x, ?).
         eexists; eauto with cps.
-    + left; inversion_clear 1.
-      inversion H0.
-    + left; inversion_clear 1.
-      inversion H0.
-  - left; inversion 1.
-  - left; inversion 1.
 Qed.
 
 Lemma cbn_whr_iff:
@@ -187,10 +177,6 @@ Proof.
     apply closed_application_left with x.
     assumption.
 Qed.
-
-(* TODO: we might have a problem here. I don't think this is true in the
-   presence of thunks, cause we could have [force (\x.x)], which is closed but
-   it is not a value, it's just stuck... *)
 
 Lemma closed_normal_cbn_implies_value:
   forall e,
@@ -226,12 +212,7 @@ Proof.
         constructor.
         eassumption.
         inversion 1.
-      * (* TODO: not true yet, as we can't reduce inside a pair. *)
-        admit.
-      * admit.
-    + admit.
-    + admit.
-Admitted.
+Qed.
 
 (* TODO: fix typing on the following! *)
 
@@ -336,11 +317,7 @@ Proof.
   - destruct IHe1 as (b, ?).
     destruct IHe2 as (c, ?).
     eauto with cps.
-  (* TODO: not yet true, we didn't define the CPS translations for pairs and
-     thunks. *)
-  - admit.
-  - admit.
-Admitted.
+Qed.
 
 Local Hint Resolve cbn_cps_is_total: cps.
 
@@ -604,10 +581,6 @@ Proof.
         simpl length.
         replace (#r + 1 + 1) with (2 + #r) by lia.
         assumption.
-  - simpl in H0.
-    inversion H0.
-  - simpl in H0.
-    inversion H0.
 Qed.
 
 Local Lemma technical1:
@@ -933,12 +906,6 @@ Proof.
     apply star_bind_right.
     apply star_lift.
     now apply IHfull.
-  (* Case: full_delay. *)
-  - (* TODO: we don't have the translation yet! *)
-    inversion H0.
-  (* Case: full_force. *)
-  - (* TODO: we don't have the translation yet! *)
-    inversion H0.
 Qed.
 
 Lemma termination_nonvalue:
@@ -988,12 +955,6 @@ Proof.
         intro; apply H3.
         dependent destruction H4.
         assumption.
-    + dependent destruction H1.
-      inversion H1_.
-    + dependent destruction H1.
-      inversion H1_.
-  - inversion H1.
-  - inversion H1.
 Qed.
 
 Lemma termination:
@@ -1016,7 +977,6 @@ Proof.
       dependent destruction H0.
       eexists 0.
       do 2 constructor.
-    + inversion H0.
   (* Case: e is not a value. *)
   - destruct termination_nonvalue with e c.
     + assumption.
@@ -1207,8 +1167,6 @@ Proof.
     apply barb_bind_right.
     apply barb_lift.
     apply IHh; auto.
-  - inversion H2.
-  - inversion H2.
 Qed.
 
 Local Hint Resolve cbn_cps_is_compositional: cps.
@@ -1300,8 +1258,6 @@ Proof.
     apply beta_bind_right.
     apply beta_lift.
     assumption.
-  - inversion H.
-  - inversion H.
 Qed.
 
 Lemma foo:
@@ -1361,8 +1317,6 @@ Proof.
   - dependent destruction H0.
     apply cbn_cps_lift_inversion in H0 as (c, ?, ?); subst.
     admit.
-  - admit.
-  - admit.
   - admit.
 Admitted.
 

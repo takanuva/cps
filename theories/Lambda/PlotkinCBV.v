@@ -292,13 +292,7 @@ Proof.
       * right.
         destruct e as (x, ?).
         eexists; eauto with cps.
-    (* TODO: once we add reduction under pairs and thunks, review below. As of
-       now, this isn't even true. *)
-    + admit.
-    + admit.
-  - admit.
-  - admit.
-Admitted.
+Qed.
 
 (* TODO: is this true? Cause the term might be stuck! *)
 
@@ -348,12 +342,7 @@ Proof.
         constructor.
         eassumption.
         inversion 1.
-      * (* TODO: not true yet, as we can't reduce inside a pair. *)
-        admit.
-      * admit.
-    + admit.
-    + admit.
-Admitted.
+Qed.
 
 (* TODO: fix typing on the following! *)
 
@@ -454,11 +443,7 @@ Proof.
   - destruct IHe1 as (b, ?).
     destruct IHe2 as (c, ?).
     eauto with cps.
-  (* TODO: not yet true, we didn't define the CPS translations for pairs and
-     thunks. *)
-  - admit.
-  - admit.
-Admitted.
+Qed.
 
 Local Hint Resolve cbv_cps_is_total: cps.
 
@@ -757,10 +742,6 @@ Proof.
     apply rt_R_bind_left.
     apply rt_R_lift.
     now apply IHcompatible.
-  - (* TODO! Define translation for delay! *)
-    inversion H0.
-  - (* TODO! Define translation for force! *)
-    inversion H0.
 Qed.
 
 Local Lemma technical1:
@@ -1062,8 +1043,6 @@ Proof.
         now apply technical3.
         inversion_clear 1.
         contradiction.
-      * inversion H.
-      * inversion H.
     + (* In here, the expression is like (\x.e) f. So, the only way this is not
          a redex is if f is not a value (and can't become one). So this will
          follow directly by the inductive hypothesis. *)
@@ -1100,12 +1079,6 @@ Proof.
         now apply technical5.
         inversion_clear 1.
         contradiction.
-    + inversion H1.
-      inversion H3.
-    + inversion H1.
-      inversion H3.
-  - inversion H1.
-  - inversion H1.
 Qed.
 
 Lemma termination:
@@ -1125,7 +1098,6 @@ Proof.
         constructor.
       * dependent destruction H0.
         do 2 constructor.
-      * inversion H0.
   - destruct termination_nonvalue with e c as (k, ?, ?).
     + assumption.
     + assumption.
@@ -1277,8 +1249,6 @@ Proof.
     apply barb_bind_left.
     apply barb_lift.
     apply IHh; auto.
-  - inversion H2.
-  - inversion H2.
 Qed.
 
 Local Hint Resolve cbv_cps_is_compositional: cps.
