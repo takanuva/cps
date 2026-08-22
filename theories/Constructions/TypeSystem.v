@@ -305,7 +305,10 @@ Section TypeSystem.
       infer (valid_subst f g1 g2) ->
       infer (typing g2 t (sort_term s)) ->
       infer (typing g1 e (inst f t)) ->
-      infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2)).
+      infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2))
+    (* TODO: in order to having closing substitutions, the above should also be
+       allowed to type G1 |- (e/x, f) : (G2, x = e: T), i.e., in contexts that
+       explicitly require e in place for x! *).
 
   Lemma typing_bound:
     forall g n p t u,
