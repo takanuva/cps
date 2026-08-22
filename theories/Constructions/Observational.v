@@ -29,6 +29,8 @@ Import ListNotations.
 
 Local Notation eval := cbv_eval.
 
+(*
+
 Local Definition complete_relation: typing_equivalence :=
   fun g e1 e2 =>
     True.
@@ -249,3 +251,11 @@ Proof.
   (* ... *)
   admit.
 Admitted.
+
+*)
+
+(*
+  TODO: our best shot as of now (lacking time to investigate...) is to follow
+  https://dl.acm.org/doi/epdf/10.1145/3457884 and define a typed barbed relation
+  in here, which, even if defined in terms of CBV, should include full beta.
+*)
