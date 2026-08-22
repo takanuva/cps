@@ -28,7 +28,7 @@ Proof.
   apply step_is_confluent.
 Qed.
 
-Lemma conv_prepend:
+(* Lemma conv_prepend:
   forall g e1 f1,
   rt(step g) e1 f1 ->
   forall e2 f2,
@@ -43,6 +43,75 @@ Proof.
   - apply conv_eta_right with t f1 f2; eauto with cps.
   - apply conv_sur_left with p q t f; eauto with cps.
   - apply conv_sur_right with p q t f; eauto with cps.
+Qed. *)
+
+Inductive step_env: relation env :=
+  | step_env_head:
+    forall g e1 e2,
+    step g e1 e2 ->
+    step_env (decl_var e1 :: g) (decl_var e2 :: g)
+  | step_env_tail:
+    forall g1 g2 e,
+    step_env g1 g2 ->
+    step_env (e :: g1) (e :: g2).
+
+Lemma step_step_env:
+  forall g1 e1 e2,
+  step g1 e1 e2 ->
+  forall g2,
+  step_env g1 g2 ->
+  step g2 e1 e2.
+Proof.
+  induction 1; intros.
+  - constructor.
+  - constructor.
+  - apply step_delta with t.
+    generalize dependent n.
+    induction H0; intros.
+    + inversion_clear H0.
+      now constructor.
+    + dependent destruction H.
+      * constructor.
+      * constructor.
+        now apply IHstep_env.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+    apply IHstep.
+    assumption.
+Qed.
+
+Lemma rt_step_rt_step_env:
+  forall g1 e1 e2,
+  rt(step g1) e1 e2 ->
+  forall g2,
+  rt(step_env) g1 g2 ->
+  rt(step g2) e1 e2.
+Proof.
+  intros.
+  generalize dependent e2.
+  induction H0; intros.
+  - induction H0.
+    + apply rt_step.
+      now apply step_step_env with x.
+    + apply rt_refl.
+    + eauto with cps.
+  - assumption.
+  - firstorder.
+Qed.
+
+Lemma rt_step_env_head:
+  forall g e1 e2,
+  rt(step g) e1 e2 ->
+  rt(step_env) (decl_var e1 :: g) (decl_var e2 :: g).
+Proof.
+  induction 1.
+  - apply rt_step.
+    now constructor.
+  - apply rt_refl.
+  - eauto with cps.
 Qed.
 
 Lemma conv_trans:
@@ -51,9 +120,35 @@ Lemma conv_trans:
 Proof.
   (* TODO: Bowman's paper says this is transitive, and, intuitively, I agree.
      I'm not really sure yet how to prove this, tho. I'll come back here later.
-
      More recent note: I hate my past self. *)
-  admit.
+  repeat intro.
+  generalize dependent z.
+  induction H; intros.
+  - assert (rst(step g) e1 e2) by eauto with cps.
+    clear H H0 f.
+    generalize dependent e1.
+    induction H1; intros.
+    + admit.
+    + assert (rst(step g) e0 (abstraction t f1)) by eauto with cps.
+      apply step_is_church_rosser in H3.
+      destruct H3 as (z, ?H, ?H).
+      assert (exists t1 f3,
+        z = abstraction t1 f3 /\
+          rt(step g) t t1 /\
+          rt(step (decl_var t :: g)) f1 f3) by admit.
+      destruct H5 as (t1, (f3, ?H)).
+      destruct H5.
+      destruct H6.
+      subst.
+      eapply conv_eta_left.
+      eassumption.
+      eassumption.
+      specialize (IHconv f3).
+      apply clos_rt_clos_rst in H7.
+      apply rst_sym in H7.
+      specialize (IHconv H7).
+      (* There we go... *)
+      admit.
 Admitted.
 
 Global Hint Resolve conv_trans: cps.
