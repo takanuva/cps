@@ -253,6 +253,11 @@ Proof.
       specialize (IHinfer1 _ _ _ eq_refl).
       rewrite <- IHinfer1; simpl.
       now sigma.
+    + (* Juuust as above. *)
+      clear IHinfer2 IHinfer3.
+      specialize (IHinfer1 _ _ _ eq_refl).
+      rewrite <- IHinfer1; simpl.
+      now sigma.
 Qed.
 
 Lemma welltyped_env_is_valid:

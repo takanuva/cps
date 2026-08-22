@@ -300,15 +300,23 @@ Section TypeSystem.
       ---------------------------------------------------
                 G1 |- (e/x, f) : (G2, x: T)
     *)
-    | valid_subst_cons:
+    | valid_subst_cons_var:
       forall g1 g2 f t s e,
       infer (valid_subst f g1 g2) ->
       infer (typing g2 t (sort_term s)) ->
       infer (typing g1 e (inst f t)) ->
       infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2))
-    (* TODO: in order to having closing substitutions, the above should also be
-       allowed to type G1 |- (e/x, f) : (G2, x = e: T), i.e., in contexts that
-       explicitly require e in place for x! *).
+    (*
+        G1 |- f : G2     G2 |- T : s     G1 |- e : T[f]
+      ---------------------------------------------------
+                G1 |- (e/x, f) : (G2, x = e: T)
+    *)
+    | valid_subst_cons_def:
+      forall g1 g2 f t s e,
+      infer (valid_subst f g1 g2) ->
+      infer (typing g2 t (sort_term s)) ->
+      infer (typing g1 e (inst f t)) ->
+      infer (valid_subst (subst_cons e f) g1 (decl_def e t :: g2)).
 
   Lemma typing_bound:
     forall g n p t u,
@@ -498,8 +506,10 @@ Proof.
   - now apply valid_subst_lift_def with s.
   (* Case: comp substitution. *)
   - now apply valid_subst_comp with g2.
-  (* Case: cons substitution. *)
-  - now apply valid_subst_cons with s.
+  (* Case: cons substitution (var). *)
+  - now apply valid_subst_cons_var with s.
+  (* Case: cons substitution (def). *)
+  - now apply valid_subst_cons_def with s.
 Qed.
 
 Conjecture subject_reduction:
@@ -591,7 +601,7 @@ Lemma typing_uplift:
     (decl_var (inst f t) :: g2) (decl_var t :: g1) R.
 Proof.
   intros.
-  apply valid_subst_cons with s1.
+  apply valid_subst_cons_var with s1.
   - apply valid_subst_comp with g2.
     + assumption.
     + apply valid_subst_lift_var with s2.
@@ -653,6 +663,21 @@ Proof.
       * change (bound 0) with (var 0).
         dependent destruction H0.
         now sigma.
+      * change (bound (S n)) with (var (S n)).
+        rename f0 into f, t0 into u.
+        (* TODO: "by now sigma" fails in Coq 8.16! Why, tho? *)
+        replace (inst (subst_cons e f) (lift (1 + S n) 0 u)) with
+          (inst f (lift (S n) 0 u)) by admit.
+        replace (inst (subst_cons e f) (var (S n))) with
+          (inst f (var n)) by admit.
+        apply IHinfer1.
+        now dependent destruction H0.
+    + (* Same as above, basically! *)
+      clear IHinfer2 IHinfer3.
+      specialize (IHinfer1 _ _ _ eq_refl).
+      destruct n.
+      * change (bound 0) with (var 0).
+        dependent destruction H0.
       * change (bound (S n)) with (var (S n)).
         rename f0 into f, t0 into u.
         (* TODO: "by now sigma" fails in Coq 8.16! Why, tho? *)
