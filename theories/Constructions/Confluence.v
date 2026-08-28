@@ -78,9 +78,7 @@ Proof.
   - constructor.
   - constructor.
   - constructor.
-  - constructor.
-    apply IHstep.
-    assumption.
+  (* TODO: congruence rules... *)
 Qed.
 
 Lemma rt_step_rt_step_env:

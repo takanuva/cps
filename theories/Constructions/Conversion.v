@@ -41,10 +41,7 @@ Inductive step: env -> relation term :=
     forall g t f1 f2,
     step g (bool_if bool_ff t f1 f2) f2
   (* Congruence closure. *)
-  | step_context:
-    forall g e1 e2 h,
-    step g e1 e2 ->
-    step g (apply_context h e1) (apply_context h e2).
+  (* TODO: add congruence rules! *).
 
 Global Hint Constructors step: cps.
 
