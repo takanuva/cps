@@ -10,6 +10,43 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
 Require Import Local.Constructions.Calculus.
 
+Definition typing_equivalence: Type :=
+  env -> relation term.
+
+Structure compatible (R: typing_equivalence): Prop := {
+  compatible_pi1:
+    forall g t1 t2 u,
+    R g t1 t2 -> R g (pi t1 u) (pi t2 u);
+  compatible_pi2:
+    forall g t u1 u2,
+    R (decl_var t :: g) u1 u2 -> R g (pi t u1) (pi t u2);
+  compatible_abs1:
+    forall g t1 t2 e,
+    R g t1 t2 -> R g (abstraction t1 e) (abstraction t2 e);
+  compatible_abs2:
+    forall g t e1 e2,
+    R (decl_var t :: g) e1 e2 -> R g (abstraction t e1) (abstraction t e2)
+  (* compatible_app1:
+  compatible_app2:
+  compatible_def1:
+  compatible_def2:
+  compatible_def3:
+  compatible_sigma1:
+  compatible_sigma2:
+  compatible_pair1:
+  compatible_pair2:
+  compatible_pair3:
+  compatible_proj1:
+  compatible_proj2:
+  compatible_if1:
+  compatible_if2:
+  compatible_if3:
+  compatible_if4:
+  compatible_thunk:
+  compatible_delay:
+  compatible_force: *)
+}.
+
 (* Strong reduction! *)
 
 Inductive step: env -> relation term :=
@@ -242,9 +279,6 @@ Proof with eauto with cps.
     subst; rename e into e1.
     now apply H with e2. *) *)
 Admitted.
-
-Definition typing_equivalence: Type :=
-  env -> relation term.
 
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
 
