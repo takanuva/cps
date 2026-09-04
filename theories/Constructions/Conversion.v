@@ -280,6 +280,47 @@ Proof with eauto with cps.
     now apply H with e2. *) *)
 Admitted.
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: review documentation below, please; the relation, as given by Bowman,
+   is unfortunately incomplete and when used within subtyping, for the type
+   system, it collapses into rst(step): no eta expansion can ever be performed!
+
+   The actual algorithm implementation, done in "kernel/conversion.ml" for Coq,
+   matches what's described on the "A Compiled Implementation of Strong
+   Reduction" paper; we need to define a syntactic class of accumulators to
+   match stuff like:
+
+      G |- e1 ->* x es1     G |- e2 ->* x es2     G |- e1i = e2i
+     -------------------------------------------------------------
+                               G |- e1 = e2
+
+   I.e., a series of eliminators such that they'll depend on a free variable
+   are also one possible case for conversion. On the paper, this is done by
+   defining accumulators:
+
+      a ::= x | a w | if a then e else e          w := v | a
+
+   So it may be the case, and in order to better match Coq's implementation that
+   will use a notion of stacks to keep the accumulators, that we wish to instead
+   a notion of contexts:
+
+      A ::= [] | A w | if A then e else e
+
+   So it should be quite clear that for any a = A[x]; then we may add to the
+   relation as:
+
+       G |- e1 ->* A1[x]     G|- e2 ->* A2[x]     G |- A1 = A2
+     -----------------------------------------------------------
+                               G |- e1 = e2
+
+   Where, of course, G |- A1 = A2 compares the contexts pointwise, so we need
+   a mutual induction here (juuust as it's implemented in Coq!). Then, to better
+   relate the paper to the algorithm, we may actually compare doing this using
+   accumulators and an accumulator context. Let us try that!
+*)
+
+(* -------------------------------------------------------------------------- *)
+
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
 
    The documentation doesn't seem to suggest this is a congruence relation, but,
