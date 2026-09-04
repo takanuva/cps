@@ -327,8 +327,14 @@ Inductive accumulator: term -> Prop :=
   | accumulator_app:
     forall a v,
     accumulator a ->
+    (* TODO: careful! What about, e.g., <x y, x z>? This should hold too, so we
+       need a distinct notion for values here... *)
     value v \/ accumulator v ->
     accumulator (application a v)
+  | accumulator_def:
+    forall a t f,
+    accumulator a ->
+    accumulator (definition a t f)
   | accumulator_proj1:
     forall a,
     accumulator a ->
