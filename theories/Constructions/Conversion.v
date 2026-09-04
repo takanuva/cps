@@ -319,6 +319,33 @@ Admitted.
    accumulators and an accumulator context. Let us try that!
 *)
 
+Inductive accumulator: term -> Prop :=
+  | accumulator_bound:
+    (* Every variable that appears here is free: we don't go inside binders. *)
+    forall n,
+    accumulator (bound n)
+  | accumulator_app:
+    forall a v,
+    accumulator a ->
+    value v \/ accumulator v ->
+    accumulator (application a v)
+  | accumulator_proj1:
+    forall a,
+    accumulator a ->
+    accumulator (proj1 a)
+  | accumulator_proj2:
+    forall a,
+    accumulator a ->
+    accumulator (proj2 a)
+  | accumulator_if:
+    forall a t f1 f2,
+    accumulator a ->
+    accumulator (bool_if a t f1 f2)
+  | accumulator_force:
+    forall a,
+    accumulator a ->
+    accumulator (force a).
+
 (* -------------------------------------------------------------------------- *)
 
 (* This relation is mentioned in Coq's documentation and in Bowman's papers.
