@@ -321,20 +321,19 @@ Admitted.
 
 Inductive accumulator: term -> Prop :=
   | accumulator_bound:
-    (* Every variable that appears here is free: we don't go inside binders. *)
+    (* Every variable that appears here is free: we don't go inside binders! *)
     forall n,
     accumulator (bound n)
-  | accumulator_app:
+  | accumulator_application:
     forall a v,
     accumulator a ->
-    (* TODO: careful! What about, e.g., <x y, x z>? This should hold too, so we
-       need a distinct notion for values here... *)
-    value v \/ accumulator v ->
+    exvalue a ->
     accumulator (application a v)
-  | accumulator_def:
-    forall a t f,
+  | accumulator_definition:
+    forall v t a,
+    exvalue v ->
     accumulator a ->
-    accumulator (definition a t f)
+    accumulator (definition v t a)
   | accumulator_proj1:
     forall a,
     accumulator a ->
@@ -350,7 +349,54 @@ Inductive accumulator: term -> Prop :=
   | accumulator_force:
     forall a,
     accumulator a ->
-    accumulator (force a).
+    accumulator (force a)
+
+with exvalue: term -> Prop :=
+  | exvalue_sort:
+    forall s,
+    exvalue (sort_term s)
+  | exvalue_pi:
+    forall t u,
+    exvalue (pi t u)
+  | exvalue_abstraction:
+    forall t e,
+    exvalue (abstraction t e)
+  | exvalue_sigma:
+    forall t u,
+    exvalue (sigma t u)
+  | exvalue_pair:
+    forall e f t,
+    exvalue e ->
+    exvalue f ->
+    exvalue (pair e f t)
+  | exvalue_true:
+    exvalue bool_tt
+  | exvalue_false:
+    exvalue bool_ff
+  | exvalue_delay:
+    forall e,
+    exvalue (delay e)
+  | exvalue_acc:
+    forall a,
+    accumulator a ->
+    exvalue a.
+
+Lemma value_implies_exvalue:
+  forall v,
+  value v ->
+  exvalue v.
+Proof.
+  induction 1.
+  - constructor.
+  - do 2 constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+  - now constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+Qed.
 
 (* -------------------------------------------------------------------------- *)
 
