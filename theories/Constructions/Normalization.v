@@ -9,6 +9,7 @@ Require Import Local.Category.
 Require Import Local.AbstractRewriting.
 Require Import Local.Constructions.Calculus.
 Require Import Local.Constructions.Conversion.
+Require Import Local.Constructions.Cumulativity.
 Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Inversion.
 Require Local.Constructions.TermModel.
@@ -189,13 +190,13 @@ End Normalization.
 
 Conjecture strong_normalization:
   forall g e t,
-  typing g e t conv -> SN (step g) e.
+  typing g e t std -> SN (step g) e.
 
 (* For typeable terms, the normal form is computable. *)
 
 Lemma normal_form_is_decidable:
   forall g e t,
-  typing g e t conv ->
+  typing g e t std ->
   { f | rt(step g) e f /\ normal (step g) f }.
 Proof.
   intros.
@@ -227,12 +228,12 @@ Qed.
    Interpretation", as their Lemma 5.19. *)
 
 Corollary consistency:
-  ~exists e, typing [] e bottom conv.
+  ~exists e, typing [] e bottom std.
 Proof.
   (* Assume there's an e that is typeable as bottom. *)
   intros (e, ?).
   (* So there's a term in normal form that also is. *)
-  assert (exists2 f, typing [] f bottom conv & normal (step []) f) as (f, ?, ?).
+  assert (exists2 f, typing [] f bottom std & normal (step []) f) as (f, ?, ?).
   - (* We calculate it from strong normalization and subject reduction. *)
     destruct normal_form_is_decidable with ([]: env) e bottom as (f, (?, ?)).
     + assumption.

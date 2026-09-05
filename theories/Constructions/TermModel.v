@@ -85,10 +85,10 @@ Qed.
 *)
 
 Definition welltyped_env: Set :=
-  { g: env | valid_env g conv }.
+  { g: env | valid_env g std }.
 
 Definition welltyped_subst (g: welltyped_env) (d: welltyped_env) :=
-  { s: substitution | valid_subst s (`g) (`d) conv }.
+  { s: substitution | valid_subst s (`g) (`d) std }.
 
 Program Definition subst_setoid g d: Setoid := {|
   setoid_carrier := welltyped_subst g d;
@@ -185,7 +185,7 @@ Qed.
 
 Lemma terminal_subst_is_valid:
   forall g: welltyped_env,
-  valid_subst (terminal_subst (`g)) (`g) [] conv.
+  valid_subst (terminal_subst (`g)) (`g) [] std.
 Proof.
   destruct g as (g, ?H); simpl.
   induction g; simpl.
@@ -205,7 +205,7 @@ Qed.
 
 Lemma terminal_subst_is_unique:
   forall g s,
-  valid_subst s g [] conv ->
+  valid_subst s g [] std ->
   subst_equiv s (terminal_subst g).
 Proof.
   intros.
@@ -262,7 +262,7 @@ Qed.
 
 Lemma welltyped_env_is_valid:
   forall G: welltyped_env,
-  infer conv (valid_env (` G)).
+  infer std (valid_env (` G)).
 Proof.
   intros.
   destruct G as (g, ?H); simpl.
@@ -272,7 +272,7 @@ Qed.
 (* -------------------------------------------------------------------------- *)
 
 Definition welltyped_type (g: env) :=
-  { t: term | exists s: sort, typing g t (sort_term s) conv }.
+  { t: term | exists s: sort, typing g t (sort_term s) std }.
 
 Program Definition type_setoid (g: env): Setoid := {|
   setoid_carrier := welltyped_type g;
@@ -292,7 +292,7 @@ Next Obligation of type_setoid.
 Qed.
 
 Definition welltyped_term (g: env) (t: term) :=
-  { e: term | typing g e t conv }.
+  { e: term | typing g e t std }.
 
 Program Definition term_setoid (g: env) (t: term): Setoid := {|
   setoid_carrier := welltyped_term g t;

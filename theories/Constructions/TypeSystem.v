@@ -222,7 +222,7 @@ Section TypeSystem.
       forall g e t u s,
       infer (typing g e t) ->
       infer (typing g u (sort_term s)) ->
-      cumul R g t u ->
+      R g t u ->
       infer (typing g e u)
 
     (*
@@ -491,7 +491,7 @@ Proof.
     apply typing_conv with t s.
     + assumption.
     + assumption.
-    + now apply cumul_subset with R.
+    + now apply H.
   (* Case: empty env. *)
   - apply valid_env_nil.
   (* Case: env var. *)
@@ -517,10 +517,10 @@ Conjecture subject_reduction:
 
      Note to self: Coquand shows how to derive this from the model. *)
   forall g e t,
-  typing g e t conv ->
+  typing g e t std ->
   forall f,
   rt(step g) e f ->
-  typing g f t conv.
+  typing g f t std.
 
 (* We want to check that the beta-lift rule from ANF is type-preserving. This is
    a generalization of the sigma-1 and sigma-3 reduction rules from [...].
@@ -737,9 +737,7 @@ Lemma weakening:
   valid_env (d :: g) R ->
   typing (d :: g) (lift 1 0 e) (lift 1 0 t) R.
 Proof.
-  intros.
-  change (lift 1 0 e) with (inst (subst_lift 1) e).
-  change (lift 1 0 t) with (inst (subst_lift 1) t).
+  intros; sigma.
   apply typing_inst with g.
   - assumption.
   - destruct d as ([ f | ], u).
@@ -753,10 +751,10 @@ Lemma typing_hierarchy:
   forall n l,
   n < l ->
   forall g,
-  valid_env g conv ->
+  valid_env g std ->
   forall t,
-  typing g t (type n) conv ->
-  typing g t (type l) conv.
+  typing g t (type n) std ->
+  typing g t (type l) std.
 Proof.
   intros.
   apply typing_conv with (type n) (type (1 + l)).
