@@ -96,3 +96,6 @@ Section Cumulativity.
   Admitted.
 
 End Cumulativity.
+
+Definition std: typing_equivalence :=
+  cumul conv.
