@@ -508,6 +508,46 @@ Proof.
   - apply conv_refl.
 Qed. *)
 
+Lemma conv_prepend:
+  forall g e1 f1,
+  rt(step g) e1 f1 ->
+  forall e2 f2,
+  rt(step g) e2 f2 ->
+  conv g f1 f2 ->
+  conv g e1 e2.
+Proof.
+  intros.
+  destruct H1.
+  - apply conv_join with f; eauto with cps.
+  - apply conv_eta_left with t f1 f2; eauto with cps.
+  - apply conv_eta_right with t f1 f2; eauto with cps.
+  - apply conv_sur_left with p q t f; eauto with cps.
+  - apply conv_sur_right with p q t f; eauto with cps.
+Qed.
+
+Lemma conv_abstraction:
+  forall g e1 e2 t,
+  conv (decl_var t :: g) e1 e2 ->
+  conv g (abstraction t e1) (abstraction t e2).
+Proof.
+  intros.
+  eapply conv_eta_left.
+  - apply rt_refl.
+  - apply rt_refl.
+  - apply conv_prepend with e1 e2.
+    + apply rt_refl.
+    + apply rt_step.
+      (* Do some manual definitionally equal renaming... *)
+      change (lift 1 0 (abstraction t e2)) with
+        (abstraction (lift 1 0 t) (lift 1 1 e2)).
+      assert (e2 = subst (bound 0) 0 (lift 1 1 e2)).
+      * (* TODO: sigma should solve this! Very clearly true, tho. *)
+        admit.
+      * rewrite H0 at 2.
+        constructor.
+    + assumption.
+Admitted.
+
 Lemma conv_inst:
   forall g e f,
   conv g e f ->

@@ -28,23 +28,6 @@ Proof.
   apply step_is_confluent.
 Qed.
 
-(* Lemma conv_prepend:
-  forall g e1 f1,
-  rt(step g) e1 f1 ->
-  forall e2 f2,
-  rt(step g) e2 f2 ->
-  conv g f1 f2 ->
-  conv g e1 e2.
-Proof.
-  intros.
-  destruct H1.
-  - apply conv_join with f; eauto with cps.
-  - apply conv_eta_left with t f1 f2; eauto with cps.
-  - apply conv_eta_right with t f1 f2; eauto with cps.
-  - apply conv_sur_left with p q t f; eauto with cps.
-  - apply conv_sur_right with p q t f; eauto with cps.
-Qed. *)
-
 Inductive step_env: relation env :=
   | step_env_head:
     forall g e1 e2,
