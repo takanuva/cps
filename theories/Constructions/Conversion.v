@@ -487,16 +487,7 @@ Global Hint Resolve conv_sym: cps.
 (* If you're looking for the transitivity rule, conv_trans, that's into the
    [Constructions/Confluence.v] file, as it relies on confluence of course! *)
 
-(* TODO: not true, since e and f may delta-reduce! *)
-(* Lemma conv_context:
-  forall (h: context) g e f,
-  conv g e f ->
-  conv g (h e) (h f).
-Proof.
-  admit.
-Admitted. *)
-
-(* Lemma surjective_pairing:
+Lemma surjective_pairing:
   forall g e t,
   conv g (pair (proj1 e) (proj2 e) t) e.
 Proof.
@@ -506,7 +497,7 @@ Proof.
   - apply rt_refl.
   - apply conv_refl.
   - apply conv_refl.
-Qed. *)
+Qed.
 
 Lemma conv_prepend:
   forall g e1 f1,
