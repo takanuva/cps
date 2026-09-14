@@ -54,6 +54,7 @@ theories/Intuitionistic.v
 theories/SSA.v
 theories/Pi/Graph.v
 theories/Pi/Calculus.v
+theories/Pi/LinearLogic.v
 theories/Pi/Control.v
 theories/Pi/Interpretation.v
 theories/Combinators.v
