@@ -13,15 +13,13 @@ Set Implicit Arguments.
     Pearl)" by Andrey Mokhov, and by his "algebraic-graphs" Haskell package,
     found at: https://hackage.haskell.org/package/algebraic-graphs/. *)
 
-Set Universe Polymorphism.
-
 Import ListNotations.
 
 Section Algebraic.
 
-  Context {V: Type}.
+  Context {V: Set}.
 
-  Inductive graph: Type :=
+  Inductive graph: Set :=
     | empty: graph
     | vertex: V -> graph
     | overlay: graph -> graph -> graph
@@ -217,8 +215,8 @@ Global Arguments graph: clear implicits.
 
 Section Monadic.
 
-  Context {V: Type}.
-  Context {W: Type}.
+  Context {V: Set}.
+  Context {W: Set}.
 
   Definition graph_pure: V -> graph V :=
     vertex.
@@ -233,7 +231,7 @@ End Monadic.
 
 Section Extra.
 
-  Context {V: Type}.
+  Context {V: Set}.
 
   Definition graph_induce (f: V -> bool): graph V -> graph V :=
     let g v :=
