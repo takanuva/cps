@@ -1,34 +1,33 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
 Require Import Setoid.
 Require Import Relations.
 Require Import Equality.
+Require Import Local.AbstractRewriting.
 Set Implicit Arguments.
 
 (** This library is based on the paper "Algebraic Graphs with Class (Functional
     Pearl)" by Andrey Mokhov, and by his "algebraic-graphs" Haskell package,
     found at: https://hackage.haskell.org/package/algebraic-graphs/. *)
 
-Import ListNotations.
+Set Universe Polymorphism.
 
-Arguments reflexive {A}.
-Arguments symmetric {A}.
-Arguments transitive {A}.
+Import ListNotations.
 
 Section Algebraic.
 
-  Inductive graph {V: Type}: Type :=
+  Context {V: Type}.
+
+  Inductive graph: Type :=
     | empty: graph
     | vertex: V -> graph
     | overlay: graph -> graph -> graph
     | connect: graph -> graph -> graph.
 
-  Global Arguments graph V: clear implicits.
-
-  Inductive has_vertex {V}: graph V -> V -> Prop :=
+  Inductive has_vertex: graph -> V -> Prop :=
     | has_vertex_singleton:
       forall v,
       has_vertex (vertex v) v
@@ -49,7 +48,7 @@ Section Algebraic.
       has_vertex g2 v ->
       has_vertex (connect g1 g2) v.
 
-  Inductive has_edge {V}: graph V -> V -> V -> Prop :=
+  Inductive has_edge: graph -> V -> V -> Prop :=
     | has_edge_overlay_left:
       forall g1 g2 v1 v2,
       has_edge g1 v1 v2 ->
@@ -73,7 +72,7 @@ Section Algebraic.
       has_edge (connect g1 g2) v1 v2.
 
   Lemma graph_vertex_from_edge_left:
-    forall {V} (g: graph V) v1 v2,
+    forall g v1 v2,
     has_edge g v1 v2 ->
     has_vertex g v1.
   Proof.
@@ -86,7 +85,7 @@ Section Algebraic.
   Qed.
 
   Lemma graph_vertex_from_edge_right:
-    forall {V} (g: graph V) v1 v2,
+    forall g v1 v2,
     has_edge g v1 v2 ->
     has_vertex g v2.
   Proof.
@@ -98,7 +97,7 @@ Section Algebraic.
     - now apply has_vertex_connect_right.
   Qed.
 
-  Structure isomorphic {V} (g1: graph V) (g2: graph V): Prop := {
+  Structure isomorphic (g1: graph) (g2: graph): Prop := {
     isomorphic_vertices:
       forall v,
       has_vertex g1 v <-> has_vertex g2 v;
@@ -108,22 +107,19 @@ Section Algebraic.
   }.
 
   Lemma isomorphic_refl:
-    forall {V},
-    reflexive (@isomorphic V).
+    reflexive isomorphic.
   Proof.
     constructor; split; auto.
   Qed.
 
   Lemma isomorphic_sym:
-    forall {V},
-    symmetric (@isomorphic V).
+    symmetric isomorphic.
   Proof.
     constructor; split; firstorder.
   Qed.
 
   Lemma isomorphic_trans:
-    forall {V},
-    transitive (@isomorphic V).
+    transitive isomorphic.
   Proof.
     constructor; split; intros.
     - now apply H0, H.
@@ -133,8 +129,7 @@ Section Algebraic.
   Qed.
 
   Global Instance isomorphic_is_an_equivalence:
-    forall {V},
-    Equivalence (@isomorphic V).
+    Equivalence isomorphic.
   Proof.
     constructor.
     - exact isomorphic_refl.
@@ -143,7 +138,7 @@ Section Algebraic.
   Qed.
 
   Lemma overlay_is_commutative:
-    forall {V} (g1 g2: graph V),
+    forall g1 g2,
     isomorphic (overlay g1 g2) (overlay g2 g1).
   Proof.
     constructor; split; intros.
@@ -162,7 +157,7 @@ Section Algebraic.
   Qed.
 
   Lemma overlay_is_associative:
-    forall {V} (g1 g2 g3: graph V),
+    forall g1 g2 g3,
     isomorphic (overlay g1 (overlay g2 g3)) (overlay (overlay g1 g2) g3).
   Proof.
     constructor; split; intros.
@@ -196,19 +191,19 @@ Section Algebraic.
         now apply has_edge_overlay_right.
   Qed.
 
-  Definition edge {V} v1 v2: graph V :=
+  Definition edge (v1: V) (v2: V): graph :=
     connect (vertex v1) (vertex v2).
 
-  Definition edges {V} es: graph V :=
+  Definition edges (es: list (V * V)): graph :=
     fold_right overlay empty (map (fun e => edge (fst e) (snd e)) es).
 
-  Definition vertices {V} vs: graph V :=
+  Definition vertices (vs: list V): graph :=
     fold_right overlay empty (map vertex vs).
 
-  Definition clique {V} vs: graph V :=
+  Definition clique (vs: list V): graph :=
     fold_right connect empty (map vertex vs).
 
-  Fixpoint graph_fold {V T} a x y z (g: graph V): T :=
+  Fixpoint graph_fold {T} a x y z (g: graph): T :=
     match g with
     | empty => a
     | vertex v => x v
@@ -216,16 +211,31 @@ Section Algebraic.
     | connect g1 g2 => z (graph_fold a x y z g1) (graph_fold a x y z g2)
     end.
 
-  Definition graph_pure {V}: V -> graph V :=
+End Algebraic.
+
+Global Arguments graph: clear implicits.
+
+Section Monadic.
+
+  Context {V: Type}.
+  Context {W: Type}.
+
+  Definition graph_pure: V -> graph V :=
     vertex.
 
-  Definition graph_bind {V W} (f: V -> graph W): graph V -> graph W :=
+  Definition graph_bind (f: V -> graph W): graph V -> graph W :=
     graph_fold empty f overlay connect.
 
-  Definition graph_map {V W} f: graph V -> graph W :=
+  Definition graph_map (f: V -> W): graph V -> graph W :=
     graph_bind (fun v => vertex (f v)).
 
-  Definition graph_induce {V} (f: V -> bool): graph V -> graph V :=
+End Monadic.
+
+Section Extra.
+
+  Context {V: Type}.
+
+  Definition graph_induce (f: V -> bool): graph V -> graph V :=
     let g v :=
       if f v then
         vertex v
@@ -234,14 +244,15 @@ Section Algebraic.
     in graph_bind g.
 
   Lemma graph_induce_vertex_simpl:
-    forall {V} (f: V -> bool) v,
-    graph_induce f (vertex v) = if f v then vertex v else empty.
+    forall f v,
+    graph_induce f (vertex v) =
+      if f v then vertex v else empty.
   Proof.
     auto.
   Qed.
 
   Lemma graph_induce_overlay_simpl:
-    forall {V} (g1 g2: graph V) f,
+    forall g1 g2 f,
     graph_induce f (overlay g1 g2) =
       overlay (graph_induce f g1) (graph_induce f g2).
   Proof.
@@ -249,7 +260,7 @@ Section Algebraic.
   Qed.
 
   Lemma graph_induce_connect_simpl:
-    forall {V} (g1 g2: graph V) f,
+    forall g1 g2 f,
     graph_induce f (connect g1 g2) =
       connect (graph_induce f g1) (graph_induce f g2).
   Proof.
@@ -257,7 +268,7 @@ Section Algebraic.
   Qed.
 
   Lemma graph_induce_reflects_vertex:
-    forall {V} (g: graph V) f w,
+    forall g f w,
     has_vertex (graph_induce f g) w ->
     has_vertex g w.
   Proof.
@@ -285,7 +296,7 @@ Section Algebraic.
   Qed.
 
   Lemma graph_induce_reflects_edge:
-    forall {V} (g: graph V) f w1 w2,
+    forall g f w1 w2,
     has_edge (graph_induce f g) w1 w2 ->
     has_edge g w1 w2.
   Proof.
@@ -314,4 +325,4 @@ Section Algebraic.
         * now apply graph_induce_reflects_vertex with f.
   Qed.
 
-End Algebraic.
+End Extra.
