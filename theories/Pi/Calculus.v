@@ -44,6 +44,15 @@ Section Pi.
     poly_restriction ts (parallel (output (length ts + n)
                                   (sequence 0 (length ts))) p).
 
+  (* A local environment, i.e., [(\k)(p | !k<x>.q)]. We do not necessarily
+     assume here that k won't appear free in q, but that's usually what we want.
+
+     Recall that for the control pi-calculus, t = channel I ts.
+  *)
+
+  Definition local_env p t ts q :=
+    restriction t (parallel p (replication 0 ts q)).
+
   Fixpoint traverse (f: nat -> nat -> nat) (k: nat) (e: term): term :=
     match e with
     | inactive =>

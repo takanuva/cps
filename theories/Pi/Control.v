@@ -25,12 +25,6 @@ Notation O := mode_output.
 Inductive type: Set :=
   | channel (m: mode) (ts: list type).
 
-(* A local environment, i.e., [(\k)(p | !k<x>.q)]. We do not necessarily assume
-   here that k won't appear free in q, but that's usually what we want. *)
-
-Definition local_env p ts q :=
-  restriction (channel I ts) (parallel p (replication 0 ts q)).
-
 Definition inverse (m: mode): mode :=
   match m with
   | I => O

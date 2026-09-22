@@ -55,7 +55,7 @@ Section Interpretation.
       interpret c q ->
       Forall2 interpret_type ts cs ->
       q' = lift 1 (length cs) q ->
-      interpret (bind b ts c) (local_env p cs q').
+      interpret (bind b ts c) (local_env p (channel I cs) cs q').
 
   Local Notation pB := (pi_base).
   Local Notation cO cs := (channel O cs).
