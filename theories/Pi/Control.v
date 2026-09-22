@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2024 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -14,6 +14,94 @@ Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
 
 Set Primitive Projections.
+
+Variant mode: Set :=
+  | mode_input
+  | mode_output.
+
+Notation I := mode_input.
+Notation O := mode_output.
+
+Inductive type: Set :=
+  | channel (m: mode) (ts: list type).
+
+(* A local environment, i.e., [(\k)(p | !k<x>.q)]. We do not necessarily assume
+   here that k won't appear free in q, but that's usually what we want. *)
+
+Definition local_env p ts q :=
+  restriction (channel I ts) (parallel p (replication 0 ts q)).
+
+Definition inverse (m: mode): mode :=
+  match m with
+  | I => O
+  | O => I
+  end.
+
+Fixpoint dual (t: type): type :=
+  match t with
+  | channel m ts =>
+    channel (inverse m) (map dual ts)
+  end.
+
+Lemma dual_is_involutive:
+  forall t,
+  dual (dual t) = t.
+Proof.
+  fix H 1; destruct t.
+  destruct m; simpl.
+  - rewrite map_map; f_equal.
+    induction ts; simpl.
+    + reflexivity.
+    + f_equal; auto.
+  - rewrite map_map; f_equal.
+    induction ts; simpl.
+    + reflexivity.
+    + f_equal; auto.
+Qed.
+
+Lemma channel_equals_double_dual:
+  forall m ts,
+  channel m ts = channel m (map dual (map dual ts)).
+Proof.
+  intros.
+  f_equal.
+  induction ts; auto.
+  simpl; f_equal; auto.
+  now rewrite dual_is_involutive.
+Qed.
+
+Inductive alternating: mode -> type -> Prop :=
+  | alternating_input:
+    forall ts,
+    Forall (alternating O) ts ->
+    alternating I (channel I ts)
+  | alternating_output:
+    forall ts,
+    Forall (alternating I) ts ->
+    alternating O (channel O ts).
+
+Lemma alternating_inverse_dual:
+  forall m t,
+  alternating m t ->
+  alternating (inverse m) (dual t).
+Proof.
+  fix H 3; destruct 1; simpl.
+  - constructor.
+    induction H0; simpl.
+    + constructor.
+    + constructor; auto.
+      now apply H in H0.
+  - constructor.
+    induction H0; simpl.
+    + constructor.
+    + constructor; auto.
+      now apply H in H0.
+Qed.
+
+Definition get_mode (t: type): mode :=
+  match t with
+  | channel m ts => m
+  end.
 
 (* Typing judgements in the linear pi-calculus, and in subsets such as the
    control pi-calculus, need an additional graph structure on names to enforce
@@ -578,7 +666,7 @@ Qed.
 Local Notation i2l k i := (k - i - 1).
 
 (* *)
-Inductive typing: mode -> term -> env -> Prop :=
+Inductive typing: mode -> term type -> env -> Prop :=
   (* Rule for typing an inactive process:
 
       ------------ (ZERO)
@@ -731,7 +819,7 @@ Proof.
   - admit.
 Admitted.
 
-Definition typed (p: term): Prop :=
+Definition typed (p: term type): Prop :=
   exists m g,
   typing m p g.
 

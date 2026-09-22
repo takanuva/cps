@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -43,7 +43,7 @@ Section Interpretation.
       t = dual (channel I cs) ->
       interpret_type (negation ts) t.
 
-  Inductive interpret: pseudoterm -> term -> Prop :=
+  Inductive interpret: pseudoterm -> term type -> Prop :=
     | interpret_jump:
       forall x xs n ns,
       is_variable x n ->
