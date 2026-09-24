@@ -19,8 +19,11 @@ Variant polarity: Set :=
   | negative.
 
 Inductive formula: Set :=
+  (* Base formulas... *)
   | base (p: polarity)
-  (* TODO: units... *)
+  (* Units... *)
+  | one
+  | bot
   (* Multiplicatives... *)
   | tensor (t: formula) (u: formula)
   | par (t: formula) (u: formula)
@@ -32,6 +35,8 @@ Fixpoint negate (t: formula): formula :=
   match t with
   | base positive => base negative
   | base negative => base positive
+  | one => bot
+  | bot => one
   | tensor t u => par (negate t) (negate u)
   | par t u => tensor (negate t) (negate u)
   | ofcourse t => whynot (negate t)
@@ -44,6 +49,8 @@ Lemma negate_is_involutive:
 Proof.
   induction t; simpl.
   - now destruct p.
+  - reflexivity.
+  - reflexivity.
   - now rewrite IHt1, IHt2.
   - now rewrite IHt1, IHt2.
   - now rewrite IHt.
