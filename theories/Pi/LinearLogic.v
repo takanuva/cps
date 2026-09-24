@@ -11,4 +11,41 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
+Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
+
+Variant polarity: Set :=
+  | positive
+  | negative.
+
+Inductive formula: Set :=
+  | base (p: polarity)
+  (* TODO: units... *)
+  (* Multiplicatives... *)
+  | tensor (t: formula) (u: formula)
+  | par (t: formula) (u: formula)
+  (* Exponentials... *)
+  | ofcourse (t: formula)
+  | whynot (t: formula).
+
+Fixpoint negate (t: formula): formula :=
+  match t with
+  | base positive => base negative
+  | base negative => base positive
+  | tensor t u => par (negate t) (negate u)
+  | par t u => tensor (negate t) (negate u)
+  | ofcourse t => whynot (negate t)
+  | whynot t => ofcourse (negate t)
+  end.
+
+Lemma negate_is_involutive:
+  forall t,
+  negate (negate t) = t.
+Proof.
+  induction t; simpl.
+  - now destruct p.
+  - now rewrite IHt1, IHt2.
+  - now rewrite IHt1, IHt2.
+  - now rewrite IHt.
+  - now rewrite IHt.
+Qed.
