@@ -17,7 +17,7 @@ Require Import Local.Pi.Calculus.
 (*
   Rules:
 
-    Multiplicative:
+    Multiplicatives:
 
       -------------------------- (ax)
         I(x, y) |- x: A, y: A^
@@ -34,24 +34,39 @@ Require Import Local.Pi.Calculus.
       ------------------------------------------ (cut)
              C(x.p, x.q) |- us: G, vs: D
 
-    Additive:
+    Additives:
 
               p |- ws: G, x: A
-      -------------------------------- (L+)
+      -------------------------------- (plus-left)
         L(z, x.p) |- ws: G, z: A + B
 
 
               q |- ws: G, y: B
-      -------------------------------- (R+)
+      -------------------------------- (plus-right)
         R(z, y.q) |- ws: G, z: A + B
 
         p |- ws: G, x: A     q |- ws: G, y: B
-      -----------------------------------------
+      ----------------------------------------- (with)
           A(z, x.p, y.q) |- ws: G, z: A & B
 
-    Exponential:
+    Exponentials:
 
-      ...
+               p |- us: G
+      --------------------------- (weak)
+        W(z, p) |- us: G, z: ?A
+
+            p |- us: G, x: A
+      ----------------------------- (derel)
+        D(z, x.p) |- us: G, z: ?A
+
+         p |- us: G, x: ?A, y: ?A
+      ------------------------------- (contra)
+        J(z, x.y.p) |- us: G, z: ?A
+
+
+            p |- us: ?G, x: B
+      ------------------------------ (bang)
+        B(z, x.p) |- us: ?G, z: !B
 
   Bellin and Scott annotate the bound variables on top of the operator, and the
   active link below it (which might be the x in the cut above too).
@@ -68,6 +83,8 @@ Require Import Local.Pi.Calculus.
     - Injection L(z, x.p) = z(u, v) u[x] p
     - Injection R(z, y.q) = z(u, v) v[y] q
     - With A(z, x.p, y.q) = z[u, v] (u(x) p + v(y) q)       (note use of +!)
+
+    The exponentials are too complicated...
 
   Such that...
 
@@ -88,9 +105,20 @@ Require Import Local.Pi.Calculus.
 
       (This notation makes it easier to see it!)
 
-    C(z.A(z, x.p, y.q), z.L(z, x.r)) -> C(x.p, x.r)
+    C(z.A(z, x.P x, y.Q y), z.L(z, x.R x)) -> C(x.P x, x.R x)
 
-    C(z.A(z, x.p, y.q), z.L(z, y.r)) -> C(y.q, y.r)
+    C(z.A(z, x.P x, y.Q y), z.L(z, y.R y)) -> C(y.Q y, y.R y)
+
+      (Hmm...)
+
+    C(z.W(z, P), z.B(z, x.Q x us)) ->
+      W(us, P)                            (amount for weakenings in Q...)
+
+    C(z.D(z, x.P x), z.B(z, x.Q x)) ->
+      C(x.P x, x.Q x)
+
+    C(z.J(z, x.y.P x y), z.B(z, x.Q x us)) ->
+      check https://www.site.uottawa.ca/~phil/papers/Bellin.Scott.Pi-LL.pdf...
 
   Commutative reductions:
 
@@ -104,6 +132,11 @@ Require Import Local.Pi.Calculus.
 
     C(d.A(z, x.P x d, y.Q y d), d.R d) ==
       A(z, x.C(d.P x d, d.R d), y.C(d.Q y d, d.R d))
+
+      (Hmm...)
+
+    C(z.B(z, x.P x), z.B(u, y.Q z y)) ==
+      B(u, y.C(z.B(z, x.P x), z.Q z y))
 
   Remark:
 
