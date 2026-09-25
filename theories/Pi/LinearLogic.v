@@ -17,20 +17,41 @@ Require Import Local.Pi.Calculus.
 (*
   Rules:
 
-    -------------------------- (ax)
-      I(x, y) |- x: A, y: A^
+    Multiplicative:
 
-       p |- ws: G, x: A      q |- vs: D, y: B
-    -------------------------------------------- (tensor)
-      T(z, x.p, y.q) |- ws: G, vs: D, z: A * B
+      -------------------------- (ax)
+        I(x, y) |- x: A, y: A^
 
-          p |- ws: G, x: A, y: B
-    --------------------------------- (par)
-      P(z, x.y.p) |- ws: G, z: A $ B
+         p |- ws: G, x: A      q |- vs: D, y: B
+      -------------------------------------------- (tensor)
+        T(z, x.p, y.q) |- ws: G, vs: D, z: A * B
 
-      p |- us: G, x: C     q |- vs: D, x: C^
-    ------------------------------------------ (cut)
-           C(x.p, x.q) |- us: G, vs: D
+            p |- ws: G, x: A, y: B
+      --------------------------------- (par)
+        P(z, x.y.p) |- ws: G, z: A $ B
+
+        p |- us: G, x: C     q |- vs: D, x: C^
+      ------------------------------------------ (cut)
+             C(x.p, x.q) |- us: G, vs: D
+
+    Additive:
+
+              p |- ws: G, x: A
+      -------------------------------- (L+)
+        L(z, x.p) |- ws: G, z: A + B
+
+
+              q |- ws: G, y: B
+      -------------------------------- (R+)
+        R(z, y.q) |- ws: G, z: A + B
+
+        p |- ws: G, x: A     q |- ws: G, y: B
+      -----------------------------------------
+          A(z, x.p, y.q) |- ws: G, z: A & B
+
+    Exponential:
+
+      ...
 
   Bellin and Scott annotate the bound variables on top of the operator, and the
   active link below it (which might be the x in the cut above too).
@@ -42,6 +63,12 @@ Require Import Local.Pi.Calculus.
     - Par P(z, x.y.p) = z(x, y) p
     - Cut C(x.p, x.q) = (\x)(p | q)       (no loss of generality, of course!)
 
+    Note that positive means receiver, and negative means sender.
+
+    - Injection L(z, x.p) = z(u, v) u[x] p
+    - Injection R(z, y.q) = z(u, v) v[y] q
+    - With A(z, x.p, y.q) = z[u, v] (u(x) p + v(y) q)       (note use of +!)
+
   Such that...
 
     Process functions F, G, H, etc, are linear functions: they need to use
@@ -50,23 +77,33 @@ Require Import Local.Pi.Calculus.
 
   Symmetric reductions:
 
-    C(x.p, x.q) === C(x.q, x.p)
+    C(x.p, x.q) == C(x.q, x.p)
 
     C(x.F x, x.I(x, y)) -> F[y/x]         (seems the link could be a 0...)
 
     C(z.T(z, x.F x, y.G y), z.P(z, x.y.H x y)) ->
-        C(y.G y, y.C(x.F x, x.H x y)) ===
+
+        C(y.G y, y.C(x.F x, x.H x y)) ==
           C(x.F x, x.C(y.H x y, y.G y))   (I can choose which variable to cut)
 
-    (This notation makes it easier to see it!)
+      (This notation makes it easier to see it!)
+
+    C(z.A(z, x.p, y.q), z.L(z, x.r)) -> C(x.p, x.r)
+
+    C(z.A(z, x.p, y.q), z.L(z, y.r)) -> C(y.q, y.r)
 
   Commutative reductions:
 
-    C(x.P(v, c.d.F x c d), x.G x) ===
+    C(x.P(v, c.d.F x c d), x.G x) ==
       P(v, c.d.C(x.F x c d, x.G x))
 
-    C(x.T(v, c.F c, d.G d x), x.H x) ===
+    C(x.T(v, c.F c, d.G d x), x.H x) ==
       T(v, c.F c, d.C(x, G d x, H x))
+
+      (Hmm...)
+
+    C(d.A(z, x.P x d, y.Q y d), d.R d) ==
+      A(z, x.C(d.P x d, d.R d), y.C(d.Q y d, d.R d))
 
   Remark:
 
