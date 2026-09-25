@@ -17,63 +17,63 @@ Require Import Local.Pi.Calculus.
 (*
   Rules:
 
-    ------------------------- (ax)
-      I(x,y) |- x: A, y: A^
+    -------------------------- (ax)
+      I(x, y) |- x: A, y: A^
 
-      p |- ws: G, x: A      q |- vs: D, y: B
-    ------------------------------------------ (tensor)
-      T(x,y,z,p,q) |- ws: G, vs: D, z: A * B
+       p |- ws: G, x: A      q |- vs: D, y: B
+    -------------------------------------------- (tensor)
+      T(z, x.p, y.q) |- ws: G, vs: D, z: A * B
 
           p |- ws: G, x: A, y: B
     --------------------------------- (par)
-      P(x,y,z,p) |- ws: G, z: A $ B
+      P(z, x.y.p) |- ws: G, z: A $ B
 
       p |- us: G, x: C     q |- vs: D, x: C^
     ------------------------------------------ (cut)
-             C(x,p,q) |- us: G, vs: D
+           C(x.p, x.q) |- us: G, vs: D
 
-    Link I(x,y) =
-      x(a) y<a>
+  Bellin and Scott annotate the bound variables on top of the operator, and the
+  active link below it (which might be the x in the cut above too).
 
-    Tensor T(x,y,z,p,q) =
-      z[x, y] (p | q)
+  They give:
 
-    Par P(x,y,z,p) =
-      z(x, y) p
-
-    Cut C(x,p,q) =
-      (\x)(p | q)
+    - Link I(x, y) = x(a) y<a>            (of course a fresh)
+    - Tensor T(z, x.p, y.q) = z[x, y] (p | q)
+    - Par P(z, x.y.p) = z(x, y) p
+    - Cut C(x.p, x.q) = (\x)(p | q)       (no loss of generality, of course!)
 
   Such that...
 
     Process functions F, G, H, etc, are linear functions: they need to use
-    their arguments internally...
+    their arguments internally... so we write F x y z for a process in F such
+    that x, y and z are free variables.
 
-    Symmetric reductions:
+  Symmetric reductions:
 
-      C(x,p,q) === C(x,q,p)
+    C(x.p, x.q) === C(x.q, x.p)
 
-      C(x, F x, I(x, y)) -> F[y/x]
+    C(x.F x, x.I(x, y)) -> F[y/x]         (seems the link could be a 0...)
 
-      C(z, T(x, y, z, F x, G y), P([x], [y], z, H x y)) ->
+    C(z.T(z, x.F x, y.G y), z.P(z, x.y.H x y)) ->
+        C(y.G y, y.C(x.F x, x.H x y)) ===
+          C(x.F x, x.C(y.H x y, y.G y))   (I can choose which variable to cut)
 
-          C(y, G y, C(x, F x, H x y)) ===
-            C(x, F x, C(y, H x y, G y))
+    (This notation makes it easier to see it!)
 
-    Commutative reductions:
+  Commutative reductions:
 
-      C(x, P(c, d, v, F x c d), G x) ===
-        P(c, d, v, C(x, F x c d, G x))
+    C(x.P(v, c.d.F x c d), x.G x) ===
+      P(v, c.d.C(x.F x c d, x.G x))
 
-      C(x, T(c, d, v, F c, G d x), H x) ===
-        T(c, d, v, F c, C(x, G d x, H x))
+    C(x.T(v, c.F c, d.G d x), x.H x) ===
+      T(v, c.F c, d.C(x, G d x, H x))
 
-    Remark:
+  Remark:
 
-      P(c, d, v, C(x, F x c, G x d)) do not commute, because c and d have to
-      appear on the same branch of the proof tree! Careful with that!
+    P(v, c.d.C(x.F x c, x.G x d)) does not change, because c and d have to
+    appear on the same branch of the proof tree! Careful with that!
 
-  Reduction must be compatible with well-typed contexts...
+    Also, reduction must be compatible with well-typed contexts...
 *)
 
 Variant polarity: Set :=
