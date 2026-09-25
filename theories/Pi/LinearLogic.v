@@ -14,6 +14,68 @@ Require Import Local.Substitution.
 Require Import Local.Pi.Graph.
 Require Import Local.Pi.Calculus.
 
+(*
+  Rules:
+
+    ------------------------- (ax)
+      I(x,y) |- x: A, y: A^
+
+      p |- ws: G, x: A      q |- vs: D, y: B
+    ------------------------------------------ (tensor)
+      T(x,y,z,p,q) |- ws: G, vs: D, z: A * B
+
+          p |- ws: G, x: A, y: B
+    --------------------------------- (par)
+      P(x,y,z,p) |- ws: G, z: A $ B
+
+      p |- us: G, x: C     q |- vs: D, x: C^
+    ------------------------------------------ (cut)
+             C(x,p,q) |- us: G, vs: D
+
+    Link I(x,y) =
+      x(a) y<a>
+
+    Tensor T(x,y,z,p,q) =
+      z[x, y] (p | q)
+
+    Par P(x,y,z,p) =
+      z(x, y) p
+
+    Cut C(x,p,q) =
+      (\x)(p | q)
+
+  Such that...
+
+    Process functions F, G, H, etc, are linear functions: they need to use
+    their arguments internally...
+
+    Symmetric reductions:
+
+      C(x,p,q) === C(x,q,p)
+
+      C(x, F x, I(x, y)) -> F[y/x]
+
+      C(z, T(x, y, z, F x, G y), P([x], [y], z, H x y)) ->
+
+          C(y, G y, C(x, F x, H x y)) ===
+            C(x, F x, C(y, H x y, G y))
+
+    Commutative reductions:
+
+      C(x, P(c, d, v, F x c d), G x) ===
+        P(c, d, v, C(x, F x c d, G x))
+
+      C(x, T(c, d, v, F c, G d x), H x) ===
+        T(c, d, v, F c, C(x, G d x, H x))
+
+    Remark:
+
+      P(c, d, v, C(x, F x c, G x d)) do not commute, because c and d have to
+      appear on the same branch of the proof tree! Careful with that!
+
+  Reduction must be compatible with well-typed contexts...
+*)
+
 Variant polarity: Set :=
   | positive
   | negative.
