@@ -235,6 +235,75 @@ Inductive cp: term formula -> Prop :=
     cp p ->
     cp (input n [] p).
 
+Inductive cp_structural: relation (term formula) :=
+  (* [(\x: A)(p | q)] == [(x: A^)(q | p)] *)
+  | cp_swap:
+    forall a p q,
+    cp p ->
+    cp q ->
+    (* This one might be problematic as it changes the type... *)
+    cp_structural (restriction a (parallel p q))
+                  (restriction (negate a) (parallel q p))
+  (* [(\y)((\x)(p | q) | r)] == [(\x)(p | (\y)(q | r))], where of course y is
+     not free in p (remember it is expected to appear only in one of p or q). *)
+  | cp_assoc:
+    forall a b p q r,
+    cp p ->
+    cp q ->
+    cp r ->
+    cp_structural (restriction b
+                    (parallel
+                      (restriction a
+                        (parallel (lift 1 1 p)
+                        q))
+                      r))
+                  (restriction a
+                    (parallel
+                      p
+                      (restriction b
+                        (parallel
+                          (switch_bindings 0 q)
+                          (lift 1 0 r)))))
+  | cp_structural_refl:
+    forall p,
+    cp p ->
+    cp_structural p p
+  | cp_structural_sym:
+    forall p q,
+    cp_structural p q ->
+    cp_structural q p
+  | cp_sturctural_trans:
+    forall p q r,
+    cp_structural p q ->
+    cp_structural q r ->
+    cp_structural p r.
+
+Goal
+  forall p q,
+  cp_structural p q ->
+  cp p /\ cp q.
+Proof.
+  induction 1; split.
+  - now constructor.
+  - now constructor.
+  - constructor.
+    + constructor.
+      * admit.
+      * assumption.
+    + assumption.
+  - constructor.
+    + assumption.
+    + constructor.
+      * admit.
+      * admit.
+  - assumption.
+  - assumption.
+  - firstorder.
+  - firstorder.
+  - firstorder.
+  - firstorder.
+Admitted.
+
 (*
   TODO: as we do not define links yet, we ignore required thinnings to make
   variables refer to the correct places, respecting the pi-calculus binding
