@@ -11,7 +11,7 @@ Require Import Equality.
 Require Import Local.Prelude.
 Require Import Local.AbstractRewriting.
 Require Import Local.Substitution.
-Require Import Local.Pi.Graph.
+(* Require Import Local.Pi.Graph. *)
 Require Import Local.Pi.Calculus.
 
 (*
@@ -150,6 +150,8 @@ Variant polarity: Set :=
   | positive
   | negative.
 
+(* X, X^, 1, F, *, @, !, ?. *)
+
 Inductive formula: Set :=
   (* Base formulas... *)
   | base (p: polarity)
@@ -187,4 +189,87 @@ Proof.
   - now rewrite IHt1, IHt2.
   - now rewrite IHt.
   - now rewrite IHt.
+Qed.
+
+(*
+  P, Q, R ::=
+    | x <-> y
+    | (\x: A)(P | Q)
+    | x[y, z] (P | Q)
+    | x(y, z).P
+    | !x(y).P
+    | x[y] P
+    | x[] 0
+    | x().P
+*)
+
+Inductive cp: term formula -> Prop :=
+  (* TODO: link. *)
+  | cp_parallel:
+    forall a p q,
+    cp p ->
+    cp q ->
+    cp (restriction a (parallel p q))
+  | cp_output:
+    forall a b n p q,
+    cp p ->
+    cp q ->
+    cp (bound_output n [a; b] (parallel p q))
+  | cp_input:
+    forall a n b p,
+    cp p ->
+    cp (input n [a; b] p)
+  | cp_server:
+    forall a n p,
+    cp p ->
+    cp (replication n [a] p)
+  | cp_request:
+    forall a n p,
+    cp p ->
+    cp (bound_output n [a] p)
+  | cp_empty_output:
+    forall n,
+    cp (bound_output n [] inactive)
+  | cp_empty_input:
+    forall n p,
+    cp p ->
+    cp (input n [] p).
+
+(*
+  TODO: as we do not define links yet, we ignore required thinnings to make
+  variables refer to the correct places, respecting the pi-calculus binding
+  structure. Review all of this!
+*)
+
+Inductive cll: term formula -> list formula -> Prop :=
+  (* TODO: axiom. *)
+  (*
+      p |- G, x: A     q |- D, x: A^
+    ---------------------------------- (ax)
+          (\x: A)(p | q) |- G, D
+  *)
+  | cll_cut:
+    forall p q g d a,
+    cll p (a :: g) ->
+    cll q (negate a :: d) ->
+    cll (restriction a (parallel p q)) (d ++ g)
+  (*
+        p |- G, y: A     q |- D, z: B
+    -------------------------------------
+      x[y: A, z: B] (p | q) |- G, D, x: A * B
+  *)
+  | cll_tensor:
+    forall p q a b g d,
+    cll p (a :: g) ->
+    cll q (b :: d) ->
+    cll (bound_output 0 [b; a] (parallel p q)) (tensor a b :: d ++ g).
+
+Lemma cll_implies_cp:
+  forall p g,
+  cll p g ->
+  cp p.
+Proof.
+  induction 1.
+  - now constructor.
+  - now constructor.
 Qed.

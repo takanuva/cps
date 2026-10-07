@@ -37,12 +37,12 @@ Section Pi.
     | S m => i :: sequence (1 + i) m
     end.
 
-  (* As we don't have overline in ASCII, we'll denote free asynchronous output by
-     [x[y] p] in the following, as we recall that [x[y] p] is [(\y)(x<y> | p)]. *)
+  (* As we don't have overline in ASCII, we'll denote bound output by [x[y] p]
+     in the following, as we recall that [x[y] p] is just [(\y)(x<y> | p)]. *)
 
   Definition bound_output (n: nat) (ts: list type) (p: term) :=
     poly_restriction ts (parallel (output (length ts + n)
-                                  (sequence 0 (length ts))) p).
+                                    (sequence 0 (length ts))) p).
 
   (* A local environment, i.e., [(\k)(p | !k<x>.q)]. We do not necessarily
      assume here that k won't appear free in q, but that's usually what we want.
@@ -112,7 +112,7 @@ Section Pi.
       now rewrite map_map.
   Qed.
 
-  (* -------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
 
   Lemma inst_inactive:
     forall s,
@@ -156,7 +156,7 @@ Section Pi.
     auto.
   Qed.
 
-  (* -------------------------------------------------------------------------- *)
+  (* ---------------------------------------------------------------------- *)
 
   Definition switch_bindings: substitution :=
     subst_app [1; 0] (subst_lift 2).
@@ -607,11 +607,11 @@ Section Pi.
       admit.
   Admitted.
 
-  (* We define an asynchronous observability predicate, i.e., only output actions
-     are observable, but not input ones. This is distinct from the usual notion in
-     the full pi-calculus, where any actions are observable, but this is standard
-     in the asynchonous version (cf. "On Asynchrony in Name-Passing Calculi"). Of
-     course, this is remarkably convenient. *)
+  (* We define an asynchronous observability predicate, i.e., only output
+     actions are observable, but not input ones. This is distinct from the usual
+     notion in the full pi-calculus, where any actions are observable, but this
+     is standard in the asynchonous version (cf. "On Asynchrony in Name-Passing
+     Calculi"). Of course, this is remarkably convenient. *)
 
   Inductive observable: term -> nat -> Prop :=
     | observable_output:
