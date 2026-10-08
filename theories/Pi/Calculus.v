@@ -431,7 +431,7 @@ Section Pi.
   Qed.
 
   Lemma structural_parallel_right:
-    (* if [p] = [q], then [r | p ] = [r | q] *)
+    (* if [p] = [q], then [r | p] = [r | q] *)
     forall p q r,
     structural p q ->
     structural (parallel r p) (parallel r q).

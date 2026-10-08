@@ -165,16 +165,88 @@ Inductive formula: Set :=
   | ofcourse (t: formula)
   | whynot (t: formula).
 
+Inductive output_type: formula -> Prop :=
+  | output_pos:
+    output_type (base positive)
+  | output_tensor:
+    forall t u,
+    output_type (tensor t u)
+  | output_one:
+    output_type one
+  | output_whynot:
+    forall t,
+    output_type (whynot t).
+
+Inductive input_type: formula -> Prop :=
+  | input_neg:
+    input_type (base negative)
+  | input_par:
+    forall t u,
+    input_type (par t u)
+  | input_bot:
+    input_type bot
+  | input_ofcourse:
+    forall t,
+    input_type (ofcourse t).
+
+Lemma input_not_output:
+  forall t,
+  input_type t ->
+  ~output_type t.
+Proof.
+  induction 1; intro.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+Qed.
+
+Lemma output_not_input:
+  forall t,
+  output_type t ->
+  ~input_type t.
+Proof.
+  induction 1; intro.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+  - inversion H.
+Qed.
+
+Lemma output_or_input:
+  forall t,
+  { output_type t } + { input_type t }.
+Proof.
+  destruct t.
+  - destruct p.
+    + left; constructor.
+    + right; constructor.
+  - left; constructor.
+  - right; constructor.
+  - left; constructor.
+  - right; constructor.
+  - right; constructor.
+  - left; constructor.
+Qed.
+
 Fixpoint negate (t: formula): formula :=
   match t with
-  | base positive => base negative
-  | base negative => base positive
-  | one => bot
-  | bot => one
-  | tensor t u => par (negate t) (negate u)
-  | par t u => tensor (negate t) (negate u)
-  | ofcourse t => whynot (negate t)
-  | whynot t => ofcourse (negate t)
+  | base positive =>
+    base negative
+  | base negative =>
+    base positive
+  | one =>
+    bot
+  | bot =>
+    one
+  | tensor t u =>
+    par (negate t) (negate u)
+  | par t u =>
+    tensor (negate t) (negate u)
+  | ofcourse t =>
+    whynot (negate t)
+  | whynot t =>
+    ofcourse (negate t)
   end.
 
 Lemma negate_is_involutive:
@@ -189,6 +261,30 @@ Proof.
   - now rewrite IHt1, IHt2.
   - now rewrite IHt.
   - now rewrite IHt.
+Qed.
+
+Lemma negate_output_makes_input:
+  forall t,
+  output_type t ->
+  input_type (negate t).
+Proof.
+  destruct 1; simpl.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
+Qed.
+
+Lemma negate_input_makes_output:
+  forall t,
+  input_type t ->
+  output_type (negate t).
+Proof.
+  destruct 1; simpl.
+  - constructor.
+  - constructor.
+  - constructor.
+  - constructor.
 Qed.
 
 (*
