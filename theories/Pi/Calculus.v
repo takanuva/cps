@@ -366,7 +366,7 @@ Section Pi.
       forall p q,
       structural (parallel p q)
                  (parallel q p)
-    | structural_paralllel_associative:
+    | structural_parallel_associative:
       (* [(p | q) | r] = [p | (q | r)] *)
       forall p q r,
       structural (parallel (parallel p q) r)
@@ -588,7 +588,7 @@ Section Pi.
         eapply structural_trans.
         * apply structural_parallel_left.
           apply structural_parallel_commutative.
-        * apply structural_paralllel_associative.
+        * apply structural_parallel_associative.
     - apply step_poly_restriction.
       apply step_parallel_right.
       (* TODO: gotta fix this simplification in sigma! *)
@@ -763,6 +763,8 @@ Section Pi.
   Qed.
 
 End Pi.
+
+(* TODO: minor bug, rewriting on inst is leaving types out of unification! *)
 
 Global Arguments term: clear implicits.
 Global Arguments inst_inactive: clear implicits.

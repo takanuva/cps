@@ -359,7 +359,7 @@ Inductive cp_structural: relation (term formula) :=
                       (restriction b
                         (parallel
                           (switch_bindings 0 q)
-                          (lift 1 0 r)))))
+                          (lift 1 1 r)))))
   | cp_structural_refl:
     forall p,
     cp p ->
@@ -398,6 +398,59 @@ Proof.
   - firstorder.
   - firstorder.
   - firstorder.
+Admitted.
+
+Goal
+  forall p q,
+  cp_structural p q ->
+  structural p q.
+Proof.
+  induction 1.
+  - (* TODO: hmm, how to deal with this...? *)
+    admit.
+  - (* We have the following:
+       - (\y)((\x)(p | q) | r)      (by extrusion)
+       - (\y)((\x)((p | q) | r))    (by swapping)
+       - (\x)((\y)((p | q) | r))    (by associativity)
+       - (\x)((\y)(p | (q | r)))    (by commutativity)
+       - (\x)((\y)((q | r) | p))    (by extrusion-1)
+       - (\x)((\y)(q | r) | p)      (by commutativity)
+       - (\x)(p | (\y)(q | r))
+    *)
+    eapply structural_trans; [|
+      eapply structural_trans; [|
+        eapply structural_trans; [|
+          eapply structural_trans; [|
+            eapply structural_trans ]]]].
+    + apply structural_restriction.
+      apply structural_extrusion.
+    + apply structural_restriction_switch.
+    + apply structural_restriction.
+      apply structural_restriction.
+      replace (switch_bindings 0 ?[x]) with
+        (parallel (parallel (lift 1 0 p) (switch_bindings 0 q)) (lift 1 1 r)).
+      * apply structural_parallel_associative.
+      * sigma; try (exact formula).
+        f_equal; [ f_equal |].
+        --- clear.
+            unfold switch_bindings.
+            sigma; try exact formula.
+            (* Sure. *)
+            admit.
+        --- unfold switch_bindings.
+            sigma; try exact formula.
+            admit.
+    + apply structural_restriction.
+      apply structural_restriction.
+      apply structural_parallel_commutative.
+    + apply structural_restriction.
+      apply structural_sym.
+      apply structural_extrusion.
+    + apply structural_restriction.
+      apply structural_parallel_commutative.
+  - apply structural_refl.
+  - now apply structural_sym.
+  - now apply structural_trans with q.
 Admitted.
 
 (*
