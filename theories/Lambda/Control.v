@@ -397,6 +397,43 @@ Section CBV.
     reflexivity.
   Qed.
 
+  Definition cbv_K {T U}: pseudoterm :=
+    (* [|- K: ((T -> U) -> T) -> T] =
+         [k: ~~(~(~([T], ~[U]), ~[T]), ~[T]) |- [K]]
+
+       k@1<f@0>
+       { f<x: ~(~([T], ~[U]), ~[T]), j: ~[T]> =
+         x@2<v@0, j@1>
+         { v<y: [T], h: ~[U]> =
+           j@2<y@1>
+         }
+       }
+    *)
+    bind
+      (jump 1 [Syntax.bound 0])
+      [N [T]; N [N [T]; N [N [U]; T]]]
+      (bind
+        (jump 2 [Syntax.bound 1; Syntax.bound 0])
+        [N [U]; T]
+        (jump 2 [Syntax.bound 1])).
+
+  Axiom cbv_cps_K:
+    forall T U,
+    cbv_cps K (@cbv_K (cbv_type T) (cbv_type U)).
+
+  Goal
+    forall T U,
+    simple (cbv_type T) ->
+    simple (cbv_type U) ->
+    exists2 V,
+    typing [] K V & cbv_typing [] (@cbv_K (cbv_type T) (cbv_type U)) V.
+  Proof.
+    intros.
+    exists (arrow (arrow (arrow T U) T) T).
+    - apply typing_K.
+    - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
+  Qed.
+
 End CBV.
 
 Section CBN.
