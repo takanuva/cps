@@ -1,10 +1,12 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2023 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 (* TODO: this is a temporary file, meant just to check the properties of control
    operators in the CPS translation. Please, move this code to the proper place
-   once I'm finished! *)
+   once I'm finished!
+
+   TODO: ok I might keep this file but please refactor it, a lot! *)
 
 Require Import Lia.
 Require Import Equality.
@@ -50,6 +52,7 @@ Section Control.
 
   Axiom C: term.
   Axiom A: term.
+  Axiom K: term.
   Axiom F: type.
 
   Axiom typing_C:
@@ -62,14 +65,19 @@ Section Control.
     (* A: F -> T *)
     typing g A (arrow F T).
 
-  Goal
-    (* We can derive A from C! *)
-    forall T,
-    typing
-      []
-      (* \x.C (\k.x) *)
-      (abstraction F (application C (abstraction (arrow T F) 1)))
-      (arrow F T).
+  Axiom typing_K:
+    forall g T U,
+    (* K: ((T -> U) -> T) -> T *)
+    typing g K (arrow (arrow (arrow T U) T) T).
+
+  Definition A_def T: term :=
+    (* A = \x.C (\k.x) *)
+    (abstraction F (application C (abstraction (arrow T F) 1))).
+
+  Lemma typing_A_def:
+    forall g T,
+    (* A: F -> T *)
+    typing g (A_def T) (arrow F T).
   Proof.
     intros.
     apply typing_abstraction.
@@ -80,7 +88,7 @@ Section Control.
       do 2 constructor.
   Qed.
 
-  Definition K T U: term :=
+  Definition K_def T U: term :=
     (* K = \f: (T -> U) -> T.C (\k: T -> F.k (f (\x: T.A (k x)))) *)
     abstraction (arrow (arrow T U) T)
       (application C
@@ -91,10 +99,10 @@ Section Control.
                 (application A
                   (application 1 0))))))).
 
-  Lemma typing_K:
+  Lemma typing_K_def:
     forall g T U,
     (* K: ((T -> U) -> T) -> T *)
-    typing g (K T U) (arrow (arrow (arrow T U) T) T).
+    typing g (K_def T U) (arrow (arrow (arrow T U) T) T).
   Proof.
     intros.
     repeat econstructor.
@@ -103,6 +111,11 @@ Section Control.
   Qed.
 
 End Control.
+
+Local Transparent lift.
+Local Transparent subst.
+Local Transparent inst.
+Local Transparent inst_rec.
 
 Section CBV.
 
@@ -122,7 +135,7 @@ Section CBV.
       [A -> B] = ~([A], ~[B])
       [F]      = ~()
 
-      [x: A |- e: B] = x: [A], k: ~[B] |- [e]
+      [xs: As |- e: B] = xs: [As], k: ~[B] |- [e]
   *)
 
   Axiom cbv_type_F:
@@ -133,13 +146,13 @@ Section CBV.
 
        k<f>
        { f<x: ~(~([T], ~~()), ~~()), k: ~[T]> =
-         x<p, q>
+         x@3<p@0, q@1>
          { p<y: [T], j: ~~()> =
-           j<r>
+           j@1<r@0>
            { r<> =
-             k<y> } }
+             k@3<y@1> } }
          { q<j: ~()> =
-           j<> } }
+           j@0<> } }
     *)
     bind
       (jump 1 [Syntax.bound 0])
@@ -160,7 +173,7 @@ Section CBV.
     cbv_cps C (@cbv_C T).
 
   Goal
-    forall T: type,
+    forall T,
     simple (cbv_type T) ->
     exists2 U,
     typing [] C U & cbv_typing [] (@cbv_C (cbv_type T)) U.
@@ -174,9 +187,9 @@ Section CBV.
   Definition cbv_A {T}: pseudoterm :=
     (* [|- A: F -> T] = [k: ~~(~(), ~[T]) |- [A]]
 
-       k<f>
+       k@1<f@0>
        { f<x: ~(), k: ~[T]> =
-         x<> }
+         x@1<> }
     *)
     bind
       (jump 1 [Syntax.bound 0])
@@ -185,10 +198,10 @@ Section CBV.
 
   Axiom cbv_cps_A:
     forall T,
-    cbv_cps A (@cbv_A T).
+    cbv_cps A (@cbv_A (cbv_type T)).
 
   Goal
-    forall T: type,
+    forall T,
     simple (cbv_type T) ->
     exists2 U,
     typing [] A U & cbv_typing [] (@cbv_A (cbv_type T)) U.
@@ -230,7 +243,7 @@ Section CBV.
     let T := F in
     forall b c,
     cbv_cps A b ->
-    cbv_cps (abstraction F (application C (abstraction (arrow T F) 1))) c ->
+    cbv_cps (A_def T) c ->
     [b == c].
   Proof.
     intros.
@@ -261,7 +274,7 @@ Section CBV.
     unfold cbv_C.
     unfold T.
     rewrite cbv_type_F.
-    vm_compute.
+    cbv.
     symmetry.
     etransitivity.
     apply sema_bind_right.
@@ -270,7 +283,7 @@ Section CBV.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -281,12 +294,12 @@ Section CBV.
     apply sema_bind_right.
     apply sema_step.
     apply step_beta.
-    vm_compute.
+    cbv.
     apply beta_bind_left.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -294,7 +307,7 @@ Section CBV.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -304,7 +317,7 @@ Section CBV.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -312,7 +325,7 @@ Section CBV.
     apply smol_bind_left.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -320,14 +333,14 @@ Section CBV.
     apply smol_bind_left.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -335,21 +348,21 @@ Section CBV.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     (* Typing is degenerate in the equational theory... we can use (ETA) now to
        fix this! *)
     etransitivity.
@@ -360,7 +373,7 @@ Section CBV.
     apply sema_sym.
     apply sema_bind_left.
     apply sema_axiom.
-    vm_compute.
+    cbv.
     apply axiom_eta_helper with (k := 0).
     reflexivity.
     reflexivity.
@@ -375,12 +388,12 @@ Section CBV.
     auto.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; try lia.
-    vm_compute.
+    cbv.
     reflexivity.
   Qed.
 
@@ -404,7 +417,7 @@ Section CBN.
       [A -> B] = ~~(~[A], [B])
       [F]      = ~~()
 
-      [x: A |- e: B] = x: ~[A], k: [B] |- [e]
+      [xs: As |- e: B] = xs: ~[As], k: [B] |- [e]
   *)
 
   Axiom cbn_type_F:
@@ -413,21 +426,21 @@ Section CBN.
   Definition cbn_C {T}: pseudoterm :=
     (* [|- C: ~~T -> T] = [k: ~~(~~~(~~~(~[T], ~~()), ~~()), [T]) |- [C]]
 
-       k<f>
+       k@1<f@0>
        { f<x: ~~~(~~~(~[T], ~~()), ~~()), k: [T]> =
-         x<j>
+         x@2<j@0>
          { j<i: ~(~~~(~[T], ~~()), ~~())> =
-           i<p, q>
+           i@2<p@0, q@1>
            { p<l: ~~(~[T], ~~())> =
-             l<n>
+             l@1<n@0>
              { n<y: ~[T], o: ~~()> =
-               o<z>
+               o@1<z@0>
                { z<> =
-                 y<k> }
+                 y@1<k@5> }
              }
            }
            { q<m: ~()> =
-             m<> } } }
+             m@0<> } } }
     *)
     let U := N [N [N [N []]; N [T]]] in
     (bind
@@ -455,7 +468,7 @@ Section CBN.
     cbn_cps C (@cbn_C T).
 
   Goal
-    forall T: type,
+    forall T,
     simple (cbn_type T) ->
     exists2 U,
     typing [] C U & cbn_typing [] (@cbn_C (cbn_type T)) U.
@@ -469,11 +482,11 @@ Section CBN.
   Definition cbn_A {T}: pseudoterm :=
     (* [|- A: F -> T] = [k: ~~(~~~(), [T]) |- [A]]
 
-       k<f>
-       { f<x: ~~~(), k: [T]> =
-         x<k>
+       k@1<f@0>
+       { f<x: ~~~(), _: [T]> =
+         x@2<k@0>
          { k<k: ~()> =
-           k<> } }
+           k@0<> } }
     *)
     bind
       (jump 1 [Syntax.bound 0])
@@ -485,7 +498,7 @@ Section CBN.
 
   Axiom cbn_cps_A:
     forall T,
-    cbn_cps A (@cbn_A T).
+    cbn_cps A (@cbn_A (cbn_type T)).
 
   Goal
     forall T: type,
@@ -510,7 +523,7 @@ Section CBN.
     let T := F in
     forall b c,
     cbn_cps A b ->
-    cbn_cps (abstraction F (application C (abstraction (arrow T F) 1))) c ->
+    cbn_cps (A_def T) c ->
     [b == c].
   Proof.
     intros.
@@ -541,7 +554,7 @@ Section CBN.
     unfold cbn_C.
     unfold T.
     rewrite cbn_type_F.
-    vm_compute.
+    cbv.
     symmetry.
     etransitivity.
     apply sema_bind_right.
@@ -550,14 +563,14 @@ Section CBN.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -565,14 +578,14 @@ Section CBN.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -580,14 +593,14 @@ Section CBN.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -595,14 +608,14 @@ Section CBN.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
@@ -610,14 +623,14 @@ Section CBN.
     rewrite foobar_sound at 1.
     apply beta_ctxjmp.
     reflexivity.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_step.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     etransitivity.
     apply sema_bind_right.
     apply sema_bind_left.
@@ -625,7 +638,7 @@ Section CBN.
     apply step_smol.
     apply smol_gc.
     repeat constructor; simpl; lia.
-    vm_compute.
+    cbv.
     (* Yey, typing is degenerate! *)
     admit.
   Admitted.
