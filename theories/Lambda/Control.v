@@ -89,7 +89,9 @@ Section Control.
   Qed.
 
   Definition K_def T U: term :=
-    (* K = \f: (T -> U) -> T.C (\k: T -> F.k (f (\x: T.A (k x)))) *)
+    (* K = \f: (T -> U) -> T.C (\k: T -> F.k (f (\x: T.A (k x))))
+                                                ^^^^^^^^^^^^^^^^
+                                                changes the type! *)
     abstraction (arrow (arrow T U) T)
       (application C
         (abstraction (arrow T F)
@@ -433,6 +435,79 @@ Section CBV.
     - apply typing_K.
     - repeat (simpl; try econstructor; auto; try rewrite cbv_type_F).
   Qed.
+
+  Goal
+    forall b c,
+    let T := F in
+    let U := F in
+    cbv_cps K b ->
+    cbv_cps (K_def T U) c ->
+    [b == c].
+  Proof.
+    intros.
+    assert (b = @cbv_K (cbv_type T) (cbv_type U)).
+    eapply cbv_cps_is_a_function.
+    eassumption.
+    apply cbv_cps_K.
+    dependent destruction H1.
+    clear H.
+    unfold cbv_K.
+    dependent destruction H0.
+    rewrite lift_distributes_over_application in H0.
+    rewrite lift_distributes_over_abstraction in H0.
+    dependent destruction H0.
+    rewrite lift_distributes_over_abstraction in H0_0.
+    dependent destruction H0_0.
+    rewrite_strat topdown (hints sigma) in H0_0.
+    simpl in H0_0.
+    dependent destruction H0_0.
+    cbv in H0_0_1.
+    dependent destruction H0_0_1.
+    assert (b = lift 1 1 (lift 1 2 (@cbv_C (cbv_type T)))).
+    eapply cbv_cps_is_a_function.
+    eassumption.
+    apply cbv_cps_lift.
+    apply cbv_cps_lift.
+    apply cbv_cps_C.
+    dependent destruction H.
+    clear H0_.
+    rename H0_0_2 into H.
+    rewrite_strat topdown (hints sigma) in H.
+    simpl in H.
+    dependent destruction H.
+    cbv in H.
+    dependent destruction H.
+    rewrite_strat topdown (hints sigma) in H0.
+    simpl in H0.
+    dependent destruction H0.
+    rewrite_strat topdown (hints sigma) in H0.
+    simpl in H0.
+    dependent destruction H0.
+    cbv in H0_0.
+    dependent destruction H0_0.
+    cbv in H0_0_1, H0_0_2.
+    dependent destruction H0_0_1.
+    dependent destruction H0_0_2.
+    rewrite_strat topdown (hints sigma) in H0_.
+    simpl in H0_.
+    (* Oh boy... sigma should get a better normal form here! *)
+    replace A with (bound 0) in H0_ by admit.
+
+    (* unfold cbv_C.
+    unfold T, U.
+    rewrite cbv_type_F.
+    cbv.
+    symmetry.
+    etransitivity.
+    apply sema_bind_right.
+    apply sema_step.
+    apply step_beta.
+    rewrite foobar_sound at 1.
+    apply beta_ctxjmp.
+    reflexivity.
+    simpl. *)
+    admit.
+  Admitted.
 
 End CBV.
 
