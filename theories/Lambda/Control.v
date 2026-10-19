@@ -150,9 +150,7 @@ Section CBV.
        { f<x: ~(~([T], ~~()), ~~()), k: ~[T]> =
          x@3<p@0, q@1>
          { p<y: [T], j: ~~()> =
-           j@1<r@0>
-           { r<> =
-             k@3<y@1> } }
+           k@3<y@1> }
          { q<j: ~()> =
            j@0<> } }
     *)
@@ -163,10 +161,7 @@ Section CBV.
         (bind
           (jump 3 [Syntax.bound 1; Syntax.bound 0])
           [N [N []]; T]
-          (bind
-            (jump 1 [Syntax.bound 0])
-            []
-            (jump 3 [Syntax.bound 1])))
+          (jump 3 [Syntax.bound 1]))
         [N []]
         (jump 0 [])).
 
