@@ -504,6 +504,49 @@ Section CBV.
     admit.
   Admitted.
 
+  (* From https://members.loria.fr/PdeGroote/papers/lpar94.pdf, we take that
+
+     [mu a: ~T.[b]e] = C (\a.b [e])
+
+     We can quickly sketch that...
+
+       [e]
+       { k<x> =
+         b<x, h>
+         { h<i> =
+           i<>
+         }
+       }
+       { a<e, f> =
+         k<e>
+       }
+  *)
+
+  Goal
+    forall t e,
+    cbv_cps e (CPS.jump 42 [CPS.bound 0; CPS.bound 1]) ->
+    exists2 c,
+    cbv_cps (application C (abstraction t (application 666 e))) c &
+      c = void.
+  Proof.
+    intros.
+    eexists.
+    apply cbv_cps_application.
+    apply cbv_cps_lift.
+    apply cbv_cps_C with (T := void).
+    apply cbv_cps_lift.
+    apply cbv_cps_abstraction.
+    apply cbv_cps_lift.
+    apply cbv_cps_application.
+    apply cbv_cps_lift.
+    apply cbv_cps_bound.
+    apply cbv_cps_lift.
+    eassumption.
+    unfold cbv_C.
+    cbv.
+    admit.
+  Admitted.
+
 End CBV.
 
 Section CBN.
