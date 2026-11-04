@@ -21,6 +21,9 @@ Global Hint Resolve channel_equals_double_dual: cps.
 
 Section Interpretation.
 
+  Local Notation I := mode_input.
+  Local Notation O := mode_output.
+
   (* We did not define base types in the typesystem for the pi-calculus, so we
      parametrize everything by some arbitrary interpretation for base types. *)
   Variable pi_base: type.

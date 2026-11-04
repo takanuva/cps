@@ -19,8 +19,8 @@ Variant mode: Set :=
   | mode_input
   | mode_output.
 
-Notation I := mode_input.
-Notation O := mode_output.
+Local Notation I := mode_input.
+Local Notation O := mode_output.
 
 Inductive type: Set :=
   | channel (m: mode) (ts: list type).
