@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import Lia.
@@ -17,72 +17,177 @@ Import ListNotations.
 
 Variant polarity: Set :=
   | cartesian
-  | linear
-  | consumed.
+  | linear.
 
-Definition consume: list polarity -> list polarity :=
-  map (fun x =>
-    match x with
-    | cartesian => cartesian
-    | linear => consumed
-    | consumed => consumed
-    end).
+Local Definition lift_var (P: nat -> Prop) (b: pseudoterm): Prop :=
+  exists2 n: nat,
+  P n & b = bound n.
 
-Inductive lift_var (P: nat -> Prop): pseudoterm -> Prop :=
-  | lift_var_bound:
-    forall n,
-    P n ->
-    lift_var P (bound n).
+(* A sorting system inspired by Kennedy's paper. This judgement will imply that
+   a CPS-calculus term behaves without control effects (i.e., no call/cc), and
+   that it respects a stack discipline. As continuation variables respect a
+   linear restriction, we call them linear here, and regular variables are
+   cartesian.
 
-(* Generalized from Kennedy's paper; this judgement implies that a CPS-calculus
-   term behaves without control effects (read: no call/cc). TODO: generalize
-   functions for multiple returns and branching (i.e., allow for products and
-   coproducts), also for continuations appearing at any position (for, e.g.,
-   Fischer's translation). *)
+   Kennedy's system has units, sums and pairs too, but we'll restrict ourselves
+   here to functions alone. We could encode these with continuations, of course,
+   and we will do that with the dependent type system, but if we'd do it here we
+   would lose subject reduction for the sorting system. The reason is that we'd
+   not have the syntactic clue as to whether something is a pair/sum or not. So,
+   e.g., while Kennedy would write:
 
-Inductive intuitionistic: list polarity -> pseudoterm -> Prop :=
+     letval x = in1 y in x<z, k>
+
+   We would have:
+
+          x<z, k> { x<a, b> = a<y> }
+
+   While this would NOT be a redex for Kennedy, cause x is syntactically a sum,
+   a straightforward encoding has no such information and this would be a redex
+   leading to z<y> with both z and y cartesian, which we do not want.
+
+   We could generalize the sorting by listing the polarity of the arguments a
+   continuation takes, as x takes two linear variables above. This would solve
+   it and a similar approach is taken in the dependent type system. We simplify
+   this here by considering functions and thunks only.
+
+   We also take environments to be of the form:
+
+      G ::= . | G, x | G, k | G; .
+
+   With the semicolon working as a "barrier" for linear variables, which is
+   necessary for functions. This style of environment keeps track of variable
+   indexes, useful for our de Bruijn formulation. Judgements will then be:
+
+     G |- b ok
+
+   Rather then keeping two distinct environments as Kennedy does. In a named
+   version of the calculus, it would probably be nicer to keep a presentation
+   with two environments, but the one with linear variables should probably be
+   on the right-hand side of the sequent, i.e.,
+
+     G |- b : D
+
+   ...for G and D here respectively a list of cartesian variables and linear
+   variables.
+*)
+
+Definition polarity_env: Set :=
+  list (list polarity).
+
+Local Notation env := polarity_env.
+
+Inductive is_cartesian: env -> nat -> Prop :=
+  | is_cartesian_caar:
+    forall xs ys,
+    is_cartesian ((cartesian :: xs) :: ys) 0
+  | is_cartesian_cadr:
+    forall x xs ys n,
+    is_cartesian (xs :: ys) n ->
+    is_cartesian ((x :: xs) :: ys) (S n)
+  | is_cartesian_cdr:
+    forall ys n,
+    is_cartesian ys n ->
+    is_cartesian ([] :: ys) n.
+
+Inductive is_linear: env -> nat -> Prop :=
+  | is_linear_caar:
+    forall xs ys,
+    is_linear ((linear :: xs) :: ys) 0
+  | is_linear_cadr:
+    forall x xs ys n,
+    is_linear (xs :: ys) n ->
+    is_linear ((x :: xs) :: ys) (S n).
+
+Lemma cartesian_not_linear:
+  forall g n,
+  is_cartesian g n -> ~is_linear g n.
+Proof.
+  induction 1; repeat intro.
+  - inversion H.
+  - dependent destruction H0.
+    contradiction.
+  - inversion H0.
+Qed.
+
+Lemma linear_is_not_cartesian:
+  forall g n,
+  is_linear g n -> ~is_cartesian g n.
+Proof.
+  induction 1; repeat intro.
+  - inversion H.
+  - dependent destruction H0.
+    contradiction.
+Qed.
+
+Local Definition env_append (g: env) (p: polarity): env :=
+  match g with
+  | [] => [[p]]
+  | (xs :: ys) => ((p :: xs) :: ys)
+  end.
+
+Inductive intuitionistic: env -> pseudoterm -> Prop :=
   (*
-     k in D, xs in G
-    -----------------
-      G; D |- k<xs>
+     k in D      x in G
+    --------------------- (RET)
+        G |- k<x> : D
   *)
   | intuitionistic_ret:
-    forall g k xs,
-    item linear g k ->
-    Forall (lift_var (item cartesian g)) xs ->
-    intuitionistic g (jump k xs)
+    forall g k x,
+    lift_var (is_linear g) k ->
+    lift_var (is_cartesian g) x ->
+    intuitionistic g (jump k [x])
   (*
-     k in D, x, ys in G
-    --------------------
-      G; D |- x<ys, k>
+     x in G      k in D
+    --------------------- (FORCE)
+        G |- x<k> : D
   *)
-  | intuitionistic_app:
-    forall g x k ys,
-    item linear g k ->
-    item cartesian g x ->
-    Forall (lift_var (item cartesian g)) ys ->
-    intuitionistic g (jump x (bound k :: ys))
+  | intuitionistic_force:
+    forall g x k,
+    lift_var (is_cartesian g) x ->
+    lift_var (is_linear g) k ->
+    intuitionistic g (jump x [k])
   (*
-     G; D, k |- b     G, ys; D |- c
-    --------------------------------
-        G; D |- b { k<ys> = c }
+      f in G     x in G     k in D
+    -------------------------------- (CALL)
+            G |- f<x, k> : D
   *)
-  | intuitionistic_con:
-    forall g b ts c,
-    intuitionistic (linear :: g) b ->
-    intuitionistic (repeat cartesian (length ts) ++ g) c ->
-    intuitionistic g (bind b ts c)
+  | intuitionistic_call:
+    forall g f x k,
+    lift_var (is_cartesian g) f ->
+    lift_var (is_cartesian g) x ->
+    lift_var (is_linear g) k ->
+    intuitionistic g (jump f [k; x])
   (*
-     G, x; D |- b     G, ys; k |- c
-    --------------------------------
-       G; D |- b { x<ys, k> = c }
+      G |- b : k, D     G, x |- c : D
+    ----------------------------------- (CONT)
+          G |- b { k<x> = c } : D
+  *)
+  | intuitionistic_cont:
+    forall g b t c,
+    intuitionistic (env_append g linear) b ->
+    intuitionistic (env_append g cartesian) c ->
+    intuitionistic g (bind b [t] c)
+  (*
+      G, x |- b : D     G |- c : k, D
+    ----------------------------------- (THUNK)
+          G |- b { x<k> = c } : D
+  *)
+  | intuitionistic_thunk:
+    forall g b t c,
+    intuitionistic (env_append g cartesian) b ->
+    intuitionistic (env_append g linear) c ->
+    intuitionistic g (bind b [t] c)
+  (*
+      G, f |- b : D     G, x |- c : k
+    ----------------------------------- (FUN)
+        G |- b { f<x, k> = c } : D
   *)
   | intuitionistic_fun:
-    forall g b ts u tsu c,
-    tsu = ts ++ [u] ->
-    intuitionistic (cartesian :: g) b ->
-    intuitionistic (linear :: repeat cartesian (length ts) ++ consume g) c ->
-    intuitionistic g (bind b tsu c).
+    forall g b t1 t2 c,
+    intuitionistic (env_append g cartesian) b ->
+    intuitionistic ([linear; cartesian] :: g) c ->
+    intuitionistic g (bind b [t1; t2] c).
 
 Lemma intuitionistic_is_dec:
   forall b g,
@@ -96,10 +201,7 @@ Proof.
   - right.
     inversion 1.
   (* Case: jump. *)
-  - (* Skip invalid cases... *)
-    destruct b; try now (right; inversion 1).
-    (* Are we jumping to a continuation or to a function...? *)
-    admit.
+  - admit.
   (* Case: bind. *)
   - (* This could be a local continuation or a closure definition. We note that
        those two things are mutually exclusive: if this is a local continuation
@@ -110,158 +212,64 @@ Proof.
     admit.
 Admitted.
 
+Definition all_cartesian (g: env): Prop :=
+  forall n, ~is_linear g n.
+
 Theorem intuitionistic_requires_escape:
   forall g,
-  ~In linear g ->
+  all_cartesian g ->
   forall b,
   ~intuitionistic g b.
 Proof.
   repeat intro.
-  apply H; clear H.
   induction H0.
-  (* Case: intuitionistic_ret. *)
-  - clear H0 xs.
-    induction H.
-    + now left.
-    + now right.
-  (* Case: intuitionistic_app. *)
-  - clear H0 H1 x ys.
-    induction H.
-    + now left.
-    + now right.
-  (* Case: intuitionistic_con. *)
-  - (* Proceed by induction on the right. *)
-    apply in_app_or in IHintuitionistic2 as [ ? | ? ].
-    + exfalso.
-      apply repeat_spec in H.
-      inversion H.
-    + assumption.
-  (* Case: intuitionistic_fun. *)
-  - (* Proceed by induction on the left. *)
-    destruct IHintuitionistic1 as [ ? | ? ].
-    + exfalso.
-      inversion H0.
-    + assumption.
+  - dependent destruction H0.
+    now apply H with x0.
+  - dependent destruction H1.
+    now apply H with x0.
+  - dependent destruction H2.
+    now apply H with x0.
+  - apply IHintuitionistic2; repeat intro.
+    dependent destruction H0.
+    + destruct g; easy.
+    + destruct g; simpl in x.
+      * dependent destruction x.
+        inversion H0.
+      * dependent destruction x.
+        now apply H with n.
+  - apply IHintuitionistic1; repeat intro.
+    dependent destruction H0.
+    + destruct g; easy.
+    + destruct g; simpl in x.
+      * dependent destruction x.
+        inversion H0.
+      * dependent destruction x.
+        now apply H with n.
+  - apply IHintuitionistic1; repeat intro.
+    dependent destruction H0.
+    + destruct g; easy.
+    + destruct g; simpl in x.
+      * dependent destruction x.
+        inversion H0.
+      * dependent destruction x.
+        now apply H with n.
 Qed.
 
-Lemma item_consume_cartesian_stable:
-  forall g k,
-  item cartesian g k ->
-  item cartesian (consume g) k.
-Proof.
-  induction g; intros.
-  - inversion H.
-  - dependent destruction H; simpl.
-    + constructor.
-    + constructor.
-      now apply IHg.
-Qed.
-
-Lemma anchor_is_intuitionistic:
+Lemma pivot_is_intuitionistic:
   forall g,
-  item linear g 0 ->
-  intuitionistic (cartesian :: cartesian :: g) (jump 1 [bound 2; bound 0]).
+  is_linear g 2 ->
+  is_cartesian g 1 ->
+  is_cartesian g 0 ->
+  intuitionistic g (jump 1 [bound 2; bound 0]).
 Proof.
   intros.
-  eapply intuitionistic_app with (ys := [_]); simpl.
-  - now repeat constructor.
-  - repeat constructor.
-  - repeat constructor.
+  apply intuitionistic_call.
+  - now exists 1.
+  - now exists 0.
+  - now exists 2.
 Qed.
 
-(* TODO: move me, please! *)
-Lemma bsmap_app:
-  forall s xs ys k,
-  bsmap s k (xs ++ ys) = bsmap s (length ys + k) xs ++ bsmap s k ys.
-Proof.
-  induction xs; simpl; intros.
-  - reflexivity.
-  - sigma; simpl.
-    f_equal.
-    + rewrite app_length.
-      now rewrite Nat.add_assoc.
-    + apply IHxs.
-Qed.
-
-Lemma consume_app:
-  forall xs ys,
-  consume (xs ++ ys) = consume xs ++ consume ys.
-Proof.
-  induction xs; simpl; intros.
-  - reflexivity.
-  - f_equal.
-    apply IHxs.
-Qed.
-
-Lemma insert_consume_eat:
-  forall ps n xs ys,
-  insert ps n xs ys ->
-  insert (consume ps) n (consume xs) (consume ys).
-Proof.
-  induction 1; intros.
-  - rewrite consume_app.
-    constructor.
-  - simpl.
-    now constructor.
-Qed.
-
-Lemma intuitionistic_step_gc:
-  forall h b,
-  intuitionistic h b ->
-  forall k,
-  not_free k b ->
-  forall p g,
-  insert [p] k g h ->
-  intuitionistic g (remove_binding k b).
-Proof.
-  (* Generalize our substitution a bit. *)
-  unfold remove_binding; sigma.
-  induction 1; intros.
-  (* Case: intuitionistic_ret. *)
-  - rename g0 into h, k0 into j.
-    sigma.
-    admit.
-  (* Case: intuitionistic_app. *)
-  - rename g0 into h, k0 into j.
-    sigma.
-    admit.
-  (* Case: intuitionistic_con. *)
-  - sigma.
-    dependent destruction H1.
-    apply intuitionistic_con.
-    + apply IHintuitionistic1 with p.
-      * assumption.
-      * now constructor.
-    + apply IHintuitionistic2 with p.
-      * assumption.
-      * rewrite bsmap_length.
-        replace (length ts) with (length (repeat cartesian (length ts))) at 1 by
-          apply repeat_length.
-        now apply insert_app.
-  (* Case: intuitionistic_fun. *)
-  - sigma; subst.
-    dependent destruction H2.
-    eapply intuitionistic_fun.
-    + rewrite bsmap_app; simpl.
-      now sigma.
-    + apply IHintuitionistic1 with p.
-      * assumption.
-      * now constructor.
-    + sigma.
-      eapply IHintuitionistic2.
-      * assumption.
-      * rewrite app_length; simpl.
-        rewrite <- Nat.add_assoc.
-        rewrite Nat.add_comm.
-        simpl; constructor.
-        replace (length ts) with (length (repeat cartesian (length ts))) at 1 by
-          apply repeat_length.
-        rewrite Nat.add_comm.
-        apply insert_app.
-        now apply insert_consume_eat with (ps := [p]).
-Admitted.
-
-Lemma intuitionistic_step:
+Lemma intuitionistic_preservation:
   forall b c,
   step b c ->
   forall g,
@@ -269,182 +277,120 @@ Lemma intuitionistic_step:
   intuitionistic g c.
 Proof.
   induction 1; intros.
-  (* Case: step_ctxjmp. *)
+  - admit.
+  - admit.
   - dependent destruction H0.
-    + apply intuitionistic_con.
-      * admit.
-      * assumption.
-    + rename ts0 into ts.
-      apply intuitionistic_fun with ts u.
-      * reflexivity.
-      * admit.
-      * assumption.
-  (* Case: step_gc. *)
-  - dependent destruction H0.
-    + apply intuitionistic_step_gc with (linear :: g) linear.
-      * assumption.
-      * assumption.
-      * constructor.
-    + apply intuitionistic_step_gc with (cartesian :: g) cartesian.
-      * assumption.
-      * assumption.
-      * constructor.
-  (* Case: step_bind_left. *)
-  - dependent destruction H0.
-    + apply intuitionistic_con.
+    + constructor 4.
       * now apply IHstep.
       * assumption.
-    + rename ts0 into ts.
-      apply intuitionistic_fun with ts u.
-      * reflexivity.
+    + constructor 5.
       * now apply IHstep.
       * assumption.
-  (* Case: step_bind_right. *)
+    + constructor 6.
+      * now apply IHstep.
+      * assumption.
   - dependent destruction H0.
-    + apply intuitionistic_con.
+    + constructor 4.
       * assumption.
       * now apply IHstep.
-    + rename ts0 into ts.
-      apply intuitionistic_fun with ts u.
-      * reflexivity.
+    + constructor 5.
+      * assumption.
+      * now apply IHstep.
+    + constructor 6.
       * assumption.
       * now apply IHstep.
 Admitted.
 
 Require Import Local.Lambda.PlotkinCBV.
 
-Local Lemma technical1:
-  forall g t e,
-  (forall k, free k (abstraction t e) -> item cartesian (linear :: g) (S k)) ->
-  forall k,
-  free k (lift 1 1 e) ->
-  item cartesian (cartesian :: consumed :: consume g) k.
-Proof.
-  intros.
-  (* Notice that if k is zero then this is trivial. *)
-  destruct k.
-  - constructor.
-  - (* Now, k can't be zero as this contradicts H0. *)
-    destruct k.
-    + exfalso.
-      apply H0.
-      apply lifting_more_than_n_makes_not_free_n; auto.
-    + (* For the general case, we can proceed by our hypothesis. *)
-      do 2 constructor.
-      apply item_consume_cartesian_stable.
-      (* Proceed by steps, of course. *)
-      assert (free k (abstraction t e)).
-      * intro; apply H0; clear H0.
-        dependent destruction H1.
-        replace (S (S n)) with (n + 1 + 1) by lia.
-        apply not_free_lift.
-        now rewrite Nat.add_comm.
-      * apply H in H1.
-        now dependent destruction H1.
-Qed.
-
-Local Lemma technical2:
-  forall g f x,
-  (forall k, free k (application f x) -> item cartesian (linear :: g) (S k)) ->
-  forall k,
-  free k (lift 1 0 f) ->
-  item cartesian (linear :: g) k.
-Proof.
-  intros.
-  (* Clearly, k can't ever be zero. *)
-  destruct k.
-  - exfalso.
-    apply H0.
-    apply lifting_more_than_n_makes_not_free_n; auto.
-  - (* Proceed as the general case above. *)
-    constructor.
-    assert (free k (application f x)).
-    + intro; apply H0; clear H0.
-      dependent destruction H1.
-      replace (S n) with (n + 1 + 0) by lia.
-      apply not_free_lift.
-      now rewrite Nat.add_comm.
-    + apply H in H1.
-      now dependent destruction H1.
-Qed.
-
-Local Lemma technical3:
-  forall g f x,
-  (forall k, free k (application f x) -> item cartesian (linear :: g) (S k)) ->
-  forall k,
-  free k (lift 2 0 x) ->
-  forall p,
-  item cartesian (cartesian :: p :: g) k.
-Proof.
-  intros.
-  (* Similar to the above, k can't possibly be zero. *)
-  destruct k.
-  - exfalso.
-    apply H0.
-    apply lifting_more_than_n_makes_not_free_n; auto with arith.
-  - (* Yet again, k can't be zero. *)
-    destruct k.
-    + exfalso.
-      apply H0.
-      apply lifting_more_than_n_makes_not_free_n; auto.
-    + (* Now, proceed once more by the general case as above. *)
-      do 2 constructor.
-      assert (free k (application f x)).
-      * intro; apply H0; clear H0.
-        dependent destruction H1.
-        replace (S (S n)) with (n + 2 + 0) by lia.
-        apply not_free_lift.
-        now rewrite Nat.add_comm.
-      * apply H in H1.
-        now dependent destruction H1.
-Qed.
-
 Lemma plotkin_cbv_is_intuitionistic:
   forall e b,
   cbv_cps e b ->
   forall g,
-  item linear g 0 ->
-  (forall k, free k e -> item cartesian g (S k)) ->
+  is_linear g 0 ->
+  (forall k, free k e -> is_cartesian g (S k)) ->
   intuitionistic g b.
 Proof.
   induction 1; intros.
-  (* Case: bound. *)
-  - (* For variables, the CBV translation will return the value. *)
-    apply intuitionistic_ret.
-    + assumption.
-    + repeat constructor.
-      apply H0.
-      now inversion 1.
-  (* Case: abstraction. *)
-  - (* Abstractions have a single variable in the lambda calculus, which will be
-       followed by the current continuation in Plotkin's translation. So declare
-       a function and immediately return it. *)
-    eapply intuitionistic_fun with (ts := [_]).
-    + reflexivity.
+  - apply intuitionistic_ret.
+    + now exists 0.
+    + exists (S n).
+      * apply H0.
+        inversion 1.
+        contradiction.
+      * reflexivity.
+  - apply intuitionistic_fun.
     + apply intuitionistic_ret.
-      * now constructor.
-      * repeat constructor.
-    + simpl.
-      (* Proceed by induction. *)
-      apply IHcbv_cps; intros.
+      * exists 1; auto.
+        destruct g; simpl; try easy.
+        now constructor.
+      * exists 0; auto.
+        destruct g; constructor.
+    + apply IHcbv_cps; intros.
       * constructor.
-      * dependent destruction H0.
-        constructor; simpl.
-        now apply technical1 with t e.
-  (* Case: application. *)
-  - (* For CBV, we execute the left-hand side, then execute the right-hand
-       side, then apply the function properly. Sure. *)
-    apply intuitionistic_con; simpl.
-    + apply IHcbv_cps1; auto with cps; intros.
-      dependent destruction H1.
-      constructor; simpl.
-      now apply technical2 with f x.
-    + apply intuitionistic_con; simpl.
-      * apply IHcbv_cps2; auto with cps; intros.
-        dependent destruction H1.
-        constructor; simpl.
-        now apply technical3 with f x.
-      * now apply anchor_is_intuitionistic.
+      * constructor.
+        destruct k.
+        --- constructor.
+        --- constructor.
+            constructor.
+            destruct k.
+            +++ exfalso.
+                apply H2.
+                apply lifting_more_than_n_makes_not_free_n; lia.
+            +++ apply H1; intro.
+                dependent destruction H3.
+                apply H2.
+                replace (S (S n)) with (n + 1 + 1) by lia.
+                apply not_free_lift.
+                rewrite Nat.add_comm.
+                assumption.
+  - apply intuitionistic_cont.
+    + apply IHcbv_cps1; intros.
+      * destruct g; constructor.
+      * destruct g; try easy; simpl.
+        constructor.
+        destruct k.
+        --- exfalso.
+            apply H3.
+            apply lifting_more_than_n_makes_not_free_n; lia.
+        --- apply H2; intro.
+            dependent destruction H4.
+            apply H3.
+            replace (S n) with (n + 1 + 0) by lia.
+            apply not_free_lift.
+            rewrite Nat.add_comm.
+            assumption.
+    + apply intuitionistic_cont.
+      * apply IHcbv_cps2; intros.
+        --- destruct g; constructor.
+        --- destruct g; try easy; simpl.
+            constructor.
+            destruct k.
+            +++ exfalso.
+                apply H3.
+                apply lifting_more_than_n_makes_not_free_n; lia.
+            +++ constructor.
+                destruct k.
+                *** exfalso.
+                    apply H3.
+                    apply lifting_more_than_n_makes_not_free_n; lia.
+                *** apply H2; intro.
+                    dependent destruction H4.
+                    apply H3.
+                    replace (S (S n)) with (n + 2 + 0) by lia.
+                    apply not_free_lift.
+                    rewrite Nat.add_comm.
+                    assumption.
+      * apply pivot_is_intuitionistic.
+        --- destruct g; try easy; simpl.
+            constructor.
+            constructor.
+            assumption.
+        --- destruct g; try easy.
+            constructor.
+            constructor.
+        --- destruct g; try easy.
+            constructor.
 Qed.
 
 Theorem cbv_program_is_intuitionistic:
@@ -452,7 +398,7 @@ Theorem cbv_program_is_intuitionistic:
   closed e ->
   forall b,
   cbv_cps e b ->
-  intuitionistic [linear] b.
+  intuitionistic [[linear]] b.
 Proof.
   intros.
   apply plotkin_cbv_is_intuitionistic with e; intros.
@@ -464,6 +410,8 @@ Proof.
 Qed.
 
 Require Import Local.Lambda.PlotkinCBN.
+
+(*
 
 Lemma plotkin_cbn_is_intuitionistic:
   forall e b,
@@ -534,3 +482,4 @@ Proof.
     apply H1.
     apply H.
 Qed.
+*)

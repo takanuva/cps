@@ -1,5 +1,5 @@
 (******************************************************************************)
-(*   Copyright (c) 2019--2025 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
+(*   Copyright (c) 2019--2026 - Paulo Torrens <paulotorrens AT gnu DOT org>   *)
 (******************************************************************************)
 
 Require Import List.
@@ -24,6 +24,4 @@ End CPS.
 (* TODO: remove/refactor those. *)
 
 Notation polarity := CPS.polarity.
-Notation consume := CPS.consume.
 Notation lift_var := CPS.lift_var.
-
