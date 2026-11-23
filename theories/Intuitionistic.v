@@ -40,7 +40,7 @@ Local Definition lift_var (P: nat -> Prop) (b: pseudoterm): Prop :=
 
    We would have:
 
-          x<z, k> { x<a, b> = a<y> }
+     x<z, k> { x<a, b> = a<y> }
 
    While this would NOT be a redex for Kennedy, cause x is syntactically a sum,
    a straightforward encoding has no such information and this would be a redex
@@ -53,7 +53,7 @@ Local Definition lift_var (P: nat -> Prop) (b: pseudoterm): Prop :=
 
    We also take environments to be of the form:
 
-      G ::= . | G, x | G, k | G; .
+     G ::= . | G, x | G, k | G; .
 
    With the semicolon working as a "barrier" for linear variables, which is
    necessary for functions. This style of environment keeps track of variable
@@ -72,32 +72,34 @@ Local Definition lift_var (P: nat -> Prop) (b: pseudoterm): Prop :=
    variables.
 *)
 
-Definition polarity_env: Set :=
-  list (list polarity).
+Inductive polarity_env: Set :=
+  | polarity_env_nil: polarity_env
+  | polarity_env_cons (p: polarity) (g: polarity_env)
+  | polarity_env_lock (g: polarity_env).
 
 Local Notation env := polarity_env.
 
 Inductive is_cartesian: env -> nat -> Prop :=
-  | is_cartesian_caar:
-    forall xs ys,
-    is_cartesian ((cartesian :: xs) :: ys) 0
-  | is_cartesian_cadr:
-    forall x xs ys n,
-    is_cartesian (xs :: ys) n ->
-    is_cartesian ((x :: xs) :: ys) (S n)
-  | is_cartesian_cdr:
-    forall ys n,
-    is_cartesian ys n ->
-    is_cartesian ([] :: ys) n.
+  | is_cartesian_now:
+    forall g,
+    is_cartesian (polarity_env_cons cartesian g) 0
+  | is_cartesian_cons:
+    forall p g n,
+    is_cartesian g n ->
+    is_cartesian (polarity_env_cons p g) (S n)
+  | is_cartesian_lock:
+    forall g n,
+    is_cartesian g n ->
+    is_cartesian (polarity_env_lock g) n.
 
 Inductive is_linear: env -> nat -> Prop :=
-  | is_linear_caar:
-    forall xs ys,
-    is_linear ((linear :: xs) :: ys) 0
-  | is_linear_cadr:
-    forall x xs ys n,
-    is_linear (xs :: ys) n ->
-    is_linear ((x :: xs) :: ys) (S n).
+  | is_linear_now:
+    forall g,
+    is_linear (polarity_env_cons linear g) 0
+  | is_linear_cons:
+    forall p g n,
+    is_linear g n ->
+    is_linear (polarity_env_cons p g) (S n).
 
 Lemma cartesian_not_linear:
   forall g n,
@@ -119,12 +121,6 @@ Proof.
   - dependent destruction H0.
     contradiction.
 Qed.
-
-Local Definition env_append (g: env) (p: polarity): env :=
-  match g with
-  | [] => [[p]]
-  | (xs :: ys) => ((p :: xs) :: ys)
-  end.
 
 Inductive intuitionistic: env -> pseudoterm -> Prop :=
   (*
@@ -165,8 +161,8 @@ Inductive intuitionistic: env -> pseudoterm -> Prop :=
   *)
   | intuitionistic_cont:
     forall g b t c,
-    intuitionistic (env_append g linear) b ->
-    intuitionistic (env_append g cartesian) c ->
+    intuitionistic (polarity_env_cons linear g) b ->
+    intuitionistic (polarity_env_cons cartesian g) c ->
     intuitionistic g (bind b [t] c)
   (*
       G, x |- b : D     G |- c : k
@@ -175,8 +171,8 @@ Inductive intuitionistic: env -> pseudoterm -> Prop :=
   *)
   | intuitionistic_thunk:
     forall g b t c,
-    intuitionistic (env_append g cartesian) b ->
-    intuitionistic ([linear] :: g) c ->
+    intuitionistic (polarity_env_cons cartesian g) b ->
+    intuitionistic (polarity_env_cons linear (polarity_env_lock g)) c ->
     intuitionistic g (bind b [t] c)
   (*
       G, f |- b : D     G, x |- c : k
@@ -185,8 +181,10 @@ Inductive intuitionistic: env -> pseudoterm -> Prop :=
   *)
   | intuitionistic_fun:
     forall g b t1 t2 c,
-    intuitionistic (env_append g cartesian) b ->
-    intuitionistic ([linear; cartesian] :: g) c ->
+    intuitionistic (polarity_env_cons cartesian g) b ->
+    intuitionistic (polarity_env_cons linear
+                      (polarity_env_cons cartesian
+                         (polarity_env_lock g))) c ->
     intuitionistic g (bind b [t1; t2] c).
 
 Lemma intuitionistic_is_dec:
@@ -212,12 +210,12 @@ Proof.
     admit.
 Admitted.
 
-Definition all_cartesian (g: env): Prop :=
+Definition no_linear_vars (g: env): Prop :=
   forall n, ~is_linear g n.
 
 Theorem intuitionistic_requires_escape:
   forall g,
-  all_cartesian g ->
+  no_linear_vars g ->
   forall b,
   ~intuitionistic g b.
 Proof.
@@ -231,28 +229,13 @@ Proof.
     now apply H with x0.
   - apply IHintuitionistic2; repeat intro.
     dependent destruction H0.
-    + destruct g; easy.
-    + destruct g; simpl in x.
-      * dependent destruction x.
-        inversion H0.
-      * dependent destruction x.
-        now apply H with n.
+    now apply H with n.
   - apply IHintuitionistic1; repeat intro.
     dependent destruction H0.
-    + destruct g; easy.
-    + destruct g; simpl in x.
-      * dependent destruction x.
-        inversion H0.
-      * dependent destruction x.
-        now apply H with n.
+    now apply H with n.
   - apply IHintuitionistic1; repeat intro.
     dependent destruction H0.
-    + destruct g; easy.
-    + destruct g; simpl in x.
-      * dependent destruction x.
-        inversion H0.
-      * dependent destruction x.
-        now apply H with n.
+    now apply H with n.
 Qed.
 
 Lemma pivot_is_intuitionistic:
@@ -277,8 +260,20 @@ Lemma intuitionistic_preservation:
   intuitionistic g c.
 Proof.
   induction 1; intros.
-  - admit.
-  - admit.
+  - dependent destruction H0.
+    + constructor 4; auto.
+      admit.
+    + constructor 5; auto.
+      admit.
+    + constructor 6; auto.
+      admit.
+  - dependent destruction H0.
+    + clear H0_0.
+      admit.
+    + clear H0_0.
+      admit.
+    + clear H0_0.
+      admit.
   - dependent destruction H0.
     + constructor 4.
       * now apply IHstep.
@@ -321,10 +316,9 @@ Proof.
   - apply intuitionistic_fun.
     + apply intuitionistic_ret.
       * exists 1; auto.
-        destruct g; simpl; try easy.
         now constructor.
       * exists 0; auto.
-        destruct g; constructor.
+        now constructor.
     + apply IHcbv_cps; intros.
       * constructor.
       * constructor.
@@ -345,9 +339,8 @@ Proof.
                 assumption.
   - apply intuitionistic_cont.
     + apply IHcbv_cps1; intros.
-      * destruct g; constructor.
-      * destruct g; try easy; simpl.
-        constructor.
+      * now constructor.
+      * constructor.
         destruct k.
         --- exfalso.
             apply H3.
@@ -361,9 +354,8 @@ Proof.
             assumption.
     + apply intuitionistic_cont.
       * apply IHcbv_cps2; intros.
-        --- destruct g; constructor.
-        --- destruct g; try easy; simpl.
-            constructor.
+        --- constructor.
+        --- constructor.
             destruct k.
             +++ exfalso.
                 apply H3.
@@ -381,15 +373,12 @@ Proof.
                     rewrite Nat.add_comm.
                     assumption.
       * apply pivot_is_intuitionistic.
-        --- destruct g; try easy; simpl.
-            constructor.
+        --- constructor.
             constructor.
             assumption.
-        --- destruct g; try easy.
+        --- constructor.
             constructor.
-            constructor.
-        --- destruct g; try easy.
-            constructor.
+        --- constructor.
 Qed.
 
 Theorem cbv_program_is_intuitionistic:
@@ -397,7 +386,7 @@ Theorem cbv_program_is_intuitionistic:
   closed e ->
   forall b,
   cbv_cps e b ->
-  intuitionistic [[linear]] b.
+  intuitionistic (polarity_env_cons linear polarity_env_nil) b.
 Proof.
   intros.
   apply plotkin_cbv_is_intuitionistic with e; intros.
@@ -428,10 +417,9 @@ Proof.
   - apply intuitionistic_fun.
     + apply intuitionistic_ret.
       * exists 1; auto.
-        destruct g; simpl; try easy.
         now constructor.
       * exists 0; auto.
-        destruct g; constructor.
+        now constructor.
     + apply IHcbn_cps; intros.
       * constructor.
       * constructor.
@@ -452,9 +440,8 @@ Proof.
                 assumption.
   - apply intuitionistic_cont.
     + apply IHcbn_cps1; intros.
-      * destruct g; constructor.
-      * destruct g; try easy; simpl.
-        constructor.
+      * now constructor.
+      * constructor.
         destruct k.
         --- exfalso.
             apply H3.
@@ -468,20 +455,16 @@ Proof.
             assumption.
     + apply intuitionistic_thunk.
       * apply pivot_is_intuitionistic.
-        --- destruct g; try easy; simpl.
-            constructor.
+        --- constructor.
             constructor.
             assumption.
-        --- destruct g; try easy.
+        --- constructor.
             constructor.
-            constructor.
-        --- destruct g; try easy.
-            constructor.
+        --- constructor.
       * apply IHcbn_cps2; intros.
         --- constructor.
         --- constructor.
             constructor.
-            destruct g; try easy; simpl.
             destruct k.
             +++ exfalso.
                 apply H3.
@@ -505,7 +488,7 @@ Theorem cbn_program_is_intuitionistic:
   closed e ->
   forall b,
   cbn_cps e b ->
-  intuitionistic [[linear]] b.
+  intuitionistic (polarity_env_cons linear polarity_env_nil) b.
 Proof.
   intros.
   apply plotkin_cbn_is_intuitionistic with e; intros.
