@@ -169,14 +169,14 @@ Inductive intuitionistic: env -> pseudoterm -> Prop :=
     intuitionistic (env_append g cartesian) c ->
     intuitionistic g (bind b [t] c)
   (*
-      G, x |- b : D     G |- c : k, D
+      G, x |- b : D     G |- c : k
     ----------------------------------- (THUNK)
           G |- b { x<k> = c } : D
   *)
   | intuitionistic_thunk:
     forall g b t c,
     intuitionistic (env_append g cartesian) b ->
-    intuitionistic (env_append g linear) c ->
+    intuitionistic ([linear] :: g) c ->
     intuitionistic g (bind b [t] c)
   (*
       G, f |- b : D     G, x |- c : k
@@ -314,11 +314,10 @@ Proof.
   induction 1; intros.
   - apply intuitionistic_ret.
     + now exists 0.
-    + exists (S n).
-      * apply H0.
-        inversion 1.
-        contradiction.
-      * reflexivity.
+    + exists (S n); auto.
+      apply H0.
+      inversion 1.
+      contradiction.
   - apply intuitionistic_fun.
     + apply intuitionistic_ret.
       * exists 1; auto.
@@ -411,60 +410,94 @@ Qed.
 
 Require Import Local.Lambda.PlotkinCBN.
 
-(*
-
 Lemma plotkin_cbn_is_intuitionistic:
   forall e b,
   cbn_cps e b ->
   forall g,
-  item linear g 0 ->
-  (forall k, free k e -> item cartesian g (S k)) ->
+  is_linear g 0 ->
+  (forall k, free k e -> is_cartesian g (S k)) ->
   intuitionistic g b.
 Proof.
   induction 1; intros.
-  (* Case: bound. *)
-  - (* For variables, the CBN translation will force the value. *)
-    apply intuitionistic_app.
-    + assumption.
-    + apply H0.
-      now inversion 1.
-    + constructor.
-  (* Case: abstraction. *)
-  - (* Abstraction for the CBN case is exactly the same as in the CBV one. *)
-    eapply intuitionistic_fun with (ts := [_]).
-    + reflexivity.
+  - apply intuitionistic_force.
+    + exists (S n); auto.
+      apply H0.
+      inversion 1.
+      contradiction.
+    + now exists 0.
+  - apply intuitionistic_fun.
     + apply intuitionistic_ret.
-      * now constructor.
-      * repeat constructor.
-    + simpl.
-      (* Proceed by induction. *)
-      apply IHcbn_cps; intros.
+      * exists 1; auto.
+        destruct g; simpl; try easy.
+        now constructor.
+      * exists 0; auto.
+        destruct g; constructor.
+    + apply IHcbn_cps; intros.
       * constructor.
-      * dependent destruction H0.
-        constructor; simpl.
-        now apply technical1 with t e.
-  (* Case: application. *)
-  - (* Things a little bit different in here from CBV; we do one continuation,
-       then we do a thunk declaration, and we apply the anchor. *)
-    apply intuitionistic_con; simpl.
-    + apply IHcbn_cps1; auto with cps; intros.
-      dependent destruction H1.
-      constructor; simpl.
-      now apply technical2 with f x.
-    + (* Here the anchor is on the left. *)
-      eapply intuitionistic_fun with (ts := []); simpl.
-      * reflexivity.
-      * now apply anchor_is_intuitionistic.
-      * apply IHcbn_cps2; auto with cps; intros.
-        dependent destruction H1.
-        constructor; simpl.
-        (* The third technicall lemma requires a tiny tweak in here too, since
-           now the thunk can't proceed with older continuations. *)
-        apply technical3 with f x; auto.
-        intros j ?; constructor.
-        apply item_consume_cartesian_stable.
-        specialize (H2 _ H1).
-        now dependent destruction H2.
+      * constructor.
+        destruct k.
+        --- constructor.
+        --- constructor.
+            constructor.
+            destruct k.
+            +++ exfalso.
+                apply H2.
+                apply lifting_more_than_n_makes_not_free_n; lia.
+            +++ apply H1; intro.
+                dependent destruction H3.
+                apply H2.
+                replace (S (S n)) with (n + 1 + 1) by lia.
+                apply not_free_lift.
+                rewrite Nat.add_comm.
+                assumption.
+  - apply intuitionistic_cont.
+    + apply IHcbn_cps1; intros.
+      * destruct g; constructor.
+      * destruct g; try easy; simpl.
+        constructor.
+        destruct k.
+        --- exfalso.
+            apply H3.
+            apply lifting_more_than_n_makes_not_free_n; lia.
+        --- apply H2; intro.
+            dependent destruction H4.
+            apply H3.
+            replace (S n) with (n + 1 + 0) by lia.
+            apply not_free_lift.
+            rewrite Nat.add_comm.
+            assumption.
+    + apply intuitionistic_thunk.
+      * apply pivot_is_intuitionistic.
+        --- destruct g; try easy; simpl.
+            constructor.
+            constructor.
+            assumption.
+        --- destruct g; try easy.
+            constructor.
+            constructor.
+        --- destruct g; try easy.
+            constructor.
+      * apply IHcbn_cps2; intros.
+        --- constructor.
+        --- constructor.
+            constructor.
+            destruct g; try easy; simpl.
+            destruct k.
+            +++ exfalso.
+                apply H3.
+                apply lifting_more_than_n_makes_not_free_n; lia.
+            +++ constructor.
+                destruct k.
+                *** exfalso.
+                    apply H3.
+                    apply lifting_more_than_n_makes_not_free_n; lia.
+                *** apply H2; intro.
+                    dependent destruction H4.
+                    apply H3.
+                    replace (S (S n)) with (n + 2 + 0) by lia.
+                    apply not_free_lift.
+                    rewrite Nat.add_comm.
+                    assumption.
 Qed.
 
 Theorem cbn_program_is_intuitionistic:
@@ -472,7 +505,7 @@ Theorem cbn_program_is_intuitionistic:
   closed e ->
   forall b,
   cbn_cps e b ->
-  intuitionistic [linear] b.
+  intuitionistic [[linear]] b.
 Proof.
   intros.
   apply plotkin_cbn_is_intuitionistic with e; intros.
@@ -482,4 +515,3 @@ Proof.
     apply H1.
     apply H.
 Qed.
-*)
