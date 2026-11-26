@@ -64,7 +64,7 @@ Local Notation "b '{' ts '=' c '}'" :=
   (bind b ts c)
   (at level 200,
    b at level 200,
-   format "'[v' b '//' '{'  ts  '=' '/  ' '[' c ']' '/' '}' ']'",
+   format "'[v' b '/' '{'  ts  '=' '/  ' '[' c ']' '/' '}' ']'",
    only printing).
 
 Local Notation "x xs" :=
@@ -158,14 +158,18 @@ Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
     TT.infer TT.std (TT.valid_env g) ->
     item (d, t) g n ->
     u = lift (1 + n) 0 t ->
-    cbv_dcps g (TT.bound n) u (CBV_VAR n)
+    cbv_dcps g (TT.bound n) u
+      (CBV_VAR n)
+
   (* Rule (2) above. *)
   | cbv_dcps_term_abs:
     (* TODO: restrict to terms, please! *)
     forall g t e u b,
     cbv_dcps (TT.decl_var t :: g) e u b ->
     (* TODO: review and fix types. *)
-    cbv_dcps g (TT.abstraction t e) (TT.pi t u) (CBV_ABS b V V)
+    cbv_dcps g (TT.abstraction t e) (TT.pi t u)
+      (CBV_ABS (lift 1 2 b) V V)
+
   (* Rule (3) above. *)
   | cbv_dcps_term_app:
     (* TODO: restrict to terms, please! *)
@@ -174,9 +178,10 @@ Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
     cbv_dcps g e t c ->
     v = subst e 0 u ->
     (* TODO: review and fix types. *)
-    cbv_dcps g (TT.application f e) v (CBV_APP b c void void).
+    cbv_dcps g (TT.application f e) v
+      (CBV_APP (lift 1 1 b) (lift 2 1 c) void void).
 
-Lemma cbv_dcps_valid_domain:
+Lemma cbv_dcps_domain_is_valid:
   forall g e t b,
   cbv_dcps g e t b ->
   TT.infer TT.std (TT.typing g e t).
