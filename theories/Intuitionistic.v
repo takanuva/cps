@@ -12,6 +12,7 @@ Require Import Local.AbstractRewriting.
 Require Import Local.Syntax.
 Require Import Local.Context.
 Require Import Local.Reduction.
+Require Import Local.Observational.
 
 Import ListNotations.
 
@@ -498,3 +499,14 @@ Proof.
     apply H1.
     apply H.
 Qed.
+
+(* TODO:
+
+  In the dependent CPS-calculus, we'll need this rule to be valid:
+
+    G |- b { k<x> = C[j<x>] } = b { k<x> = C[b[k/j]] }
+
+  ...and possibly similar rules. I do not think this is true in general, but we
+  should check if it is the case that this is contained in the observational
+  theory for intuitionistic terms only.
+*)
