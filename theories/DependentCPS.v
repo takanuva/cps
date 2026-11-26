@@ -114,16 +114,16 @@ Local Notation "x xs" :=
     (1) [G |- x : A term] =
       k<x>
 
-    (2) [G |- \x: A.e : A -> B term] =
+    (2) [G |- \x: A.e : (x: A) -> B term] =
       k<f>
       { f<x: El([G |- A : s1 type]), k: ~El([G, x: A |- B : s2 type])> =
         [G, x: A |- e : B term]
       }
 
-    (3) [G |- e f : B term] =
-      [G |- e : A -> B term]
+    (3) [G |- f e : B[e/x] term] =
+      [G |- f : (x: A) -> B term]
       { k<f: El([G |- A -> B : s1 type])> =
-        [G |- f : A term]
+        [G |- e : A term]
         { k<v: El([G |- A : s2 type])> =
           f<v, k>
         }
@@ -138,8 +138,11 @@ Variant typing_judgement: Set :=
   (* A judgement G |- b : D. *)
   | typing (g: env) (b: pseudoterm).
 
-Definition CBV_TVAR (n: nat): pseudoterm :=
+Definition CBV_VAR n: pseudoterm :=
   (jump 0 [bound (S n)]).
+
+Definition CBV_ABS b kt vt: pseudoterm :=
+  (bind (jump 1 [bound 0]) [kt; vt] b).
 
 Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
   (* Rule (1) above. *)
@@ -149,7 +152,17 @@ Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
     TT.infer TT.std (TT.valid_env g) ->
     item (d, t) g n ->
     u = lift (1 + n) 0 t ->
-    cbv_dcps g (TT.bound n) u (CBV_TVAR n).
+    cbv_dcps g (TT.bound n) u (CBV_VAR n)
+  (* Rule (2) above. *)
+  | cbv_dcps_term_abs:
+    (* TODO: restrict to terms, please! *)
+    forall g t e u b,
+    (* TODO: get types t' and u' from translation! *)
+    let t' := void in
+    let u' := void in
+    cbv_dcps (TT.decl_var t :: g) e u b ->
+    (* TODO: review and fix types. *)
+    cbv_dcps g (TT.abstraction t e) (TT.pi t u) (CBV_ABS b u' t').
 
 Lemma cbv_dcps_valid_domain:
   forall g e t b,
@@ -160,4 +173,6 @@ Proof.
   - destruct d as [ e | ].
     + now apply TT.typing_ref with e t.
     + now apply TT.typing_var with t.
+  - apply TT.typing_abs.
+    assumption.
 Qed.
