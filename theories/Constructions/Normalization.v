@@ -220,7 +220,10 @@ Lemma bottom_typeable:
   typing [] bottom iset R.
 Proof.
   intros.
-  repeat econstructor.
+  unfold bottom.
+  apply typing_forall with (type 0).
+  - repeat constructor.
+  - repeat econstructor.
 Qed.
 
 (* For this one, we'll follow the proof given by Coquand and Gallier in "A Proof

@@ -69,22 +69,22 @@ Section TypeSystem.
       infer (typing g (bound n) u)
 
     (*
-        G |- T : Type n     G, x: T |- U : Type n
-      ---------------------------------------------
-                G |- Pi x: T.U : Type n
+        G |- T : s     G, x: T |- U : s
+      -----------------------------------
+              G |- Pi x: T.U : s
     *)
-    | typing_pi_type:
-      forall g t u n,
-      infer (typing g t (type n)) ->
-      infer (typing (decl_var t :: g) u (type n)) ->
-      infer (typing g (pi t u) (type n))
+    | typing_pi:
+      forall g t u s,
+      infer (typing g t (sort_term s)) ->
+      infer (typing (decl_var t :: g) u (sort_term s)) ->
+      infer (typing g (pi t u) (sort_term s))
 
     (*
         G |- T : s     G, x: T |- U : ISet
       --------------------------------------
               G |- Pi x: T.U : ISet
     *)
-    | typing_pi_iset:
+    | typing_forall:
       forall g t u s,
       infer (typing g t (sort_term s)) ->
       infer (typing (decl_var t :: g) u iset) ->
@@ -172,7 +172,7 @@ Section TypeSystem.
     (*
              |- G
       -------------------
-        G |- bool: Set
+        G |- bool: ISet
     *)
     | typing_bool:
       forall g,
@@ -214,9 +214,9 @@ Section TypeSystem.
       infer (typing g (bool_if e t f1 f2) (subst e 0 t))
 
     (*
-        G |- e : T     G |- U : s     G |- T <=R U
-      ----------------------------------------------
-                        G |- e : U
+        G |- e : T     G |- U : s     G |- T R U
+      --------------------------------------------
+                       G |- e : U
     *)
     | typing_conv:
       forall g e t u s,
@@ -246,6 +246,8 @@ Section TypeSystem.
         G |- e : T     G |- T : s
       -----------------------------
             |- G, x = e: T
+
+      TODO: can we remove the second hypothesis...?
     *)
     | valid_env_def:
       forall g e t s,
@@ -277,6 +279,8 @@ Section TypeSystem.
         G |- e : T     G |- T : s
       -----------------------------
          G, x = e: T |- lift : G
+
+      TODO: can we remove the second hypothesis...?
     *)
     | valid_subst_lift_def:
       forall g e t s,
@@ -306,6 +310,7 @@ Section TypeSystem.
       infer (typing g2 t (sort_term s)) ->
       infer (typing g1 e (inst f t)) ->
       infer (valid_subst (subst_cons e f) g1 (decl_var t :: g2))
+
     (*
         G1 |- f : G2     G2 |- T : s     G1 |- e : T[f]
       ---------------------------------------------------
@@ -459,9 +464,9 @@ Proof.
   (* Case: ref. *)
   - now apply typing_ref with e t.
   (* Case: pi_type. *)
-  - now apply typing_pi_type.
+  - now apply typing_pi.
   (* Case: pi_iset. *)
-  - now apply typing_pi_iset with s.
+  - now apply typing_forall with s.
   (* Case: abstraction. *)
   - now apply typing_abs.
   (* Case: application. *)
@@ -693,19 +698,19 @@ Proof.
     specialize (IHinfer2 _ _ _ eq_refl).
     change (inst f (pi t u)) with (pi (f 0 t) (f 1 u)).
     rewrite inst_sort_simpl.
-    apply typing_pi_type.
+    apply typing_pi.
     + sigma.
-      change (sort_term (type n)) with (inst f (sort_term (type n))).
+      change (sort_term s) with (inst f (sort_term s)).
       now apply IHinfer1.
     + sigma.
       (* This is an equality, sure. *)
       replace (inst (subst_upn 1 f) u) with
         (inst (subst_cons (var 0) (subst_comp f (subst_lift 1))) u) by admit.
       apply IHinfer2.
-      apply typing_uplift with (type n) (type n).
+      apply typing_uplift with s s.
       * assumption.
       * assumption.
-      * change (sort_term (type n)) with (inst f (sort_term (type n))).
+      * change (sort_term s) with (inst f (sort_term s)).
         now apply IHinfer1.
   - admit.
   - admit.
