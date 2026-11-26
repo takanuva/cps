@@ -138,11 +138,17 @@ Variant typing_judgement: Set :=
   (* A judgement G |- b : D. *)
   | typing (g: env) (b: pseudoterm).
 
+Definition PIVOT: pseudoterm :=
+  jump 1 [bound 2; bound 0].
+
 Definition CBV_VAR n: pseudoterm :=
   (jump 0 [bound (S n)]).
 
 Definition CBV_ABS b kt vt: pseudoterm :=
   (bind (jump 1 [bound 0]) [kt; vt] b).
+
+Definition CBV_APP b c ft vt: pseudoterm :=
+  (bind b [ft] (bind c [vt] PIVOT)).
 
 Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
   (* Rule (1) above. *)
@@ -157,12 +163,18 @@ Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
   | cbv_dcps_term_abs:
     (* TODO: restrict to terms, please! *)
     forall g t e u b,
-    (* TODO: get types t' and u' from translation! *)
-    let t' := void in
-    let u' := void in
     cbv_dcps (TT.decl_var t :: g) e u b ->
     (* TODO: review and fix types. *)
-    cbv_dcps g (TT.abstraction t e) (TT.pi t u) (CBV_ABS b u' t').
+    cbv_dcps g (TT.abstraction t e) (TT.pi t u) (CBV_ABS b V V)
+  (* Rule (3) above. *)
+  | cbv_dcps_term_app:
+    (* TODO: restrict to terms, please! *)
+    forall g f e t u v b c,
+    cbv_dcps g f (TT.pi t u) b ->
+    cbv_dcps g e t c ->
+    v = subst e 0 u ->
+    (* TODO: review and fix types. *)
+    cbv_dcps g (TT.application f e) v (CBV_APP b c void void).
 
 Lemma cbv_dcps_valid_domain:
   forall g e t b,
@@ -175,4 +187,8 @@ Proof.
     + now apply TT.typing_var with t.
   - apply TT.typing_abs.
     assumption.
+  - apply TT.typing_app with t u.
+    + assumption.
+    + assumption.
+    + assumption.
 Qed.
