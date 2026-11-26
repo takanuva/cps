@@ -55,100 +55,6 @@ Module TT := Local.Constructions.
 
 (* -------------------------------------------------------------------------- *)
 
-(*
-  The dependent CPS language makes a more strict distinction between commands,
-  type schemes and arities than the calculus of constructions does. Also, as we
-  wish to use negation for small types rather than (as Kennedy does) interpret
-  arrow types, we use codes and an interpretation function (à la Tarski). Codes
-  may be erased at runtime if so desired, but they could carry information to
-  allow for type cases such as done in Idris.
-
-  We start with the a simple CPS translation, unoptimized, based on Plotkin's
-  CBV translation, extending it as required with thunks and coproducts.
-*)
-
-Local Notation R := TT.conv.
-
-Local Coercion TT.lift_judgement: TT.typing_judgement >-> Funclass.
-
-Definition RET (k: nat) (x: nat): pseudoterm :=
-  jump (bound k) [bound x].
-
-Definition LET (h: context) (b: pseudoterm): pseudoterm :=
-  h b.
-
-Definition FUN (ts: list pseudoterm) (c: pseudoterm): context :=
-  context_left context_hole ts c.
-
-Definition BIND (b: pseudoterm) ts (c: pseudoterm): pseudoterm :=
-  bind b ts c.
-
-Definition CALL (f: nat) (x: nat) (k: nat): pseudoterm :=
-  jump (bound f) [bound x; bound k].
-
-(* TODO: check requirements for constructors, please. *)
-
-Axiom PLACEHOLDER: TT.decl.
-
-Local Notation VAR n :=
-  (RET 0 (1 + n)).
-
-Local Notation ABS b t1 t2 :=
-  (LET (FUN [t1; t2] b) (RET 1 0)).
-
-Local Notation APP b c t1 t2 :=
-  (BIND b [t1] (BIND c [t2] (CALL 1 2 0))).
-
-Inductive dcps: TT.env -> TT.term -> pseudoterm -> Prop :=
-  (*
-    [G |- x] = k<x>
-
-             = RETURN x TO k
-  *)
-  | dcps_return:
-    forall g n t,
-    TT.typing g (TT.bound n) t R ->
-    ~TT.type_scheme R g (TT.bound n) ->
-    dcps g (TT.bound n) (VAR n)
-  (*
-    [G |- \x: T.e] = k<v> { v<x: [T], k: ~[U]> = [e] }
-
-                   = LET
-                       v = FUN[x: [T], k: ~[U]] => [e]
-                     IN RETURN v TO k
-  *)
-  | dcps_letfun:
-    forall g t e u b,
-    TT.typing (TT.decl_var t :: g) e u R ->
-    ~TT.type_scheme R (TT.decl_var t :: g) e ->
-    (* Hmmm... *)
-    dcps (TT.decl_var (lift 1 0 t) :: PLACEHOLDER :: g) (lift 1 1 e) b ->
-    (* TODO: derive c and types... *)
-    dcps g (TT.abstraction t e) (ABS b void void)
-  (*
-    [G |- f e] = [f] { k<y: [Pi x: T.U]> = [e] { k<z: [T]> = y<z, k> } }
-
-               = BIND y: [Pi x: T.U] = [f] IN
-                 BIND z: [T] = [e] IN
-                 CALL y WITH z TO k
-  *)
-  | dcps_dobind:
-    forall g e f b c,
-    dcps (PLACEHOLDER :: g) (lift 1 0 f) b ->
-    dcps (PLACEHOLDER :: PLACEHOLDER :: g) (lift 2 0 e) c ->
-    dcps g (TT.application f e) (APP b c void void).
-
-Lemma TT_typing_cbv_dcps:
-  forall g e b,
-  dcps g e b ->
-  exists t,
-  TT.typing g e t R.
-Proof.
-  admit.
-Admitted.
-
-(* TODO: prove that cbv_dcps is total for typed terms! *)
-
 Local Notation V := void.
 
 (* Quick sketch to help debugging; I will need a proper notation library later
@@ -167,94 +73,91 @@ Local Notation "x xs" :=
    format "'[v' x xs ']'",
    only printing).
 
-Local Goal
-  exists2 b,
-  dcps [] TT.dependent_example1 b & b = V.
+(*
+  The dependent CPS language makes a more strict distinction between commands,
+  type schemes and arities than the calculus of constructions does. Also, as we
+  wish to use negation for small types rather than (as Kennedy does) interpret
+  arrow types, we use codes and an interpretation function (à la Tarski). Codes
+  may be erased at runtime if so desired, but they could carry information to
+  allow for type cases such as done in Idris.
+
+  We start with the a simple CPS translation, unoptimized, based on Plotkin's
+  CBV translation, extending it as required with thunks and coproducts.
+
+  TODO: doc! Doc! Doc!
+*)
+
+(*
+  Grammar:
+
+    T ::= ...
+    U ::= ...
+
+    v ::= x
+
+    t ::= ...
+
+    W ::= ...
+
+    b ::= x<v...> | b { x<x: W, ...> = b }
+
+    G ::= . | G, x: T
+
+    D ::= . | D, k: U
+
+  Judgements:
+
+    G |- b : D
+
+  CBV translation, acting on judgements:
+
+    (1) [G |- x : A term] =
+      k<x>
+
+    (2) [G |- \x: A.e : A -> B term] =
+      k<f>
+      { f<x: El([G |- A : s1 type]), k: ~El([G, x: A |- B : s2 type])> =
+        [G, x: A |- e : B term]
+      }
+
+    (3) [G |- e f : B term] =
+      [G |- e : A -> B term]
+      { k<f: El([G |- A -> B : s1 type])> =
+        [G |- f : A term]
+        { k<v: El([G |- A : s2 type])> =
+          f<v, k>
+        }
+      }
+
+*)
+
+Inductive env: Set :=
+  | env_nil: env.
+
+Variant typing_judgement: Set :=
+  (* A judgement G |- b : D. *)
+  | typing (g: env) (b: pseudoterm).
+
+Definition CBV_TVAR (n: nat): pseudoterm :=
+  (jump 0 [bound (S n)]).
+
+Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
+  (* Rule (1) above. *)
+  | cbv_dcps_term_var:
+    (* TODO: restrict to terms, please! *)
+    forall g d n t u,
+    TT.infer TT.std (TT.valid_env g) ->
+    item (d, t) g n ->
+    u = lift (1 + n) 0 t ->
+    cbv_dcps g (TT.bound n) u (CBV_TVAR n).
+
+Lemma cbv_dcps_valid_domain:
+  forall g e t b,
+  cbv_dcps g e t b ->
+  TT.infer TT.std (TT.typing g e t).
 Proof.
-  eexists.
-  unfold TT.dependent_example1.
-  eapply dcps_letfun.
-  eapply TT.typing_abs.
-  eapply TT.typing_abs.
-  eapply TT.typing_abs.
-  eapply TT.typing_app.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  eapply TT.typing_bound.
-  admit.
-  constructor.
-  now simpl.
-  now vm_compute.
-  now vm_compute.
-  admit.
-  vm_compute.
-  eapply dcps_letfun.
-  eapply TT.typing_abs.
-  eapply TT.typing_abs.
-  eapply TT.typing_app.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  eapply TT.typing_bound.
-  admit.
-  constructor.
-  now simpl.
-  now vm_compute.
-  now vm_compute.
-  admit.
-  vm_compute.
-  eapply dcps_letfun.
-  eapply TT.typing_abs.
-  eapply TT.typing_app.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  eapply TT.typing_bound.
-  admit.
-  constructor.
-  now simpl.
-  now vm_compute.
-  now vm_compute.
-  admit.
-  vm_compute.
-  eapply dcps_letfun.
-  eapply TT.typing_app.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  eapply TT.typing_bound.
-  admit.
-  constructor.
-  now simpl.
-  now vm_compute.
-  now vm_compute.
-  admit.
-  vm_compute.
-  eapply dcps_dobind.
-  vm_compute.
-  eapply dcps_return.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  admit.
-  vm_compute.
-  eapply dcps_return.
-  eapply TT.typing_bound.
-  admit.
-  repeat constructor.
-  now simpl.
-  now vm_compute.
-  admit.
-  unfold LET, FUN, BIND, RET, CALL; simpl.
-Admitted.
+  induction 1.
+  - destruct d as [ e | ].
+    + now apply TT.typing_ref with e t.
+    + now apply TT.typing_var with t.
+Qed.

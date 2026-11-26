@@ -5,6 +5,7 @@
 Require Import List.
 Require Local.Constructions.Calculus.
 Require Local.Constructions.Conversion.
+Require Local.Constructions.Cumulativity.
 Require Local.Constructions.Confluence.
 Require Local.Constructions.TypeSystem.
 Require Local.Constructions.Inversion.
@@ -19,6 +20,7 @@ Import ListNotations.
 
 Include Calculus.
 Include Conversion.
+Include Cumulativity.
 Include Confluence.
 Include TypeSystem.
 Include Inversion.
