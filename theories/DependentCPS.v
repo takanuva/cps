@@ -197,3 +197,52 @@ Proof.
     + assumption.
     + assumption.
 Qed.
+
+Lemma cbv_dcps_is_complete:
+  forall e g t,
+  TT.infer TT.std (TT.typing g e t) ->
+  exists b,
+  cbv_dcps g e t b.
+Proof.
+  induction e; intros.
+  (* Case: sort. *)
+  - admit.
+  (* Case: variable. *)
+  - (* TODO: check if type scheme or not... *)
+    eexists.
+    admit.
+  (* Case: pi. *)
+  - admit.
+  (* Case: abstraction. *)
+  - (* TODO: check if type scheme or not... *)
+    eexists.
+    admit.
+  (* Case: application. *)
+  - (* TODO: check if type scheme or not... *)
+    eexists.
+    admit.
+  (* Case: definition. *)
+  - admit.
+  (* Case: sigma. *)
+  - admit.
+  (* Case: pair. *)
+  - admit.
+  (* Case: projection 1. *)
+  - admit.
+  (* Case: projection 2. *)
+  - admit.
+  (* Case: bool. *)
+  - admit.
+  (* Case: true. *)
+  - admit.
+  (* Case: false. *)
+  - admit.
+  (* Case: if. *)
+  - admit.
+  (* Case: thunk. *)
+  - admit.
+  (* Case: delay. *)
+  - admit.
+  (* Case: force. *)
+  - admit.
+Admitted.
