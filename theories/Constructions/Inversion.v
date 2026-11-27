@@ -14,7 +14,40 @@ Require Import Local.Constructions.TypeSystem.
 Require Import Local.Constructions.Confluence.
 (* Require Import Local.Constructions.Normalization. *)
 
-(* TODO: why are we using conv here instead of any R? *)
+Section Inversion.
+
+  Variable R: typing_equivalence.
+
+  Variable R_refl: forall g t, R g t t.
+  Variable R_trans: forall g t1 t2 t3, R g t1 t2 -> R g t2 t3 -> R g t1 t3.
+
+  Lemma typing_bound_inv:
+    forall g n t,
+    typing g (bound n) t R ->
+    exists2 d,
+    item d g n & R g (lift (1 + n) 0 (snd d)) t.
+  Proof.
+    intros.
+    dependent induction H.
+    - clear IHinfer.
+      eexists.
+      + eassumption.
+      + simpl.
+        apply R_refl.
+    - clear IHinfer.
+      eexists.
+      + eassumption.
+      + simpl.
+        apply R_refl.
+    - clear IHinfer2.
+      specialize (IHinfer1 R_refl R_trans _ _ _ eq_refl) as (d, ?H, ?H).
+      exists d.
+      + assumption.
+      + rename t0 into t, t into u.
+        now apply R_trans with t.
+  Qed.
+
+End Inversion.
 
 (*
 
