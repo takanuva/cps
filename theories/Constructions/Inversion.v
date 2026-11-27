@@ -24,8 +24,8 @@ Section Inversion.
   Lemma typing_bound_inv:
     forall g n t,
     typing g (bound n) t R ->
-    exists2 d,
-    item d g n & R g (lift (1 + n) 0 (snd d)) t.
+    exists2 x,
+    item x g n & R g (lift (1 + n) 0 (snd x)) t.
   Proof.
     intros.
     dependent induction H.
@@ -46,6 +46,59 @@ Section Inversion.
       + rename t0 into t, t into u.
         now apply R_trans with t.
   Qed.
+
+  Lemma typing_implies_sort:
+    forall g e t,
+    typing g e t R ->
+    exists s,
+    typing g t (sort_term s) R.
+  Proof.
+    intros.
+    dependent induction H.
+    - exists (type 1).
+      now constructor.
+    - exists (type (2 + n)).
+      now constructor.
+    - clear IHinfer.
+      admit.
+    - clear IHinfer.
+      admit.
+    - apply valid_env_typing in H.
+      clear - H.
+      destruct s.
+      + exists (type 0).
+        now constructor.
+      + exists (type (1 + n)).
+        now constructor.
+    - apply valid_env_typing in H.
+      clear - H.
+      exists (type 0).
+      now constructor.
+    - admit.
+    - admit.
+    - admit.
+    - apply valid_env_typing in H.
+      clear - H.
+      destruct s.
+      + exists (type 0).
+        now constructor.
+      + exists (type (1 + n)).
+        now constructor.
+    - admit.
+    - admit.
+    - admit.
+    - clear - H.
+      exists (type 0).
+      now constructor.
+    - clear - H.
+      exists iset.
+      now constructor.
+    - clear - H.
+      exists iset.
+      now constructor.
+    - admit.
+    - now exists s.
+  Admitted.
 
 End Inversion.
 

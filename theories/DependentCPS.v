@@ -157,7 +157,8 @@ Inductive cbv_dcps: TT.env -> TT.term -> TT.term -> pseudoterm -> Prop :=
     forall g d n t u,
     TT.infer TT.std (TT.valid_env g) ->
     item (d, t) g n ->
-    u = lift (1 + n) 0 t ->
+    (* Due to Luo: G, x: A |- x: B iff A <= B! *)
+    TT.std g (lift (1 + n) 0 t) u ->
     cbv_dcps g (TT.bound n) u
       (CBV_VAR n)
 
@@ -187,16 +188,14 @@ Lemma cbv_dcps_domain_is_valid:
   TT.infer TT.std (TT.typing g e t).
 Proof.
   induction 1.
-  - destruct d as [ e | ].
-    + now apply TT.typing_ref with e t.
-    + now apply TT.typing_var with t.
+  - admit.
   - apply TT.typing_abs.
     assumption.
   - apply TT.typing_app with t u.
     + assumption.
     + assumption.
     + assumption.
-Qed.
+Admitted.
 
 Lemma cbv_dcps_is_complete:
   forall e g t,
@@ -209,8 +208,18 @@ Proof.
   - admit.
   (* Case: variable. *)
   - (* TODO: check if type scheme or not... *)
-    eexists.
-    admit.
+    pose proof TT.valid_env_infer.
+    specialize (H0 _ _ H); simpl in H0.
+    apply TT.typing_bound_inv in H as ((d, u), ?H, ?H); intros.
+    + eexists.
+      apply cbv_dcps_term_var with d u.
+      * assumption.
+      * assumption.
+      * simpl in H1.
+        assumption.
+    + apply TT.cumul_refl.
+      apply TT.conv_refl.
+    + now apply TT.cumul_trans with t2.
   (* Case: pi. *)
   - admit.
   (* Case: abstraction. *)
